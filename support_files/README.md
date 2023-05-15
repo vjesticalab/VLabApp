@@ -1,1 +1,0 @@
-# VjesticaLab Application
