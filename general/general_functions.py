@@ -3,7 +3,8 @@ import os
 import tifffile
 import nd2
 from pystackreg import StackReg
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QLabel, QMessageBox
 import warnings
 warnings.filterwarnings(action='ignore', category=DeprecationWarning, message='`np.bool` is a deprecated alias')
 #warnings.filterwarnings("error", category=UserWarning)
@@ -367,3 +368,13 @@ def build_paths_inventory(path):
     pathsInventory['resultsRegisteredImagesFolder']=pathsInventory['resultsMasterFolder']+folder_name(pathsInventory['dataFolder'])+'_registeredImages/'
     pathsInventory['resultsRegistrationAnalysesFolder']=pathsInventory['resultsMasterFolder']+folder_name(pathsInventory['dataFolder'])+'_registrationAnalyses/'
     return pathsInventory
+
+def error_empty(submission_num, widget, window):
+    widget.setFocus()
+    if submission_num == 1:
+        label_error = QLabel('Error : missing value')
+        label_error.setAlignment(Qt.AlignCenter)
+        label_error.setStyleSheet("color: red;")
+        window.addRow(label_error)
+        return label_error
+    

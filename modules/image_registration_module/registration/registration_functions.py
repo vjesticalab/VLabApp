@@ -77,7 +77,7 @@ def registration_main(path, referenceIdentifier, coalignNonReferenceFiles):
     for f in suitable_files:
         if referenceIdentifier in f:
             files[f] = []
-    referenceFiles=list(files.keys())
+    referenceFiles = list(files.keys())
     
     # Step2 : Introduce dictionary values that match the dictionary keys
     # This is an optional step that determines whether only reference files will be aligned
@@ -89,7 +89,7 @@ def registration_main(path, referenceIdentifier, coalignNonReferenceFiles):
                 referenceKey=''
                 for searchRef in referenceFiles:
                     if matchingBasename in searchRef:
-                        referenceKey=searchRef
+                        referenceKey = searchRef
                 if referenceKey == '':
                     text+=f+'\n'
                 else:

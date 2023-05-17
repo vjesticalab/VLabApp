@@ -27,6 +27,7 @@ class View(QWidget):
         
         self.quit_button = QPushButton("Quit", self)
         self.quit_button.clicked.connect(self.parent.close)
+        self.quit_button.setStyleSheet("background: darkred;")
         
         self.line = QFrame()
         self.line.setFrameShape(QFrame.HLine)
@@ -128,6 +129,7 @@ class SingleFile(QWidget):
         
         self.quit_button = QPushButton("Quit", self)
         self.quit_button.clicked.connect(self.parent.close)
+        self.quit_button.setStyleSheet("background: darkred;")
         
         self.line = QFrame()
         self.line.setFrameShape(QFrame.HLine)
@@ -211,6 +213,7 @@ class SingleFolder(QWidget):
         
         self.quit_button = QPushButton("Quit", self)
         self.quit_button.clicked.connect(self.parent.close)
+        self.quit_button.setStyleSheet("background: darkred;")
         
         self.line = QFrame()
         self.line.setFrameShape(QFrame.HLine)
@@ -263,6 +266,7 @@ class MultiFolder(QWidget):
         
         self.quit_button = QPushButton("Quit", self)
         self.quit_button.clicked.connect(self.parent.close)
+        self.quit_button.setStyleSheet("background: darkred;")
         
         self.line = QFrame()
         self.line.setFrameShape(QFrame.HLine)

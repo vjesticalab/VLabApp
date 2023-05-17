@@ -27,6 +27,7 @@ class SingleFile(QWidget):
         
         self.quit_button = QPushButton("Quit", self)
         self.quit_button.clicked.connect(self.parent.close)
+        self.quit_button.setStyleSheet("background: darkred;")
         self.line = QFrame()
         self.line.setFrameShape(QFrame.HLine)
 
@@ -88,7 +89,6 @@ class SingleFolder(QWidget):
         self.parent = parent
         self.setWindowTitle("Image folder segmentation")
         self.setFixedWidth(300)
-        self.setFixedHeight(200)
         
         self.display = QLabel("<b>Select the folder to process</b>")
         self.display.setTextFormat(Qt.RichText)
@@ -107,6 +107,7 @@ class SingleFolder(QWidget):
         
         self.quit_button = QPushButton("Quit", self)
         self.quit_button.clicked.connect(self.parent.close)
+        self.quit_button.setStyleSheet("background: darkred;")
         self.line = QFrame()
         self.line.setFrameShape(QFrame.HLine)
 
@@ -186,6 +187,7 @@ class MultiFolder(QWidget):
 
         self.quit_button = QPushButton("Quit", self)
         self.quit_button.clicked.connect(self.parent.close)
+        self.quit_button.setStyleSheet("background: darkred;")
         self.line = QFrame()
         self.line.setFrameShape(QFrame.HLine)
 
