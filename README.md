@@ -1,3 +1,4 @@
+<a name="readme-top"></a>
 <!-- PROJECT SHIELDS -->
 <!--
 *** I'm using markdown "reference style" links for readability.
@@ -12,6 +13,7 @@
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
+
 
 
 <!-- PROJECT LOGO -->
@@ -57,7 +59,6 @@
       </ul>
     </li>
     <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
@@ -88,6 +89,7 @@ This section will list any major frameworks/libraries used into the project.
 
 [![Python][Python.com]][Python-url]
 
+<p align="right"><a href="#readme-top">back to top</a></p>
 
 
 <!-- GETTING STARTED -->
@@ -95,6 +97,7 @@ This section will list any major frameworks/libraries used into the project.
 
 Give instructions on setting up your project locally.
 To get a local copy up and running follow these simple example steps.
+
 
 ### Prerequisites
 
@@ -110,6 +113,7 @@ List of things you need to use the software and how to install them.
 * QtPy==2.3.1
 * tifffile==2023.4.12
 
+
 ### Installation
 
 _Below is an example of how you can instruct your audience on installing and setting up your app. This template doesn't rely on any external dependencies or services._
@@ -124,7 +128,7 @@ _Below is an example of how you can instruct your audience on installing and set
    pip install matplotlib
    ...
    ```
-
+<p align="right"><a href="#readme-top">back to top</a></p>
 
 
 <!-- USAGE EXAMPLES -->
@@ -133,6 +137,8 @@ _Below is an example of how you can instruct your audience on installing and set
 Useful examples of how the application can be used. Additional screenshots, code examples and demos. Also link to more resources.
 
 _For more examples, please refer to the [Documentation](https://example.com)_
+
+<p align="right"><a href="#readme-top">back to top</a></p>
 
 
 <!-- CONTRIBUTING -->
@@ -149,22 +155,29 @@ Don't forget to give the project a star! Thanks again!
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+<p align="right"><a href="#readme-top">back to top</a></p>
+
 
 <!-- LICENSE -->
 ## License
 
 Distributed under the ... License. See `support_files/LICENSE.txt` for more information.
 
+<p align="right"><a href="#readme-top">back to top</a></p>
 
 
 <!-- CONTACT -->
 ## Contact
 
 Arianna Ravera - ariannaravera22@gmail.com
-Julien Dorier - ariannaravera22@gmail.com
-Aleksandar Vjestica - ariannaravera22@gmail.com
+
+Julien Dorier - 
+
+Aleksandar Vjestica - 
 
 Project Link: [https://github.com/vjesticalab/Application](https://github.com/vjesticalab/Application)
+
+<p align="right"><a href="#readme-top">back to top</a></p>
 
 
 <!-- ACKNOWLEDGMENTS -->
@@ -173,16 +186,9 @@ Project Link: [https://github.com/vjesticalab/Application](https://github.com/vj
 Space to list helpful resources and would like to give credit to. I've included a few of my favorites to kick things off!
 
 * [Choose an Open Source License](https://choosealicense.com)
-* [GitHub Emoji Cheat Sheet](https://www.webpagefx.com/tools/emoji-cheat-sheet)
-* [Malven's Flexbox Cheatsheet](https://flexbox.malven.co/)
-* [Malven's Grid Cheatsheet](https://grid.malven.co/)
-* [Img Shields](https://shields.io)
-* [GitHub Pages](https://pages.github.com)
-* [Font Awesome](https://fontawesome.com)
-* [React Icons](https://react-icons.github.io/react-icons/search)
+* [GitHub Pages eg.Cellpose](https://pages.github.com)
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
+<p align="right"><a href="#readme-top">back to top</a></p>
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
@@ -198,7 +204,7 @@ Space to list helpful resources and would like to give credit to. I've included 
 [license-shield]: https://img.shields.io/github/license/vjesticalab/Application.svg?style=for-the-badge
 [license-url]: https://github.com/vjesticalab/Application/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: [https://www.linkedin.com/in/arianna-ravera-3a082917b]
+[linkedin-url]: https://www.linkedin.com/in/arianna-ravera-3a082917b
 [product-screenshot]: support_files/Screenshot.png
 [Python.com]: https://img.shields.io/badge/python-35495E?style=for-the-badge&logo=python&logoColor=green
 [Python-url]: [https://pythonprogramminglanguage.com]
