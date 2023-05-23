@@ -3,7 +3,7 @@ import os
 from functools import partial
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PyQt5.QtGui import QPixmap, QIcon, QFont
-from PyQt5.QtWidgets import QApplication, QTextEdit, QCheckBox, QFrame, QLabel, QPushButton, QVBoxLayout, QWidget, QTabWidget, QFormLayout, QLineEdit, QFileDialog
+from PyQt5.QtWidgets import QApplication, QSpacerItem, QSizePolicy, QCheckBox, QFrame, QLabel, QPushButton, QVBoxLayout, QWidget, QTabWidget, QFormLayout, QLineEdit, QFileDialog
 
 from modules.image_registration_module.registration import registration
 from modules.image_registration_module.alignment import alignment
@@ -58,60 +58,76 @@ class Home(Page):
         self.line.setFrameShape(QFrame.HLine)
         self.window.addRow(self.line)
 
+        self.text = QLabel('The VLabApplication is created with the aim of automating the cellular image analysis process, from the recording of the movies that come out of the microscope, to the tracking of the events within each time frame.\n\n\nThe application is in fact divided into several sub-sections that can be used consecutively or automatically:\n\n  - Image Registration\n\n  - GroundTruth Dataset Construction\n\n  - Image Segmentation\n\n  - Event Tracking', self)
+        self.text.setWordWrap(True)
+        self.window.addRow(self.text)
 
+        
 class Registration(Page):
     def __init__(self):
         super().__init__()
-        self.window = QFormLayout(self.container)
+        self.window = QVBoxLayout(self.container)
         self.title = QLabel('<b>Image Registration</b>', self)
         self.title.setFont(QFont('.AppleSystemUIFont', 18))
         self.title.setAlignment(Qt.AlignCenter)
-        self.window.addRow(self.title)
+        self.window.addWidget(self.title)
         self.line = QFrame()
         self.line.setFrameShape(QFrame.HLine)
-        self.window.addRow(self.line)
+        self.line.setMinimumWidth(400)
+        self.window.addWidget(self.line)
 
         ####### Section A #######
-        self.window.addRow(QLabel('<b>Calculate & Perform Registration</b>', self))
+        self.window.addWidget(QLabel('<b>Calculate & Perform Registration</b>', self))
         self.buttonA1 = QPushButton("Individual image")
+        self.buttonA1.setMinimumWidth(200)
         self.buttonA1.clicked.connect(partial(self.registration, 'singleFile'))
-        self.window.addRow(self.buttonA1)
+        self.window.addWidget(self.buttonA1, alignment=Qt.AlignCenter)
         self.buttonA2 = QPushButton("Folder of images")
+        self.buttonA2.setMinimumWidth(200)
         self.buttonA2.clicked.connect(partial(self.registration, 'singleFolder'))
-        self.window.addRow(self.buttonA2)
+        self.window.addWidget(self.buttonA2, alignment=Qt.AlignCenter)
         self.buttonA3 = QPushButton("Collection of folders")
+        self.buttonA3.setMinimumWidth(200)
         self.buttonA3.clicked.connect(partial(self.registration, 'multiFolder'))
-        self.window.addRow(self.buttonA3)
+        self.window.addWidget(self.buttonA3, alignment=Qt.AlignCenter)
         self.lineA = QFrame()
         self.lineA.setFrameShape(QFrame.HLine)
-        self.window.addRow(self.lineA)
+        self.lineA.setMinimumWidth(400)
+        self.window.addWidget(self.lineA)
         
         ####### Section B #######
-        self.window.addRow(QLabel('<b>Align with Transformation Matrices</b>', self))
+        self.window.addWidget(QLabel('<b>Align with Transformation Matrices</b>', self))
         self.buttonB1 = QPushButton("View aligned tyx image")
+        self.buttonB1.setMinimumWidth(200)
         self.buttonB1.clicked.connect(partial(self.alignment, 'view'))
-        self.window.addRow(self.buttonB1)
+        self.window.addWidget(self.buttonB1, alignment=Qt.AlignCenter)
         self.buttonB2 = QPushButton("Align image or image set")
+        self.buttonB2.setMinimumWidth(200)
         self.buttonB2.clicked.connect(partial(self.alignment, 'singleFile'))
-        self.window.addRow(self.buttonB2)
+        self.window.addWidget(self.buttonB2, alignment=Qt.AlignCenter)
         self.buttonB3 = QPushButton("Align folder of images")
+        self.buttonB3.setMinimumWidth(200)
         self.buttonB3.clicked.connect(partial(self.alignment, 'singleFolder'))
-        self.window.addRow(self.buttonB3)
+        self.window.addWidget(self.buttonB3, alignment=Qt.AlignCenter)
         self.buttonB4 = QPushButton("Align collection of folders")
+        self.buttonB4.setMinimumWidth(200)
         self.buttonB4.clicked.connect(partial(self.alignment, 'multiFolder'))
-        self.window.addRow(self.buttonB4)
+        self.window.addWidget(self.buttonB4, alignment=Qt.AlignCenter)
         self.lineB = QFrame()
         self.lineB.setFrameShape(QFrame.HLine)
-        self.window.addRow(self.lineB)
+        self.lineB.setMinimumWidth(400)
+        self.window.addWidget(self.lineB)
 
         ####### Section C #######
-        self.window.addRow(QLabel('<b>Edit Transformation Matrices</b>', self))
+        self.window.addWidget(QLabel('<b>Edit Transformation Matrices</b>', self))
         self.buttonC1 = QPushButton("Individual image")
+        self.buttonC1.setMinimumWidth(200)
         self.buttonC1.clicked.connect(partial(self.editing, 'single'))
-        self.window.addRow(self.buttonC1)
+        self.window.addWidget(self.buttonC1, alignment=Qt.AlignCenter)
         self.buttonC2 = QPushButton("Folder of images")
+        self.buttonC2.setMinimumWidth(200)
         self.buttonC2.clicked.connect(partial(self.editing, 'folder'))
-        self.window.addRow(self.buttonC2)
+        self.window.addWidget(self.buttonC2, alignment=Qt.AlignCenter)
         
     def registration(self, param):
         window = registration.Registration(param, parent=self)
@@ -144,6 +160,7 @@ class GTGenerator(Page):
         self.window.addRow(self.input)
         self.window.addRow(QLabel("Select folder of images to process"))
         self.selected_folder1 = QLineEdit()
+        self.selected_folder1.setMinimumWidth(300)
         self.browse_button1 = QPushButton("Browse", self)
         self.browse_button1.clicked.connect(self.browse_folder1)
         self.window.addRow(self.selected_folder1, self.browse_button1)
@@ -159,6 +176,7 @@ class GTGenerator(Page):
         self.window.addRow(self.check_resfolder)
         self.window.addRow(QLabel("\nOR\n\nselect another folder where to save results"))
         self.selected_folder2 = QLineEdit()
+        self.selected_folder2.setMinimumWidth(300)
         self.browse_button2 = QPushButton("Browse", self)
         self.browse_button2.clicked.connect(self.browse_folder2)
         self.window.addRow(self.selected_folder2, self.browse_button2)
@@ -169,7 +187,7 @@ class GTGenerator(Page):
         # Submit
         self.submit_button = QPushButton("Submit", self)
         self.submit_button.clicked.connect(self.process_input)
-        self.window.addRow(self.submit_button)
+        self.window.addWidget(self.submit_button)
         self.submission_num_failed = 0
         self.label_error = None
               
@@ -207,26 +225,32 @@ class GTGenerator(Page):
 class Segmentation(Page):
     def __init__(self):
         super().__init__()
-        self.window = QFormLayout(self.container)
+        self.window = QVBoxLayout(self.container)
         self.title = QLabel('<b>Image Segmentation</b>', self)
         self.title.setFont(QFont('Arial', 18))
         self.title.setAlignment(Qt.AlignCenter)
-        self.window.addRow(self.title)
+        self.window.addWidget(self.title)
         self.line = QFrame()
         self.line.setFrameShape(QFrame.HLine)
-        self.window.addRow(self.line)
+        self.line.setMinimumWidth(400)
+        self.window.addWidget(self.line)
         
         self.buttonA1 = QPushButton("Individual image")
+        self.buttonA1.setMinimumWidth(200)
         self.buttonA1.clicked.connect(partial(self.segmentation, 'singleFile'))
-        self.window.addRow(self.buttonA1)
+        self.window.addWidget(self.buttonA1, alignment=Qt.AlignCenter)
 
         self.buttonA2 = QPushButton("Folder of images")
+        self.buttonA2.setMinimumWidth(200)
         self.buttonA2.clicked.connect(partial(self.segmentation, 'singleFolder'))
-        self.window.addRow(self.buttonA2)
+        self.window.addWidget(self.buttonA2, alignment=Qt.AlignCenter)
 
         self.buttonA3 = QPushButton("Collection of folders")
+        self.buttonA3.setMinimumWidth(200)
         self.buttonA3.clicked.connect(partial(self.segmentation, 'multiFolder'))
-        self.window.addRow(self.buttonA3)
+        self.window.addWidget(self.buttonA3, alignment=Qt.AlignCenter)
+
+        self.window.addStretch()
 
         """
         self.selection_type = ''
@@ -299,27 +323,33 @@ class Segmentation(Page):
 class Tracking(Page):
     def __init__(self):
         super().__init__()
-        self.window = QFormLayout(self.container)
-        
+        self.window = QVBoxLayout(self.container)
+
         self.title = QLabel('<b>Image Tracking</b>', self)
         self.title.setFont(QFont('Arial', 18))
         self.title.setAlignment(Qt.AlignCenter)
-        self.window.addRow(self.title)
+        self.window.addWidget(self.title)
         self.line = QFrame()
         self.line.setFrameShape(QFrame.HLine)
-        self.window.addRow(self.line)
+        self.line.setMinimumWidth(400)
+        self.window.addWidget(self.line)
         
         self.buttonA1 = QPushButton("Filter")
+        self.buttonA1.setMinimumWidth(200)
         self.buttonA1.clicked.connect(partial(self.filter))
-        self.window.addRow(self.buttonA1)
+        self.window.addWidget(self.buttonA1, alignment=Qt.AlignCenter)
 
         self.buttonA2 = QPushButton("Fusions")
+        self.buttonA2.setMinimumWidth(200)
         self.buttonA2.clicked.connect(partial(self.fusions))
-        self.window.addRow(self.buttonA2)
+        self.window.addWidget(self.buttonA2, alignment=Qt.AlignCenter)
 
         self.buttonA3 = QPushButton("Divisions")
+        self.buttonA3.setMinimumWidth(200)
         self.buttonA3.clicked.connect(partial(self.divisions))
-        self.window.addRow(self.buttonA3)
+        self.window.addWidget(self.buttonA3, alignment=Qt.AlignCenter)
+
+        self.window.addStretch()
              
     def filter(self):
         self.filter_window = analysis.Filter()
@@ -356,11 +386,13 @@ class MainWindow(QWidget):
         self.quit_button = QPushButton("Quit", self)
         self.quit_button.clicked.connect(self.close)
         self.quit_button.setStyleSheet("background: darkred;")
-        window.addWidget(self.quit_button)
+        window.addWidget(self.quit_button, alignment=Qt.AlignRight)
     
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     w = MainWindow()
     w.show()
+    w.setFixedWidth(500)
+    w.setFixedHeight(720)
     sys.exit(app.exec_())
