@@ -1,6 +1,104 @@
-import numpy as np
 import os
-from PyQt5.QtWidgets import QMessageBox
+import logging
+import napari
+import tifffile
+from cellpose import models
+from general import general_functions as gf
 
-def main(path):
-   pass
+
+def main(image_path, model_path, output_path, display_results=True, use_gpu=False):
+    """
+    Load image from `image_path`, segment with cellpose and save the resulting masks
+    into `output_path` directory using image basename (with .tif extension).
+
+    Parameters
+    ----------
+    image_path: str
+        input image path.
+    model_path: str
+        cellpose pretrained model path.
+    output_path: str
+        output directory.
+    display_results: bool, default True
+        display input image and segmentation masks in napari.
+    use_gpu: bool, default False
+        use GPU for cellpose segmentation.
+
+    """
+
+    logger = logging.getLogger(__name__)
+    logger.info("SEGMENTATION MODULE")
+    if not os.path.isdir(output_path):
+        logger.info("creating: %s", output_path)
+        os.makedirs(output_path)
+    logger.info("writing log output to: %s", os.path.join(
+        output_path, 'segmentation.log'))
+    logfile_handler = logging.FileHandler(
+        os.path.join(output_path, 'segmentation.log'), mode='w')
+    logger.addHandler(logfile_handler)
+    logger.info("image_path: %s", image_path)
+    logger.info("model_path: %s", model_path)
+    logger.info("output_path: %s", output_path)
+    logger.info("use_gpu: %s", use_gpu)
+    logger.info("display_results: %s", display_results)
+
+    # load image
+    logger.info("loading %s", image_path)
+    input_image, axes = gf.open_suitable_files(image_path)
+
+    if display_results:
+        # show image in napari
+        viewer_images = napari.Viewer(title=image_path)
+        viewer_images.add_image(input_image, name="Input image")
+
+    # cellpose: create model
+    logger.info("loading cellpose model %s", model_path)
+    model = models.CellposeModel(gpu=use_gpu, pretrained_model=model_path)
+    logger.info("model diameter:%s", model.diam_labels)
+
+    if display_results:
+        # TODO: find a way to use logging package instead?
+        # TODO: do not import here.
+        # Setup logging into napari window.
+        # only import PyQt5 if needed (no need for PyQt5 dependency if display_results is False.
+        from PyQt5.QtGui import QCursor
+        from PyQt5.QtCore import Qt
+        # set cursor to BusyCursor
+        napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
+        napari.qt.get_app().processEvents()
+        # show activity dock & add napari progress bar
+        viewer_images.window._status_bar._toggle_activity_dock(True)
+        pbr = napari.utils.progress(total=input_image.shape[0])
+
+    # cellpose segmentation
+    masks = input_image.copy()
+    for i in range(input_image.shape[0]):
+        if display_results:
+            # logging into napari window.
+            pbr.set_description(f"cellpose masks prediction\nframe {i}")
+            pbr.update(1)
+        logger.info("cellpose segmentation: frame %s", i)
+        masks[i], _, _ = model.eval(input_image[i],
+                                    diameter=model.diam_labels,
+                                    channels=[0, 0])
+
+    if display_results:
+        # stop logging into napari window
+        # restore cursor
+        napari.qt.get_app().restoreOverrideCursor()
+        # hide dock & close progress bar
+        viewer_images.window._status_bar._toggle_activity_dock(False)
+        pbr.close()
+
+    if display_results:
+        # show masks in napari
+        viewer_images.add_labels(masks, name="Cell masks")
+
+    # save masks
+    output_file = os.path.join(output_path, os.path.splitext(
+        os.path.basename(image_path))[0]+".tif")
+    logger.info("saving masks: %s", output_file)
+    tifffile.imwrite(output_file, masks, imagej=True, compression='zlib')
+
+    # stop using logfile
+    logger.removeHandler(logfile_handler)

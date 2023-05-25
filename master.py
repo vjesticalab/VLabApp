@@ -3,7 +3,7 @@ import os
 from functools import partial
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PyQt5.QtGui import QPixmap, QIcon, QFont, QPalette
-from PyQt5.QtWidgets import QApplication, QSpacerItem, QSizePolicy, QCheckBox, QFrame, QLabel, QPushButton, QVBoxLayout, QWidget, QTabWidget, QFormLayout, QLineEdit, QFileDialog, QScrollArea, QFrame
+from PyQt5.QtWidgets import QApplication, QSpacerItem, QSizePolicy, QCheckBox, QFrame, QLabel, QPushButton, QVBoxLayout, QWidget, QTabWidget, QFormLayout, QLineEdit, QFileDialog, QScrollArea
 
 from modules.image_registration_module.registration import registration
 from modules.image_registration_module.alignment import alignment
