@@ -3,7 +3,7 @@ import logging
 from PyQt5.QtWidgets import QFileDialog, QLabel, QLineEdit, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QListWidget, QAbstractItemView, QGroupBox
 from PyQt5.QtCore import Qt
 from modules.segmentation_module.segmentation import segmentation_functions as f
-from modules.segmentation_module.graphGenerator import graph_functions
+
 
 class Segmentation(QWidget):
     def __init__(self):
@@ -23,7 +23,7 @@ class Segmentation(QWidget):
         self.browse_button.clicked.connect(self.browse_model)
 
         self.use_input_folder = QCheckBox(
-            "Use input image folder (segmentation_masks_raw sub-folder)")
+            "Input image folder (segmentation_masks_raw sub-folder)")
         self.use_input_folder.setChecked(True)
         self.use_input_folder.clicked.connect(self.use_input_folder_clicked)
         self.output_folder = QLineEdit()
@@ -40,8 +40,10 @@ class Segmentation(QWidget):
 
         self.submit_button = QPushButton("Submit", self)
         self.submit_button.clicked.connect(self.process_input)
-        self.display3 = QLabel(
-            "<i>This step can require also several minutes</i>")
+        self.display3 = QLabel("This step can require also several minutes")
+        font = self.display3.font()
+        font.setItalic(True)
+        self.display3.setFont(font)
 
         # Layout
         layout = QVBoxLayout()
@@ -88,7 +90,7 @@ class Segmentation(QWidget):
     def add_image(self):
         file_paths, _ = QFileDialog.getOpenFileNames(self,
                                                      "Select Files",
-                                                     filter="Images (*.tif, *tiff, *.nd2)")
+                                                     filter="Images (*.tif *tiff *.nd2)")
         for file_path in file_paths:
             if file_path and len(self.image_list.findItems(file_path, Qt.MatchExactly)) == 0:
                 self.image_list.addItem(file_path)
@@ -127,6 +129,11 @@ class Segmentation(QWidget):
             QMessageBox.warning(self, 'Error', 'Image missing')
             self.add_image_button.setFocus()
             return
+        for path in image_paths:
+            if not os.path.isfile(path):
+                QMessageBox.warning(self, 'Error', 'Image not found:\n'+path)
+                self.add_image_button.setFocus()
+                return
         if not os.path.isfile(model_path):
             QMessageBox.warning(self, 'Error', 'Model missing')
             self.selected_model.setFocus()
@@ -147,7 +154,8 @@ class Segmentation(QWidget):
                     self.logger.info("Segmenting image %s", image_path)
                     try:
                         f.main(image_path, model_path, output_path=output_path,
-                               display_results=self.display_results.isChecked(), use_gpu=self.use_gpu.isChecked())
+                               display_results=self.display_results.isChecked(),
+                               use_gpu=self.use_gpu.isChecked())
                     except Exception as e:
                         self.logger.error(str(e))
                         raise e

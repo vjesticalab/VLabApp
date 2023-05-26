@@ -1,5 +1,6 @@
 import os
 import logging
+import numpy as np
 import napari
 import tifffile
 from cellpose import models
@@ -14,7 +15,7 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
     Parameters
     ----------
     image_path: str
-        input image path.
+        input image path. Must be a tif or nd2 image with axes T,Y,X.
     model_path: str
         cellpose pretrained model path.
     output_path: str
@@ -54,6 +55,10 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
     logger.debug("loading %s", image_path)
     input_image, axes = gf.open_suitable_files(image_path)
 
+    # TODO: deal with Z axis (z-stack projection)
+    if ''.join(list(axes.keys())).upper() != "CYX":
+        raise TypeError(f'Input image is not CYX.\n({image_path})')
+
     if display_results:
         # show image in napari
         viewer_images = napari.Viewer(title=image_path)
@@ -79,7 +84,7 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
         pbr = napari.utils.progress(total=input_image.shape[0])
 
     # cellpose segmentation
-    masks = input_image.copy()
+    masks = np.zeros(input_image.shape, dtype='uint16')
     for i in range(input_image.shape[0]):
         if display_results:
             # logging into napari window.
@@ -101,7 +106,9 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
 
     if display_results:
         # show masks in napari
-        viewer_images.add_labels(masks, name="Cell masks")
+        layer_masks = viewer_images.add_labels(masks, name="Cell masks")
+        # do not allow edition
+        layer_masks.editable = False
 
     # save masks
     output_file = os.path.join(output_path, os.path.splitext(
