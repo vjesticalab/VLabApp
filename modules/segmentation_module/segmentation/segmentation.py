@@ -1,5 +1,4 @@
 import os
-import sys
 import logging
 from PyQt5.QtWidgets import QFileDialog, QLabel, QLineEdit, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QListWidget, QAbstractItemView, QGroupBox
 from PyQt5.QtCore import Qt
@@ -83,14 +82,6 @@ class Segmentation(QWidget):
         layout.addWidget(self.display3)
         self.setLayout(layout)
 
-        # setup logger (should be moved to master.py)
-        logging.basicConfig(level=logging.INFO,
-                            format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s",
-                            handlers=[
-                                # logging.FileHandler(log_file,mode='w'),
-                                logging.StreamHandler(sys.stdout)
-                            ]
-                            )
         self.logger = logging.getLogger(__name__)
 
 
@@ -158,17 +149,11 @@ class Segmentation(QWidget):
                         f.main(image_path, model_path, output_path=output_path,
                                display_results=self.display_results.isChecked(), use_gpu=self.use_gpu.isChecked())
                     except Exception as e:
-                        self.logger.error("segmentation_function.py failed")
-                        msg = QMessageBox()
-                        msg.setIcon(QMessageBox.Critical)
-                        msg.setText("Error - segmentation_functions.py failed")
-                        msg.setInformativeText(str(e))
-                        msg.setWindowTitle("Error")
-                        msg.exec_()
+                        self.logger.error(str(e))
                         raise e
                 else:
                     self.logger.warning("Unable to locate file %s", image_path)
         else:
             self.logger.warning("Model file %s not found", model_path)
 
-        self.logger.info("All images have been segmented")
+        self.logger.info("Done")

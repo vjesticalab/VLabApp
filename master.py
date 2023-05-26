@@ -1,9 +1,10 @@
 import sys
 import os
+import logging
 from functools import partial
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PyQt5.QtGui import QPixmap, QIcon, QFont, QPalette
-from PyQt5.QtWidgets import QApplication, QSpacerItem, QSizePolicy, QCheckBox, QFrame, QLabel, QPushButton, QVBoxLayout, QWidget, QTabWidget, QFormLayout, QLineEdit, QFileDialog, QScrollArea
+from PyQt5.QtWidgets import QApplication, QSpacerItem, QSizePolicy, QCheckBox, QFrame, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTabWidget, QFormLayout, QLineEdit, QFileDialog, QScrollArea, QMessageBox
 
 from modules.image_registration_module.registration import registration
 from modules.image_registration_module.alignment import alignment
@@ -12,6 +13,50 @@ from modules.groundtruth_generator_module.generator import generator_functions
 from modules.segmentation_module.segmentation import segmentation
 from modules.graph_analysis_module.graphAnalysis import analysis
 from general import general_functions
+
+
+class QLineEditHandler(logging.Handler):
+    """
+    logging handler to send message to QLineEdit.
+
+    Examples
+    --------
+    label=QLineEdit()
+    handler=QLineEditHandler(label)
+    logging.getLogger().addHandler(handler)
+    """
+
+    def __init__(self, qlabel):
+        logging.Handler.__init__(self)
+        self.label = qlabel
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.label.setText(msg)
+        # to focus on the beginning of the text if too long
+        self.label.setCursorPosition(0)
+        # force repainting to update message even when busy
+        self.label.repaint()
+
+
+class QMessageBoxErrorHandler(logging.Handler):
+    """
+    logging handler to send message to QMessageBox.critical (with .
+
+    Examples
+    --------
+    handler= QMessageBoxErrorHandler(self)
+    handler.setLevel(logging.ERROR)
+    logging.getLogger().addHandler(handler)    
+    """
+
+    def __init__(self, parent):
+        logging.Handler.__init__(self)
+        self.parent = parent
+
+    def emit(self, record):
+        msg = self.format(record)
+        QMessageBox.critical(self.parent, 'Error', msg)
 
 
 class TabWizard(QTabWidget):
@@ -297,12 +342,46 @@ class MainWindow(QWidget):
         tabwizard.addPage(GTGenerator(), "GroundTruth")
         tabwizard.addPage(Segmentation(), "Segmentation")
         tabwizard.addPage(Tracking(), "Tracking")
-        
+
+        layout = QHBoxLayout()
+        self.status_line = QLineEdit()
+        self.status_line.setEnabled(False)
+        self.status_line.setFrame(False)
+        font = self.status_line.font()
+        font.setItalic(True)
+        self.status_line.setFont(font)
+        layout.addWidget(self.status_line)
+
         self.quit_button = QPushButton("Quit", self)
         self.quit_button.clicked.connect(self.close)
         self.quit_button.setStyleSheet("background: darkred;")
-        window.addWidget(self.quit_button, alignment=Qt.AlignRight)
-    
+        layout.addWidget(self.quit_button, alignment=Qt.AlignRight)
+        window.addLayout(layout)
+
+        # setup logging
+        logging.basicConfig(level=logging.INFO,
+                            format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s",
+                            handlers=[
+                                logging.StreamHandler(sys.stdout)
+                            ]
+                            )
+
+        # add a handler to output messages to self.status_line
+        self.qlabel_handler = QLineEditHandler(self.status_line)
+        self.qlabel_handler.setFormatter(logging.Formatter('%(message)s'))
+        logging.getLogger().addHandler(self.qlabel_handler)
+
+        # add a handler to output errors to QMessageBox
+        self.qmessagebox_handler = QMessageBoxErrorHandler(self)
+        self.qmessagebox_handler.setFormatter(logging.Formatter('%(message)s'))
+        self.qmessagebox_handler.setLevel(logging.ERROR)
+        logging.getLogger().addHandler(self.qmessagebox_handler)
+
+    def __del__(self):
+        # remove handler to avoid problems after self and self.status_line are destroyed
+        logging.getLogger().removeHandler(self.qlabel_handler)
+        logging.getLogger().removeHandler(self.qmessagebox_handler)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
