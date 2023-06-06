@@ -47,7 +47,10 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
     logger.addHandler(logfile_handler)
 
     ##cellpose_version already contains platform, python version and torch version
-    logger.info("System info: %s\nnumpy version: %s\nnapari version: %s",cellpose_version,np.__version__,napari.__version__)
+    logger.info("System info: %s\nnumpy version: %s\nnapari version: %s",
+                cellpose_version,
+                np.__version__,
+                napari.__version__)
     logger.info("image: %s", image_path)
     logger.info("cellpose model: %s", model_path)
     logger.info("output: %s", output_path)
@@ -96,7 +99,7 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
             pbr.set_description(
                 f"cellpose segmentation {i+1}/{input_image.shape[0]}")
             pbr.update(1)
-        logger.debug("cellpose segmentation %s/%s", i+1, input_image.shape[0])
+        logger.info("cellpose segmentation %s/%s", i+1, input_image.shape[0])
         masks[i], _, _ = model.eval(input_image[i],
                                     diameter=model.diam_labels,
                                     channels=[0, 0])

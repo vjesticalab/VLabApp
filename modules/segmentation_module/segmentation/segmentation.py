@@ -247,8 +247,8 @@ class Segmentation(QWidget):
             self.output_folder.setFocus()
             return
 
-        if self.display_results.isChecked() and len(image_paths)>1:
-            display_results = QMessageBox.question(self,'Show results in napari?', "All images will be loaded into memory and a new napari window will be opened for each image.\nDo you really want to show images in napari?", QMessageBox.Yes | QMessageBox.No)
+        if self.display_results.isChecked() and len(image_paths) > 1:
+            display_results = QMessageBox.question(self, 'Show results in napari?', "All images will be loaded into memory and a new napari window will be opened for each image.\nDo you really want to show images in napari?", QMessageBox.Yes | QMessageBox.No)
             if display_results == QMessageBox.No:
                 self.display_results.setChecked(False)
 
