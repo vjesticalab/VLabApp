@@ -353,7 +353,7 @@ class MainWindow(QWidget):
         layout.addWidget(self.status_line)
 
         self.quit_button = QPushButton("Quit", self)
-        self.quit_button.clicked.connect(self.close)
+        self.quit_button.clicked.connect(QApplication.quit)
         self.quit_button.setStyleSheet("background: darkred;")
         layout.addWidget(self.quit_button, alignment=Qt.AlignRight)
         window.addLayout(layout)
@@ -387,6 +387,5 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     w = MainWindow()
     w.show()
-    #w.setFixedWidth(500)
-    #w.setFixedHeight(720)
+    w.resize(500,720)
     sys.exit(app.exec_())
