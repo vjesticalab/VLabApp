@@ -112,7 +112,9 @@ List of things you need to use the software and how to install them.
 * pystackreg==0.2.7
 * QtPy==2.3.1
 * tifffile==2023.4.12
-
+* cellpose==2.2
+* igraph==0.10.4
+* scipy==1.9.1
 
 ### Installation
 
