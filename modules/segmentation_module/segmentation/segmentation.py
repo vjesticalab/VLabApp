@@ -1,7 +1,8 @@
 import os
 import logging
-from PyQt5.QtWidgets import QFileDialog, QLabel, QLineEdit, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QListWidget, QAbstractItemView, QGroupBox
+from PyQt5.QtWidgets import QFileDialog, QLabel, QLineEdit, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QListWidget, QAbstractItemView, QGroupBox, QRadioButton, QApplication
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QCursor
 from modules.segmentation_module.segmentation import segmentation_functions as f
 
 
@@ -22,28 +23,27 @@ class Segmentation(QWidget):
         self.browse_button = QPushButton("Browse", self)
         self.browse_button.clicked.connect(self.browse_model)
 
-        self.use_input_folder = QCheckBox(
-            "Input image folder (segmentation_masks_raw sub-folder)")
+        self.use_input_folder = QRadioButton(
+            "Use input image folder\n(segmentation_masks_raw sub-folder)")
         self.use_input_folder.setChecked(True)
-        self.use_input_folder.clicked.connect(self.use_input_folder_clicked)
+        self.use_custom_folder = QRadioButton("Use custom folder:")
+        self.use_custom_folder.setChecked(False)
         self.output_folder = QLineEdit()
         self.browse_button2 = QPushButton("Browse", self)
         self.browse_button2.clicked.connect(self.browse_output)
-        self.output_folder.setEnabled(not self.use_input_folder.isChecked())
-        self.browse_button2.setEnabled(not self.use_input_folder.isChecked())
+        self.output_folder.setEnabled(self.use_custom_folder.isChecked())
+        self.browse_button2.setEnabled(self.use_custom_folder.isChecked())
+        self.use_custom_folder.toggled.connect(self.output_folder.setEnabled)
+        self.use_custom_folder.toggled.connect(self.browse_button2.setEnabled)
 
         self.use_gpu = QCheckBox("Use GPU")
         self.use_gpu.setChecked(False)
 
         self.display_results = QCheckBox("Show results in napari")
-        self.display_results.setChecked(True)
+        self.display_results.setChecked(False)
 
         self.submit_button = QPushButton("Submit", self)
         self.submit_button.clicked.connect(self.process_input)
-        self.display3 = QLabel("This step can require also several minutes")
-        font = self.display3.font()
-        font.setItalic(True)
-        self.display3.setFont(font)
 
         # Layout
         layout = QVBoxLayout()
@@ -62,8 +62,8 @@ class Segmentation(QWidget):
         groupbox = QGroupBox("Cellpose model")
         layout2 = QVBoxLayout()
         layout3 = QHBoxLayout()
-        layout3.addWidget(self.browse_button, alignment=Qt.AlignCenter)
         layout3.addWidget(self.selected_model)
+        layout3.addWidget(self.browse_button, alignment=Qt.AlignCenter)
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -71,9 +71,10 @@ class Segmentation(QWidget):
         groupbox = QGroupBox("Output folder")
         layout2 = QVBoxLayout()
         layout2.addWidget(self.use_input_folder)
+        layout2.addWidget(self.use_custom_folder)
         layout3 = QHBoxLayout()
-        layout3.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
         layout3.addWidget(self.output_folder)
+        layout3.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -81,7 +82,6 @@ class Segmentation(QWidget):
         layout.addWidget(self.use_gpu)
         layout.addWidget(self.display_results)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
-        layout.addWidget(self.display3)
         self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
@@ -115,10 +115,6 @@ class Segmentation(QWidget):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         self.output_folder.setText(folder_path)
 
-    def use_input_folder_clicked(self):
-        self.output_folder.setEnabled(not self.use_input_folder.isChecked())
-        self.browse_button2.setEnabled(not self.use_input_folder.isChecked())
-
     def process_input(self):
         image_paths = [self.image_list.item(x).text()
                        for x in range(self.image_list.count())]
@@ -143,6 +139,11 @@ class Segmentation(QWidget):
             self.output_folder.setFocus()
             return
 
+        if self.display_results.isChecked() and len(image_paths)>1:
+            display_results = QMessageBox.question(self,'Show results in napari?', "All images will be loaded into memory and a new napari window will be opened for each image.\nDo you really want to show images in napari?", QMessageBox.Yes | QMessageBox.No)
+            if display_results == QMessageBox.No:
+                self.display_results.setChecked(False)
+
         if os.path.isfile(model_path):
             for image_path in image_paths:
                 if os.path.isfile(image_path):
@@ -152,13 +153,17 @@ class Segmentation(QWidget):
                     else:
                         output_path = self.output_folder.text()
                     self.logger.info("Segmenting image %s", image_path)
+                    QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+                    QApplication.processEvents()
                     try:
                         f.main(image_path, model_path, output_path=output_path,
                                display_results=self.display_results.isChecked(),
                                use_gpu=self.use_gpu.isChecked())
                     except Exception as e:
+                        QApplication.restoreOverrideCursor()
                         self.logger.error(str(e))
                         raise e
+                    QApplication.restoreOverrideCursor()
                 else:
                     self.logger.warning("Unable to locate file %s", image_path)
         else:
