@@ -6,13 +6,74 @@ from PyQt5.QtGui import QCursor
 from modules.cell_tracking_module.cell_tracking import cell_tracking_functions as f
 
 
+class DropFileLineEdit(QLineEdit):
+    """
+    A QLineEdit with drop support for files.
+    """
+
+    def __init__(self, parent=None, filetypes=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.filetypes = filetypes
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls:
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            if url.isLocalFile():
+                if os.path.isfile(url.toLocalFile()):
+                    filename = url.toLocalFile()
+                    if self.filetypes is None or os.path.splitext(filename)[1] in self.filetypes:
+                        self.setText(filename)
+
+
+class DropFolderLineEdit(QLineEdit):
+    """
+    A QLineEdit with drop support for folder.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls:
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            if url.isLocalFile():
+                if os.path.isdir(url.toLocalFile()):
+                    self.setText(url.toLocalFile())
+
+
 class CellTracking(QWidget):
     def __init__(self):
         super().__init__()
 
         layout = QVBoxLayout()
 
-        self.input_image = QLineEdit()
+        self.imagetypes = ['.nd2', '.tif', '.tiff']
+
+        self.input_image = DropFileLineEdit(filetypes=self.imagetypes)
         browse_button = QPushButton("Browse", self)
         browse_button.clicked.connect(self.browse_image)
         groupbox = QGroupBox("Image")
@@ -24,7 +85,7 @@ class CellTracking(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        self.input_masks = QLineEdit()
+        self.input_masks = DropFileLineEdit(filetypes=self.imagetypes)
         browse_button = QPushButton("Browse", self)
         browse_button.clicked.connect(self.browse_masks)
         groupbox = QGroupBox("Segmentation masks")
@@ -41,7 +102,7 @@ class CellTracking(QWidget):
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)
-        self.output_folder = QLineEdit()
+        self.output_folder = DropFolderLineEdit()
         self.browse_button2 = QPushButton("Browse", self)
         self.browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setEnabled(self.use_custom_folder.isChecked())
@@ -157,11 +218,15 @@ class CellTracking(QWidget):
         self.logger = logging.getLogger(__name__)
 
     def browse_image(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select File")
+        file_path, _ = QFileDialog.getOpenFileName(self,
+                                                   'Select Files',
+                                                   filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
         self.input_image.setText(file_path)
 
     def browse_masks(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select File")
+        file_path, _ = QFileDialog.getOpenFileName(self,
+                                                   'Select Files',
+                                                   filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
         self.input_masks.setText(file_path)
 
     def browse_output(self):
