@@ -12,7 +12,6 @@ from modules.image_registration_module.registrationEditing import editing
 from modules.groundtruth_generator_module.generator import generator_functions
 from modules.segmentation_module.segmentation import segmentation
 from modules.cell_tracking_module.cell_tracking import cell_tracking
-from modules.graph_analysis_module.graphAnalysis import analysis
 from general import general_functions
 
 
