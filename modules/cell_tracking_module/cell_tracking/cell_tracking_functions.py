@@ -271,7 +271,7 @@ def clean_masks(masks, cell_tracking_graph, max_delta_frame_interpolation=3, nfr
     return defects
 
 
-def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, cell_tracking_graph, colors):
+def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, graph, colors):
     """
     Add two layers (with names 'Edges' and 'Vertices') to the `viewer_graph`
     and plot the cell tracking graph.
@@ -290,15 +290,37 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, cell_trac
     masks: numpy.array
         a 3 dimensional 16bit unsigned integer (uint16) numpy array
         with axes T,Y,X.
-    cell_tracking_graph: CellTrackingGraph
+    graph: igraph.Graph
         cell tracking graph.
     colors: numpy.array
         numpy array with shape (number of colors,4) with one color per
         row (row index i corresponds to to mask id i)
     """
 
-    layout = cell_tracking_graph.get_graph().layout_sugiyama(
-        layers=[f+min(cell_tracking_graph.get_graph().vs['frame']) for f in cell_tracking_graph.get_graph().vs['frame']], maxiter=1000)
+    layout_per_component=True
+    if layout_per_component:
+        # layout_sugiyama doesn't always properly split connectected components.
+        # This is an attempt to overcome this problem.
+        # A better option would probably be to use the algorithm used by graphviz (dot) or graphviz.
+        components = graph.connected_components(mode='weak')
+        layout=[[0.0,0.0] for v in graph.vs]
+        lastx=0
+        for cmp in components:
+            g2 = graph.subgraph(cmp)
+            layout_tmp = g2.layout_sugiyama(
+                layers=[f+min(graph.vs['frame']) for f in g2.vs['frame']], maxiter=1000)
+            #shift x coord by lastx
+            minx=min([x for x,y in layout_tmp.coords])
+            maxx=max([x for x,y in layout_tmp.coords])
+            for i, j in  enumerate(cmp):
+                x,y=layout_tmp[i]
+                layout[j] = [x-minx+lastx,y]
+            lastx=lastx-minx+maxx+1 #max([x+lastx for x,y in layout_tmp.coords])+1
+    else:
+        # simple layout_sugiyama
+        layout = graph.layout_sugiyama(
+            layers=[f+min(graph.vs['frame']) for f in graph.vs['frame']], maxiter=1000)
+
     vertex_size = 0.4
     edge_w_min = 0.01
     edge_w_max = vertex_size*0.8
@@ -312,10 +334,10 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, cell_trac
 
     # Note: (x,y) to reverse horizontal order (left to right)
     edges_coords = [[[layout[e.source][0], layout[e.source][1]], [
-        layout[e.target][0], layout[e.target][1]]] for e in cell_tracking_graph.get_graph().es]
+        layout[e.target][0], layout[e.target][1]]] for e in graph.es]
     edges_layer.add(edges_coords,
-                    edge_width=np.minimum(cell_tracking_graph.get_graph().es['overlap_fraction_target'],
-                                          cell_tracking_graph.get_graph().es['overlap_fraction_source']) * (edge_w_max - edge_w_min) + edge_w_min,
+                    edge_width=np.minimum(graph.es['overlap_fraction_target'],
+                                          graph.es['overlap_fraction_source']) * (edge_w_max - edge_w_min) + edge_w_min,
                     edge_color="lightgrey",
                     shape_type='line')
     edges_layer.editable = False
@@ -332,16 +354,15 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, cell_trac
         vertices_layer_isnew = False
 
     vertices_layer.add(
-        np.array(layout[:cell_tracking_graph.get_graph().vcount()]))
+        np.array(layout[:graph.vcount()]))
     vertices_layer.edge_width_is_relative = True
     vertices_layer.edge_width = 0.0
     vertices_layer.symbol = 'square'
     vertices_layer.size = vertex_size
-    vertices_layer.face_color = colors[cell_tracking_graph.get_graph(
-    ).vs['mask_id']]
-    vertices_layer.properties = {'frame': cell_tracking_graph.get_graph().vs['frame'],
-                                 'mask_id': cell_tracking_graph.get_graph().vs['mask_id'],
-                                 'selected': np.repeat(False, cell_tracking_graph.get_graph().vcount())}
+    vertices_layer.face_color = colors[graph.vs['mask_id']]
+    vertices_layer.properties = {'frame': graph.vs['frame'],
+                                 'mask_id': graph.vs['mask_id'],
+                                 'selected': np.repeat(False, graph.vcount())}
     vertices_layer.selected_data = set()
     vertices_layer.editable = False
 
@@ -1407,12 +1428,12 @@ class CellTrackingWidget(QWidget):
         # save button
         self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self.save)
-        layout3.addWidget(self.save_button, Qt.AlignCenter)
+        layout3.addWidget(self.save_button)
 
         # Create a button to quit
         button = QPushButton("Quit")
         button.clicked.connect(self.quit)
-        layout3.addWidget(button, Qt.AlignCenter)
+        layout3.addWidget(button)
         layout2.addLayout(layout3)
 
         groupbox.setLayout(layout2)
@@ -1519,7 +1540,7 @@ class CellTrackingWidget(QWidget):
         plot_cell_tracking_graph(self.viewer_graph,
                                  self.viewer_images,
                                  self.viewer_images.layers['Cell masks'],
-                                 self.cell_tracking_graph,
+                                 self.cell_tracking_graph.get_graph(),
                                  self.viewer_images.layers['Cell masks'].get_color(range(self.masks.max()+1)))
 
         self.masks_modified = True
@@ -1585,7 +1606,7 @@ class CellTrackingWidget(QWidget):
         plot_cell_tracking_graph(self.viewer_graph,
                                  self.viewer_images,
                                  self.viewer_images.layers['Cell masks'],
-                                 self.cell_tracking_graph,
+                                 self.cell_tracking_graph.get_graph(),
                                  self.viewer_images.layers['Cell masks'].get_color(range(self.masks.max()+1)))
 
         self.masks_modified = True
@@ -1642,7 +1663,7 @@ class CellTrackingWidget(QWidget):
             plot_cell_tracking_graph(self.viewer_graph,
                                      self.viewer_images,
                                      self.viewer_images.layers['Cell masks'],
-                                     self.cell_tracking_graph,
+                                     self.cell_tracking_graph.get_graph(),
                                      self.viewer_images.layers['Cell masks'].get_color(range(self.masks.max()+1)))
 
             self.save_button.setStyleSheet("background: darkred;")
@@ -1904,7 +1925,7 @@ def main(image_path, masks_path, output_path, min_area=300, max_delta_frame=5, m
         logger.debug("Plotting cell tracking graph")
         plot_cell_tracking_graph(viewer_graph,
                                  viewer_images, masks_layer,
-                                 cell_tracking_graph,
+                                 cell_tracking_graph.get_graph(),
                                  masks_layer.get_color(range(masks.max()+1)))
 
         # add CellTrackingWidget to napari
