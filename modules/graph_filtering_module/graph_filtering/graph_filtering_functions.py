@@ -224,59 +224,89 @@ class GraphFilteringWidget(QWidget):
         # True if masks have been modified since last save (or not yet saved):
         self.masks_modified = True
 
-        # graph topologies to search for:
+        # graph topologies to search for (existing topologies):
+        components = self.graph.connected_components(mode='weak')
         self.graph_topologies = []
-        # 0 division, 0 fusion
-        self.graph_topologies.append(ig.Graph(directed=True,
-                                              edges=[[0, 1]]))
-        # 1 division, 0 fusion
-        self.graph_topologies.append(ig.Graph(directed=True,
-                                              edges=[[0, 1],
-                                                     [1, 2],
-                                                     [1, 3]]))
-        # 0 division, 1 fusion
-        self.graph_topologies.append(ig.Graph(directed=True,
-                                              edges=[[0, 2],
-                                                     [1, 2],
-                                                     [2, 3]]))
-        # 1 division, 1 fusion
-        self.graph_topologies.append(ig.Graph(directed=True,
-                                              edges=[[0, 1],
-                                                     [1, 2],
-                                                     [1, 2],
-                                                     [2, 3]]))
-        # 1 division, 1 fusion
-        self.graph_topologies.append(ig.Graph(directed=True,
-                                              edges=[[0, 2],
-                                                     [1, 2],
-                                                     [2, 3],
-                                                     [3, 4],
-                                                     [3, 5]]))
-        # 1 division, 1 fusion
-        self.graph_topologies.append(ig.Graph(directed=True,
-                                              edges=[[0, 2],
-                                                     [1, 3],
-                                                     [2, 4],
-                                                     [2, 3],
-                                                     [3, 5]]))
-        # 2 divisions
-        self.graph_topologies.append(ig.Graph(directed=True,
-                                              edges=[[0, 1],
-                                                     [1, 2],
-                                                     [1, 3],
-                                                     [3, 4],
-                                                     [3, 5]]))
-        # 2 fusions
-        self.graph_topologies.append(ig.Graph(directed=True,
-                                              edges=[[0, 4],
-                                                     [1, 3],
-                                                     [2, 3],
-                                                     [3, 4],
-                                                     [4, 5]]))
+        graph_topologies_sortkey = []
+        # ignore topologies with more than max_fusion_divisions fusions or divisions
+        max_fusion_divisions = 4
+        # ignore topologies with more than max_others events of type: cells dividing in more than 2 or more than 2 cells merging
+        max_others = 0
+        min_vertices = 2
+        for cmp in components:
+            g = simplify_graph(self.graph.subgraph(cmp))
+            if not any([g.isomorphic(g2) for g2 in self.graph_topologies]):
+                nothers = len(g.vs.select(lambda v: v.indegree() > 2 or v.outdegree() > 2))
+                nfusions = len(g.vs.select(_indegree=2))
+                ndivisions = len(g.vs.select(_outdegree=2))
+                #nvertices, ignoring intermediate nodes with indegree == outdegree == 1
+                nvertices = len(g.vs.select(lambda v: not ( v.indegree() == 1 and v.outdegree() == 1)))
+                if nfusions+ndivisions <= max_fusion_divisions and nothers <= max_others and nvertices >= min_vertices:
+                    self.graph_topologies.append(g)
+                    graph_topologies_sortkey.append((nfusions+ndivisions, nfusions, ndivisions, nothers, nvertices))
 
-        # simplify graph_topologies (e.g. to deal with multi-edges)
-        for i in range(len(self.graph_topologies)):
-            self.graph_topologies[i] = simplify_graph(self.graph_topologies[i])
+        # order by sortkey (using lexicographical order)
+        idx = np.lexsort(np.array(graph_topologies_sortkey).T)
+        self.graph_topologies = np.array(self.graph_topologies)[idx].tolist()
+        del graph_topologies_sortkey
+
+        # # to use user defined topologies instead:
+        # self.graph_topologies = []
+        # # 0 division, 0 fusion
+        # self.graph_topologies.append(
+        #     simplify_graph(ig.Graph(directed=True,
+        #                             edges=[[0, 1]])))
+        # # 1 division, 0 fusion
+        # self.graph_topologies.append(
+        #     simplify_graph(ig.Graph(directed=True,
+        #                             edges=[[0, 1],
+        #                                    [1, 2],
+        #                                    [1, 3]])))
+        # # 0 division, 1 fusion
+        # self.graph_topologies.append(
+        #     simplify_graph(ig.Graph(directed=True,
+        #                             edges=[[0, 2],
+        #                                    [1, 2],
+        #                                    [2, 3]])))
+        # # 1 division, 1 fusion
+        # self.graph_topologies.append(
+        #     simplify_graph(ig.Graph(directed=True,
+        #                             edges=[[0, 1],
+        #                                    [1, 2],
+        #                                    [1, 2],
+        #                                    [2, 3]])))
+        # # 1 division, 1 fusion
+        # self.graph_topologies.append(
+        #     simplify_graph(ig.Graph(directed=True,
+        #                             edges=[[0, 2],
+        #                                    [1, 2],
+        #                                    [2, 3],
+        #                                    [3, 4],
+        #                                    [3, 5]])))
+        # # 1 division, 1 fusion
+        # self.graph_topologies.append(
+        #     simplify_graph(ig.Graph(directed=True,
+        #                             edges=[[0, 2],
+        #                                    [1, 3],
+        #                                    [2, 4],
+        #                                    [2, 3],
+        #                                    [3, 5]])))
+        # # 2 divisions
+        # self.graph_topologies.append(
+        #     simplify_graph(ig.Graph(directed=True,
+        #                             edges=[[0, 1],
+        #                                    [1, 2],
+        #                                    [1, 3],
+        #                                    [3, 4],
+        #                                    [3, 5]])))
+        # # 2 fusions
+        # self.graph_topologies.append(
+        #     simplify_graph(ig.Graph(directed=True,
+        #                             edges=[[0, 4],
+        #                                    [1, 3],
+        #                                    [2, 3],
+        #                                    [3, 4],
+        #                                    [4, 5]])))
 
         # self.cell_tracks_topology[n]=[i1,i2,...] => self.cell_track[n] is isomorphic to self.graph_topologies[i1] and  self.graph_topologies[i2] and ...
         self.cell_tracks_topology = None
