@@ -12,6 +12,7 @@ from modules.image_registration_module.registrationEditing import editing
 from modules.groundtruth_generator_module.generator import generator_functions
 from modules.segmentation_module.segmentation import segmentation
 from modules.cell_tracking_module.cell_tracking import cell_tracking
+from modules.graph_filtering_module.graph_filtering import graph_filtering
 from general import general_functions
 
 
@@ -286,6 +287,13 @@ class CellTracking(Page):
         self.window.addWidget(cell_tracking.CellTracking())
         self.window.addStretch()
 
+class GraphFiltering(Page):
+    def __init__(self):
+        super().__init__()
+        self.window = QVBoxLayout(self.container)
+        self.window.addWidget(graph_filtering.GraphFiltering())
+        self.window.addStretch()
+
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -302,6 +310,7 @@ class MainWindow(QWidget):
         tabwizard.addPage(GTGenerator(), "GroundTruth")
         tabwizard.addPage(Segmentation(), "Segmentation")
         tabwizard.addPage(CellTracking(), "Cell tracking")
+        tabwizard.addPage(GraphFiltering(), "Graph filtering")
 
         layout = QHBoxLayout()
         self.status_line = QLineEdit()
