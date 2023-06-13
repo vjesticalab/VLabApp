@@ -77,9 +77,6 @@ class Image:
             image = np.expand_dims(image, axis=position)
         return image, image.shape
 
-    def get_2D(self, f=0, t=0, c=0, z=0):
-        return self.image[f,t,c,z,:,:]
-
 
 def base_name(fileName):
     #This function uses the underscore symbol to separate the basename from the channel information

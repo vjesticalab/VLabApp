@@ -224,6 +224,7 @@ class GTGenerator(Page):
         self.output.setFont(QFont('Arial', 16))
         self.window.addRow(self.output)
         self.check_resfolder = QCheckBox("Save results into the save directory (new folder)")
+        self.check_resfolder.setChecked(True)
         self.window.addRow(self.check_resfolder)
         self.window.addRow(QLabel("\nOR\n\nselect another folder where to save results"))
         self.selected_folder2 = QLineEdit()

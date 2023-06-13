@@ -7,7 +7,7 @@ import tifffile
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QMessageBox, QSplitter, QWidget, QVBoxLayout, QLabel, QPushButton, QDoubleSpinBox, QTabWidget, QMainWindow,QApplication
 import sys
-from modules.image_registration_module import registration_module_functions as rf
+from general import general_functions as gf
 
 
 """class Image:
@@ -135,7 +135,7 @@ class NapariWidget(QWidget):
         self.setLayout(layout)
 
     def button_clicked(self):
-        treshMasks(channels_image,  self.lowerth.value(), self.upperth.value(), self.viewer)
+        treshMasks(norm_channels_image,  self.lowerth.value(), self.upperth.value(), self.viewer)
         self.min_th_value = self.lowerth.value()
         self.max_th_value = self.upperth.value()
 
@@ -164,7 +164,7 @@ class SaveButton(QWidget):
     def save_layer(self):
         for layer in self.viewer.layers:
             if layer in self.viewer.layers.selection:
-                tifffile.imwrite(self.result_path+'/'+image_base_name+'.tif', layer.data)
+                tifffile.imwrite(self.result_path+'/'+image_name+'.tif', layer.data)
         print('Layer saved!')
 
 
@@ -184,7 +184,7 @@ class NapariWindow(QWidget):
     def __init__(self, result_path):
         super().__init__()
         viewer = napari.Viewer()
-        viewer.add_image(channels_image.astype('uint32'), name='image')
+        viewer.add_image(norm_channels_image.astype('uint32'), name='image')
         viewer.window._qt_window.setWindowState(Qt.WindowMaximized)
         dock_widget = MultipleViewerWidget(viewer)
         viewer.window.add_dock_widget(dock_widget, name="Segment")
@@ -195,32 +195,32 @@ class NapariWindow(QWidget):
         viewer.show(block=True)
 
 
-def focal_plane(image_file):
+def focal_plane(image: gf.Image):
     """
     This function checks all the z-sections in the image file to find what is the best focused section.
     It relies on minimum image standard deviation in case of BF images and maximum standard deviation in case of fluorescence images.
     """
-    focusBF, focus_GFP_Cherry, focus_GFP_Cherry = (-1, -1, -1)
-    focus_z = {}
+    zfocus_per_channel = {}
+    for c in range(image.sizes['C']):
+        zfocus_per_channel[c] = -1
+        
+    zfocus_per_time = {}
 
-    if 'Z' not in image_file.axes_order:
-        focus_z[0] = focusBF, focus_GFP_Cherry, focus_GFP_Cherry
-        return focus_z
-    
-    for time in range(1 if image_file.get_shape('T') == -1 else image_file.get_shape('T')):
-        focus_z[time] = []
-        for channel in range(1 if image_file.get_shape('C') == -1 else image_file.get_shape('C')):
+    for time in range(image.sizes['T']):
+        zfocus_per_time[time] = {}
+        for c in range(image.sizes['C']):
             std_list = []
-            for z in range(image_file.get_shape('Z')):
-                _, [[stDevValue]] = cv2.meanStdDev(image_file.get_2D(channel, time, z))
+            for z in range(image.sizes['Z']):
+                _, [[stDevValue]] = cv2.meanStdDev(image.image[0,time,c,z,:,:])
                 std_list.append(stDevValue)
-            if channel == 0:
-                focusBF = std_list.index(min(std_list))
-            elif channel == 1:
-                focus_GFP_Cherry = std_list.index(max(std_list))
-            focus_z[time] = [focusBF, focus_GFP_Cherry, focus_GFP_Cherry]
+            if c == 0:
+                zfocus_per_channel[c] = std_list.index(min(std_list))
+            else:
+                zfocus_per_channel[c] = std_list.index(max(std_list))
+            zfocus_per_time[time][c] = zfocus_per_channel[c]
 
-    return focus_z
+    return zfocus_per_time
+
 
 
 def treshMasks(image, lowerTreshold, upperTreshold, viewer):
@@ -264,30 +264,43 @@ def treshMasks(image, lowerTreshold, upperTreshold, viewer):
 
 
 def main(path, result_path):
-   global channels_image, image_base_name, min_th_value, max_th_value
-   
-   min_th_value = 7000
-   max_th_value = 65535
+    global norm_channels_image, image_name, min_th_value, max_th_value
 
-   images = sorted([i for i in os.listdir(path) if (i.endswith('.nd2') or i.endswith('.tif'))])
-   for image_name in images:
-      print('Processing image '+image_name)
-      try:
-         image_path = os.path.join(path, image_name)
-         image_file = Image(image_path)
-         image_base_name = image_file.name
-         focal_planes_timedict = focal_plane(image_file)
-         for t in range(1 if image_file.get_shape('T') == -1 else image_file.get_shape('T')):
-            green = image_file.get_2D(c=1, t=t, z=focal_planes_timedict[t][1])
-            cherry = image_file.get_2D(c=2, t=t, z=focal_planes_timedict[t][1])
-            channels_image = green + cherry
+    min_th_value = 80
+    max_th_value = 200
+
+    images = gf.extract_suitable_files(os.listdir(path))
+   
+    if not images:
+        gf.error("No images", "The folder does not contain .nd2 or .tif files")
+
+    for image_name in images:
+        print('Processing image '+image_name)
+        
+        try:
+            image_path = os.path.join(path, image_name)
+            image = gf.Image(image_path)
+            image_name = image.name
+            image.imread()
             
-            nw = NapariWindow(result_path)
-            nw.show()
-      except:
-         pass
+            z_pertime_perchannel = focal_plane(image)
+
+            for t in range(image.sizes['T']):
+                channels_image = np.zeros((image.sizes['Y'], image.sizes['X']))
+                for c in range(1,image.sizes['C']):
+                    z = z_pertime_perchannel[t][c]
+                    channel_image = image.image[0,t,c,z,:,:]
+                    channels_image += channel_image
+
+                norm_channels_image = cv2.normalize(channels_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32F)  
+                nw = NapariWindow(result_path)
+                nw.show()
+
+        except Exception as e:
+            gf.error("generator crashed", str(e))
       
 
+"""
 # To test it:
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -302,3 +315,4 @@ if __name__ == "__main__":
    w = MainWindow()
    w.show()
    app.exec()
+"""
