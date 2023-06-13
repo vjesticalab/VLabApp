@@ -1,67 +1,81 @@
 import numpy as np
 import os
 import tifffile
-import time
 from general import general_functions as gf
+from modules.image_registration_module import registration_module_functions as rf
+import napari
 
-def alignment_main(folder_path, fileInventory, skip_crop_decision):
-    start = time.time()
-    save_folder = folder_path + gf.folder_name(folder_path) + '_registered_with_matrices'
+
+def file_handling(path):
+    ############# FILE HANDLING ##############
+    content = os.listdir(path)
+    #Get a list of image files
+    image_files = gf.extract_suitable_files(content)
+    transformation_matrices = [i for i in content if i.endswith('_transformationMatrix.txt')]
+    transformation_matrices.sort()
     
-    if not os.path.isdir(save_folder):
-        os.makedirs(save_folder)
-    if fileInventory == '':
-        fileInventory = gf.file_handling(folder_path)
+    #Build dictionary with keys from transformation matrices
+    files = {}
+    for f in transformation_matrices:
+        files[f] = []
     
-    txt = 'Working on folder' + folder_path + ' The name of containing folder path is ' + save_folder + ' The save folder path is ' + save_folder
-    
-    for reference_matrix in fileInventory.keys():
-        #Load the transformation matrix
-        tmat_path = folder_path+'/'+reference_matrix     
-        tmat_int = gf.read_transfMat(tmat_path)
-        txt += '\nLoaded transformation matrix ' + reference_matrix + ' to align images:'
+    #For each transformation matrix find image files with the same basename files
+    for reference_matrix in files.keys():
+        reference_baseName = reference_matrix.split("_transformationMatrix.txt")[0]
+        print(reference_matrix, 'will be used to register files:')
+        for image_f in image_files:
+            image_baseName = gf.base_name(image_f)
+            if reference_baseName == image_baseName:
+                files[reference_matrix].append(image_f)
+                print('\t',image_f)
+    return files
+
+
+def alignment_main(file_type, path, inventory, selected_file, skip_crop_decision):
+    pathsInventory = rf.build_paths_inventory(path)
+
+    if file_type == 'transfMat':   
+        tmat_path = path+selected_file
+        tmat_int = rf.read_transfMat(tmat_path)
+        try:
+            for image_path in inventory[selected_file]:
+                image = gf.Image(image_path)
+                image.imread()
+                rf.registration_with_tmat(pathsInventory, tmat_int, image, skip_crop_decision)
+                print(image.name,' DONE!')
+        except Exception as e:
+            gf.error('Alignment failed', 'File '+selected_file+' - '+str(e))
+    else:
+        image = gf.Image(os.path.join(path, selected_file))                   
+        try:
+            tmat_path = inventory[selected_file]
+            tmat_int = rf.read_transfMat(tmat_path)
+            image.imread()
+            rf.registration_with_tmat(pathsInventory, tmat_int, image, skip_crop_decision)
+            print(image.name,' DONE!')
+        except Exception as e:
+            gf.error('Alignment failed', 'File '+selected_file+' - '+str(e))
+
+
+def view_main(path, image_name, inventory, skip_crop_decision):
+    image = gf.Image(os.path.join(path, image_name))                   
+    try: 
+        transfMat_path = inventory[image_name]
+        # Open transformation matrix and image
+        transfMat = rf.read_transfMat(transfMat_path)
+        image.imread()
+        pathsInventory = rf.build_paths_inventory(path)
+        image_registered = rf.registration_with_tmat(pathsInventory, transfMat, image)
+
         
-        for image_file in fileInventory[reference_matrix]:
-            txt += '\n\t' + image_file
-            image_filepath = folder_path+'/' + image_file
-            image, axes_inventory = gf.open_suitable_files(image_filepath)
-            axes_number = len(axes_inventory)
-    
-            if axes_number < 3:
-                # In case of images that are not 3D to avoid script breakig
-                txt += '!!!Warning!!! Images must have at least 3 dimensions, tyx. Generating an image based on Transformation matrix dimensions to prevent script from braking.'           
-                # Generat an 0s that that will be aligned and that will allow process to continue
-                image_fake = np.zeros((tmat_int.shape[0], abs(max(tmat_int[:,2])) + abs(min(tmat_int[:,2])), abs(max(tmat_int[:,1])) + abs(min(tmat_int[:,1]))), dtype='uint8')
-                registered_cropped_image = gf.register_with_tmat_multiD(tmat_int, image_fake, y_axis=1, x_axis=2, skip_decision=skip_crop_decision)
-                
-            elif axes_number == 3:            
-                txt += 'is a 3 dimensionsional image. Assuming TYX order of axes'
-                image_3D = image
-                registered_cropped_image = gf.register_with_tmat_multiD(tmat_int, image_3D, y_axis=1, x_axis=2, skip_decision=skip_crop_decision)
-            
-            elif axes_number > 3:
-                txt += 'is a multidimensional image. For files with specified axes (T,Y and X) alignment will be performed along the time(T)-axis'
-                t_axis = axes_inventory['T'][0]
-                y_axis = axes_inventory['Y'][0]
-                x_axis = axes_inventory['X'][0]
-                # Check if T-axis is in position 0
-                if t_axis == 0:
-                    image_4D = image
-                else:
-                    image_4D = np.swapaxes(image, t_axis, 0)           
-                registered_cropped_image = gf.register_with_tmat_multiD(tmat_int, image_4D, y_axis,x_axis, skip_decision=skip_crop_decision)
-            
-            filenameWithoutExtension, _ = gf.file_name_split(image_file)
-            registeredFilename = filenameWithoutExtension + '_registered.tif'
-            registeredFilepath = save_folder + '/' + registeredFilename
-            tifffile.imwrite(registeredFilepath, registered_cropped_image, imagej=True)                              
-            
-    with open(save_folder+'/registeredFiles.txt', 'a') as out:
-        out.write(txt)
-            
-    end = time.time()
-    print('\nExecution time on the folder is: ', end-start)
-
+        viewer = napari.Viewer()
+        for c in range(image.sizes['C']):
+            if c == 0:
+                viewer = napari.view_image(image_registered[0,:,c,:,:,:]) 
+            else:
+                viewer.add_image(image_registered, name="Channel "+str(c), blending="additive")
+    except:
+        gf.error('Missing matrix', 'Transformation matrix not found for image '+image_name)
 
 if __name__ == "__main__":
     folder_path = '/Users/aravera/Documents/CIG_Alexs/Registration/application/_VLSM_demoset/20230101_P0001_E0008_U003/'

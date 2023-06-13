@@ -51,10 +51,10 @@ class SingleFile(QWidget):
         reference_identifier = 'Calculated in target function'
 
         coalignment = self.coalignment_yn.isChecked()
-        print('\nCo-alignment will be performed? ', coalignment)
+        if coalignment:
+            print('Co-alignment will be performed.', coalignment)
 
         if os.path.isfile(path):
-            print('\nFile found. Starting registration...')
             try:
                 f.registration_main(path, reference_identifier, coalignment)
             except Exception as e:

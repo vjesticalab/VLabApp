@@ -7,9 +7,10 @@ import tifffile
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QMessageBox, QSplitter, QWidget, QVBoxLayout, QLabel, QPushButton, QDoubleSpinBox, QTabWidget, QMainWindow,QApplication
 import sys
+from modules.image_registration_module import registration_module_functions as rf
 
 
-class Image:
+"""class Image:
     def __init__(self, path):
         self.basename = os.path.basename(path)
         self.name = self.basename.split('.')[0]
@@ -102,6 +103,7 @@ class Image:
             return pos
         return self.shape[pos]
 
+"""
 
 class NapariWidget(QWidget):
     def __init__(self, viewer: napari.Viewer):
@@ -286,10 +288,12 @@ def main(path, result_path):
          pass
       
 
+# To test it:
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         main(path, result_path)
+
 
 if __name__ == "__main__":
    path = '/Users/aravera/Documents/CIG_Aleks/_AVScript01-Calculating MAsks for AI/Script1_InputSample'

@@ -26,7 +26,7 @@ class MainWindow(QWidget):
         self.browse_button2.clicked.connect(self.browse_folder2)
 
         self.submit_button = QPushButton("Submit", self)
-        self.submit_button.clicked.connect(self.process_input)
+        self.submit_button.clicked.connect(self.submit)
         
         self.quit_button = QPushButton("Quit", self)
         self.quit_button.clicked.connect(self.parent.close)
@@ -51,11 +51,12 @@ class MainWindow(QWidget):
     def browse_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         self.selected_folder.setText(folder_path)
+    
     def browse_folder2(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         self.selected_folder2.setText(folder_path)
 
-    def process_input(self):
+    def submit(self):
         path = self.selected_folder.text()
         result_path = self.selected_folder2.text()
         f.main(path, result_path)

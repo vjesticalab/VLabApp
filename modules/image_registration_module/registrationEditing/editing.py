@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from PyQt5.QtWidgets import QFileDialog, QLabel, QLineEdit, QMainWindow, QPushButton, QVBoxLayout, QWidget, QListWidget, QFrame, QMessageBox
 from PyQt5.QtCore import Qt
 from PyQt5 import QtWidgets
@@ -6,7 +7,7 @@ import matplotlib
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from  modules.image_registration_module.registrationEditing import editing_functions as f
-import numpy as np
+from modules.image_registration_module import registration_module_functions as rf
 from general import general_functions as gf
 
 matplotlib.use("Qt5Agg")
@@ -23,7 +24,7 @@ class Single(QWidget):
 
         self.display2 = QLabel('Step2: \tDouble click on the transformationMatrix to view and edit it.')        
         self.transf_mat_list = QListWidget()
-        self.transf_mat_list.itemDoubleClicked.connect(self.transfMat_script)
+        self.transf_mat_list.itemDoubleClicked.connect(self.display_matrix)
 
 
         self.update_label = QLabel('<b>After double-clicking the matrix, you can update its range.<\b>', self)
@@ -36,7 +37,7 @@ class Single(QWidget):
         self.end_timepoint_edit = QLineEdit(self)
         
         self.submit_button = QPushButton('Update', self)
-        self.submit_button.clicked.connect(self.update_clicked)
+        self.submit_button.clicked.connect(self.click_update)
         
         self.quit_button = QPushButton('Quit', self)
         self.quit_button.clicked.connect(self.parent.close)
@@ -68,47 +69,33 @@ class Single(QWidget):
     def browse_folder(self):
         self.folder_path = QFileDialog.getExistingDirectory()
         self.transfmat_path_edit.setText(self.folder_path)
-
-        transfMatFiles = gf.extract_transfMat(os.listdir(self.folder_path))
+        transfMatFiles = rf.extract_transfMat(os.listdir(self.folder_path))
         for file in transfMatFiles:
             self.transf_mat_list.addItem(file)      
                
-    def update_clicked(self):
-        try:
-            self.transfmat_path
-        except Exception as e:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Error")
-            msg.setInformativeText('Error in the transformation matrix path')
-            msg.setWindowTitle("ERROR")
-            msg.show()
-            print('\n')
-            raise(e)
-        else:
-            print('\nUpdating plot')
-            self.submit_values()        
-
-    def transfMat_script(self, item):
+    def display_matrix(self, item):
         self.transfMat_name = item.text()
         self.transfmat_path = os.path.join(self.folder_path, self.transfMat_name)
-        
-        print('\nMatrix plotted: ', self.transfMat_name)
-
+        # Display the matrix
         self.display_graph = DisplayGraphWindow(self.transfmat_path)
         self.display_graph.setWindowTitle(self.transfMat_name)
         self.display_graph.move(700,0)
         self.display_graph.show()
 
+    def click_update(self):
+        try:
+            self.transfmat_path
+        except Exception as e:
+            gf.error("Invalid path", str(e))
+        else:
+            self.submit_values()        
+
     def submit_values(self):
         # Get the values from the line edits
         start_timepoint = self.start_timepoint_edit.text()
         end_timepoint = self.end_timepoint_edit.text()        
-        
         # Update the transformation matrix with indicated values
-        print('\nMatrix path that will be edited: ', self.transfmat_path)
         f.edit_main(self.transfmat_path, int(start_timepoint), int(start_timepoint), int(end_timepoint))
-        
         # Create an instance of the second window
         self.display_graph = DisplayGraphWindow(self.transfmat_path)
         self.display_graph.setWindowTitle(self.transfMat_name)
@@ -162,7 +149,6 @@ class Folder(QWidget):
         layout.addWidget(self.quit_button)
         self.setLayout(layout)
 
-
     def submit_values(self):
         # Get the values from the line edits
         self.transfmat_path = self.transfmat_path_edit.text()
@@ -170,11 +156,11 @@ class Folder(QWidget):
         end_timepoint = self.end_timepoint_edit.text()        
         
         #Get the list of files that end with _transformationMatrix.txt
-        list_transfmat_files = gf.list_transfMat(self.transfmat_path)
+        list_transfmat_files = f.list_transfMat(self.transfmat_path)
         for transfmat in list_transfmat_files:
             transfmat_filepath=self.transfmat_path+'/'+transfmat
             f.edit_main(transfmat_filepath, int(start_timepoint), int(start_timepoint), int(end_timepoint))        
-            print('\nUpdated file: ', transfmat)
+            print('Updated file: ', transfmat)
 
 
     def browse(self):
@@ -185,7 +171,7 @@ class Folder(QWidget):
         # Clear the list widget
         self.list_widget.clear()
         # Get the list of transformation matrices in the selected folder
-        list_transfmat_files = gf.list_transfMat(folder)
+        list_transfmat_files = f.list_transfMat(folder)
         # Add the transformation matrices files in the selected folder to the list widget
         for file in list_transfmat_files:
             self.list_widget.addItem(file)       
@@ -204,7 +190,7 @@ class DisplayGraphWindow(QWidget):
                 
     def plot_xy(self, transfmat_path):
         # Read the transformation matrix values
-        transformation_matrix = gf.read_transfMat(transfmat_path)
+        transformation_matrix = rf.read_transfMat(transfmat_path)
         
         if transformation_matrix is None:
             return
