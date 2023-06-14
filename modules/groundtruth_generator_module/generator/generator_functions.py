@@ -10,101 +10,6 @@ import sys
 from general import general_functions as gf
 
 
-"""class Image:
-    def __init__(self, path):
-        self.basename = os.path.basename(path)
-        self.name = self.basename.split('.')[0]
-        if path.endswith('.nd2'):
-            imagereader = nd2.ND2File(path)
-            axes_order = str(''.join(list(imagereader.sizes.keys()))).upper()
-            shape = list(imagereader.sizes.values())
-            image = nd2.imread(path)
-            imagereader.close()
-        else:
-            # default: TZCXY for 5D, ZCXY for 4D, CXY for 3D, XY for 2D data.
-            imagereader = tifffile.TiffFile(path)
-            axes_order = str(imagereader.series[0].axes).upper()
-            shape = list(imagereader.series[0].shape)
-            image = tifffile.imread(path)
-        self.image, self.shape, self.axes_order = image, shape, axes_order
-        self.image, self.shape, self.axes_order = self.check_axes_order(image, shape, axes_order)
-
-    def check_axes_order(self, image, shape, axes_order):
-
-        def swipe(image, shape, axes_order, dimension):
-            expected_pos = len(shape)-i
-            actual_pos = self.axes_order.find(dimension)
-            image = np.moveaxis(image, actual_pos, expected_pos)
-            shape = list(image.shape)
-            l = [x for x in axes_order]
-            l[actual_pos], l[expected_pos] = l[expected_pos], l[actual_pos]
-            axes_order = ''.join(l)
-            return image, shape, axes_order
-
-        def error():
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Error - Image "+self.basename)
-            msg.setInformativeText('Image MUST have minimin 3 dimensions: X Y C. \nIt is not possible to create the mask without other fluorescent channels.')
-            msg.setWindowTitle("Error")
-            msg.exec_()
-
-        i = 0
-        if 'X' in axes_order:
-            i += 1
-            if axes_order[-i] != 'X':
-                image, shape, axes_order = swipe(image, shape, axes_order, 'X')
-        else:
-            error()
-
-        if 'Y' in axes_order:
-            i += 1
-            if axes_order[-i] != 'Y':
-                image, shape, axes_order = swipe(image, shape, axes_order, 'Y')
-        else:
-            error()
-
-        if 'Z' in axes_order:
-            i += 1
-            if axes_order[-i] != 'Z':
-                image, shape, axes_order = swipe(image, shape, axes_order, 'Z')
-
-        if 'C' in axes_order:
-            i += 1
-            if axes_order[-i] != 'C':
-                image, shape, axes_order = swipe(image, shape, axes_order, 'C')
-        else:
-            error()
-
-        if 'T' in axes_order:
-            i += 1
-            if axes_order[-i] != 'T':
-                image, shape, axes_order = swipe(image, shape, axes_order, 'T')
-                
-        return image, shape, axes_order
-
-    def get_2D(self, c, t, z):
-        if z != -1:
-            # x, y, c and z are existing
-            if 'T' in self.axes_order: # TCZYX
-                return self.image[t,c,z,:,:]
-            else: # CZYX
-                return self.image[c,z,:,:]
-        else:
-            if 'T' in self.axes_order: # TCYX
-                return self.image[t,c,:,:]
-            elif 'T' not in self.axes_order: # CYX
-                return self.image[c,:,:]
-        return self.image
-
-    def get_shape(self, axis):
-        pos = self.axes_order.find(axis)
-        if pos == -1:
-            return pos
-        return self.shape[pos]
-
-"""
-
 class NapariWidget(QWidget):
     def __init__(self, viewer: napari.Viewer):
         super().__init__()
@@ -222,45 +127,44 @@ def focal_plane(image: gf.Image):
     return zfocus_per_time
 
 
-
 def treshMasks(image, lowerTreshold, upperTreshold, viewer):
-   try:
-      # Adaptive tresholding method to identify cell boundaries
-      image8bit = np.array(image/256, dtype='uint8')
-      adaptiveTreshImage = cv2.adaptiveThreshold(image8bit, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 21, 1)
-      emptyImage = np.zeros(image.shape, dtype='uint8')
-      # Absolute tresholding method to identify regions of cells
-      _, thresholdedImage = cv2.threshold(image, lowerTreshold, upperTreshold, cv2.THRESH_BINARY)
-      thresholdedImage8bit = np.array(thresholdedImage, dtype='uint8')
-      # Combine the two methods to identify individual cells
-      multipliedImage = cv2.multiply(thresholdedImage8bit, adaptiveTreshImage)
-      # Dilate/erode approach to fill in holes
-      kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4, 4))
-      processingImage = cv2.morphologyEx(multipliedImage, cv2.MORPH_CROSS, kernel, iterations=1)
-      # Extract contours from thresholded image
-      contours, _ = cv2.findContours(image=processingImage, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_NONE)   
-      fileteredOutSmallContours = [holder for holder in contours if cv2.contourArea(holder)>1000]
-      # Dilate-Erode individual contours
-      emptyImage = np.zeros(image.shape, dtype='uint8')
-      addingContoursIndividually = np.copy(emptyImage)
-      kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))  
-      for countContour, singleContour, in enumerate(fileteredOutSmallContours):
-         singleContourImage = np.copy(emptyImage)
-         cv2.drawContours(image=singleContourImage, contours=fileteredOutSmallContours, contourIdx=countContour, color=(countContour, countContour, countContour), thickness=cv2.FILLED)
-         singleContourOpen = cv2.morphologyEx(singleContourImage, cv2.MORPH_CLOSE, kernel, iterations=10) 
-         addingContoursIndividually = cv2.bitwise_or(addingContoursIndividually, singleContourOpen)
-      # Draw all contours from thresholded image 
-      image16bit = np.zeros(image.shape, dtype='uint16')
-      cv2.drawContours(image=image16bit, contours=fileteredOutSmallContours, contourIdx=-1, color=(255, 255, 255), thickness=cv2.FILLED)
-      print('Mask created successfully.')
-      viewer.add_labels(addingContoursIndividually, name='mask')
-   except Exception as e:
-      msg = QMessageBox()
-      msg.setIcon(QMessageBox.Critical)
-      msg.setText("Error in mask generation")
-      msg.setInformativeText(str(e))
-      msg.setWindowTitle("Error")
-      msg.exec_()
+    try:
+        # Adaptive tresholding method to identify cell boundaries
+        image8bit = np.array(image/256, dtype='uint8')
+        adaptiveTreshImage = cv2.adaptiveThreshold(image8bit, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 21, 1)
+        # Absolute tresholding method to identify regions of cells
+        _, thresholdedImage = cv2.threshold(image, lowerTreshold, upperTreshold, cv2.THRESH_BINARY)
+        thresholdedImage8bit = np.array(thresholdedImage, dtype='uint8')
+
+        # Combine the two methods above to identify individual cells
+        multipliedImage = cv2.multiply(thresholdedImage8bit, adaptiveTreshImage)
+
+        # Dilate/erode approach to fill in holes
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4, 4))
+        processedImage = cv2.morphologyEx(multipliedImage, cv2.MORPH_CROSS, kernel, iterations=1)
+
+        # Extract contours from thresholded image
+        contours, _ = cv2.findContours(image=processedImage, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_NONE)   
+        fileteredOutSmallContours = [holder for holder in contours if cv2.contourArea(holder)>1000]
+
+        # Dilate-Erode individual contours
+        emptyImage = np.zeros(image.shape, dtype='uint8')
+        addingContoursIndividually = np.copy(emptyImage)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))  
+        for countContour, singleContour, in enumerate(fileteredOutSmallContours):
+            singleContourImage = np.copy(emptyImage)
+            cv2.drawContours(image=singleContourImage, contours=fileteredOutSmallContours, contourIdx=countContour, color=(countContour, countContour, countContour), thickness=cv2.FILLED)
+            singleContourOpen = cv2.morphologyEx(singleContourImage, cv2.MORPH_CLOSE, kernel, iterations=10) 
+            addingContoursIndividually = cv2.bitwise_or(addingContoursIndividually, singleContourOpen)
+        
+        # Draw all contours from thresholded image 
+        image16bit = np.zeros(image.shape, dtype='uint16')
+        cv2.drawContours(image=image16bit, contours=fileteredOutSmallContours, contourIdx=-1, color=(255, 255, 255), thickness=cv2.FILLED)
+        print('Mask created successfully.')
+        viewer.add_labels(addingContoursIndividually, name='mask')
+        
+    except Exception as e:
+        gf.error("Error in mask generation", image_name+' - '+str(e))
 
 
 def main(path, result_path):
@@ -282,6 +186,10 @@ def main(path, result_path):
             image = gf.Image(image_path)
             image_name = image.name
             image.imread()
+
+            if image.sizes['C'] < 2:
+                gf.error('Image format', image_name+' - The image must have at least one color channel. The BF will be considered as channel 0 and excluded from the analysis.')
+                return
             
             z_pertime_perchannel = focal_plane(image)
 
@@ -297,11 +205,10 @@ def main(path, result_path):
                 nw.show()
 
         except Exception as e:
-            gf.error("generator crashed", str(e))
+            gf.error("Alaysis failed", image_name+' - '+str(e))
       
-
+# Testing
 """
-# To test it:
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
