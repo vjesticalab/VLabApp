@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QFileDialog, QLineEdit, QCheckBox, QPushButton, QVBo
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.segmentation_module.segmentation import segmentation_functions as f
+from general import general_functions as gf
 
 
 class DropFilesListWidget(QListWidget):
@@ -130,8 +131,7 @@ class Segmentation(QWidget):
         self.browse_button = QPushButton("Browse", self)
         self.browse_button.clicked.connect(self.browse_model)
 
-        self.use_input_folder = QRadioButton(
-            "Use input image folder\n(segmentation_masks_raw sub-folder)")
+        self.use_input_folder = QRadioButton("Use input image folder\n(segmentation_masks_raw sub-folder)")
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)
@@ -150,7 +150,7 @@ class Segmentation(QWidget):
         self.display_results.setChecked(False)
 
         self.submit_button = QPushButton("Submit", self)
-        self.submit_button.clicked.connect(self.process_input)
+        self.submit_button.clicked.connect(self.click)
 
         # Layout
         layout = QVBoxLayout()
@@ -193,11 +193,8 @@ class Segmentation(QWidget):
 
         self.logger = logging.getLogger(__name__)
 
-
     def add_image(self):
-        file_paths, _ = QFileDialog.getOpenFileNames(self,
-                                                     'Select Files',
-                                                     filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
         for file_path in file_paths:
             if file_path and len(self.image_list.findItems(file_path, Qt.MatchExactly)) == 0:
                 self.image_list.addItem(file_path)
@@ -205,11 +202,8 @@ class Segmentation(QWidget):
     def add_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder_path:
-            images = [os.path.join(folder_path, i)
-                      for i in os.listdir(folder_path)
-                      if os.path.splitext(i)[1] in self.imagetypes]
-            self.image_list.addItems([i for i in images
-                                      if len(self.image_list.findItems(i, Qt.MatchExactly)) == 0])
+            images = [os.path.join(folder_path, i) for i in os.listdir(folder_path) if os.path.splitext(i)[1] in self.imagetypes]
+            self.image_list.addItems([i for i in images if len(self.image_list.findItems(i, Qt.MatchExactly)) == 0])
 
     def remove(self):
         for item in self.image_list.selectedItems():
@@ -223,58 +217,59 @@ class Segmentation(QWidget):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         self.output_folder.setText(folder_path)
 
-    def process_input(self):
-        image_paths = [self.image_list.item(x).text()
-                       for x in range(self.image_list.count())]
-        model_path = self.selected_model.text()
+    def click(self):
 
-        # check input
-        if len(image_paths) == 0:
-            QMessageBox.warning(self, 'Error', 'Image missing')
-            self.add_image_button.setFocus()
-            return
-        for path in image_paths:
-            if not os.path.isfile(path):
-                QMessageBox.warning(self, 'Error', 'Image not found:\n'+path)
+        def check_inputs(image_paths, model_path):
+            if len(image_paths) == 0:
+                gf.error('Image missing')
                 self.add_image_button.setFocus()
                 return
-        if not os.path.isfile(model_path):
-            QMessageBox.warning(self, 'Error', 'Model missing')
-            self.selected_model.setFocus()
-            return
-        if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
-            QMessageBox.warning(self, 'Error', 'Output folder missing')
-            self.output_folder.setFocus()
-            return
+            for path in image_paths:
+                if not os.path.isfile(path):
+                    gf.error('Image not found', path)
+                    self.add_image_button.setFocus()
+                    return
+            if not os.path.isfile(model_path):
+                gf.error('Model missing')
+                self.selected_model.setFocus()
+                return
+            if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
+                gf.error('Output folder missing')
+                self.output_folder.setFocus()
+                return
+            if self.display_results.isChecked() and len(image_paths) > 1:
+                display_results = QMessageBox.question(self, 'Show results in napari?', "All images will be loaded into memory and a new napari window will be opened for each image.\nDo you really want to show images in napari?", QMessageBox.Yes | QMessageBox.No)
+                if display_results == QMessageBox.No:
+                    self.display_results.setChecked(False)
 
-        if self.display_results.isChecked() and len(image_paths) > 1:
-            display_results = QMessageBox.question(self, 'Show results in napari?', "All images will be loaded into memory and a new napari window will be opened for each image.\nDo you really want to show images in napari?", QMessageBox.Yes | QMessageBox.No)
-            if display_results == QMessageBox.No:
-                self.display_results.setChecked(False)
+        image_paths = [self.image_list.item(x).text() for x in range(self.image_list.count())]
+        model_path = self.selected_model.text()
 
+        check_inputs(image_paths, model_path)
+        
         if os.path.isfile(model_path):
             for image_path in image_paths:
                 if os.path.isfile(image_path):
                     if self.use_input_folder.isChecked():
-                        output_path = os.path.join(os.path.dirname(
-                            image_path), 'segmentation_masks_raw')
+                        output_path = os.path.join(os.path.dirname(image_path), 'segmentation_masks_raw')
                     else:
                         output_path = self.output_folder.text()
                     self.logger.info("Segmenting image %s", image_path)
                     QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
                     QApplication.processEvents()
                     try:
-                        f.main(image_path, model_path, output_path=output_path,
-                               display_results=self.display_results.isChecked(),
-                               use_gpu=self.use_gpu.isChecked())
+                        f.main(image_path, model_path, output_path, self.display_results.isChecked(), self.use_gpu.isChecked())
                     except Exception as e:
+                        gf.error("Segmantation failed" , str(e))
                         QApplication.restoreOverrideCursor()
                         self.logger.error(str(e))
-                        raise e
+                        return
                     QApplication.restoreOverrideCursor()
                 else:
+                    gf.error("Unable to locate file" , image_path)
                     self.logger.warning("Unable to locate file %s", image_path)
         else:
+            gf.error("Model file not found" , model_path)
             self.logger.warning("Model file %s not found", model_path)
 
         self.logger.info("Done")

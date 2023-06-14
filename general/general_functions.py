@@ -8,12 +8,13 @@ import warnings
 warnings.filterwarnings(action='ignore', category=DeprecationWarning, message='`np.bool` is a deprecated alias')
 #warnings.filterwarnings("error", category=UserWarning)
 
-def error(header, message):
-    msg = QMessageBox()
-    msg.setText("Error - "+header)
-    msg.setInformativeText(message)
-    msg.setWindowTitle("Error")
-    msg.exec_()
+def error(header, message=None):
+    msgbox = QMessageBox()
+    msgbox.setText(header)
+    msgbox.setIcon(QMessageBox.Warning)
+    msgbox.setInformativeText(message)
+    msgbox.setWindowTitle("Error")
+    msgbox.exec_()
 
 class Image:
     # dimensions = {'F': 0, 'T': 1, 'C': 2, 'Z': 3, 'Y': 4, 'X': 5}

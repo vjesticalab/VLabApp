@@ -28,107 +28,109 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
 
     """
 
-    # setup logging to file in output_path
+    ## TODO: we assume that the image first channel is always Bf and we will only apply the segmentation on that channel!!!
+
+    # Setup logging to file in output_path
     logger = logging.getLogger(__name__)
     logger.info("SEGMENTATION MODULE")
     if not os.path.isdir(output_path):
         logger.debug("creating: %s", output_path)
         os.makedirs(output_path)
 
-    # log to file
-    logfile = os.path.join(output_path, os.path.splitext(
-        os.path.basename(image_path))[0]+".log")
+    # Log to file
+    logfile = os.path.join(output_path, os.path.splitext(os.path.basename(image_path))[0]+".log")
     logger.setLevel(logging.DEBUG)
     logger.debug("writing log output to: %s", logfile)
     logfile_handler = logging.FileHandler(logfile, mode='w')
-    logfile_handler.setFormatter(logging.Formatter(
-        '%(asctime)s  [%(levelname)s] %(message)s'))
+    logfile_handler.setFormatter(logging.Formatter('%(asctime)s  [%(levelname)s] %(message)s'))
     logfile_handler.setLevel(logging.INFO)
     logger.addHandler(logfile_handler)
 
-    ##cellpose_version already contains platform, python version and torch version
-    logger.info("System info: %s\nnumpy version: %s\nnapari version: %s",
-                cellpose_version,
-                np.__version__,
-                napari.__version__)
+    ## Cellpose_version already contains platform, python version and torch version
+    logger.info("System info: %s\nnumpy version: %s\nnapari version: %s", cellpose_version, np.__version__, napari.__version__)
     logger.info("image: %s", image_path)
     logger.info("cellpose model: %s", model_path)
     logger.info("output: %s", output_path)
     logger.debug("use_gpu: %s", use_gpu)
     logger.debug("display_results: %s", display_results)
 
-    # load image
+    # Load image
     logger.debug("loading %s", image_path)
-    input_image, axes = gf.open_suitable_files(image_path)
+    #input_image, axes = gf.open_suitable_files(image_path)
+    image = gf.Image(image_path)
+    image.imread()
 
-    # TODO: deal with Z axis (z-stack projection)
+    ## TODO: deal with Z axis (z-stack projection)
+    ## TYX
+    """
     tmpaxes=''.join(list(axes.keys())).upper()
     if tmpaxes != "TYX":
         raise TypeError(f'Input image is ({tmpaxes}) (should be TYX).\n({image_path})')
+    """
 
-    if display_results:
-        # show image in napari
-        viewer_images = napari.Viewer(title=image_path)
-        viewer_images.add_image(input_image, name="Input image")
-
-    # cellpose: create model
+    # Create cellpose model
     logger.debug("loading cellpose model %s", model_path)
     model = models.CellposeModel(gpu=use_gpu, pretrained_model=model_path)
+    
+    tot_iterations = image.sizes['Z']*image.sizes['T']*image.sizes['F']
 
-    if display_results:
-        # TODO: find a way to use logging package instead?
-        # TODO: do not import here.
-        # Setup logging into napari window.
-        # only import PyQt5 if needed (no need for PyQt5 dependency if display_results is False.
+    if display_results: # Open image in napari
+        # Only import PyQt5 if needed (no need for PyQt5 dependency if display_results is False)
         from PyQt5.QtGui import QCursor
         from PyQt5.QtCore import Qt
         from PyQt5.QtWidgets import QMessageBox
-        # set cursor to BusyCursor
+
+        viewer_images = napari.Viewer(title=image_path)
+        viewer_images.add_image(image.image, name="Input image")
+        
+        ## TODO: find a way to use logging package instead?
+        # Setup logging into napari window.
+        
+        # Set cursor to BusyCursor
         napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
         napari.qt.get_app().processEvents()
-        # show activity dock & add napari progress bar
+        # Show activity dock & add napari progress bar
         viewer_images.window._status_bar._toggle_activity_dock(True)
-        pbr = napari.utils.progress(total=input_image.shape[0])
+        pbr = napari.utils.progress(total=tot_iterations)
 
-    # cellpose segmentation
+    # Cellpose segmentation
     logger.info("Cellpose segmentation (model diameter=%s)", model.diam_labels)
-    masks = np.zeros(input_image.shape, dtype='uint16')
-    for i in range(input_image.shape[0]):
+    
+    
+    iteration = 0
+    multiple_fov = True if image.sizes['F'] > 1 else False
+    for f in range(image.sizes['F']):
+        masks = np.zeros((image.sizes['T'], image.sizes['Z'], image.sizes['Y'], image.sizes['X']), dtype='uint16')
+        for t in range(image.sizes['T']):
+            for z in range(image.sizes['Z']):
+                # Always assuming BF in channel=0
+                iteration += 1
+                image_2D = image.image[f, t, 0, z, : ,:]
+                if display_results: # Logging into napari window
+                    pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
+                    pbr.update(1)
+                logger.info("cellpose segmentation %s/%s", iteration, tot_iterations)
+                masks[t,z,:,:], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
+
+        # Save masks for each FoV -> dimensions: TZYX
+        if multiple_fov: 
+            output_name = os.path.join(output_path, image.name+"_FoV"+str(f+1)+"_masks.tif")
+        else:
+            output_name = os.path.join(output_path, image.name+"_masks.tif")
+        logger.info("Saving segmentation masks to %s", output_name)
+        tifffile.imwrite(output_name, masks, metadata={'axes': 'TZYX'}, compression='zlib')
+
         if display_results:
-            # logging into napari window.
-            pbr.set_description(
-                f"cellpose segmentation {i+1}/{input_image.shape[0]}")
-            pbr.update(1)
-        logger.info("cellpose segmentation %s/%s", i+1, input_image.shape[0])
-        masks[i], _, _ = model.eval(input_image[i],
-                                    diameter=model.diam_labels,
-                                    channels=[0, 0])
+            QMessageBox.information(viewer_images.window._qt_window, 'File saved', 'Masks saved to\n' + output_name)
 
-    if display_results:
-        # stop logging into napari window
-        # restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
-        # hide dock & close progress bar
-        viewer_images.window._status_bar._toggle_activity_dock(False)
-        pbr.close()
-
-    if display_results:
-        # show masks in napari
-        layer_masks = viewer_images.add_labels(masks, name="Cell masks")
-        # do not allow edition
-        layer_masks.editable = False
-
-    # TODO: adapt metadata to more generic input files (other axes)
-    # save masks
-    output_file = os.path.join(output_path, os.path.splitext(
-        os.path.basename(image_path))[0]+"_masks.tif")
-    logger.info("Saving segmentation masks to %s", output_file)
-    tifffile.imwrite(output_file, masks, metadata={'axes': 'TYX'},imagej=True, compression='zlib')
-
-    if display_results:
-        QMessageBox.information(viewer_images.window._qt_window,
-                                'File saved',
-                                'Masks saved to\n' + output_file)
+    if display_results:  
+            # Stop logging into napari window & restore cursor
+            napari.qt.get_app().restoreOverrideCursor()
+            viewer_images.window._status_bar._toggle_activity_dock(False)
+            pbr.close()
+            # Show masks in napari
+            layer_masks = viewer_images.add_labels(masks, name="Cell masks")
+            layer_masks.editable = False # Do not allow edition
 
     # stop using logfile
     logger.removeHandler(logfile_handler)
