@@ -12,7 +12,7 @@ from modules.image_registration_module.registrationEditing import editing
 from modules.groundtruth_generator_module.generator import generator_functions
 from modules.segmentation_module.segmentation import segmentation
 from modules.cell_tracking_module.cell_tracking import cell_tracking
-from modules.graph_analysis_module.graphAnalysis import analysis
+from modules.graph_filtering_module.graph_filtering import graph_filtering
 from general import general_functions
 
 
@@ -288,52 +288,12 @@ class CellTracking(Page):
         self.window.addWidget(cell_tracking.CellTracking())
         self.window.addStretch()
 
-
-class Tracking(Page):
+class GraphFiltering(Page):
     def __init__(self):
         super().__init__()
         self.window = QVBoxLayout(self.container)
-
-        self.title = QLabel('<b>Image Tracking</b>', self)
-        self.title.setFont(QFont('Arial', 18))
-        self.title.setAlignment(Qt.AlignCenter)
-        self.window.addWidget(self.title)
-        self.line = QFrame()
-        self.line.setFrameShape(QFrame.HLine)
-        self.line.setMinimumWidth(400)
-        self.window.addWidget(self.line)
-        
-        self.buttonA1 = QPushButton("Filter")
-        self.buttonA1.setMinimumWidth(200)
-        self.buttonA1.clicked.connect(partial(self.filter))
-        self.window.addWidget(self.buttonA1, alignment=Qt.AlignCenter)
-
-        self.buttonA2 = QPushButton("Fusions")
-        self.buttonA2.setMinimumWidth(200)
-        self.buttonA2.clicked.connect(partial(self.fusions))
-        self.window.addWidget(self.buttonA2, alignment=Qt.AlignCenter)
-
-        self.buttonA3 = QPushButton("Divisions")
-        self.buttonA3.setMinimumWidth(200)
-        self.buttonA3.clicked.connect(partial(self.divisions))
-        self.window.addWidget(self.buttonA3, alignment=Qt.AlignCenter)
-
+        self.window.addWidget(graph_filtering.GraphFiltering())
         self.window.addStretch()
-             
-    def filter(self):
-        self.filter_window = analysis.Filter()
-        self.filter_window.move(700,0)
-        self.filter_window.show()
-
-    def fusions(self):
-        self.fusion_window = analysis.Fusions()
-        self.fusion_window.move(700,0)
-        self.fusion_window.show()
-
-    def divisions(self):
-        self.division_window = analysis.Divisions()
-        self.division_window.move(700,0)
-        self.division_window.show()
 
 
 class MainWindow(QWidget):
@@ -351,7 +311,7 @@ class MainWindow(QWidget):
         tabwizard.addPage(GTGenerator(), "GroundTruth")
         tabwizard.addPage(Segmentation(), "Segmentation")
         tabwizard.addPage(CellTracking(), "Cell tracking")
-        tabwizard.addPage(Tracking(), "Tracking")
+        tabwizard.addPage(GraphFiltering(), "Graph filtering")
 
         layout = QHBoxLayout()
         self.status_line = QLineEdit()
