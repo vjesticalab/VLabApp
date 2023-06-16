@@ -57,6 +57,9 @@ class Image:
     def save(self):
         pass
 
+    def get_TZXarray(self):
+        return self.image[0,:,0,0,:,:]
+
     def set_image(self, image, axes):
         dimensions = {'F': 0, 'T': 1, 'C': 2, 'Z': 3, 'Y': 4, 'X': 5}
         # Dictionary with image axes order

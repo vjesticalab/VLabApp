@@ -14,70 +14,65 @@ from PyQt5.QtGui import QCursor
 from general import general_functions as gf
 
 
-def split_regions(masks):
+def split_regions(mask: gf.Image):
     """
     Split disconnected regions by assigning different mask ids to connected
     components with same mask id.
 
     Parameters
     ----------
-    masks: numpy.array
+    mask: gf.Image object
         a 3 dimensional 16bit unsigned integer (uint16) numpy array with 
         axes T,Y,X. Modified in-place.
 
     Notes
     -----
-    `masks` is modified in-place.
+    `mask` is modified in-place.
     """
     logging.getLogger(__name__).debug("Splitting disconnected regions:")
-    for frame in range(masks.shape[0]):
-        for n in range(masks[frame].max()):
-            xmin, ymin, w, h = cv.boundingRect(
-                (masks[frame] == n+1).astype('uint8'))
+    for t in range(mask.sizes['T']):
+        for n in range(mask.image[0,t,0,0,:,:].max()):
+            xmin, ymin, w, h = cv.boundingRect((mask.image[0,t,0,0,:,:] == n+1).astype('uint8'))
             if w > 0 and h > 0:
-                nlabels, tmp = cv.connectedComponents(
-                    (masks[frame, (ymin):(ymin+h), (xmin):(xmin+w)] == n+1).astype('uint8'))
+                nlabels, tmp = cv.connectedComponents((mask.image[0,t,0,0, (ymin):(ymin+h), (xmin):(xmin+w)] == n+1).astype('uint8'))
                 # nlabels: number of labels, including 0 (background)
                 if nlabels > 2:
-                    logging.getLogger(__name__).debug(
-                        " Splitting: frame %s, mask id %s", frame, n+1)
-                    masks[frame, (ymin):(ymin+h), (xmin):(xmin+w)
-                          ][tmp > 1] = (tmp[tmp > 1]-1)+masks[frame].max()
+                    logging.getLogger(__name__).debug(" Splitting: frame %s, mask id %s", t, n+1)
+                    mask.image[0,t,0,0, (ymin):(ymin+h), (xmin):(xmin+w)][tmp > 1] = (tmp[tmp > 1]-1)+mask.image[0,t,0,0,:,:].max()
 
 
-def remove_small_regions(masks, min_area):
+def remove_small_regions(mask: gf.Image, min_area):
     """
-    remove (set to 0) masks regions with small area.
+    remove (set to 0) mask regions with small area.
 
     Parameters
     ----------
-    masks: numpy.array
+    mask: gf.Image object
         a 3 dimensional 16bit unsigned integer (uint16) numpy array
         with axes T,Y,X. Modified in-place.
     min_area: int
-        remove masks regions with area (number of pixels) below `min_area`.
+        remove mask regions with area (number of pixels) below `min_area`.
 
     Notes
     -----
-    `masks` is modified in-place.
+    `mask` is modified in-place.
     """
     logging.getLogger(__name__).debug("Removing small regions:")
-    for frame in range(masks.shape[0]):
-        areas = np.bincount(masks[frame].ravel())
+    for t in range(mask.sizes['T']):
+        areas = np.bincount(mask.image[:,t,:,:,:,:].ravel())
         mask_ids_toremove = np.where((areas < min_area) & (areas > 0))[0]
         for mask_id in mask_ids_toremove:
-            logging.getLogger(__name__).debug(
-                " Removing: frame %s, mask id %s", frame, mask_id)
-            masks[masks == mask_id] = 0
+            logging.getLogger(__name__).debug(" Removing: frame %s, mask id %s", t, mask_id)
+            mask.image[mask.image == mask_id] = 0
 
 
-def interpolate_masks(masks, cell_tracking_graph, mask_ids, frame_start, frame_end, max_delta_frame_interpolation=2, min_area=300):
+def interpolate_mask(mask: gf.Image, cell_tracking_graph, mask_ids, frame_start, frame_end, max_delta_frame_interpolation=2, min_area=300):
     """
-    interpolate masks across frames (modify `masks` and `cell_tracking_graph` in-place).
+    interpolate mask across frames (modify `mask` and `cell_tracking_graph` in-place).
 
     Parameters
     ----------
-    masks:  numpy.array
+    mask: gf.Image object
         a 3 dimensional 16bit unsigned integer (uint16) numpy array with axes T,Y,X.
     cell_tracking_graph: CellTrackingGraph
         cell tracking graph.
@@ -88,63 +83,57 @@ def interpolate_masks(masks, cell_tracking_graph, mask_ids, frame_start, frame_e
     frame_end: int
         end frame to modify (i.e. modify up to frame frame_end-1).
     max_delta_frame_interpolation: int
-        number of previous and subsequent frames to consider for masks interpolation.
+        number of previous and subsequent frames to consider for mask interpolation.
     min_area: int
-        remove masks regions with area (number of pixels) below `min_area`.
+        remove mask regions with area (number of pixels) below `min_area`.
 
     Notes
     -------
-    `masks` is modified in-place.
+    `mask` is modified in-place.
     `cell_tracking_graph` is modified in-place.
     """
     logger = logging.getLogger(__name__)
-    logger.debug("Interpolating masks")
+    logger.debug("Interpolating mask")
 
     frame_start = max(frame_start, 0)
-    frame_end = min(frame_end, masks.shape[0])
+    frame_end = min(frame_end, mask.sizes['T'])
 
-    # avoid duplicates in mask_ids
+    # Avoid duplicates in mask_ids
     mask_ids = np.unique(mask_ids).tolist()
 
-    # frame range extended by max_delta_frame_interpolation
+    # Frame range extended by max_delta_frame_interpolation
     frame_start2 = max(0, frame_start-max_delta_frame_interpolation)
-    frame_end2 = min(masks.shape[0], frame_end+max_delta_frame_interpolation)
+    frame_end2 = min(mask.sizes['T'], frame_end+max_delta_frame_interpolation)
 
-    # check that masks contains at least one of the mask_ids
-    if not np.any(np.isin(masks[frame_start2:frame_end2], mask_ids)):
+    # Check that mask contains at least one of the mask_ids
+    if not np.any(np.isin(mask.image[0, frame_start2:frame_end2, 0,0, :,:], mask_ids)):
+        gf.error('no mask ids found','Mask has no content')
         return
 
-    # find bounding box for all mask_ids (region 1)
-    ymin1, ymax1 = np.nonzero(np.any(
-        np.isin(masks[frame_start2:frame_end2], mask_ids), axis=(0, 2)))[0][[0, -1]]
-    xmin1, xmax1 = np.nonzero(np.any(
-        np.isin(masks[frame_start2:frame_end2], mask_ids), axis=(0, 1)))[0][[0, -1]]
+    # Find bounding box for all mask_ids (region 1)
+    ymin1, ymax1 = np.nonzero(np.any( np.isin(mask.image[0, frame_start2:frame_end2, 0,0, :,:], mask_ids), axis=(0,2)))[0][[0, -1]]
+    xmin1, xmax1 = np.nonzero(np.any( np.isin(mask.image[0, frame_start2:frame_end2, 0,0, :,:], mask_ids), axis=(0,1)))[0][[0, -1]]
 
-    # crop masks to this bounding box (region 1)
-    masks_cropped1 = masks[:, (ymin1):(ymax1+1), (xmin1):(xmax1+1)]
+    # Crop mask to this bounding box (region 1)
+    mask_cropped1 = mask.image[0, :, 0,0, (ymin1):(ymax1+1), (xmin1):(xmax1+1)]
 
-    # destination distmap and masks (only region 1)
-    dest_distmap = np.zeros(
-        (frame_end-frame_start, ymax1-ymin1+1, xmax1-xmin1+1), dtype='float32')
-    dest_masks = masks_cropped1[frame_start:frame_end].copy()
-    # erase previous version of mask_ids
-    dest_masks[np.isin(dest_masks, mask_ids)] = 0
+    # Destination distmap and mask (only region 1)
+    dest_distmap = np.zeros((frame_end-frame_start, ymax1-ymin1+1, xmax1-xmin1+1), dtype='float32')
+    dest_mask = mask_cropped1[frame_start:frame_end].copy()
+    # Erase previous version of mask_ids
+    dest_mask[np.isin(dest_mask, mask_ids)] = 0
 
     for mask_id in mask_ids:
-        if not mask_id in masks_cropped1[frame_start2:frame_end2]:
-            continue
-        # find bounding box for mask_id (region 2)
-        ymin2, ymax2 = np.nonzero(np.any(
-            masks_cropped1[frame_start2:frame_end2] == mask_id, axis=(0, 2)))[0][[0, -1]]
-        xmin2, xmax2 = np.nonzero(np.any(
-            masks_cropped1[frame_start2:frame_end2] == mask_id, axis=(0, 1)))[0][[0, -1]]
+        """if not mask_id in mask_cropped1[frame_start2:frame_end2]:
+            continue"""
+        # Find bounding box for mask_id (region 2)
+        ymin2, ymax2 = np.nonzero(np.any(mask_cropped1[frame_start2:frame_end2] == mask_id, axis=(0, 2)))[0][[0, -1]]
+        xmin2, xmax2 = np.nonzero(np.any(mask_cropped1[frame_start2:frame_end2] == mask_id, axis=(0, 1)))[0][[0, -1]]
         distmaps_deque = deque()
         for frame in range(frame_start2, frame_end2):
-            # eval distance map to mask, with positive distance inside mask and negative distance outside mask (consider only region 2 enclosing mask_id)
-            distmap = cv.distanceTransform((masks_cropped1[frame, (ymin2):(ymax2+1), (xmin2):(
-                xmax2+1)] == mask_id).astype('uint8'), distanceType=cv.DIST_L2, maskSize=cv.DIST_MASK_5)
-            distmap2 = cv.distanceTransform(1-(masks_cropped1[frame, (ymin2):(ymax2+1), (xmin2):(
-                xmax2+1)] == mask_id).astype('uint8'), distanceType=cv.DIST_L2, maskSize=cv.DIST_MASK_5)
+            # Eval distance map to mask, with positive distance inside mask and negative distance outside mask (consider only region 2 enclosing mask_id)
+            distmap = cv.distanceTransform((mask_cropped1[frame, (ymin2):(ymax2+1), (xmin2):(xmax2+1)] == mask_id).astype('uint8'), distanceType=cv.DIST_L2, maskSize=cv.DIST_MASK_5)
+            distmap2 = cv.distanceTransform(1-(mask_cropped1[frame, (ymin2):(ymax2+1), (xmin2):(xmax2+1)] == mask_id).astype('uint8'), distanceType=cv.DIST_L2, maskSize=cv.DIST_MASK_5)
             distmap[distmap < 1e-4] = -distmap2[distmap < 1e-4]+1
             distmaps_deque.append(distmap)
             if len(distmaps_deque) > 2*max_delta_frame_interpolation+1:
@@ -152,13 +141,12 @@ def interpolate_masks(masks, cell_tracking_graph, mask_ids, frame_start, frame_e
             if len(distmaps_deque) % 2 == 1:
                 frame2 = frame-int((len(distmaps_deque)-1)/2)
                 if frame2 >= frame_start and frame2 < frame_end:
-                    logger.debug(
-                        "interpolating masks: frame %s, mask id %s", frame2, mask_id)
+                    logger.debug("interpolating mask: frame %s, mask id %s", frame2, mask_id)
                     median_dist = np.median(distmaps_deque, axis=0)
-                    # crop to region 2
+                    # Crop to region 2
                     dest_distmap_cropped2 = dest_distmap[frame2 -frame_start, (ymin2):(ymax2+1), (xmin2):(xmax2+1)]
-                    dest_masks_cropped2 = dest_masks[frame2 - frame_start, (ymin2):(ymax2+1), (xmin2):(xmax2+1)]
-                    dest_masks_cropped2[(median_dist > 0) & (median_dist > dest_distmap_cropped2)] = mask_id
+                    dest_mask_cropped2 = dest_mask[frame2 - frame_start, (ymin2):(ymax2+1), (xmin2):(xmax2+1)]
+                    dest_mask_cropped2[(median_dist > 0) & (median_dist > dest_distmap_cropped2)] = mask_id
                     dest_distmap_cropped2[(median_dist > 0) & (median_dist > dest_distmap_cropped2)] = median_dist[(median_dist > dest_distmap_cropped2)]
 
         frame = frame_end2-1
@@ -167,54 +155,50 @@ def interpolate_masks(masks, cell_tracking_graph, mask_ids, frame_start, frame_e
             if len(distmaps_deque) % 2 == 1:
                 frame2 = frame-int((len(distmaps_deque)-1)/2)
                 if frame2 >= frame_start and frame2 < frame_end:
-                    logger.debug(
-                        "interpolating masks: frame %s, mask id %s", frame2, mask_id)
+                    logger.debug("interpolating mask: frame %s, mask id %s", frame2, mask_id)
                     median_dist = np.median(distmaps_deque, axis=0)
                     dest_distmap_cropped2 = dest_distmap[frame2 - frame_start, (ymin2):(ymax2+1), (xmin2):(xmax2+1)]
-                    dest_masks_cropped2 = dest_masks[frame2 - frame_start, (ymin2):(ymax2+1), (xmin2):(xmax2+1)]
-                    dest_masks_cropped2[(median_dist > 0) & (median_dist > dest_distmap_cropped2)] = mask_id
+                    dest_mask_cropped2 = dest_mask[frame2 - frame_start, (ymin2):(ymax2+1), (xmin2):(xmax2+1)]
+                    dest_mask_cropped2[(median_dist > 0) & (median_dist > dest_distmap_cropped2)] = mask_id
                     dest_distmap_cropped2[(median_dist > 0) & (median_dist > dest_distmap_cropped2)] = median_dist[(median_dist > dest_distmap_cropped2)]
 
-    # update cell tracking
-    cell_tracking_graph.update(masks,
-                               dest_masks,
-                               [(frame_start, frame_end), (ymin1, ymax1+1), (xmin1, xmax1+1)])
+    # Update cell tracking
+    cell_tracking_graph.update(mask, dest_mask, [(frame_start, frame_end), (ymin1, ymax1+1), (xmin1, xmax1+1)])
 
-    # update masks
-    masks_cropped1[frame_start:frame_end] = dest_masks
+    # Update mask
+    mask_cropped1[frame_start:frame_end] = dest_mask
 
-    # clean
+    # Clean
     if not min_area is None:
         toremove = []
         logger.debug("removing small regions")
         for frame in range(frame_start, frame_end):
-            areas = np.bincount(masks[frame].ravel())
+            areas = np.bincount(mask.image[:, frame, :, :, :, :].ravel())
             mask_ids_toremove = np.where((areas < min_area) & (areas > 0))[0]
             for mask_id in mask_ids_toremove:
-                logger.debug(
-                    "Removing masks: frame %s, mask id %s", frame, mask_id)
-                masks[masks == mask_id] = 0
+                logger.debug( "Removing mask: frame %s, mask id %s", frame, mask_id)
+                mask.image[mask.image == mask_id] = 0
                 toremove.append((frame, mask_id))
         if len(toremove) > 0:
             cell_tracking_graph.remove_vertices(toremove)
 
 
-def clean_masks(masks, cell_tracking_graph, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0, min_area=300, only_missing=False):
+def clean_mask(mask: gf.Image, cell_tracking_graph, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0, min_area=300, only_missing=False):
     """
     search for isolated defects in the cell tracking graph and try to remove
-    them by interpolating corresponding masks across neighboring
-    frames (modify `masks` and `cell_tracking_graph` in-place).
+    them by interpolating corresponding mask across neighboring
+    frames (modify `mask` and `cell_tracking_graph` in-place).
 
     Parameters
     ----------
-    masks:  numpy.array
+    mask: gf.Image object
         a 3 dimensional 16bit unsigned integer (uint16) numpy array
         with axes T,Y,X.
     cell_tracking_graph: CellTrackingGraph
         cell tracking graph.
     max_delta_frame_interpolation: int
         number of previous and subsequent frames to consider for
-        masks interpolation.
+        mask interpolation.
     nframes_defect: int
         maximum size of the defect (number of frames). It should be smaller
         than `max_delta_frame_interpolation`.
@@ -226,7 +210,7 @@ def clean_masks(masks, cell_tracking_graph, max_delta_frame_interpolation=3, nfr
         or overlap_fraction_source < `stable_overlap_fraction`
         are considered as not stable.
     min_area: int
-        remove masks regions with area (number of pixels) below `min_area`.
+        remove mask regions with area (number of pixels) below `min_area`.
     only_missing: bool
         only consider missing vertices type of defect.
 
@@ -234,36 +218,33 @@ def clean_masks(masks, cell_tracking_graph, max_delta_frame_interpolation=3, nfr
     -------
     list of tuples
         Each each tuple corresponds to a defect (maks_ids,frame_start,frame_end)
-        involving a list of mask ids (masks_ids) in the frame
+        involving a list of mask ids (mask_ids) in the frame
         interval [frame_start,frame_end).
 
     Notes
     -------
-    `masks` is modified in-place.
+    `mask` is modified in-place.
     `cell_tracking_graph` is modified in-place.
     """
     logger = logging.getLogger(__name__)
-    logger.debug("cleaning masks")
+    logger.debug("cleaning mask")
 
-    defects = cell_tracking_graph.get_isolated_defects(
-        nframes_defect, nframes_stable, stable_overlap_fraction, only_missing)
+    defects = cell_tracking_graph.get_isolated_defects(nframes_defect, nframes_stable, stable_overlap_fraction, only_missing)
 
-    # clean
+    # Clean
     for mask_ids, frame_start, frame_end in defects:
-        interpolate_masks(masks, cell_tracking_graph, mask_ids, frame_start, frame_end,
-                          max_delta_frame_interpolation=max_delta_frame_interpolation, min_area=None)  # do not filter on area (too long)
+        interpolate_mask(mask, cell_tracking_graph, mask_ids, frame_start, frame_end, max_delta_frame_interpolation=max_delta_frame_interpolation, min_area=None)  # do not filter on area (too long)
 
-    # clean
+    # Clean
     if not min_area is None:
         toremove = []
         logger.debug("removing small regions")
-        for frame in range(masks.shape[0]):
-            areas = np.bincount(masks[frame].ravel())
+        for frame in range(mask.sizes['T']):
+            areas = np.bincount(mask.image[:,frame,:,:,:,:].ravel())
             mask_ids_toremove = np.where((areas < min_area) & (areas > 0))[0]
             for mask_id in mask_ids_toremove:
-                logging.getLogger(__name__).debug(
-                    "Removing masks: frame %s, mask id %s", frame, mask_id)
-                masks[masks == mask_id] = 0
+                logging.getLogger(__name__).debug("Removing mask: frame %s, mask id %s", frame, mask_id)
+                mask.image[mask.image == mask_id] = 0
                 toremove.append((frame, mask_id))
         if len(toremove) > 0:
             cell_tracking_graph.remove_vertices(toremove)
@@ -271,7 +252,7 @@ def clean_masks(masks, cell_tracking_graph, max_delta_frame_interpolation=3, nfr
     return defects
 
 
-def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, graph, colors):
+def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, colors):
     """
     Add two layers (with names 'Edges' and 'Vertices') to the `viewer_graph`
     and plot the cell tracking graph.
@@ -284,12 +265,9 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, graph, co
     viewer_graph: napari.Viewer
         napari viewer in which the graph should be displayed.
     viewer_images: napari.Viewer
-        napari viewer with image and masks.
-    masks_layer: napari.layer.Labels
-        napari layer with segmentation masks.
-    masks: numpy.array
-        a 3 dimensional 16bit unsigned integer (uint16) numpy array
-        with axes T,Y,X.
+        napari viewer with image and mask.
+    mask_layer: napari.layer.Labels
+        napari layer with segmentation mask.
     graph: igraph.Graph
         cell tracking graph.
     colors: numpy.array
@@ -299,33 +277,33 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, graph, co
 
     layout_per_component=True
     if layout_per_component:
-        # layout_sugiyama doesn't always properly split connectected components.
+        # Layout_sugiyama doesn't always properly split connectected components.
         # This is an attempt to overcome this problem.
         # A better option would probably be to use the algorithm used by graphviz (dot) or graphviz.
         components = graph.connected_components(mode='weak')
-        layout=[[0.0,0.0] for v in graph.vs]
-        lastx=0
+        layout = [[0.0,0.0] for v in graph.vs]
+        lastx = 0
         for cmp in components:
             g2 = graph.subgraph(cmp)
             layout_tmp = g2.layout_sugiyama(
-                layers=[f+min(graph.vs['frame']) for f in g2.vs['frame']], maxiter=1000)
-            #shift x coord by lastx
-            minx=min([x for x,y in layout_tmp.coords])
-            maxx=max([x for x,y in layout_tmp.coords])
+                layers = [f+min(graph.vs['frame']) for f in g2.vs['frame']], maxiter=1000)
+            # Shift x coord by lastx
+            minx = min([x for x,y in layout_tmp.coords])
+            maxx = max([x for x,y in layout_tmp.coords])
             for i, j in  enumerate(cmp):
-                x,y=layout_tmp[i]
+                x,y = layout_tmp[i]
                 layout[j] = [x-minx+lastx,y]
-            lastx=lastx-minx+maxx+1 #max([x+lastx for x,y in layout_tmp.coords])+1
+            lastx = lastx-minx+maxx+1 #max([x+lastx for x,y in layout_tmp.coords])+1
     else:
-        # simple layout_sugiyama
+        # Simple layout_sugiyama
         layout = graph.layout_sugiyama(
-            layers=[f+min(graph.vs['frame']) for f in graph.vs['frame']], maxiter=1000)
+            layers = [f+min(graph.vs['frame']) for f in graph.vs['frame']], maxiter=1000)
 
     vertex_size = 0.4
     edge_w_min = 0.01
     edge_w_max = vertex_size*0.8
 
-    # edges
+    # Edges
     if not 'Edges' in viewer_graph.layers:
         edges_layer = viewer_graph.add_shapes(name='Edges', opacity=1)
     else:
@@ -343,7 +321,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, graph, co
     edges_layer.editable = False
     edges_layer.refresh()
 
-    # add vertices
+    # Add vertices
     if not 'Vertices' in viewer_graph.layers:
         vertices_layer = viewer_graph.add_points(name='Vertices', opacity=1)
         vertices_layer.help = "<left-click> to set view, <right-click> to select, <shift>+<right-click> to extend selection"
@@ -353,8 +331,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, graph, co
         vertices_layer.data = []
         vertices_layer_isnew = False
 
-    vertices_layer.add(
-        np.array(layout[:graph.vcount()]))
+    vertices_layer.add(np.array(layout[:graph.vcount()]))
     vertices_layer.edge_width_is_relative = True
     vertices_layer.edge_width = 0.0
     vertices_layer.symbol = 'square'
@@ -389,11 +366,11 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, graph, co
                     if not point_id is None:
                         frame = layer.properties['frame'][point_id]
                         mask_id = layer.properties['mask_id'][point_id]
-                        # just in case masks has changed and cell_tracking graph has not been updated yet:
-                        if mask_id in masks_layer.data[frame]:
+                        # just in case mask has changed and cell_tracking graph has not been updated yet:
+                        if mask_id in mask_layer.data[frame]:
                             viewer_images.dims.set_point(0, frame)
                             y0, x0 = np.mean(
-                                np.where(masks_layer.data[frame] == mask_id), axis=1)
+                                np.where(mask_layer.data[frame] == mask_id), axis=1)
                             viewer_images.camera.center = (0, y0, x0)
                 elif event.button == 2:  # selection (right-click)
                     # vertices selection (multple mask_ids, same frame range for all)
@@ -410,7 +387,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, graph, co
                             mask_ids = layer.properties['mask_id'][v_selected]
                             # erase previous selection
                             layer.properties['selected'] = False
-                            # select all vertice with mask_id in masks_ids and within frame_range
+                            # select all vertice with mask_id in mask_ids and within frame_range
                             layer.properties['selected'][(layer.properties['frame'] >= frame_min) & (layer.properties['frame'] <= frame_max) & (np.isin(layer.properties['mask_id'], mask_ids))] = True
                         else:
                             # replace selection
@@ -426,8 +403,8 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, graph, co
                     layer.edge_width[layer.properties['selected']] = 0.4
                     layer.refresh()
 
-        # mouse click on viewer_image (masks_layer)
-        @masks_layer.mouse_drag_callbacks.append
+        # mouse click on viewer_image (mask_layer)
+        @mask_layer.mouse_drag_callbacks.append
         def click_drag(layer, event):
             dragged = False
             yield
@@ -473,7 +450,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, graph, co
                                 mask_ids = viewer_graph.layers['Vertices'].properties['mask_id'][v_selected]
                                 # erase previous selection
                                 viewer_graph.layers['Vertices'].properties['selected'] = False
-                                # select all vertice with mask_id in masks_ids and within frame_range
+                                # select all vertice with mask_id in mask_ids and within frame_range
                                 viewer_graph.layers['Vertices'].properties['selected'][(viewer_graph.layers['Vertices'].properties['frame'] >= frame_min) & (
                                     viewer_graph.layers['Vertices'].properties['frame'] <= frame_max) & (np.isin(viewer_graph.layers['Vertices'].properties['mask_id'], mask_ids))] = True
                             else:
@@ -498,13 +475,13 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, masks_layer, graph, co
 
 
 class CellTrackingGraph:
-    def __init__(self, masks, max_delta_frame=5, min_overlap_fraction=0.2, beta=1):
+    def __init__(self, mask: gf.Image, max_delta_frame=5, min_overlap_fraction=0.2, beta=1):
         """
-        Create cell tracking graph (`self._graph_full`) from masks.
+        Create cell tracking graph (`self._graph_full`) from mask.
 
         Parameters
         ----------
-        masks:  numpy.array
+        mask: gf.Image object
             a 3 dimensional 16bit unsigned integer (uint16) numpy array
             with axes T,Y,X.
         max_delta_frame: int
@@ -514,7 +491,7 @@ class CellTrackingGraph:
             minimum overlap fraction (w.r.t mask area) to consider when
             filtering the cell tracking graph (`self._graph`).
         beta: float
-            for cell tracking, the weight of the masks overlap between
+            for cell tracking, the weight of the mask overlap between
             frames t1 and t2 is 1/beta**(t2-t1-1). Should satisfy 1<=beta.
         """
         self.logger = logging.getLogger(__name__)
@@ -523,20 +500,19 @@ class CellTrackingGraph:
         self.beta = beta
 
         self._max_delta_frame = max_delta_frame
-        # full graph (only internal)
+        # Full graph (only internal)
         self._graph_full = ig.Graph(directed=True)
-        # final cell tracking graph (acces it with self.get_graph())
+        # Final cell tracking graph (acces it with self.get_graph())
         self._graph = None
+        self._create_graph(mask)
 
-        self._create_graph(masks)
-
-    def reset(self, masks, max_delta_frame=None, min_overlap_fraction=None, beta=None):
+    def reset(self, mask: gf.Image, max_delta_frame=None, min_overlap_fraction=None, beta=None):
         """
-        Create cell tracking graph (`self._graph_full`) from masks.
+        Create cell tracking graph (`self._graph_full`) from mask.
 
         Parameters
         ----------
-        masks:  numpy.array
+        mask: gf.Image object
             a 3 dimensional 16bit unsigned integer (uint16) numpy array
             with axes T,Y,X.
         max_delta_frame: int
@@ -546,7 +522,7 @@ class CellTrackingGraph:
             minimum overlap fraction (w.r.t mask area) to consider when
             filtering the cell tracking graph (`self._graph`).
         beta: float
-            for cell tracking, the weight of the masks overlap between
+            for cell tracking, the weight of the mask overlap between
             frames t1 and t2 is 1/beta**(t2-t1-1). Should satisfy 1<=beta.
         """
         if not min_overlap_fraction is None:
@@ -558,46 +534,43 @@ class CellTrackingGraph:
 
         self._graph_full.clear()
         self._graph = None
+        self._create_graph(mask)
 
-        self._create_graph(masks)
-
-    def relabel(self, masks):
+    def relabel(self, mask: gf.Image):
         """
-        Relabel masks (modify `masks` and `self._graph_full` in-place) so as
+        Relabel mask (modify `mask` and `self._graph_full` in-place) so as
         to have consistent mask ids in consecutive frames.        
 
         Parameters
         ----------
-        masks:  numpy.array
+        mask: gf.Image object
             a 3 dimensional 16bit unsigned integer (uint16) numpy array with axes T,Y,X.
 
         Notes
         -----
-        `masks` is modified in-place.
+        `mask` is modified in-place.
         `self._graph_full` is modified.
         """
-
-        self._relabel(masks)
-
-        # invalidate self._graph
+        self._relabel(mask)
+        # Invalidate self._graph
         self._graph = None
 
-    def update(self, masks, masks_new, region):
+    def update(self, mask: gf.Image, mask_new, region):
         """
         Update cell tracking graph (`self._graph_full`)
 
         Parameters
         ----------
-        masks:  numpy.array
+        mask: gf.Image object
             a 3 dimensional 16bit unsigned integer (uint16) numpy array
             with axes T,Y,X.
-        masks_new:  numpy.array
+        mask_new:  numpy.array
             a 3 dimensional 16bit unsigned integer (uint16) numpy array
-            corresponding to a slice of masks (with axes T,Y,X).
+            corresponding to a slice of mask (with axes T,Y,X).
         region: list of tuples
             list of tuples ((frame_start,frame_end),(y_start,y_end),(x_start,x_end))
-            specifying the position of `masks_new` within `masks`
-            (i.e. masks[frame_start:frame_end,y_start:y_end,x_start:x_end]).
+            specifying the position of `mask_new` within `mask`
+            (i.e. mask[frame_start:frame_end,y_start:y_end,x_start:x_end]).
 
         Notes
         -----
@@ -607,107 +580,73 @@ class CellTrackingGraph:
 
         frame_start = region[0][0]
         frame_end = region[0][1]
-        masks_cropped = masks[:, region[1][0]:region[1][1], region[2][0]:region[2][1]]
+        mask_cropped = mask.image[0, :, 0, 0, region[1][0]:region[1][1], region[2][0]:region[2][1]]
 
-        # add attribute to keep track of modifications
+        # Add attribute to keep track of modifications
         self._graph_full.vs['changed'] = False
         self._graph_full.es['changed'] = False
 
         self.logger.debug("Updating graph")
-        # modify vertex attribute 'area' (mask areas)
+        # Modify vertex attribute 'area' (mask areas)
         for frame in range(frame_start, frame_end):
-            # evaluate difference of area between old (masks_cropped) and new (masks_new)
-            m = max(masks_cropped[frame].max()+1,
-                    masks_new[frame-frame_start].max()+1).astype(masks.dtype)
-            area_old = cv.calcHist(images=[masks_cropped[frame]],
-                                   channels=[0],
-                                   mask=None,
-                                   histSize=[m],
-                                   ranges=[0, m]).astype(np.int64).reshape(-1)
-            area_new = cv.calcHist(images=[masks_new[frame-frame_start]],
-                                   channels=[0],
-                                   mask=None,
-                                   histSize=[m],
-                                   ranges=[0, m]).astype(np.int64).reshape(-1)
+            # Evaluate difference of area between old (mask_cropped) and new (mask_new)
+            m = max(mask_cropped[frame].max()+1, mask_new[frame-frame_start].max()+1).astype(mask.image.dtype)
+            area_old = cv.calcHist(images=[mask_cropped[frame]], channels=[0], mask=None, histSize=[m], ranges=[0, m]).astype(np.int64).reshape(-1)
+            area_new = cv.calcHist(images=[mask_new[frame-frame_start]], channels=[0], mask=None, histSize=[m], ranges=[0, m]).astype(np.int64).reshape(-1)
             area_diff = area_new - area_old
 
-            # modify 'area' vertex attribute (mask area)
+            # Modify 'area' vertex attribute (mask area)
             frame_vs = self._graph_full.vs.select(frame=frame, mask_id_lt=m)
-            # add missing vertices
+            # Add missing vertices
             mask_ids_new = np.nonzero(area_new)[0]
-            mask_ids_missing = np.setdiff1d(
-                mask_ids_new[mask_ids_new > 0], frame_vs['mask_id'])
+            mask_ids_missing = np.setdiff1d(mask_ids_new[mask_ids_new > 0], frame_vs['mask_id'])
             if len(mask_ids_missing) > 0:
                 self._graph_full.add_vertices(len(mask_ids_missing),
                                               {"frame": np.repeat(frame, len(mask_ids_missing)),
                                                "area":  np.repeat(0, len(mask_ids_missing)),
-                                               "mask_id": mask_ids_missing.astype(masks.dtype),
+                                               "mask_id": mask_ids_missing.astype(mask.image.dtype),
                                                "changed": True})
-                frame_vs = self._graph_full.vs.select(frame=frame,mask_id_lt=m)
-            # update area
-            frame_vs['area'] = frame_vs['area']+area_diff[frame_vs['mask_id']]
+                frame_vs = self._graph_full.vs.select(frame=frame, mask_id_lt=m)
+            # Update area
+            frame_vs['area'] = frame_vs['area'] + area_diff[frame_vs['mask_id']]
             frame_vs['changed'] = [True if d != 0 else False for d in area_diff[frame_vs['mask_id']]]
-            # consider only modified edges
+            # Consider only modified edges
             frame_vs = self._graph_full.vs.select(frame=frame, mask_id_lt=m, changed=True)
-            #update overlap_fraction_source for outgoing edges
+            # Update overlap_fraction_source for outgoing edges
             outgoing_es = self._graph_full.es.select(_source_in=frame_vs)
             outgoing_es['overlap_fraction_source'] = [e['overlap_area']/self._graph_full.vs[e.source]['area'] for e in outgoing_es]
             outgoing_es['changed'] = True
-            #update overlap_fraction_source for incoming edges
+            # Update overlap_fraction_source for incoming edges
             incoming_es = self._graph_full.es.select(_target_in=frame_vs)
             incoming_es['overlap_fraction_target'] = [e['overlap_area']/self._graph_full.vs[e.target]['area'] for e in incoming_es]
             incoming_es['changed'] = True
 
-        # modify edge attribute 'overlap_area'
-        for frame1 in range(frame_start, min(masks.shape[0], frame_end+self._max_delta_frame)):
+        # Modify edge attribute 'overlap_area'
+        for frame1 in range(frame_start, min(mask.sizes['T'], frame_end+self._max_delta_frame)):
             frame2_range = range(max(0, frame1-self._max_delta_frame), min(frame_end, frame1))
             for frame2 in frame2_range:
-                m = max(masks_cropped[frame1].max()+1,
-                        masks_cropped[frame2].max()+1)
+                m = max(mask_cropped[frame1].max()+1, mask_cropped[frame2].max()+1)
                 if frame1 in range(frame_start, frame_end):
-                    m = max(m, masks_new[frame1-frame_start].max()+1)
+                    m = max(m, mask_new[frame1-frame_start].max()+1)
                 if frame2 in range(frame_start, frame_end):
-                    m = max(m, masks_new[frame2-frame_start].max()+1)
-                m = m.astype(masks.dtype)
-                # evaluate confusion matrix for old masks (masks_cropped)
-                cm_old = cv.calcHist(images=[masks_cropped[frame1],
-                                     masks_cropped[frame2]],
-                                     channels=[0, 1],
-                                     mask=None,
-                                     histSize=[m, m],
-                                     ranges=[0, m, 0, m]).astype(np.int64)
-                # evaluate confusion matrix for new masks (masks_cropped)
+                    m = max(m, mask_new[frame2-frame_start].max()+1)
+                m = m.astype(mask.image.dtype)
+                # Evaluate confusion matrix for old mask (mask_cropped)
+                cm_old = cv.calcHist(images=[mask_cropped[frame1], mask_cropped[frame2]], channels=[0, 1], mask=None, histSize=[m, m], ranges=[0, m, 0, m]).astype(np.int64)
+                # Evaluate confusion matrix for new mask (mask_cropped)
                 if frame1 in range(frame_start, frame_end) and frame2 in range(frame_start, frame_end):
-                    cm_new = cv.calcHist(images=[masks_new[frame1-frame_start],
-                                         masks_new[frame2-frame_start]],
-                                         channels=[0, 1],
-                                         mask=None,
-                                         histSize=[m, m],
-                                         ranges=[0, m, 0, m]).astype(np.int64)
+                    cm_new = cv.calcHist(images=[mask_new[frame1-frame_start], mask_new[frame2-frame_start]], channels=[0, 1], mask=None, histSize=[m, m], ranges=[0, m, 0, m]).astype(np.int64)
                 elif frame1 in range(frame_start, frame_end) and not frame2 in range(frame_start, frame_end):
-                    cm_new = cv.calcHist(images=[masks_new[frame1-frame_start],
-                                         masks_cropped[frame2]],
-                                         channels=[0, 1],
-                                         mask=None,
-                                         histSize=[m, m],
-                                         ranges=[0, m, 0, m]).astype(np.int64)
+                    cm_new = cv.calcHist(images=[mask_new[frame1-frame_start], mask_cropped[frame2]], channels=[0, 1], mask=None, histSize=[m, m], ranges=[0, m, 0, m]).astype(np.int64)
                 elif not frame1 in range(frame_start, frame_end) and frame2 in range(frame_start, frame_end):
-                    cm_new = cv.calcHist(images=[masks_cropped[frame1],
-                                         masks_new[frame2-frame_start]],
-                                         channels=[0, 1],
-                                         mask=None, histSize=[m, m],
-                                         ranges=[0, m, 0, m]).astype(np.int64)
+                    cm_new = cv.calcHist(images=[mask_cropped[frame1], mask_new[frame2-frame_start]], channels=[0, 1], mask=None, histSize=[m, m], ranges=[0, m, 0, m]).astype(np.int64)
                 else:
-                    cm_new = cv.calcHist(images=[masks_cropped[frame1],masks_cropped[frame2]],
-                                         channels=[0, 1],
-                                         mask=None,
-                                         histSize=[m, m],
-                                         ranges=[0, m, 0, m]).astype(np.int64)
+                    cm_new = cv.calcHist(images=[mask_cropped[frame1], mask_cropped[frame2]], channels=[0, 1], mask=None, histSize=[m, m], ranges=[0, m, 0, m]).astype(np.int64)
 
                 cm_diff = cm_new-cm_old
 
-                # add edges (create if needed)
-                # select vertices from frame1 and frame2 for faster vertex search)
+                # Add edges (create if needed)
+                # Select vertices from frame1 and frame2 for faster vertex search)
                 frame1_vs = self._graph_full.vs.select(frame=frame1)
                 frame2_vs = self._graph_full.vs.select(frame=frame2)
                 elist = []
@@ -717,30 +656,28 @@ class CellTrackingGraph:
                 mask_id_source = []
                 mask_id_target = []
                 for id1, id2 in np.argwhere(cm_diff != 0):
-                    # ignore mask==0, i.e. cm_diff[0,:] and cm_diff[:,0]
+                    # Ignore mask==0, i.e. cm_diff[0,:] and cm_diff[:,0]
                     if id1 > 0 and id2 > 0:
                         v2 = frame2_vs.find(mask_id=id2)
                         v1 = frame1_vs.find(mask_id=id1)
                         eid = self._graph_full.get_eid(v2, v1, error=False)
                         if eid < 0:
-                            # edge does not exist => add
+                            # Edge does not exist => add
                             elist.append((v2, v1))
                             overlap_area.append(cm_new[id1, id2])
-                            overlap_fraction_source.append(
-                                cm_new[id1, id2]/v2['area'])
-                            overlap_fraction_target.append(
-                                cm_new[id1, id2]/v1['area'])
-                            mask_id_source.append(id2.astype(masks.dtype))
-                            mask_id_target.append(id1.astype(masks.dtype))
+                            overlap_fraction_source.append(cm_new[id1, id2]/v2['area'])
+                            overlap_fraction_target.append(cm_new[id1, id2]/v1['area'])
+                            mask_id_source.append(id2.astype(mask.image.dtype))
+                            mask_id_target.append(id1.astype(mask.image.dtype))
                         else:
-                            # edge exist => modify
+                            # Edge exist => modify
                             self._graph_full.es[eid]['overlap_area'] = self._graph_full.es[eid]['overlap_area']+cm_diff[id1, id2]
                             self._graph_full.es[eid]['overlap_fraction_source'] = self._graph_full.es[eid]['overlap_area']/v2['area']
                             self._graph_full.es[eid]['overlap_fraction_target'] = self._graph_full.es[eid]['overlap_area']/v1['area']
                             self._graph_full.es[eid]['changed'] = True
 
                 if len(elist) > 0:
-                    # add missing edges (it is more efficient than adding one by one)
+                    # Add missing edges (it is more efficient than adding one by one)
                     self._graph_full.add_edges(elist,
                                                {"overlap_area": overlap_area,
                                                 "overlap_fraction_source": overlap_fraction_source,
@@ -751,18 +688,17 @@ class CellTrackingGraph:
                                                 "mask_id_target": mask_id_target,
                                                 "changed": np.repeat(True, len(elist))})
 
-        # clean cell tracking graph
-        # remove edges with overlap_area=0
-        self._graph_full.delete_edges(
-            self._graph_full.es.select(overlap_area=0))
-        # remove vertices with area=0
+        # Clean cell tracking graph
+        # Remove edges with overlap_area=0
+        self._graph_full.delete_edges(self._graph_full.es.select(overlap_area=0))
+        # Remove vertices with area=0
         self._graph_full.delete_vertices(self._graph_full.vs.select(area=0))
 
-        # remove useless attribute
+        # Remove useless attribute
         del self._graph_full.es['changed']
         del self._graph_full.vs['changed']
 
-        # invalidate self._graph
+        # Invalidate self._graph
         self._graph = None
 
     def remove_vertices(self, vertices):
@@ -783,7 +719,7 @@ class CellTrackingGraph:
         vs = self._graph_full.vs.select(lambda v: (v['frame'], v['mask_id']) in vertices)
         self._graph_full.delete_vertices(vs)
 
-        # invalidate self._graph
+        # Invalidate self._graph
         self._graph = None
 
     def get_isolated_defects(self, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0, only_missing=False):
@@ -807,18 +743,18 @@ class CellTrackingGraph:
         -------
         list of tuples
             Each each tuple corresponds to a defect (maks_ids,frame_start,frame_end) 
-            involving a list of mask ids (masks_ids) in the frame 
+            involving a list of mask ids (mask_ids) in the frame 
             interval [frame_start,frame_end).
         """
 
         g = self.get_graph()
 
         self.logger.debug("Searching for isolated defects")
-        # search for stable portions of the graph (vertices connected only to vertices in consecutive frames with same mask_id)
-        # flag edges as stable if source vertex has a unique outgoing edge and target vertex has a unique incoming edge
+        # Search for stable portions of the graph (vertices connected only to vertices in consecutive frames with same mask_id)
+        # Flag edges as stable if source vertex has a unique outgoing edge and target vertex has a unique incoming edge
         g.es['stable'] = False
         g.es.select(lambda edge: abs(g.vs[edge.source]['frame']-g.vs[edge.target]['frame']) == 1 and g.vs[edge.source]['mask_id'] == g.vs[edge.target]['mask_id'] and g.outdegree(edge.source) == 1 and g.indegree(edge.target) == 1)['stable']=True
-        # flag edge with low overlap as unstable
+        # FFlag edge with low overlap as unstable
         g.es.select(overlap_fraction_source_lt=stable_overlap_fraction)['stable'] = False
         g.es.select(overlap_fraction_target_lt=stable_overlap_fraction)['stable'] = False
 
@@ -828,54 +764,48 @@ class CellTrackingGraph:
         for i, n in enumerate(components.sizes()):
             g.vs[components[i]]['stable_component_size'] = n
 
-        # search for connected components in the subgraph of "no stable edges"
+        # Search for connected components in the subgraph of "no stable edges"
         g2 = g.subgraph_edges(g.es.select(stable=False), delete_vertices=False)
         components = g2.connected_components(mode='weak')
 
-        # search for punctual defects:
+        # Search for punctual defects:
         # - defect should not span more than nframes_defect consecutive frames
         # - the graph must be stable for at least nframes_stable consecutive frames before and after the defect.
-        # defects is a list of tuples (mask_ids,frame_start,frame_end), with mask_ids a list of mask_id
+        # Defects is a list of tuples (mask_ids,frame_start,frame_end), with mask_ids a list of mask_id
         defects = []
         frame_max = max(g.vs['frame'])
         for cmp in components:
             if only_missing:
-                # check that it contains only two vertices (i.e. missing vertices)
+                # Check that it contains only two vertices (i.e. missing vertices)
                 if len(cmp) != 2:
                     continue
-            # check that it contains more than one vertex
+            # Check that it contains more than one vertex
             if not len(cmp) > 1:
                 continue
-            # check that it spans not more than nframes_defect+2 frames
+            # Check that it spans not more than nframes_defect+2 frames
             cmp_frames = np.array(g2.vs[cmp]['frame'])
             first_frame = min(cmp_frames)
             last_frame = max(cmp_frames)
             if not last_frame-first_frame+1 <= nframes_defect+2:
                 continue
-            # augment with all vertices in g with mask_ids in frame range [first_frame,last_frame]
+            # Augment with all vertices in g with mask_ids in frame range [first_frame,last_frame]
             cmp_mask_ids = np.array(g2.vs[cmp]['mask_id'])
-            vs = g.vs.select(frame_ge=first_frame,
-                             frame_le=last_frame, mask_id_in=cmp_mask_ids)
-            # check that it has the same mask_ids in first and last frame
-            first_frame_mask_ids = np.sort(
-                vs.select(frame=first_frame)['mask_id'])
-            last_frame_mask_ids = np.sort(
-                vs.select(frame=last_frame)['mask_id'])
+            vs = g.vs.select(frame_ge=first_frame, frame_le=last_frame, mask_id_in=cmp_mask_ids)
+            # Check that it has the same mask_ids in first and last frame
+            first_frame_mask_ids = np.sort(vs.select(frame=first_frame)['mask_id'])
+            last_frame_mask_ids = np.sort(vs.select(frame=last_frame)['mask_id'])
             if not np.array_equal(first_frame_mask_ids, last_frame_mask_ids):
                 continue
-            # check that all vertices in first frames and last frame are connected to at least nframes_stable stable frames
-            # TODO: properly recompute number of stable frames BEFORE, and AFTER vertices in vs. Using stable_component_size as a proxy may overestimate the number of stable frames before/after vertices in vs, as it could include vertices in vs.
-            first_frame_stable_component_size = min(
-                vs.select(frame=first_frame)['stable_component_size'])
+            # Check that all vertices in first frames and last frame are connected to at least nframes_stable stable frames
+            ## TODO: properly recompute number of stable frames BEFORE, and AFTER vertices in vs. Using stable_component_size as a proxy may overestimate the number of stable frames before/after vertices in vs, as it could include vertices in vs.
+            first_frame_stable_component_size = min(vs.select(frame=first_frame)['stable_component_size'])
             if not first_frame_stable_component_size >= min(nframes_stable, first_frame+1):
                 continue
-            last_frame_stable_component_size = min(
-                vs.select(frame=last_frame)['stable_component_size'])
+            last_frame_stable_component_size = min(vs.select(frame=last_frame)['stable_component_size'])
             if not last_frame_stable_component_size >= min(nframes_stable, frame_max+1-last_frame):
                 continue
 
-            defects.append((np.unique(cmp_mask_ids).tolist(),
-                           first_frame+1, last_frame))
+            defects.append((np.unique(cmp_mask_ids).tolist(),first_frame+1, last_frame))
 
         return defects
 
@@ -890,14 +820,10 @@ class CellTrackingGraph:
         """
         if self._graph is None:
             self.logger.debug("Filtering graph")
-            # simplify graph to keep only edges corresponding to an overlap of at least 20% of cell area in both frames
-            self._graph = self._graph_full.subgraph_edges(
-                self._graph_full.es.select(overlap_fraction_source_ge=self.min_overlap_fraction,
-                                           overlap_fraction_target_ge=self.min_overlap_fraction),
-                delete_vertices=False)
+            # Simplify graph to keep only edges corresponding to an overlap of at least 20% of cell area in both frames
+            self._graph = self._graph_full.subgraph_edges(self._graph_full.es.select(overlap_fraction_source_ge=self.min_overlap_fraction, overlap_fraction_target_ge=self.min_overlap_fraction),delete_vertices=False)
 
-            self.logger.debug(
-                "Adding missing edges between vertices with same mask_id")
+            self.logger.debug("Adding missing edges between vertices with same mask_id")
             self._add_missing_edges()
 
             self.logger.debug("Removing redundant edges")
@@ -917,6 +843,7 @@ class CellTrackingGraph:
         # To create a pdf with graphviz: dot -Tpdf -o graph.pdf graph.dot
         # Note: self._graph.write_dot() does not allow to specify nodes on same rank.
         g = self.get_graph()
+
         with open(filename, 'w') as f:
             f.write("digraph {\n")
             f.write(" rankdir=\"BT\"\n")
@@ -935,27 +862,22 @@ class CellTrackingGraph:
             for e in g.es:
                 f.write(" "+str(e.source)+" -> "+str(e.target)+" [\n")
                 f.write("  overlap_area="+str(e['overlap_area'])+"\n")
-                f.write("  overlap_fraction_source=" +
-                        str(e['overlap_fraction_source'])+"\n")
-                f.write("  overlap_fraction_target=" +
-                        str(e['overlap_fraction_target'])+"\n")
-                f.write("  penwidth="+str(0.5 + 20 *
-                        min(e['overlap_fraction_target'], e['overlap_fraction_source']))+"\n")
-
+                f.write("  overlap_fraction_source=" + str(e['overlap_fraction_source'])+"\n")
+                f.write("  overlap_fraction_target=" + str(e['overlap_fraction_target'])+"\n")
+                f.write("  penwidth="+str(0.5 + 20 * min(e['overlap_fraction_target'], e['overlap_fraction_source']))+"\n")
                 f.write("  ];\n")
             for frame1 in np.sort(np.unique(g.vs['frame'])):
                 # to align vertices with same frame
-                f.write(" {rank=same "+" ".join([str(v.index)
-                        for v in g.vs.select(frame=frame1)])+" }\n")
+                f.write(" {rank=same "+" ".join([str(v.index) for v in g.vs.select(frame=frame1)])+" }\n")
             f.write("}")
 
-    def _create_graph(self, masks):
+    def _create_graph(self, mask: gf.Image):
         """
-        Evaluate `self._graph_full` from `masks`.
+        Evaluate `self._graph_full` from `mask`.
 
         Parameters
         ----------
-        masks:  numpy.array
+        mask: gf.Image object
             a 3 dimensional 16bit unsigned integer (uint16) numpy array with axes T,Y,X.
 
         Notes
@@ -964,141 +886,125 @@ class CellTrackingGraph:
         """
         self.logger.debug("Creating cell tracking graph")
         self._graph_full.clear()
-        for frame1 in range(masks.shape[0]):
-            mask_ids1 = np.sort(np.unique(masks[frame1]))
-            areas = np.bincount(masks[frame1].ravel())
-            # add vertices (i.e. cells) in frame i (ignore masks==0, which corresponds to background)
+        for frame1 in range(mask.sizes['T']):
+            mask_ids1 = np.sort(np.unique(mask.image[0,frame1,0,0,:,:]))
+            areas = np.bincount(mask.image[0,frame1,0,0,:,:].ravel())
+            # Add vertices (i.e. cells) in frame i (ignore mask==0, which corresponds to background)
             self._graph_full.add_vertices(len(mask_ids1[mask_ids1 > 0]),
                                           {"frame": np.repeat(frame1, len(mask_ids1[mask_ids1 > 0])),
                                            "mask_id": mask_ids1[mask_ids1 > 0],
                                            "area": areas[mask_ids1[mask_ids1 > 0]]})
 
             frame2_range = range(max(0, frame1-self._max_delta_frame), frame1)
+        
             for frame2 in frame2_range:
-                mask_ids2 = np.sort(np.unique(masks[frame2]))
+                mask_ids2 = np.sort(np.unique(mask.image[0,frame2,0,0,:,:]))
                 mask_ids = np.union1d(mask_ids1, mask_ids2)
-                # evaluate confusion matrix
-                cm_tmp = cv.calcHist(images=[masks[frame1], masks[frame2]],
-                                     channels=[0, 1],
-                                     mask=None,
-                                     histSize=[max(mask_ids+1), max(mask_ids+1)],
-                                     ranges=[0, max(mask_ids+1), 0, max(mask_ids+1)]).astype(np.int64)
+                # Evaluate confusion matrix
+                cm_tmp = cv.calcHist(images=[mask.image[0,frame1,0,0,:,:], mask.image[0,frame2,0,0,:,:]], channels=[0, 1], mask=None, histSize=[max(mask_ids+1), max(mask_ids+1)], ranges=[0, max(mask_ids+1), 0, max(mask_ids+1)]).astype(np.int64)
                 # Alternatives to cv.calcHist (slower):
+        
                 # * sklearn.metrics.confusion_matrix:
-                #   cm_tmp=confusion_matrix(masks[frame1].ravel(),masks[frame2].ravel(),labels=np.arange(0,max(mask_ids)+1,dtype=masks.dtype))
-                # * cm_tmp,xbins,ybins=np.histogram2d(masks[frame1].ravel(),masks[frame2].ravel(),bins=[max(mask_ids+1),max(mask_ids+1)],range=[[0,max(mask_ids+1)],[0,max(mask_ids+1)]])
+                #   cm_tmp=confusion_matrix(mask[frame1].ravel(),mask[frame2].ravel(),labels = np.arange(0,max(mask_ids)+1,dtype=mask.dtype))
+                # * cm_tmp,xbins,ybins=np.histogram2d(mask[frame1].ravel(),mask[frame2].ravel(),bins=[max(mask_ids+1),max(mask_ids+1)],range=[[0,max(mask_ids+1)],[0,max(mask_ids+1)]])
 
-                # add edges
+                # Add edges
                 elist = []
                 overlap_area = []
                 overlap_fraction_source = []
                 overlap_fraction_target = []
-                # select vertices from frame1 and frame2 for faster vertex search)
+                # Select vertices from frame1 and frame2 for faster vertex search)
                 frame1_vs = self._graph_full.vs.select(frame=frame1)
                 frame2_vs = self._graph_full.vs.select(frame=frame2)
                 for id1, id2 in np.argwhere(cm_tmp > 0):
-                    # ignore mask==0, i.e. cm_tmp[0,:] and cm_tmp[:,0]
+                    # Ignore mask==0, i.e. cm_tmp[0,:] and cm_tmp[:,0]
                     if id1 > 0 and id2 > 0:
                         v2 = frame2_vs.find(mask_id=id2)
                         v1 = frame1_vs.find(mask_id=id1)
                         elist.append((v2, v1))
                         overlap_area.append(cm_tmp[id1, id2])
-                        overlap_fraction_source.append(
-                            cm_tmp[id1, id2]/v2['area'])
-                        overlap_fraction_target.append(
-                            cm_tmp[id1, id2]/v1['area'])
+                        overlap_fraction_source.append(cm_tmp[id1, id2]/v2['area'])
+                        overlap_fraction_target.append(cm_tmp[id1, id2]/v1['area'])
                 self._graph_full.add_edges(elist,
                                            {"overlap_area": overlap_area,
                                             "overlap_fraction_source": overlap_fraction_source,
                                             "overlap_fraction_target": overlap_fraction_target})
-        # add attributes
-        self._graph_full.es['frame_source'] = [
-            self._graph_full.vs[e.source]['frame'] for e in self._graph_full.es]
-        self._graph_full.es['frame_target'] = [
-            self._graph_full.vs[e.target]['frame'] for e in self._graph_full.es]
-        self._graph_full.es['mask_id_source'] = [
-            self._graph_full.vs[e.source]['mask_id'] for e in self._graph_full.es]
-        self._graph_full.es['mask_id_target'] = [
-            self._graph_full.vs[e.target]['mask_id'] for e in self._graph_full.es]
+        # Add attributes
+        self._graph_full.es['frame_source'] = [self._graph_full.vs[e.source]['frame'] for e in self._graph_full.es]
+        self._graph_full.es['frame_target'] = [self._graph_full.vs[e.target]['frame'] for e in self._graph_full.es]
+        self._graph_full.es['mask_id_source'] = [self._graph_full.vs[e.source]['mask_id'] for e in self._graph_full.es]
+        self._graph_full.es['mask_id_target'] = [self._graph_full.vs[e.target]['mask_id'] for e in self._graph_full.es]
 
-    def _relabel(self, masks):
+    def _relabel(self, mask: gf.Image):
         """
-        Using `self._graph_full`, relabel masks (modify `masks` and `self._graph_full`)
+        Using `self._graph_full`, relabel mask (modify `mask` and `self._graph_full`)
         so as to have consistent mask ids in consecutive frames.        
 
         Parameters
         ----------
-        masks:  numpy.array
+        mask: gf.Image object
             a 3 dimensional 16bit unsigned integer (uint16) numpy array with axes T,Y,X.
 
         Notes
         -----
-        `masks` is modified in-place.
+        `mask` is modified in-place.
         `self._graph_full` is modified.
         """
-        # relabel masks and graph (mask_ids)
-        n_ids = 1  # store 1 + highest mask_id assigned so far
-        self.logger.debug("Relabelling masks and cell tracking graph")
-        for frame1 in range(masks.shape[0]):
+        # Relabel mask and graph (mask_ids)
+        n_ids = 1  # Store 1 + highest mask_id assigned so far
+        self.logger.debug("Relabelling mask and cell tracking graph")
+        for frame1 in range(mask.sizes['T']):
             frame1_vs = self._graph_full.vs.select(frame=frame1)
             mask_ids1 = np.sort(np.unique(frame1_vs['mask_id']))
-            # check masks and self._graph_full are consistent:
-            if not np.array_equal(mask_ids1, np.sort(np.unique(masks[frame1][masks[frame1] > 0]))):
-                raise Exception(
-                    "not the same mask_ids in masks and self._graph_full")
+            # Check mask and self._graph_full are consistent:
+            if not np.array_equal(mask_ids1, np.sort(np.unique(mask.image[0,frame1,0,0,:,:][mask.image[0,frame1,0,0,:,:] > 0]))):
+                raise Exception("not the same mask_ids in mask and self._graph_full")
             map_id = np.repeat(-1, max(mask_ids1)+1)
             if frame1 == 0:
-                # relabel with consecutiv mask_ids
+                # Relabel with consecutiv mask_ids
                 for mask_id in mask_ids1:
                     if mask_id > 0:
                         map_id[mask_id] = n_ids
                         n_ids += 1
-                # map 0 to 0
+                # Map 0 to 0
                 map_id[0] = 0
             else:
-                frame2_range = range(
-                    max(0, frame1-self._max_delta_frame), frame1)
-                mask_ids2 = np.sort(
-                    np.unique(self._graph_full.vs.select(frame_in=frame2_range)['mask_id']))
+                frame2_range = range(max(0, frame1-self._max_delta_frame), frame1)
+                mask_ids2 = np.sort(np.unique(self._graph_full.vs.select(frame_in=frame2_range)['mask_id']))
                 mask_ids = np.union1d(mask_ids1, mask_ids2)
-                # confusion matrix (contain the sum of mask overlap between frame1 and frame2 (with frame2=frame1-1,frame1-2,...frame1-self._max_delta_frame))
-                cm = np.zeros((max(mask_ids+1),
-                              max(mask_ids+1)),
-                              dtype=np.int64)
+                # Confusion matrix (contain the sum of mask overlap between frame1 and frame2 (with frame2=frame1-1,frame1-2,...frame1-self._max_delta_frame))
+                cm = np.zeros((max(mask_ids+1), max(mask_ids+1)), dtype=np.int64)
                 for frame2 in frame2_range:
-                    # get confusion matrix
-                    # e=(v2,v1).overlap_area= cm_tmp[id1,id2]
-                    frame12_es = self._graph_full.es.select(
-                        frame_source=frame2, frame_target=frame1)
-                    cm_tmp = np.zeros(
-                        (max(mask_ids+1), max(mask_ids+1)), dtype=np.int64)
-                    cm_tmp[frame12_es['mask_id_target'],
-                           frame12_es['mask_id_source']] = frame12_es['overlap_area']
+                    # Get confusion matrix
+                    # e = (v2,v1).overlap_area = cm_tmp[id1,id2]
+                    frame12_es = self._graph_full.es.select(frame_source=frame2, frame_target=frame1)
+                    cm_tmp = np.zeros((max(mask_ids+1), max(mask_ids+1)), dtype=np.int64)
+                    cm_tmp[frame12_es['mask_id_target'], frame12_es['mask_id_source']] = frame12_es['overlap_area']
                     if self.beta > 1:
                         cm_tmp /= (self.beta**(frame1-frame2-1))
                     cm += cm_tmp.astype(np.int64)
 
-                # use Hungarian algorithm (linear_sum_assignment) to solve minimum weight matching in bipartite graphs.
+                # Use Hungarian algorithm (linear_sum_assignment) to solve minimum weight matching in bipartite graphs.
                 # ignore mask==0, i.e. cm[0,:] and cm[:,0]
                 row_ind, col_ind = linear_sum_assignment(-cm)
                 map_id = np.repeat(-1, max(mask_ids1)+1)
                 for r, c in zip(row_ind, col_ind):
                     if cm[r, c] > 0:
                         map_id[r] = c
-                # add missing
+                # Add missing
                 for mask_id in mask_ids1:
                     if map_id[mask_id] < 0:
                         map_id[mask_id] = n_ids
                         n_ids += 1
-                # map background (0) to itself
+                # Map background (0) to itself
                 map_id[0] = 0
-            # relabel
-            masks[frame1] = map_id[masks[frame1]]
-            frame1_vs['mask_id'] = map_id[frame1_vs['mask_id']].astype(masks.dtype)
+            # Relabel
+            mask.image[0,frame1,0,0,:,:] = map_id[mask.image[0,frame1,0,0,:,:]]
+            frame1_vs['mask_id'] = map_id[frame1_vs['mask_id']].astype(mask.image.dtype)
             frame1_es = self._graph_full.es.select(frame_source=frame1)
-            frame1_es['mask_id_source'] = map_id[frame1_es['mask_id_source']].astype(masks.dtype)
+            frame1_es['mask_id_source'] = map_id[frame1_es['mask_id_source']].astype(mask.image.dtype)
             frame1_es = self._graph_full.es.select(frame_target=frame1)
-            frame1_es['mask_id_target'] = map_id[frame1_es['mask_id_target']].astype(masks.dtype)
+            frame1_es['mask_id_target'] = map_id[frame1_es['mask_id_target']].astype(mask.image.dtype)
 
     def _add_missing_edges(self):
         """
@@ -1108,7 +1014,7 @@ class CellTrackingGraph:
         -----
         `self._graph_full` is modified.
         """
-        # add missing edge to link vertices with same mask_id
+        # Add missing edge to link vertices with same mask_id
         for mask_id in np.unique(self._graph.vs['mask_id']):
             v2 = None
             frame2 = None
@@ -1118,16 +1024,11 @@ class CellTrackingGraph:
                 if len(frame1_vs) == 1:
                     v1 = frame1_vs[0]
                     if v2:
-                        # add edge if it does not exist
+                        # Add edge if it does not exist
                         if self._graph.get_eid(v2, v1, error=False) < 0:
-                            self._graph.add_edge(v2, v1,
-                                                 overlap_area=np.int64(0),
-                                                 overlap_fraction_source=np.float64(0),
-                                                 overlap_fraction_target=np.float64(0),
-                                                 frame_source=frame2,
-                                                 frame_target=frame1,
-                                                 mask_id_source=v2['mask_id'],
-                                                 mask_id_target=v1['mask_id'])
+                            self._graph.add_edge(v2, v1, overlap_area=np.int64(0), overlap_fraction_source=np.float64(0), overlap_fraction_target=np.float64(0), 
+                                                 frame_source=frame2, frame_target=frame1,
+                                                 mask_id_source=v2['mask_id'], mask_id_target=v1['mask_id'])
                     v2 = v1
                     frame2 = frame1
 
@@ -1145,27 +1046,24 @@ class CellTrackingGraph:
         -----
         `self._graph` is modified.
         """
-        mask_id_pairs = [(self._graph.vs[e.source]['mask_id'],
-                          self._graph.vs[e.target]['mask_id']) for e in self._graph.es]
+        mask_id_pairs = [(self._graph.vs[e.source]['mask_id'], self._graph.vs[e.target]['mask_id']) for e in self._graph.es]
         mask_id_pairs = set(mask_id_pairs)
         self._graph.es['redundant'] = False
+
         for mask_id1, mask_id2 in mask_id_pairs:
-            edge_list = self._graph.es.select(mask_id_source=mask_id1,
-                                              mask_id_target=mask_id2)
-            # order by frame_source
+            edge_list = self._graph.es.select(mask_id_source=mask_id1, mask_id_target=mask_id2)
+            # Order by frame_source
             edge_list = edge_list[np.argsort(edge_list['frame_source'])]
             edge_list2 = edge_list
             for e in edge_list:
-                # keep only edge with frame_source>=e['frame_source'] (edges with frame_source<e['frame_source'] will not be used anymore)
-                edge_list2 = edge_list2.select(
-                    frame_source_ge=e['frame_source'])
-                # flag e as redundant if more than one edge (itself) is contained in the frame interval [e['frame_source'],e['frame_target']]
-                e['redundant'] = (len(edge_list2.select(
-                    frame_target_le=e['frame_target'])) > 1)
+                # Keep only edge with frame_source>=e['frame_source'] (edges with frame_source<e['frame_source'] will not be used anymore)
+                edge_list2 = edge_list2.select(frame_source_ge=e['frame_source'])
+                # Flag e as redundant if more than one edge (itself) is contained in the frame interval [e['frame_source'],e['frame_target']]
+                e['redundant'] = (len(edge_list2.select(frame_target_le=e['frame_target'])) > 1)
 
-        # remove redundant edges
+        # Remove redundant edges
         self._graph.delete_edges(self._graph.es.select(redundant=True))
-        # remove useless attribute
+        # Remove useless attribute
         del self._graph.es['redundant']
 
 
@@ -1190,7 +1088,7 @@ class NapariStatusBarHandler(logging.Handler):
         # force repainting to update message even when busy
         self.status_bar.repaint()
 
-# inspired by https://stackoverflow.com/a/44692178
+## inspired by https://stackoverflow.com/a/44692178
 class IgnoreDuplicate(logging.Filter):
     """
     logging filter to ignore duplicate messages.
@@ -1236,29 +1134,29 @@ class CellTrackingWidget(QWidget):
     A widget to use inside napari
     """
 
-    def __init__(self, masks, cell_tracking_graph, viewer_graph, viewer_images, image_path, output_path, min_area=300, max_delta_frame=5, min_overlap_fraction=0.2, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0):
+    def __init__(self, mask: gf.Image, cell_tracking_graph, viewer_graph, viewer_images, image_path, output_path, min_area=300, max_delta_frame=5, min_overlap_fraction=0.2, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0):
         super().__init__()
         self.logger = logging.getLogger(__name__)
         self.logger.debug("CellTrackingWidget.__init__")
 
-        self.masks = masks
+        self.mask = mask
         self.cell_tracking_graph = cell_tracking_graph
         self.viewer_graph = viewer_graph
         self.viewer_images = viewer_images
         self.image_path = image_path
         self.output_path = output_path
 
-        # True if masks have been modified using napari paint tools (and thus need to call self.relabel()):
-        self.masks_need_relabelling = False
-        # True if masks have been modified since last save:
-        self.masks_modified = True
+        # True if mask have been modified using napari paint tools (and thus need to call self.relabel()):
+        self.mask_need_relabelling = False
+        # True if mask have been modified since last save:
+        self.mask_modified = True
 
         layout = QVBoxLayout()
 
         groupbox = QGroupBox("Help")
         layout2 = QVBoxLayout()
 
-        help_label = QLabel("Image viewer (this viewer):\n<left-click> on the Cell masks layer to center the view on the corresponding vertex in the cell tracking graph viewer. <right-click> to select the corresponding vertex in cell tracking graph and <shift>+<right-click> to extend selection.\nMasks can be manually edited using the Cell masks layer controls. Once done, click on the \"Relabel\" button to update the cell tracking tracking graph.\n\nCell tracking graph viewer:\nVertices (squares) correspond to masks regions (mask id) at a given frame. Edges correspond to overlap between masks. Vertices are ordered by time along the horizontal axis (time increases from left to right).\n<left-click> on a vertex to center the view on the corresponding masks in this viewer. <right-click> to select a vertex and <shift>+<right-click> to extend selection.")
+        help_label = QLabel("Image viewer (this viewer):\n<left-click> on the Cell mask layer to center the view on the corresponding vertex in the cell tracking graph viewer. <right-click> to select the corresponding vertex in cell tracking graph and <shift>+<right-click> to extend selection.\nMasks can be manually edited using the Cell mask layer controls. Once done, click on the \"Relabel\" button to update the cell tracking tracking graph.\n\nCell tracking graph viewer:\nVertices (squares) correspond to mask regions (mask id) at a given frame. Edges correspond to overlap between mask. Vertices are ordered by time along the horizontal axis (time increases from left to right).\n<left-click> on a vertex to center the view on the corresponding mask in this viewer. <right-click> to select a vertex and <shift>+<right-click> to extend selection.")
         help_label.setWordWrap(True)
         help_label.setMinimumWidth(10)
         layout2.addWidget(help_label)
@@ -1269,7 +1167,7 @@ class CellTrackingWidget(QWidget):
         groupbox = QGroupBox("Automatic cleaning")
         layout2 = QGridLayout()
 
-        help_label = QLabel("Search for isolated defects in the cell tracking graph and try to remove them by interpolating corresponding masks across neighboring frames.")
+        help_label = QLabel("Search for isolated defects in the cell tracking graph and try to remove them by interpolating corresponding mask across neighboring frames.")
         help_label.setWordWrap(True)
         help_label.setMinimumWidth(10)
         layout2.addWidget(help_label, 0, 0, 1, 2)
@@ -1279,8 +1177,7 @@ class CellTrackingWidget(QWidget):
         self.stable_overlap_fraction.setMaximum(100)
         self.stable_overlap_fraction.setValue(100*stable_overlap_fraction)
         self.stable_overlap_fraction.setSuffix('%')
-        self.stable_overlap_fraction.setToolTip(
-            'Cell tracking graph edges corresponding to an overlap fraction below this value are considered as not stable.')
+        self.stable_overlap_fraction.setToolTip('Cell tracking graph edges corresponding to an overlap fraction below this value are considered as not stable.')
         layout2.addWidget(QLabel("Stable overlap fraction:"), 1, 0)
         layout2.addWidget(self.stable_overlap_fraction, 1, 1)
 
@@ -1297,7 +1194,7 @@ class CellTrackingWidget(QWidget):
         self.max_delta_frame_interpolation.setMinimum(1)
         self.max_delta_frame_interpolation.setMaximum(50)
         self.max_delta_frame_interpolation.setValue(max_delta_frame_interpolation)
-        self.max_delta_frame_interpolation.setToolTip('Number of previous and subsequent frames to consider for masks interpolation.')
+        self.max_delta_frame_interpolation.setToolTip('Number of previous and subsequent frames to consider for mask interpolation.')
         self.max_delta_frame_interpolation.valueChanged.connect(self.max_delta_frame_interpolation_changed)
         layout2.addWidget(QLabel("Max delta frame (interpolation):"), 3, 0)
         layout2.addWidget(self.max_delta_frame_interpolation, 3, 1)
@@ -1315,24 +1212,24 @@ class CellTrackingWidget(QWidget):
         self.min_area.setMinimum(1)
         self.min_area.setMaximum(10000)
         self.min_area.setValue(min_area)
-        self.min_area.setToolTip('Remove masks regions with area (number of pixels) below this value')
+        self.min_area.setToolTip('Remove mask regions with area (number of pixels) below this value')
         layout2.addWidget(QLabel("Min area:"), 5, 0)
         layout2.addWidget(self.min_area, 5, 1)
 
-        # create a checkbox to select only missing frames
-        self.only_missing = QCheckBox("Clean \"missing\" masks only")
+        # Create a checkbox to select only missing frames
+        self.only_missing = QCheckBox("Clean \"missing\" mask only")
         self.only_missing.setChecked(False)
         layout2.addWidget(self.only_missing, 6, 0, 1, 2, Qt.AlignLeft)
 
-        # create a checkbox to select only missing frames
-        self.show_mask_diff = QCheckBox("Add a layer with masks modifications")
+        # Create a checkbox to select only missing frames
+        self.show_mask_diff = QCheckBox("Add a layer with mask modifications")
         self.show_mask_diff.setChecked(False)
         layout2.addWidget(self.show_mask_diff, 7, 0, 1, 2, Qt.AlignLeft)
 
         # Create a button to clean mask
         button = QPushButton("Clean")
-        button.setToolTip('Search for isolated defects in the cell tracking graph and try to clean them by interpolating corresponding masks across neighboring frames.')
-        button.clicked.connect(self.clean_masks)
+        button.setToolTip('Search for isolated defects in the cell tracking graph and try to clean them by interpolating corresponding mask across neighboring frames.')
+        button.clicked.connect(self.clean_mask)
         layout2.addWidget(button, 8, 0, 1, 2, Qt.AlignCenter)
 
         groupbox.setLayout(layout2)
@@ -1341,7 +1238,7 @@ class CellTrackingWidget(QWidget):
         groupbox = QGroupBox("Interpolate selection")
         layout2 = QGridLayout()
 
-        help_label = QLabel("Interpolate selected masks across neighboring frames. Use the cell tracking graph viewer to select masks")
+        help_label = QLabel("Interpolate selected mask across neighboring frames. Use the cell tracking graph viewer to select mask")
         help_label.setWordWrap(True)
         help_label.setMinimumWidth(10)
         layout2.addWidget(help_label, 0, 0, 1, 2)
@@ -1350,7 +1247,7 @@ class CellTrackingWidget(QWidget):
         self.max_delta_frame_interpolation2.setMinimum(1)
         self.max_delta_frame_interpolation2.setMaximum(50)
         self.max_delta_frame_interpolation2.setValue(max_delta_frame_interpolation)
-        self.max_delta_frame_interpolation2.setToolTip('Number of previous and subsequent frames to consider for masks interpolation.')
+        self.max_delta_frame_interpolation2.setToolTip('Number of previous and subsequent frames to consider for mask interpolation.')
         layout2.addWidget(QLabel("Max delta frame (interpolation):"), 1, 0)
         layout2.addWidget(self.max_delta_frame_interpolation2, 1, 1)
 
@@ -1358,27 +1255,27 @@ class CellTrackingWidget(QWidget):
         self.min_area2.setMinimum(1)
         self.min_area2.setMaximum(10000)
         self.min_area2.setValue(min_area)
-        self.min_area2.setToolTip('Remove masks regions with area (number of pixels) below this value')
+        self.min_area2.setToolTip('Remove mask regions with area (number of pixels) below this value')
         layout2.addWidget(QLabel("Min area:"), 2, 0)
         layout2.addWidget(self.min_area2, 2, 1)
 
-        self.show_mask_diff2 = QCheckBox("Add a layer with masks modifications")
+        self.show_mask_diff2 = QCheckBox("Add a layer with mask modifications")
         self.show_mask_diff2.setChecked(False)
         layout2.addWidget(self.show_mask_diff2, 3, 0, 1, 2, Qt.AlignLeft)
 
         # Create a button to clean mask
         button = QPushButton("Interpolate selection")
         button.setToolTip('Interpolated selected mask regions across neighboring frames.')
-        button.clicked.connect(self.interpolate_masks)
+        button.clicked.connect(self.interpolate_mask)
         layout2.addWidget(button, 4, 0, 1, 2, Qt.AlignCenter)
 
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        groupbox = QGroupBox("Relabel masks and graph")
+        groupbox = QGroupBox("Relabel mask and graph")
         layout2 = QGridLayout()
 
-        help_label = QLabel("Split disconnected masks regions, remove small masks regions, recompute cell tracking graph and relabel masks regions so as to have consistent mask ids in consecutive frames. Should be done if the masks are manually edited to synchronize cell tracking. It is also advised to do it before saving, to make sure to split disconnected masks regions.")
+        help_label = QLabel("Split disconnected mask regions, remove small mask regions, recompute cell tracking graph and relabel mask regions so as to have consistent mask ids in consecutive frames. Should be done if the mask are manually edited to synchronize cell tracking. It is also advised to do it before saving, to make sure to split disconnected mask regions.")
         help_label.setWordWrap(True)
         help_label.setMinimumWidth(10)
         layout2.addWidget(help_label, 0, 0, 1, 2)
@@ -1395,7 +1292,7 @@ class CellTrackingWidget(QWidget):
         self.min_area3.setMinimum(1)
         self.min_area3.setMaximum(10000)
         self.min_area3.setValue(min_area)
-        self.min_area3.setToolTip('Remove masks regions with area (number of pixels) below this value.')
+        self.min_area3.setToolTip('Remove mask regions with area (number of pixels) below this value.')
         layout2.addWidget(QLabel("Min area:"), 2, 0)
         layout2.addWidget(self.min_area3, 2, 1)
 
@@ -1408,13 +1305,13 @@ class CellTrackingWidget(QWidget):
         layout2.addWidget(QLabel("Min overlap fraction:"), 3, 0)
         layout2.addWidget(self.min_overlap_fraction, 3, 1)
 
-        self.show_mask_diff3 = QCheckBox("Add a layer with masks modifications")
+        self.show_mask_diff3 = QCheckBox("Add a layer with mask modifications")
         self.show_mask_diff3.setChecked(False)
         layout2.addWidget(self.show_mask_diff3, 4, 0, 1, 2, Qt.AlignLeft)
 
         # Create a button to relabel mask
         button = QPushButton("Relabel")
-        button.setToolTip('Split disconnected mask regions, recompute cell tracking graph and relabel masks (slow).')
+        button.setToolTip('Split disconnected mask regions, recompute cell tracking graph and relabel mask (slow).')
         button.clicked.connect(self.relabel)
         layout2.addWidget(button, 5, 0, 1, 2, Qt.AlignCenter)
 
@@ -1425,7 +1322,7 @@ class CellTrackingWidget(QWidget):
         layout2 = QVBoxLayout()
         layout3 = QHBoxLayout()
 
-        # save button
+        # Save button
         self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self.save)
         layout3.addWidget(self.save_button)
@@ -1439,23 +1336,23 @@ class CellTrackingWidget(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        # add spacer (to avoid filling whole space when the widget is inside a QScrollArea)
+        # Add spacer (to avoid filling whole space when the widget is inside a QScrollArea)
         layout.addStretch(1)
         self.setLayout(layout)
 
-        if self.masks_modified:
+        if self.mask_modified:
             self.save_button.setStyleSheet("background: darkred;")
-        if self.masks_need_relabelling:
+        if self.mask_need_relabelling:
             self.save_button.setText("Relabel && Save")
 
         # To detect image modifications
-        self.viewer_images.layers['Cell masks'].events.paint.connect(self.paint_callback)
+        self.viewer_images.layers['Cell mask'].events.paint.connect(self.paint_callback)
 
-        # to allow saving image & masks before closing (__del__ is called too late)
-        # TODO: replace by proper napari close event once implemented (https://forum.image.sc/t/handle-of-close-event-in-napari/61039)
+        # To allow saving image & mask before closing (__del__ is called too late)
+        ## TODO: replace by proper napari close event once implemented (https://forum.image.sc/t/handle-of-close-event-in-napari/61039)
         self.viewer_images.window._qt_window.destroyed.connect(self.on_viewer_images_close)
 
-        # add a handler to output messages to napari status bar
+        # Add a handler to output messages to napari status bar
         handler = NapariStatusBarHandler(self.viewer_images)
         handler.setFormatter(logging.Formatter('%(message)s'))
         handler.setLevel(logging.DEBUG)
@@ -1464,49 +1361,49 @@ class CellTrackingWidget(QWidget):
         self.logger.debug("Ready")
 
     def paint_callback(self, event):
-        self.logger.info("Manually editing masks")
-        self.masks_need_relabelling = True
+        self.logger.info("Manually editing mask")
+        self.mask_need_relabelling = True
         self.save_button.setText("Relabel && Save")
-        self.masks_modified = True
+        self.mask_modified = True
         self.save_button.setStyleSheet("background: darkred;")
 
     def nframes_defect_changed(self, value):
-        # we want nframes_defect<=max_delta_frame_interpolation<=nframes_stable
+        # We want nframes_defect<=max_delta_frame_interpolation<=nframes_stable
         if self.nframes_stable.value() < value:
             self.nframes_stable.setValue(value)
         if self.max_delta_frame_interpolation.value() < value:
             self.max_delta_frame_interpolation.setValue(value)
 
     def nframes_stable_changed(self, value):
-        # we want nframes_defect<=max_delta_frame_interpolation<=nframes_stable
+        # We want nframes_defect<=max_delta_frame_interpolation<=nframes_stable
         if self.nframes_defect.value() > value:
             self.nframes_defect.setValue(value)
         if self.max_delta_frame_interpolation.value() > value:
             self.max_delta_frame_interpolation.setValue(value)
 
     def max_delta_frame_interpolation_changed(self, value):
-        # we want nframes_defect<=max_delta_frame_interpolation<=nframes_stable
+        # We want nframes_defect<=max_delta_frame_interpolation<=nframes_stable
         if self.nframes_stable.value() < value:
             self.nframes_stable.setValue(value)
         if self.nframes_defect.value() > value:
             self.nframes_defect.setValue(value)
 
-    def clean_masks(self):
-        # set cursor to BusyCursor
+    def clean_mask(self):
+        # Set cursor to BusyCursor
         napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
         napari.qt.get_app().processEvents()
 
         if self.show_mask_diff.isChecked():
-            masks_original = self.masks.copy()
+            mask_original = self.mask.get_TZXarray().copy()
 
-        self.logger.info("Automatic cleaning: max delta frame=%s, max defect size=%s, min stable size=%s, stable overlap fraction=%s%%, min area=%s, clean missing masks only=%s",
+        self.logger.info("Automatic cleaning: max delta frame=%s, max defect size=%s, min stable size=%s, stable overlap fraction=%s%%, min area=%s, clean missing mask only=%s",
                          self.max_delta_frame_interpolation.value(),
                          self.nframes_defect.value(),
                          self.nframes_stable.value(),
                          self.stable_overlap_fraction.value(),
                          self.min_area.value(),
                          self.only_missing.isChecked())
-        clean_masks(self.masks,
+        clean_mask(self.mask,
                     self.cell_tracking_graph,
                     max_delta_frame_interpolation=self.max_delta_frame_interpolation.value(),
                     nframes_defect=self.nframes_defect.value(),
@@ -1516,64 +1413,58 @@ class CellTrackingWidget(QWidget):
                     only_missing=self.only_missing.isChecked())
 
         if self.show_mask_diff.isChecked():
-            masks_diff = np.zeros(self.masks.shape, dtype='uint8')
-            masks_diff[self.masks == masks_original] = 0
-            masks_diff[(self.masks != masks_original) & (self.masks == 0)] = 1  # removed
-            masks_diff[(self.masks != masks_original) & (self.masks != 0) & (masks_original != 0)] = 2  # modified
-            masks_diff[(self.masks != masks_original) & (masks_original == 0)] = 3  # added
-            del masks_original
-            self.viewer_images.add_image(
-                masks_diff,
-                name="Cell masks modifications (1: removed, 2: modified, 3: added)",
-                opacity=0.8,
+            mask_diff = np.zeros((self.mask.sizes['T'],self.mask.sizes['Y'],self.mask.sizes['X']), dtype='uint8')
+            mask_diff[self.mask.get_TZXarray() == mask_original] = 0
+            mask_diff[(self.mask.get_TZXarray() != mask_original) & (self.mask.get_TZXarray() == 0)] = 1  # removed
+            mask_diff[(self.mask.get_TZXarray() != mask_original) & (self.mask.get_TZXarray() != 0) & (mask_original != 0)] = 2  # modified
+            mask_diff[(self.mask.get_TZXarray() != mask_original) & (mask_original == 0)] = 3  # added
+            del mask_original
+            self.viewer_images.add_image(mask_diff, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
                 colormap=napari.utils.Colormap([[0, 0, 0, 0],
                                                 [0.77, 0.27, 0.29, 1],
                                                 [0.16, 0.36, 0.62, 1],
                                                 [0.30, 0.51, 0.15, 1]]),
-                contrast_limits=[0, 3],
-                visible=False)
-            self.viewer_images.layers.selection.active = self.viewer_images.layers['Cell masks']
+                contrast_limits=[0, 3], visible=False)
+            self.viewer_images.layers.selection.active = self.viewer_images.layers['Cell mask']
 
-        self.viewer_images.layers['Cell masks'].refresh()
+        self.viewer_images.layers['Cell mask'].refresh()
 
         self.logger.debug("Plotting cell tracking graph")
         plot_cell_tracking_graph(self.viewer_graph,
                                  self.viewer_images,
-                                 self.viewer_images.layers['Cell masks'],
+                                 self.viewer_images.layers['Cell mask'],
                                  self.cell_tracking_graph.get_graph(),
-                                 self.viewer_images.layers['Cell masks'].get_color(range(self.masks.max()+1)))
+                                 self.viewer_images.layers['Cell mask'].get_color(range(self.mask.get_TZXarray().max()+1)))
 
-        self.masks_modified = True
+        self.mask_modified = True
         self.save_button.setStyleSheet("background: darkred;")
-        self.masks_need_relabelling = True
+        self.mask_need_relabelling = True
         self.save_button.setText("Relabel && Save")
 
         self.logger.debug("Done")
-        # restore cursor
+        # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
-    def interpolate_masks(self):
-        # set cursor to BusyCursor
+    def interpolate_mask(self):
+        # Set cursor to BusyCursor
         napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
         napari.qt.get_app().processEvents()
 
         if self.show_mask_diff2.isChecked():
-            masks_original = self.masks.copy()
+            mask_original = self.mask.get_TZXarray().copy()
 
         if any(self.viewer_graph.layers['Vertices'].properties['selected']):
-            mask_ids = np.unique(self.viewer_graph.layers['Vertices'].properties['mask_id']
-                                 [self.viewer_graph.layers['Vertices'].properties['selected']])
-            frames = self.viewer_graph.layers['Vertices'].properties['frame'][
-                self.viewer_graph.layers['Vertices'].properties['selected']]
+            mask_ids = np.unique(self.viewer_graph.layers['Vertices'].properties['mask_id'][self.viewer_graph.layers['Vertices'].properties['selected']])
+            frames = self.viewer_graph.layers['Vertices'].properties['frame'][self.viewer_graph.layers['Vertices'].properties['selected']]
             frame_start = frames.min()
             frame_end = frames.max()+1
-            self.logger.info("Interpolating selected masks: max delta frame=%s, min area=%s, selected frames [%s,%s], selected mask ids (%s)",
+            self.logger.info("Interpolating selected mask: max delta frame=%s, min area=%s, selected frames [%s,%s], selected mask ids (%s)",
                              self.max_delta_frame_interpolation2.value(),
                              self.min_area2.value(),
                              frame_start,
                              frame_end-1,
                              ",".join([str(x) for x in mask_ids]))
-            interpolate_masks(self.masks,
+            interpolate_mask(self.mask,
                               self.cell_tracking_graph,
                               mask_ids,
                               frame_start,
@@ -1582,141 +1473,127 @@ class CellTrackingWidget(QWidget):
                               min_area=self.min_area2.value())
 
         if self.show_mask_diff2.isChecked():
-            masks_diff = np.zeros(self.masks.shape, dtype='uint8')
-            masks_diff[self.masks == masks_original] = 0
-            masks_diff[(self.masks != masks_original) & (self.masks == 0)] = 1  # removed
-            masks_diff[(self.masks != masks_original) & (self.masks != 0) & (masks_original != 0)] = 2  # modified
-            masks_diff[(self.masks != masks_original) & (masks_original == 0)] = 3  # added
-            del masks_original
-            self.viewer_images.add_image(
-                masks_diff,
-                name="Cell masks modifications (1: removed, 2: modified, 3: added)",
-                opacity=0.8,
+            mask_diff = np.zeros((self.mask.sizes['T'],self.mask.sizes['Y'],self.mask.sizes['X']), dtype='uint8')
+            mask_diff[self.mask.get_TZXarray() == mask_original] = 0
+            mask_diff[(self.mask.get_TZXarray() != mask_original) & (self.mask.get_TZXarray() == 0)] = 1  # removed
+            mask_diff[(self.mask.get_TZXarray() != mask_original) & (self.mask.get_TZXarray() != 0) & (mask_original != 0)] = 2  # modified
+            mask_diff[(self.mask.get_TZXarray() != mask_original) & (mask_original == 0)] = 3  # added
+            del mask_original
+            self.viewer_images.add_image(mask_diff, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
                 colormap=napari.utils.Colormap([[0, 0, 0, 0],
                                                 [0.77, 0.27, 0.29, 1],
                                                 [0.16, 0.36, 0.62, 1],
                                                 [0.30, 0.51, 0.15, 1]]),
-                contrast_limits=[0, 3],
-                visible=False)
-            self.viewer_images.layers.selection.active = self.viewer_images.layers['Cell masks']
+                contrast_limits=[0, 3], visible=False)
+            self.viewer_images.layers.selection.active = self.viewer_images.layers['Cell mask']
 
-        self.viewer_images.layers['Cell masks'].refresh()
+        self.viewer_images.layers['Cell mask'].refresh()
 
         self.logger.debug("Plotting cell tracking graph")
         plot_cell_tracking_graph(self.viewer_graph,
                                  self.viewer_images,
-                                 self.viewer_images.layers['Cell masks'],
+                                 self.viewer_images.layers['Cell mask'],
                                  self.cell_tracking_graph.get_graph(),
-                                 self.viewer_images.layers['Cell masks'].get_color(range(self.masks.max()+1)))
+                                 self.viewer_images.layers['Cell mask'].get_color(range(self.mask.get_TZXarray().max()+1)))
 
-        self.masks_modified = True
+        self.mask_modified = True
         self.save_button.setStyleSheet("background: darkred;")
-        self.masks_need_relabelling = True
+        self.mask_need_relabelling = True
         self.save_button.setText("Relabel && Save")
 
         self.logger.debug("Done")
-        # restore cursor
+        # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
     def relabel(self,closing=False):
-        # set cursor to BusyCursor
+        # Set cursor to BusyCursor
         napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
         napari.qt.get_app().processEvents()
 
         if self.show_mask_diff3.isChecked():
-            masks_original = self.masks.copy()
+            mask_original = self.mask.get_TZXarray().copy()
 
-        self.logger.info("Creating cell tracking graph and relabelling masks: max delta frame=%s, min overlap fraction=%s%%, min area=%s",
+        self.logger.info("Creating cell tracking graph and relabelling mask: max delta frame=%s, min overlap fraction=%s%%, min area=%s",
                          self.max_delta_frame.value(),
                          self.min_overlap_fraction.value(),
                          self.min_area3.value())
-        split_regions(self.masks)
-        remove_small_regions(self.masks, self.min_area3.value())
-        self.cell_tracking_graph.reset(self.masks,
+        split_regions(self.mask)
+        remove_small_regions(self.mask, self.min_area3.value())
+        self.cell_tracking_graph.reset(self.mask,
                                        max_delta_frame=int(self.max_delta_frame.value()),
                                        min_overlap_fraction=self.min_overlap_fraction.value()/100)
-        self.cell_tracking_graph.relabel(self.masks)
+        self.cell_tracking_graph.relabel(self.mask)
 
         if self.show_mask_diff3.isChecked() and not closing:
-            masks_diff = np.zeros(self.masks.shape, dtype='uint8')
-            masks_diff[self.masks == masks_original] = 0
-            masks_diff[(self.masks != masks_original) & (self.masks == 0)] = 1  # removed
-            masks_diff[(self.masks != masks_original) & (self.masks != 0) & (masks_original != 0)] = 2  # modified
-            masks_diff[(self.masks != masks_original) & (masks_original == 0)] = 3  # added
-            del masks_original
-            self.viewer_images.add_image(
-                masks_diff,
-                name="Cell masks modifications (1: removed, 2: modified, 3: added)",
-                opacity=0.8,
+            mask_diff = np.zeros((self.mask.sizes['T'],self.mask.sizes['Y'],self.mask.sizes['X']), dtype='uint8')
+            mask_diff[self.mask.get_TZXarray() == mask_original] = 0
+            mask_diff[(self.mask.get_TZXarray() != mask_original) & (self.mask.get_TZXarray() == 0)] = 1  # removed
+            mask_diff[(self.mask.get_TZXarray() != mask_original) & (self.mask.get_TZXarray() != 0) & (mask_original != 0)] = 2  # modified
+            mask_diff[(self.mask.get_TZXarray() != mask_original) & (mask_original == 0)] = 3  # added
+            del mask_original
+            self.viewer_images.add_image(mask_diff, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
                 colormap=napari.utils.Colormap([[0, 0, 0, 0],
                                                 [0.77, 0.27, 0.29, 1],
                                                 [0.16, 0.36, 0.62, 1],
                                                 [0.30, 0.51, 0.15, 1]]),
-                contrast_limits=[0, 3],
-                visible=False)
-            self.viewer_images.layers.selection.active = self.viewer_images.layers['Cell masks']
+                contrast_limits=[0, 3], visible=False)
+            self.viewer_images.layers.selection.active = self.viewer_images.layers['Cell mask']
 
         if not closing:
-            self.viewer_images.layers['Cell masks'].refresh()
+            self.viewer_images.layers['Cell mask'].refresh()
 
             self.logger.debug("Plotting cell tracking graph")
             plot_cell_tracking_graph(self.viewer_graph,
                                      self.viewer_images,
-                                     self.viewer_images.layers['Cell masks'],
+                                     self.viewer_images.layers['Cell mask'],
                                      self.cell_tracking_graph.get_graph(),
-                                     self.viewer_images.layers['Cell masks'].get_color(range(self.masks.max()+1)))
+                                     self.viewer_images.layers['Cell mask'].get_color(range(self.mask.get_TZXarray().max()+1)))
 
             self.save_button.setStyleSheet("background: darkred;")
             self.save_button.setText("Save")
-        self.masks_modified = True
-        self.masks_need_relabelling = False
+        self.mask_modified = True
+        self.mask_need_relabelling = False
 
         self.logger.debug("Done")
-        # restore cursor
+        # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
     def save(self,closing=False):
-        # set cursor to BusyCursor
+        # Set cursor to BusyCursor
         napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
         napari.qt.get_app().processEvents()
 
-        if self.masks_need_relabelling:
+        if self.mask_need_relabelling:
             self.relabel(closing)
 
-        # TODO: adapt metadata to more generic input files (other axes)
+        ## TODO: adapt metadata to more generic input files (other axes)
         output_file1 = os.path.join(self.output_path, os.path.splitext(
-            os.path.basename(self.image_path))[0]+"_masks.tif")
-        self.logger.info("Saving segmentation masks to %s", output_file1)
+            os.path.basename(self.image_path))[0]+"_mask.tif")
+        self.logger.info("Saving segmentation mask to %s", output_file1)
         tifffile.imwrite(output_file1,
-                         self.masks,
+                         self.mask.get_TZXarray(),
                          metadata={'axes': 'TYX'},
                          imagej=True,
                          compression='zlib')
 
-        output_file2 = os.path.join(self.output_path, os.path.splitext(
-            os.path.basename(self.image_path))[0]+"_graph.dot")
+        output_file2 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_graph.dot")
         self.logger.info("Saving cell tracking graph to %s", output_file2)
+
         self.cell_tracking_graph.write_dot(output_file2)
 
-        output_file3 = os.path.join(self.output_path, os.path.splitext(
-            os.path.basename(self.image_path))[0]+"_graph.graphmlz")
+        output_file3 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_graph.graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file3)
         self.cell_tracking_graph.get_graph().write_graphmlz(output_file3)
 
         if not closing:
-            self.masks_modified = False
+            self.mask_modified = False
             self.save_button.setStyleSheet("")
 
         self.logger.debug("Done")
-        # restore cursor
+        # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
-        QMessageBox.information(self,
-                                'Files saved',
-                                'Masks and graph saved to\n' +
-                                output_file1 + "\n" +
-                                output_file2 + "\n" +
-                                output_file3)
+        QMessageBox.information(self, 'Files saved', 'Masks and graph saved to\n' + output_file1 + "\n" + output_file2 + "\n" + output_file3)
 
     def quit(self):
         self.viewer_images.close()
@@ -1724,15 +1601,11 @@ class CellTrackingWidget(QWidget):
 
     def on_viewer_images_close(self):
 
-        if self.masks_modified:
-            if self.masks_need_relabelling:
-                save = QMessageBox.question(self, 'Save changes',
-                                            "Relabel and save changes before closing?",
-                                            QMessageBox.Yes | QMessageBox.No)
+        if self.mask_modified:
+            if self.mask_need_relabelling:
+                save = QMessageBox.question(self, 'Save changes', "Relabel and save changes before closing?", QMessageBox.Yes | QMessageBox.No)
             else:
-                save = QMessageBox.question(self, 'Save changes',
-                                            "Save changes before closing?",
-                                            QMessageBox.Yes | QMessageBox.No)
+                save = QMessageBox.question(self, 'Save changes', "Save changes before closing?", QMessageBox.Yes | QMessageBox.No)
             if save == QMessageBox.Yes:
                 self.save(closing=True)
 
@@ -1743,22 +1616,22 @@ class CellTrackingWidget(QWidget):
         self.logger.info("Done")
 
 
-def main(image_path, masks_path, output_path, min_area=300, max_delta_frame=5, min_overlap_fraction=0.2, clean=False, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0, display_results=True):
+def main(image_path, mask_path, output_path, min_area=300, max_delta_frame=5, min_overlap_fraction=0.2, clean=False, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0, display_results=True):
     """
-    Load masks from `masks_path`, evaluate cell tracking graph, relabel masks.
-    Save the resulting masks and cell tracking graph into `output_path` directory.
+    Load mask from `mask_path`, evaluate cell tracking graph, relabel mask.
+    Save the resulting mask and cell tracking graph into `output_path` directory.
 
     Parameters
     ----------
     image_path: str
         input image path (tif or nd2 image with axes T,Y,X) to be shown in napari.
         Use empty string to ignore.
-    masks_path: str
-        segmentation masks (uint16 tif image with axes T,Y,X).
+    mask_path: str
+        segmentation mask (uint16 tif image with axes T,Y,X).
     output_path: str
         output directory.
     min_area: int
-        remove masks regions with area (number of pixels) below `min_area`.
+        remove mask regions with area (number of pixels) below `min_area`.
     max_delta_frame: int
         number of previous frames to consider when creating the cell tracking
         graph.
@@ -1767,9 +1640,9 @@ def main(image_path, masks_path, output_path, min_area=300, max_delta_frame=5, m
         edges in the cell tracking graph.
     clean: bool
         search for isolated defects in the cell tracking graph and try to
-        remove them by interpolating corresponding masks across neighboring frames.
+        remove them by interpolating corresponding mask across neighboring frames.
     max_delta_frame_interpolation: int
-        number of previous and subsequent frames to consider for masks
+        number of previous and subsequent frames to consider for mask
         interpolation. Only used with `clean`=True.
     nframes_defect: int
         maximum size of the defect (number of frames). It should be smaller
@@ -1783,11 +1656,11 @@ def main(image_path, masks_path, output_path, min_area=300, max_delta_frame=5, m
         or overlap_fraction_source < `stable_overlap_fraction`
         are considered as not stable. Only used with `clean`=True.
     display_results: bool
-        display image, masks and results in napari.
+        display image, mask and results in napari.
     """
 
     ###########################
-    # setup logging
+    # Setup logging
     ###########################
     logger = logging.getLogger(__name__)
     logger.info("CELL TRACKING MODULE")
@@ -1795,173 +1668,122 @@ def main(image_path, masks_path, output_path, min_area=300, max_delta_frame=5, m
         logger.debug("creating: %s", output_path)
         os.makedirs(output_path)
 
-    # log to file
-    logfile = os.path.join(output_path, os.path.splitext(
-        os.path.basename(image_path))[0]+".log")
+    logfile = os.path.join(output_path, os.path.splitext(os.path.basename(image_path))[0]+".log")
     logger.setLevel(logging.DEBUG)
     logger.debug("writing log output to: %s", logfile)
     logfile_handler = logging.FileHandler(logfile, mode='w')
-    logfile_handler.setFormatter(logging.Formatter(
-        '%(asctime)s [%(levelname)s] %(message)s'))
+    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     logfile_handler.setLevel(logging.INFO)
-    logfile_handler.addFilter(IgnoreDuplicate("Manually editing masks"))
+    logfile_handler.addFilter(IgnoreDuplicate("Manually editing mask"))
     logger.addHandler(logfile_handler)
 
-    logger.info("System info:\nplatform: %s\npython version: %s\nigraph version: %s\nopencv version: %s\nnumpy version: %s\nnapari version: %s",
-                platform(),
-                python_version(),
-                ig.__version__,
-                cv.__version__,
-                np.__version__,
-                napari.__version__)
+    logger.info("System info:\nplatform: %s\npython version: %s\nigraph version: %s\nopencv version: %s\nnumpy version: %s\nnapari version: %s",  platform(), python_version(), ig.__version__, cv.__version__, np.__version__, napari.__version__)
     logger.info("image: %s", image_path)
-    logger.info("masks: %s", masks_path)
+    logger.info("mask: %s", mask_path)
     logger.info("output: %s", output_path)
     logger.debug("min area: %s", min_area)
     logger.debug("max delta frame: %s", max_delta_frame)
     logger.debug("min overlap fraction: %s%%", min_overlap_fraction*100)
 
     ###########################
-    # load image and masks
+    # Load image and mask
     ###########################
 
-    # load image
+    # Load image
     logger.debug("loading %s", image_path)
-    input_image, axes = gf.open_suitable_files(image_path)
+    image = gf.Image(image_path)
+    image.imread()
 
-    # TODO: adapt to more generic input files (other axes, Z and/or C axes)
-    tmpaxes=''.join(list(axes.keys())).upper()
-    if tmpaxes != "TYX":
-        raise TypeError(f'Input image is ({tmpaxes}) (should be TYX).\n({image_path})')
-
-    # load masks
-    logger.debug("loading %s", masks_path)
-    masks, axes = gf.open_suitable_files(masks_path)
-
-    tmpaxes=''.join(list(axes.keys())).upper()
-    if tmpaxes != "TYX":
-        raise TypeError(f'Input masks is ({tmpaxes}) (should be TYX).\n({masks_path})')
+    # Load mask
+    logger.debug("loading %s", mask_path)
+    mask = gf.Image(mask_path)
+    mask.imread()
 
     ###########################
-    # cell tracking
+    # Cell tracking
     ###########################
 
-    logger.info("Creating cell tracking graph and relabelling masks: max delta frame=%s, min overlap fraction=%s%%, min area=%s",
-                max_delta_frame,
-                min_overlap_fraction*100,
-                min_area)
-    split_regions(masks)
-    remove_small_regions(masks, min_area)
-    cell_tracking_graph = CellTrackingGraph(masks,
-                                            max_delta_frame=max_delta_frame,
-                                            min_overlap_fraction=min_overlap_fraction)
-    cell_tracking_graph.relabel(masks)
+    logger.info("Creating cell tracking graph and relabelling mask: max delta frame=%s, min overlap fraction=%s%%, min area=%s",  max_delta_frame, min_overlap_fraction*100, min_area)
+    split_regions(mask)
+    remove_small_regions(mask, min_area)
+    cell_tracking_graph = CellTrackingGraph(mask, max_delta_frame=max_delta_frame, min_overlap_fraction=min_overlap_fraction)
+    cell_tracking_graph.relabel(mask)
 
     ###########################
-    # automatic cleaning
+    # Automatic cleaning
     ###########################
     plot_debug = False
     if clean:
         if plot_debug:
-            masks_original = masks.copy()
-        logger.info("Automatic cleaning: max delta frame=%s, max defect size=%s, min stable size=%s, stable overlap fraction=%s%%, min area=%s, clean missing masks only=%s",
-                    max_delta_frame_interpolation,
-                    nframes_defect,
-                    nframes_stable,
-                    stable_overlap_fraction*100,
-                    min_area,
-                    False)
-        clean_masks(masks,
-                    cell_tracking_graph,
-                    max_delta_frame_interpolation=max_delta_frame_interpolation,
-                    nframes_defect=nframes_defect,
-                    nframes_stable=nframes_stable,
-                    stable_overlap_fraction=stable_overlap_fraction,
-                    min_area=min_area, only_missing=False)
+            mask_image_original = mask.get_TZXarray().copy()
+        logger.info("Automatic cleaning: max delta frame=%s, max defect size=%s, min stable size=%s, stable overlap fraction=%s%%, min area=%s, clean missing mask only=%s", max_delta_frame_interpolation, nframes_defect, nframes_stable, stable_overlap_fraction*100, min_area, False)
+        clean_mask(mask, cell_tracking_graph, max_delta_frame_interpolation=max_delta_frame_interpolation,
+                    nframes_defect=nframes_defect, nframes_stable=nframes_stable,
+                    stable_overlap_fraction=stable_overlap_fraction, min_area=min_area, only_missing=False)
 
-        # relabel (to avoid problem with splitted masks regions)
-        logger.info("Relabelling masks and graph: max delta frame=%s, min area=%s, min overlap fraction=%s%%",
-                    max_delta_frame,
-                    min_area,
-                    min_overlap_fraction*100)
-        split_regions(masks)
-        remove_small_regions(masks, min_area)
-        cell_tracking_graph.reset(masks,
-                                  max_delta_frame=max_delta_frame,
-                                  min_overlap_fraction=min_overlap_fraction)
-        cell_tracking_graph.relabel(masks)
+        # relabel (to avoid problem with splitted mask regions)
+        logger.info("Relabelling mask and graph: max delta frame=%s, min area=%s, min overlap fraction=%s%%", max_delta_frame, min_area, min_overlap_fraction*100)
+        split_regions(mask)
+        remove_small_regions(mask, min_area)
+        cell_tracking_graph.reset(mask,  max_delta_frame=max_delta_frame, min_overlap_fraction=min_overlap_fraction)
+        cell_tracking_graph.relabel(mask)
 
     ###########################
-    # napari
+    # Napari
     ###########################
 
     if display_results:
-        logger.debug("displaying image and masks")
+        logger.debug("displaying image and mask")
         viewer_images = napari.Viewer(title=image_path)
-        viewer_images.add_image(input_image, name="Image")
+        viewer_images.add_image(image.get_TZXarray(), name="Image")
         if plot_debug and clean:
-            masks_diff = np.zeros(masks.shape, dtype='uint8')
-            masks_diff[masks == masks_original] = 0
-            masks_diff[(masks != masks_original) & (masks == 0)] = 1  # removed
-            masks_diff[(masks != masks_original) & (masks != 0) & (masks_original != 0)] = 2  # modified
-            masks_diff[(masks != masks_original) & (masks_original == 0)] = 3  # added
-            viewer_images.add_image(
-                masks_diff,
-                name="Cell masks modifications (1: removed, 2: modified, 3: added)",
-                opacity=0.8,
+            mask_diff = np.zeros((mask.sizes['T'], mask.sizes['Y'], mask.sizes['X']), dtype='uint8')
+            mask_diff[mask.get_TZXarray() == mask_image_original] = 0
+            mask_diff[(mask.get_TZXarray() != mask_image_original) & (mask.get_TZXarray() == 0)] = 1  # Removed
+            mask_diff[(mask.get_TZXarray() != mask_image_original) & (mask.get_TZXarray() != 0) & (mask_image_original != 0)] = 2  # Modified
+            mask_diff[(mask.get_TZXarray() != mask_image_original) & (mask_image_original == 0)] = 3  # Added
+            viewer_images.add_image(mask_diff, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
                 colormap=napari.utils.Colormap([[0, 0, 0, 0],
                                                 [0.77, 0.27, 0.29, 1],
                                                 [0.16, 0.36, 0.62, 1],
                                                 [0.30, 0.51, 0.15, 1]]),
-                contrast_limits=[0, 3],
-                visible=False)
-        masks_layer = viewer_images.add_labels(masks, name="Cell masks")
+                contrast_limits=[0, 3], visible=False)
+        mask_layer = viewer_images.add_labels(mask.get_TZXarray(), name="Cell mask")
 
         logger.debug("displaying cell tracking graph")
         viewer_graph = napari.Viewer(title='Cell tracking graph')
-        # hide "layer controls" and "layer list" docks
+        # Hide "layer controls" and "layer list" docks
         viewer_graph.window._qt_viewer.dockLayerControls.toggleViewAction().trigger()
         viewer_graph.window._qt_viewer.dockLayerList.toggleViewAction().trigger()
         logger.debug("Plotting cell tracking graph")
-        plot_cell_tracking_graph(viewer_graph,
-                                 viewer_images, masks_layer,
-                                 cell_tracking_graph.get_graph(),
-                                 masks_layer.get_color(range(masks.max()+1)))
+        plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, cell_tracking_graph.get_graph(), mask_layer.get_color(range(mask.get_TZXarray().max()+1)))
 
-        # add CellTrackingWidget to napari
+        # Add CellTrackingWidget to napari
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setWidget(
-            CellTrackingWidget(masks,
-                               cell_tracking_graph,
-                               viewer_graph,
-                               viewer_images,
-                               image_path,
-                               output_path,
-                               min_area=min_area,
-                               max_delta_frame=max_delta_frame,
-                               min_overlap_fraction=min_overlap_fraction,
-                               max_delta_frame_interpolation=max_delta_frame_interpolation,
-                               nframes_defect=nframes_defect,
-                               nframes_stable=nframes_stable,
+        scroll_area.setWidget(CellTrackingWidget(mask, cell_tracking_graph, viewer_graph, viewer_images, image_path, output_path,
+                               min_area=min_area, max_delta_frame=max_delta_frame,
+                               min_overlap_fraction=min_overlap_fraction, max_delta_frame_interpolation=max_delta_frame_interpolation,
+                               nframes_defect=nframes_defect, nframes_stable=nframes_stable,
                                stable_overlap_fraction=stable_overlap_fraction))
-        viewer_images.window.add_dock_widget(scroll_area,
-                                             area='right',
-                                             name="Cell tracking")
+        viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
 
     else:
-        # TODO: adapt metadata to more generic input files (other axes)
-        output_file = os.path.join(output_path, os.path.splitext(
-            os.path.basename(image_path))[0]+"_masks.tif")
-        logger.info("Saving segmentation masks to %s", output_file)
-        tifffile.imwrite(output_file, masks, metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
+        output_file = os.path.join(output_path, image.name+"_mask.tif")
+        logger.info("Saving segmentation mask to %s", output_file)
+        tifffile.imwrite(output_file, mask.get_TZXarray(), metadata={'axes': 'TYX'}, compression='zlib')
 
-        output_file = os.path.join(output_path, os.path.splitext(
-            os.path.basename(image_path))[0]+"_graph.dot")
+        output_file = os.path.join(output_path, image.name+"_graph.dot")
         logger.info("Saving cell tracking graph to %s", output_file)
         cell_tracking_graph.write_dot(output_file)
 
-        output_file = os.path.join(output_path, os.path.splitext(
-            os.path.basename(image_path))[0]+"_graph.graphmlz")
+        output_file = os.path.join(output_path, image.name+"_graph.graphmlz")
         logger.info("Saving cell tracking graph to %s", output_file)
         cell_tracking_graph.get_graph().write_graphmlz(output_file)
+
+
+if __name__ == "__main__":
+    image_path = ''
+    masks_path = ''
+    output_path = ''
+    main(image_path, masks_path, output_path=output_path)

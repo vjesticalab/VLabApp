@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QFileDialog, QLineEdit, QPushButton, QVBoxLayout, QH
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.graph_filtering_module.graph_filtering import graph_filtering_functions as f
+from general import general_functions as gf
 
 
 class DropFileLineEdit(QLineEdit):
@@ -110,8 +111,7 @@ class GraphFiltering(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        self.use_input_folder = QRadioButton(
-            "Use input image folder\n(graph_filtering sub-folder)")
+        self.use_input_folder = QRadioButton("Use input image folder\n(graph_filtering sub-folder)")
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)
@@ -142,22 +142,16 @@ class GraphFiltering(QWidget):
         self.logger = logging.getLogger(__name__)
 
     def browse_image(self):
-        file_path, _ = QFileDialog.getOpenFileName(self,
-                                                   'Select Files',
-                                                   filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
         self.input_image.setText(file_path)
 
     def browse_masks(self):
-        file_path, _ = QFileDialog.getOpenFileName(self,
-                                                   'Select Files',
-                                                   filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
         self.input_masks.setText(file_path)
 
     def browse_graph(self):
-        file_path, _ = QFileDialog.getOpenFileName(self,
-                                                   'Select Files',
-                                                   filter='Cell tracking graphs ('+' '.join(['*'+x for x in self.graphtypes])+')')
-        self.input_masks.setText(file_path)
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Cell tracking graphs ('+' '.join(['*'+x for x in self.graphtypes])+')')
+        self.input_graph.setText(file_path)
 
     def browse_output(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
@@ -170,51 +164,45 @@ class GraphFiltering(QWidget):
 
         # check input
         if image_path == '':
-            QMessageBox.warning(self, 'Error', 'Image missing')
+            gf.error('Image missing')
             self.input_image.setFocus()
             return
         if not os.path.isfile(image_path):
-            QMessageBox.warning(self, 'Error', 'Image: not a valid file')
+            gf.error('Image: not a valid file')
             self.input_image.setFocus()
             return
         if masks_path == '':
-            QMessageBox.warning(self, 'Error', 'Segmentation masks missing')
+            gf.error('Segmentation masks missing')
             self.input_masks.setFocus()
             return
         if not os.path.isfile(masks_path):
-            QMessageBox.warning(
-                self, 'Error', 'Segmentation masks: not a valid file')
+            gf.error('Segmentation masks: not a valid file')
             self.input_masks.setFocus()
             return
         if graph_path == '':
-            QMessageBox.warning(self, 'Error', 'Cell tracking graph missing')
+            gf.error('Cell tracking graph missing')
             self.input_graph.setFocus()
             return
         if not os.path.isfile(graph_path):
-            QMessageBox.warning(
-                self, 'Error', 'Cell tracking graph: not a valid file')
+            gf.error('Cell tracking graph: not a valid file')
             self.input_graph.setFocus()
             return
 
         if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
-            QMessageBox.warning(self, 'Error', 'Output folder missing')
+            gf.error('Output folder missing')
             self.output_folder.setFocus()
             return
 
         if self.use_input_folder.isChecked():
-            output_path = os.path.join(os.path.dirname(
-                image_path), 'graph_filtering')
+            output_path = os.path.join(os.path.dirname(image_path), 'graph_filtering')
         else:
             output_path = self.output_folder.text()
-        self.logger.info("Graph filtering (image %s, masks %s, graph %s)",
-                         image_path, masks_path, graph_path)
+        self.logger.info("Graph filtering (image %s, masks %s, graph %s)", image_path, masks_path, graph_path)
 
         QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         QApplication.processEvents()
         try:
-            f.main(image_path, masks_path, graph_path,
-                   output_path=output_path,
-                   display_results=True)
+            f.main(image_path, masks_path, graph_path, output_path=output_path, display_results=True)
         except Exception as e:
             QApplication.restoreOverrideCursor()
             self.logger.error(str(e))

@@ -257,13 +257,13 @@ class Segmentation(QWidget):
                     self.logger.info("Segmenting image %s", image_path)
                     QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
                     QApplication.processEvents()
+                    
                     try:
                         f.main(image_path, model_path, output_path, self.display_results.isChecked(), self.use_gpu.isChecked())
                     except Exception as e:
                         gf.error("Segmantation failed" , str(e))
-                        QApplication.restoreOverrideCursor()
-                        self.logger.error(str(e))
                         return
+                    
                     QApplication.restoreOverrideCursor()
                 else:
                     gf.error("Unable to locate file" , image_path)

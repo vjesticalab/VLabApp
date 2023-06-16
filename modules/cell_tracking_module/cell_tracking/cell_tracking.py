@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QFileDialog, QLabel, QLineEdit, QCheckBox, QPushButt
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.cell_tracking_module.cell_tracking import cell_tracking_functions as f
+from general import general_functions as gf
 
 
 class DropFileLineEdit(QLineEdit):
@@ -97,8 +98,7 @@ class CellTracking(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        self.use_input_folder = QRadioButton(
-            "Use input image folder\n(cell_tracking sub-folder)")
+        self.use_input_folder = QRadioButton("Use input image folder\n(cell_tracking sub-folder)")
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)
@@ -126,8 +126,7 @@ class CellTracking(QWidget):
         self.min_area.setMinimum(0)
         self.min_area.setMaximum(10000)
         self.min_area.setValue(300)
-        self.min_area.setToolTip(
-            'Remove masks regions with area (number of pixels) below this value.')
+        self.min_area.setToolTip('Remove masks regions with area (number of pixels) below this value.')
         layout2.addWidget(QLabel("Min area:"), 0, 0)
         layout2.addWidget(self.min_area, 0, 1)
 
@@ -135,8 +134,7 @@ class CellTracking(QWidget):
         self.max_delta_frame.setMinimum(1)
         self.max_delta_frame.setMaximum(50)
         self.max_delta_frame.setValue(5)
-        self.max_delta_frame.setToolTip(
-            'Number of previous frames to consider when creating the cell tracking graph.')
+        self.max_delta_frame.setToolTip('Number of previous frames to consider when creating the cell tracking graph.')
         layout2.addWidget(QLabel("Max delta frame:"), 1, 0)
         layout2.addWidget(self.max_delta_frame, 1, 1)
 
@@ -145,10 +143,8 @@ class CellTracking(QWidget):
         self.min_overlap_fraction.setMaximum(100)
         self.min_overlap_fraction.setValue(20)
         self.min_overlap_fraction.setSuffix("%")
-        self.min_overlap_fraction.setToolTip(
-            'minimum overlap fraction (w.r.t mask area) to consider when creating edges in the cell tracking graph.')
-        layout2.addWidget(QLabel("Min overlap fraction:"),
-                          2, 0)
+        self.min_overlap_fraction.setToolTip('minimum overlap fraction (w.r.t mask area) to consider when creating edges in the cell tracking graph.')
+        layout2.addWidget(QLabel("Min overlap fraction:"), 2, 0)
         layout2.addWidget(self.min_overlap_fraction, 2, 1)
 
         groupbox.setLayout(layout2)
@@ -164,18 +160,15 @@ class CellTracking(QWidget):
         self.stable_overlap_fraction.setMaximum(100)
         self.stable_overlap_fraction.setValue(90)
         self.stable_overlap_fraction.setSuffix("%")
-        self.stable_overlap_fraction.setToolTip(
-            'Cell tracking graph edges corresponding to an overlap fraction below this value are considered as not stable.')
-        layout2.addWidget(QLabel("Stable overlap fraction:"),
-                          0, 0)
+        self.stable_overlap_fraction.setToolTip('Cell tracking graph edges corresponding to an overlap fraction below this value are considered as not stable.')
+        layout2.addWidget(QLabel("Stable overlap fraction:"), 0, 0)
         layout2.addWidget(self.stable_overlap_fraction, 0, 1)
 
         self.nframes_defect = QSpinBox()
         self.nframes_defect.setMinimum(1)
         self.nframes_defect.setMaximum(50)
         self.nframes_defect.setValue(2)
-        self.nframes_defect.setToolTip(
-            'Maximum size of the defect (number of frames).')
+        self.nframes_defect.setToolTip('Maximum size of the defect (number of frames).')
         self.nframes_defect.valueChanged.connect(self.nframes_defect_changed)
         layout2.addWidget(QLabel("Max defect size (frames):"), 1, 0)
         layout2.addWidget(self.nframes_defect, 1, 1)
@@ -184,20 +177,16 @@ class CellTracking(QWidget):
         self.max_delta_frame_interpolation.setMinimum(1)
         self.max_delta_frame_interpolation.setMaximum(50)
         self.max_delta_frame_interpolation.setValue(3)
-        self.max_delta_frame_interpolation.setToolTip(
-            'Number of previous and subsequent frames to consider for masks interpolation.')
-        self.max_delta_frame_interpolation.valueChanged.connect(
-            self.max_delta_frame_interpolation_changed)
+        self.max_delta_frame_interpolation.setToolTip('Number of previous and subsequent frames to consider for masks interpolation.')
+        self.max_delta_frame_interpolation.valueChanged.connect(self.max_delta_frame_interpolation_changed)
         layout2.addWidget(QLabel("Max delta frame (interpolation):"), 2, 0)
-        layout2.addWidget(self.max_delta_frame_interpolation,
-                          2, 1)
+        layout2.addWidget(self.max_delta_frame_interpolation, 2, 1)
 
         self.nframes_stable = QSpinBox()
         self.nframes_stable.setMinimum(1)
         self.nframes_stable.setMaximum(50)
         self.nframes_stable.setValue(3)
-        self.nframes_stable.setToolTip(
-            'Minimum number of stable frames before and after the defect.')
+        self.nframes_stable.setToolTip('Minimum number of stable frames before and after the defect.')
         self.nframes_stable.valueChanged.connect(self.nframes_stable_changed)
         layout2.addWidget(QLabel("Min stable size (frames):"), 3, 0)
         layout2.addWidget(self.nframes_stable, 3, 1)
@@ -218,15 +207,11 @@ class CellTracking(QWidget):
         self.logger = logging.getLogger(__name__)
 
     def browse_image(self):
-        file_path, _ = QFileDialog.getOpenFileName(self,
-                                                   'Select Files',
-                                                   filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
         self.input_image.setText(file_path)
 
     def browse_masks(self):
-        file_path, _ = QFileDialog.getOpenFileName(self,
-                                                   'Select Files',
-                                                   filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
         self.input_masks.setText(file_path)
 
     def browse_output(self):
@@ -234,64 +219,64 @@ class CellTracking(QWidget):
         self.output_folder.setText(folder_path)
 
     def nframes_defect_changed(self, value):
-        # we want nframes_defect<=max_delta_frame_interpolation<=nframes_stable
+        # We want nframes_defect <= max_delta_frame_interpolation <= nframes_stable
         if self.nframes_stable.value() < value:
             self.nframes_stable.setValue(value)
         if self.max_delta_frame_interpolation.value() < value:
             self.max_delta_frame_interpolation.setValue(value)
 
     def nframes_stable_changed(self, value):
-        # we want nframes_defect<=max_delta_frame_interpolation<=nframes_stable
+        # We want nframes_defect <= max_delta_frame_interpolation <= nframes_stable
         if self.nframes_defect.value() > value:
             self.nframes_defect.setValue(value)
         if self.max_delta_frame_interpolation.value() > value:
             self.max_delta_frame_interpolation.setValue(value)
 
     def max_delta_frame_interpolation_changed(self, value):
-        # we want nframes_defect<=max_delta_frame_interpolation<=nframes_stable
+        # We want nframes_defect <= max_delta_frame_interpolation <= nframes_stable
         if self.nframes_stable.value() < value:
             self.nframes_stable.setValue(value)
         if self.nframes_defect.value() > value:
             self.nframes_defect.setValue(value)
 
     def process_input(self):
+
+        def check_inputs(image_path, masks_path):
+            if image_path == '':
+                gf.error('Image missing')
+                self.input_image.setFocus()
+                return
+            if not os.path.isfile(image_path):
+                gf.error('Image: not a valid file')
+                self.input_image.setFocus()
+                return
+            if masks_path == '':
+                gf.error('Segmentation masks missing')
+                self.input_masks.setFocus()
+                return
+            if not os.path.isfile(masks_path):
+                gf.error('Segmentation masks', 'Invalid file mask')
+                self.input_masks.setFocus()
+                return
+            if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
+                gf.error('Output folder missing')
+                self.output_folder.setFocus()
+                return
+            
         image_path = self.input_image.text()
         masks_path = self.input_masks.text()
 
-        # check input
-        if image_path == '':
-            QMessageBox.warning(self, 'Error', 'Image missing')
-            self.input_image.setFocus()
-            return
-        if not os.path.isfile(image_path):
-            QMessageBox.warning(self, 'Error', 'Image: not a valid file')
-            self.input_image.setFocus()
-            return
-        if masks_path == '':
-            QMessageBox.warning(self, 'Error', 'Segmentation masks missing')
-            self.input_masks.setFocus()
-            return
-        if not os.path.isfile(masks_path):
-            QMessageBox.warning(
-                self, 'Error', 'Segmentation masks: not a valid file')
-            self.input_masks.setFocus()
-            return
-
-        if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
-            QMessageBox.warning(self, 'Error', 'Output folder missing')
-            self.output_folder.setFocus()
-            return
+        check_inputs(image_path, masks_path)
 
         if self.use_input_folder.isChecked():
-            output_path = os.path.join(os.path.dirname(
-                image_path), 'cell_tracking')
+            output_path = os.path.join(os.path.dirname(image_path), 'cell_tracking')
         else:
             output_path = self.output_folder.text()
-        self.logger.info("Cell tracking (image %s, masks %s)",
-                         image_path, masks_path)
+        self.logger.info("Cell tracking (image %s, masks %s)", image_path, masks_path)
 
         QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         QApplication.processEvents()
+
         try:
             f.main(image_path, masks_path, output_path=output_path,
                    min_area=self.min_area.value(),
@@ -304,9 +289,8 @@ class CellTracking(QWidget):
                    stable_overlap_fraction=self.stable_overlap_fraction.value()/100.0,
                    display_results=self.display_results.isChecked())
         except Exception as e:
-            QApplication.restoreOverrideCursor()
-            self.logger.error(str(e))
-            raise e
+            gf.error('Tracking failed', str(e))
+        
         QApplication.restoreOverrideCursor()
 
         self.logger.info("Done")

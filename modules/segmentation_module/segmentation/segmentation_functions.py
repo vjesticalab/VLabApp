@@ -100,17 +100,16 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
     iteration = 0
     multiple_fov = True if image.sizes['F'] > 1 else False
     for f in range(image.sizes['F']):
-        masks = np.zeros((image.sizes['T'], image.sizes['Z'], image.sizes['Y'], image.sizes['X']), dtype='uint16')
+        mask = np.zeros((image.sizes['T'], image.sizes['Y'], image.sizes['X']), dtype='uint16')
         for t in range(image.sizes['T']):
-            for z in range(image.sizes['Z']):
-                # Always assuming BF in channel=0
-                iteration += 1
-                image_2D = image.image[f, t, 0, z, : ,:]
-                if display_results: # Logging into napari window
-                    pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
-                    pbr.update(1)
-                logger.info("cellpose segmentation %s/%s", iteration, tot_iterations)
-                masks[t,z,:,:], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
+            # Always assuming BF in channel=0 and only one Z channel
+            iteration += 1
+            image_2D = image.image[f, t, 0, 0, : ,:]
+            if display_results: # Logging into napari window
+                pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
+                pbr.update(1)
+            logger.info("cellpose segmentation %s/%s", iteration, tot_iterations)
+            mask[t,:,:], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
 
         # Save masks for each FoV -> dimensions: TZYX
         if multiple_fov: 
@@ -118,7 +117,7 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
         else:
             output_name = os.path.join(output_path, image.name+"_masks.tif")
         logger.info("Saving segmentation masks to %s", output_name)
-        tifffile.imwrite(output_name, masks, metadata={'axes': 'TZYX'}, compression='zlib')
+        tifffile.imwrite(output_name, mask, metadata={'axes': 'TYX'}, compression='zlib')
 
         if display_results:
             QMessageBox.information(viewer_images.window._qt_window, 'File saved', 'Masks saved to\n' + output_name)
@@ -129,7 +128,7 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
             viewer_images.window._status_bar._toggle_activity_dock(False)
             pbr.close()
             # Show masks in napari
-            layer_masks = viewer_images.add_labels(masks, name="Cell masks")
+            layer_masks = viewer_images.add_labels(mask, name="Cell masks")
             layer_masks.editable = False # Do not allow edition
 
     # stop using logfile
