@@ -224,29 +224,31 @@ class Segmentation(QWidget):
             if len(image_paths) == 0:
                 self.logger.error('Image missing')
                 self.add_image_button.setFocus()
-                return
+                return False
             for path in image_paths:
                 if not os.path.isfile(path):
                     self.logger.error('Image not found\n' + path)
                     self.add_image_button.setFocus()
-                    return
+                    return False
             if not os.path.isfile(model_path):
                 self.logger.error('Model missing')
                 self.selected_model.setFocus()
-                return
+                return False
             if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
                 self.logger.error('Output folder missing')
                 self.output_folder.setFocus()
-                return
+                return False
             if self.display_results.isChecked() and len(image_paths) > 1:
                 display_results = QMessageBox.question(self, 'Show results in napari?', "All images will be loaded into memory and a new napari window will be opened for each image.\nDo you really want to show images in napari?", QMessageBox.Yes | QMessageBox.No)
                 if display_results == QMessageBox.No:
                     self.display_results.setChecked(False)
+            return True
 
         image_paths = [self.image_list.item(x).text() for x in range(self.image_list.count())]
         model_path = self.selected_model.text()
 
-        check_inputs(image_paths, model_path)
+        if not check_inputs(image_paths, model_path):
+            return
         
         if os.path.isfile(model_path):
             for image_path in image_paths:
@@ -263,7 +265,6 @@ class Segmentation(QWidget):
                         f.main(image_path, model_path, output_path, self.display_results.isChecked(), self.use_gpu.isChecked())
                     except Exception as e:
                         self.logger.error("Segmentation failed.\n" + str(e))
-                        return
                     
                     QApplication.restoreOverrideCursor()
                 else:

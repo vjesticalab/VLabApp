@@ -245,28 +245,30 @@ class CellTracking(QWidget):
             if image_path == '':
                 self.logger.error('Image missing')
                 self.input_image.setFocus()
-                return
+                return False
             if not os.path.isfile(image_path):
                 self.logger.error('Image: not a valid file')
                 self.input_image.setFocus()
-                return
+                return False
             if masks_path == '':
                 self.logger.error('Segmentation masks missing')
                 self.input_masks.setFocus()
-                return
+                return False
             if not os.path.isfile(masks_path):
                 self.logger.error('Segmentation masks - Invalid file')
                 self.input_masks.setFocus()
-                return
+                return False
             if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
                 self.logger.error('Output folder missing')
                 self.output_folder.setFocus()
-                return
+                return False
+            return True
             
         image_path = self.input_image.text()
         masks_path = self.input_masks.text()
 
-        check_inputs(image_path, masks_path)
+        if not check_inputs(image_path, masks_path):
+            return
 
         if self.use_input_folder.isChecked():
             output_path = os.path.join(os.path.dirname(image_path), 'cell_tracking')
