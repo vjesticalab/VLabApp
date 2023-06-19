@@ -208,7 +208,7 @@ class GraphFilteringWidget(QWidget):
     A widget to use inside napari
     """
 
-    def __init__(self, mask: gf.Image, graph, viewer_images, image_path, output_path):
+    def __init__(self, mask, graph, viewer_images, image_path, output_path):
         super().__init__()
         self.logger = logging.getLogger(__name__)
 
