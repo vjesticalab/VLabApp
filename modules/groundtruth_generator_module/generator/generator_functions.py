@@ -1,4 +1,5 @@
 import os
+import logging
 import nd2
 import napari
 import cv2
@@ -164,7 +165,7 @@ def treshMasks(image, lowerTreshold, upperTreshold, viewer):
         viewer.add_labels(addingContoursIndividually, name='mask')
         
     except Exception as e:
-        gf.error("Error in mask generation", image_name+' - '+str(e))
+        logging.getLogger(__name__).error("Error in mask generation.\n" + image_name + ' - ' + str(e))
 
 
 def main(path, result_path):
@@ -176,7 +177,7 @@ def main(path, result_path):
     images = gf.extract_suitable_files(os.listdir(path))
    
     if not images:
-        gf.error("No images", "The folder does not contain .nd2 or .tif files")
+        logging.getLogger(__name__).error("No images.\nThe folder does not contain .nd2 or .tif files")
 
     for image_name in images:
         print('Processing image '+image_name)
@@ -188,7 +189,7 @@ def main(path, result_path):
             image.imread()
 
             if image.sizes['C'] < 2:
-                gf.error('Image format', image_name+' - The image must have at least one color channel. The BF will be considered as channel 0 and excluded from the analysis.')
+                logging.getLogger(__name__).error('Image format.\n' + image_name + ' - The image must have at least one color channel. The BF will be considered as channel 0 and excluded from the analysis.')
                 return
             
             z_pertime_perchannel = focal_plane(image)
@@ -205,7 +206,7 @@ def main(path, result_path):
                 nw.show()
 
         except Exception as e:
-            gf.error("Alaysis failed", image_name+' - '+str(e))
+            logging.getLogger(__name__).error("Alaysis failed.\n"+image_name+' - '+str(e))
       
 # Testing
 """

@@ -1,3 +1,4 @@
+import logging
 import os
 import numpy as np
 from PyQt5.QtWidgets import QFileDialog, QLabel, QLineEdit, QMainWindow, QPushButton, QVBoxLayout, QWidget, QListWidget, QFrame, QMessageBox
@@ -86,7 +87,7 @@ class Single(QWidget):
         try:
             self.transfmat_path
         except Exception as e:
-            gf.error("Invalid path", str(e))
+            logging.getLogger(__name__).error("Invalid path.\n" + str(e))
         else:
             self.submit_values()        
 

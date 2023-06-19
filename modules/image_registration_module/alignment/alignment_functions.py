@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import os
 import tifffile
@@ -44,7 +45,7 @@ def alignment_main(file_type, path, inventory, selected_file, skip_crop_decision
                 rf.registration_with_tmat(pathsInventory, tmat_int, image, skip_crop_decision)
                 print(image.name,' DONE!')
         except Exception as e:
-            gf.error('Alignment failed', 'File '+selected_file+' - '+str(e))
+            logging.getLogger(__name__).error('Alignment failed.\nFile '+selected_file+' - '+str(e))
     else:
         image = gf.Image(os.path.join(path, selected_file))                   
         try:
@@ -54,7 +55,7 @@ def alignment_main(file_type, path, inventory, selected_file, skip_crop_decision
             rf.registration_with_tmat(pathsInventory, tmat_int, image, skip_crop_decision)
             print(image.name,' DONE!')
         except Exception as e:
-            gf.error('Alignment failed', 'File '+selected_file+' - '+str(e))
+            logging.getLogger(__name__).error('Alignment failed\nFile '+selected_file+' - '+str(e))
 
 
 def view_main(path, image_name, inventory, skip_crop_decision):
@@ -75,7 +76,7 @@ def view_main(path, image_name, inventory, skip_crop_decision):
             else:
                 viewer.add_image(image_registered, name="Channel "+str(c), blending="additive")
     except:
-        gf.error('Missing matrix', 'Transformation matrix not found for image '+image_name)
+        logging.getLogger(__name__).error('Missing matrix.\nTransformation matrix not found for image '+image_name)
 
 if __name__ == "__main__":
     folder_path = '/Users/aravera/Documents/CIG_Alexs/Registration/application/_VLSM_demoset/20230101_P0001_E0008_U003/'

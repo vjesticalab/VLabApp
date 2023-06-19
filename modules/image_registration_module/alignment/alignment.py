@@ -1,4 +1,5 @@
 import os
+import logging
 from PyQt5.QtWidgets import QTextEdit, QMainWindow, QLabel, QPushButton, QListWidget, QFileDialog, QVBoxLayout, QWidget, QLineEdit, QCheckBox, QMessageBox, QFrame
 from PyQt5.QtCore import Qt
 from modules.image_registration_module.alignment import alignment_functions as f
@@ -192,7 +193,7 @@ class SingleFolder(QWidget):
             for file in imageFile_inventory.keys():
                 f.alignment_main('imageFile', folder_path, imageFile_inventory, file, skip_crop_decision)
         else:
-            gf.error('Folder not found','Please select an existing folder')
+            logging.getLogger(__name__).error('Folder not found.\nPlease select an existing folder')
 
 
 class MultiFolder(QWidget):
@@ -244,7 +245,7 @@ class MultiFolder(QWidget):
                 for file in imageFile_inventory.keys():
                     f.alignment_main('imageFile', folder_path, imageFile_inventory, file, skip_crop_decision)
             else:
-                gf.error('Folder not found','Folder ',folder_path,' does not exist.')
+                logging.getLogger(__name__).error('Folder not found.\nFolder '+folder_path+' does not exist.')
 
 
 class Alignment(QMainWindow):

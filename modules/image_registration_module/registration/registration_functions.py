@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import os
 from general import general_functions as gf
@@ -20,7 +21,7 @@ from pystackreg import StackReg
     timepoints_tmat, _ = tmat_int.shape
     
     if image.sizes['T'] != timepoints_tmat:
-        gf.error('Image '+image.name,'The number of timepoints(',image.sizes['T'], ') in the image and the transformation matrix(',timepoints_tmat, ') do NOT match. Generating an empty image to prevent script from crashing!')
+        logging.getLogger(__name__).error('Image '+image.name+'\nThe number of timepoints('+str(image.sizes['T'])+ ') in the image and the transformation matrix('+str(timepoints_tmat)+ ') do NOT match. Generating an empty image to prevent script from crashing!')
         return
     
     registered_image = image.image.copy()
@@ -96,7 +97,7 @@ def registration_main(path, referenceIdentifier, coalignNonReferenceFiles):
     suitable_files = gf.extract_suitable_files(content)
 
     if len(suitable_files) == 0:
-        gf.error('Image format', 'Image(s) format not supported, nothing to process.')
+        logging.getLogger(__name__).error('Image format.\nImage(s) format not supported, nothing to process.')
         return
     
     # Create path to results
@@ -175,11 +176,11 @@ def registration_main(path, referenceIdentifier, coalignNonReferenceFiles):
     
             if imageCoaligned.sizes['T'] == 1:
                 # In case there is no multiple timepoits -> there is nothing to register
-                gf.error('Image format.', 'Image format not supported for the registration. Missing the time dimension.')
+                logging.getLogger(__name__).error('Image format.\nImage format not supported for the registration. Missing the time dimension.')
                 return
             if imageCoaligned.sizes['F'] > 1:
                 # In case there is no multiple timepoits -> there is nothing to register
-                gf.error('Image format.', 'Image format not supported for the registration. Registration does not work with multiple fields of view.')
+                logging.getLogger(__name__).error('Image format.\nImage format not supported for the registration. Registration does not work with multiple fields of view.')
                 return                    
             else:
                 rf.registration_with_tmat(pathsInventory, tmats, imageCoaligned)

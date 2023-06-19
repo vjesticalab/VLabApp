@@ -164,32 +164,32 @@ class GraphFiltering(QWidget):
 
         # check input
         if image_path == '':
-            gf.error('Image missing')
+            self.logger.error('Image missing')
             self.input_image.setFocus()
             return
         if not os.path.isfile(image_path):
-            gf.error('Image: not a valid file')
+            self.logger.error('Image: not a valid file')
             self.input_image.setFocus()
             return
         if masks_path == '':
-            gf.error('Segmentation masks missing')
+            self.logger.error('Segmentation masks missing')
             self.input_masks.setFocus()
             return
         if not os.path.isfile(masks_path):
-            gf.error('Segmentation masks: not a valid file')
+            self.logger.error('Segmentation masks: not a valid file')
             self.input_masks.setFocus()
             return
         if graph_path == '':
-            gf.error('Cell tracking graph missing')
+            self.logger.error('Cell tracking graph missing')
             self.input_graph.setFocus()
             return
         if not os.path.isfile(graph_path):
-            gf.error('Cell tracking graph: not a valid file')
+            self.logger.error('Cell tracking graph: not a valid file')
             self.input_graph.setFocus()
             return
 
         if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
-            gf.error('Output folder missing')
+            self.logger.error('Output folder missing')
             self.output_folder.setFocus()
             return
 

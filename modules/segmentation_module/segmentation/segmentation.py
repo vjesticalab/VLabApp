@@ -1,3 +1,4 @@
+import logging
 import os
 import logging
 from PyQt5.QtWidgets import QFileDialog, QLineEdit, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QListWidget, QAbstractItemView, QGroupBox, QRadioButton, QApplication
@@ -221,20 +222,20 @@ class Segmentation(QWidget):
 
         def check_inputs(image_paths, model_path):
             if len(image_paths) == 0:
-                gf.error('Image missing')
+                self.logger.error('Image missing')
                 self.add_image_button.setFocus()
                 return
             for path in image_paths:
                 if not os.path.isfile(path):
-                    gf.error('Image not found', path)
+                    self.logger.error('Image not found\n' + path)
                     self.add_image_button.setFocus()
                     return
             if not os.path.isfile(model_path):
-                gf.error('Model missing')
+                self.logger.error('Model missing')
                 self.selected_model.setFocus()
                 return
             if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
-                gf.error('Output folder missing')
+                self.logger.error('Output folder missing')
                 self.output_folder.setFocus()
                 return
             if self.display_results.isChecked() and len(image_paths) > 1:
@@ -261,15 +262,13 @@ class Segmentation(QWidget):
                     try:
                         f.main(image_path, model_path, output_path, self.display_results.isChecked(), self.use_gpu.isChecked())
                     except Exception as e:
-                        gf.error("Segmantation failed" , str(e))
+                        self.logger.error("Segmentation failed.\n" + str(e))
                         return
                     
                     QApplication.restoreOverrideCursor()
                 else:
-                    gf.error("Unable to locate file" , image_path)
-                    self.logger.warning("Unable to locate file %s", image_path)
+                    self.logger.error("Unable to locate file %s", image_path)
         else:
-            gf.error("Model file not found" , model_path)
-            self.logger.warning("Model file %s not found", model_path)
+            self.logger.error("Model file %s not found", model_path)
 
         self.logger.info("Done")

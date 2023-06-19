@@ -107,7 +107,6 @@ def interpolate_mask(mask, cell_tracking_graph, mask_ids, frame_start, frame_end
 
     # Check that mask contains at least one of the mask_ids
     if not np.any(np.isin(mask[frame_start2:frame_end2, :,:], mask_ids)):
-        gf.error('no mask ids found','Mask has no content')
         return
 
     # Find bounding box for all mask_ids (region 1)

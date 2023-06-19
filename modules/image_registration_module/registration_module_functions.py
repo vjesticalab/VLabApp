@@ -1,3 +1,4 @@
+import logging
 from general import general_functions as gf
 import numpy as np
 import os
@@ -8,7 +9,7 @@ def read_transfMat(tmat_path):
         tmat_string = np.loadtxt(tmat_path, delimiter=",", dtype=str)
 
     except Warning as e:
-        gf.error('Load transformation matrix', str(e))
+        logging.getLogger(__name__).error('Load transformation matrix', str(e))
         return
 
     else:
@@ -68,7 +69,7 @@ def registration_with_tmat(pathsInventory, tmat_int, image: gf.Image, skip_crop 
     timepoints_tmat, _ = tmat_int.shape
     
     if image.sizes['T'] != timepoints_tmat:
-        gf.error('Image '+image.name,'The number of timepoints(',image.sizes['T'], ') in the image and the transformation matrix(',timepoints_tmat, ') do NOT match. Generating an empty image to prevent script from crashing!')
+        logging.getLogger(__name__).error('Image '+image.name+'\nThe number of timepoints(' + str(image.sizes['T'])+') in the image and the transformation matrix('+ str(timepoints_tmat)+ ') do NOT match. Generating an empty image to prevent script from crashing!')
         return
    
     registered_image = image.image.copy()

@@ -243,23 +243,23 @@ class CellTracking(QWidget):
 
         def check_inputs(image_path, masks_path):
             if image_path == '':
-                gf.error('Image missing')
+                self.logger.error('Image missing')
                 self.input_image.setFocus()
                 return
             if not os.path.isfile(image_path):
-                gf.error('Image: not a valid file')
+                self.logger.error('Image: not a valid file')
                 self.input_image.setFocus()
                 return
             if masks_path == '':
-                gf.error('Segmentation masks missing')
+                self.logger.error('Segmentation masks missing')
                 self.input_masks.setFocus()
                 return
             if not os.path.isfile(masks_path):
-                gf.error('Segmentation masks', 'Invalid file mask')
+                self.logger.error('Segmentation masks - Invalid file')
                 self.input_masks.setFocus()
                 return
             if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
-                gf.error('Output folder missing')
+                self.logger.error('Output folder missing')
                 self.output_folder.setFocus()
                 return
             
@@ -289,7 +289,7 @@ class CellTracking(QWidget):
                    stable_overlap_fraction=self.stable_overlap_fraction.value()/100.0,
                    display_results=self.display_results.isChecked())
         except Exception as e:
-            gf.error('Tracking failed', str(e))
+            self.logger.error('Tracking failed\n' + str(e))
         
         QApplication.restoreOverrideCursor()
 
