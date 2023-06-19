@@ -57,7 +57,7 @@ class Image:
     def save(self):
         pass
 
-    def get_TZXarray(self):
+    def get_TYXarray(self):
         return self.image[0,:,0,0,:,:]
 
     def set_image(self, image, axes):

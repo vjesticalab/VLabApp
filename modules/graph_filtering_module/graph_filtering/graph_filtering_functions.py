@@ -212,7 +212,7 @@ class GraphFilteringWidget(QWidget):
         super().__init__()
         self.logger = logging.getLogger(__name__)
 
-        self.mask = mask.get_TZXarray()
+        self.mask = mask.get_TYXarray()
         ## WARNING: graph should not be modified
         self.graph = graph
         self.viewer_images = viewer_images
@@ -725,16 +725,8 @@ class GraphFilteringWidget(QWidget):
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
-<<<<<<< HEAD
     def save(self, closing=False, relabel_mask_ids=True):
         # Set cursor to BusyCursor
-=======
-    def save_per_track(self, closing=False, relabel_mask_ids=True):
-        """
-        save one masks and one graph file per selected track
-        """
-        # set cursor to BusyCursor
->>>>>>> 163ba26e970663824152471f6ade1758343e8510
         napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
         napari.qt.get_app().processEvents()
         self.logger.debug("Done")
@@ -964,10 +956,10 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
     if display_results:
         logger.debug("displaying image and mask")
         viewer_images = napari.Viewer(title=image_path)
-        viewer_images.add_image(image.get_TZXarray(), name="Image")
-        layer = viewer_images.add_labels(mask.get_TZXarray(), name="Cell mask", visible=False)
+        viewer_images.add_image(image.get_TYXarray(), name="Image")
+        layer = viewer_images.add_labels(mask.get_TYXarray(), name="Cell mask", visible=False)
         layer.editable = False
-        selected_mask_layer = viewer_images.add_labels(mask.get_TZXarray(), name="Selected cell mask")
+        selected_mask_layer = viewer_images.add_labels(mask.get_TYXarray(), name="Selected cell mask")
         selected_mask_layer.editable = False
 
         # add GraphFilteringWidget to napari
