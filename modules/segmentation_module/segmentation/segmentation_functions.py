@@ -81,7 +81,7 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
         from PyQt5.QtWidgets import QMessageBox
 
         viewer_images = napari.Viewer(title=image_path)
-        viewer_images.add_image(image.image, name="Input image")
+        viewer_images.add_image(image.get_TYXarray(), name="Input image")
         
         ## TODO: find a way to use logging package instead?
         # Setup logging into napari window.
