@@ -68,7 +68,7 @@ def remove_small_regions(masks, min_area):
         for mask_id in mask_ids_toremove:
             logging.getLogger(__name__).debug(
                 " Removing: frame %s, mask id %s", frame, mask_id)
-            masks[masks == mask_id] = 0
+            masks[frame][masks[frame] == mask_id] = 0
 
 
 def interpolate_masks(masks, cell_tracking_graph, mask_ids, frame_start, frame_end, max_delta_frame_interpolation=2, min_area=300):
