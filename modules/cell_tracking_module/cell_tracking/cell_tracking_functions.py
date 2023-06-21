@@ -1041,12 +1041,13 @@ class CellTrackingGraph:
         self.logger.debug("Relabelling masks and cell tracking graph")
         for frame1 in range(masks.shape[0]):
             frame1_vs = self._graph_full.vs.select(frame=frame1)
-            mask_ids1 = np.sort(np.unique(frame1_vs['mask_id']))
+            mask_ids1 = np.sort(np.unique(frame1_vs['mask_id'])).astype(masks.dtype)
+            max_mask_ids1=np.max(mask_ids1) if len(mask_ids1)>0 else 0
             # check masks and self._graph_full are consistent:
             if not np.array_equal(mask_ids1, np.sort(np.unique(masks[frame1][masks[frame1] > 0]))):
                 raise Exception(
                     "not the same mask_ids in masks and self._graph_full")
-            map_id = np.repeat(-1, max(mask_ids1)+1)
+            map_id = np.repeat(-1, max_mask_ids1+1)
             if frame1 == 0:
                 # relabel with consecutiv mask_ids
                 for mask_id in mask_ids1:
@@ -1059,11 +1060,12 @@ class CellTrackingGraph:
                 frame2_range = range(
                     max(0, frame1-self._max_delta_frame), frame1)
                 mask_ids2 = np.sort(
-                    np.unique(self._graph_full.vs.select(frame_in=frame2_range)['mask_id']))
+                    np.unique(self._graph_full.vs.select(frame_in=frame2_range)['mask_id'])).astype(masks.dtype)
                 mask_ids = np.union1d(mask_ids1, mask_ids2)
+                max_mask_ids=np.max(mask_ids) if len(mask_ids)>0 else 0
                 # confusion matrix (contain the sum of mask overlap between frame1 and frame2 (with frame2=frame1-1,frame1-2,...frame1-self._max_delta_frame))
-                cm = np.zeros((max(mask_ids+1),
-                              max(mask_ids+1)),
+                cm = np.zeros((max_mask_ids+1,
+                              max_mask_ids+1),
                               dtype=np.int64)
                 for frame2 in frame2_range:
                     # get confusion matrix
@@ -1071,7 +1073,7 @@ class CellTrackingGraph:
                     frame12_es = self._graph_full.es.select(
                         frame_source=frame2, frame_target=frame1)
                     cm_tmp = np.zeros(
-                        (max(mask_ids+1), max(mask_ids+1)), dtype=np.int64)
+                        (max_mask_ids+1, max_mask_ids+1), dtype=np.int64)
                     cm_tmp[frame12_es['mask_id_target'],
                            frame12_es['mask_id_source']] = frame12_es['overlap_area']
                     if self.beta > 1:
@@ -1081,7 +1083,7 @@ class CellTrackingGraph:
                 # use Hungarian algorithm (linear_sum_assignment) to solve minimum weight matching in bipartite graphs.
                 # ignore mask==0, i.e. cm[0,:] and cm[:,0]
                 row_ind, col_ind = linear_sum_assignment(-cm)
-                map_id = np.repeat(-1, max(mask_ids1)+1)
+                map_id = np.repeat(-1, max_mask_ids1+1)
                 for r, c in zip(row_ind, col_ind):
                     if cm[r, c] > 0:
                         map_id[r] = c
