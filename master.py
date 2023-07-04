@@ -2,18 +2,22 @@ import sys
 import os
 import logging
 from functools import partial
+import napari
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PyQt5.QtGui import QPixmap, QIcon, QFont, QPalette
 from PyQt5.QtWidgets import QApplication, QSpacerItem, QSizePolicy, QCheckBox, QFrame, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTabWidget, QFormLayout, QLineEdit, QFileDialog, QScrollArea, QMessageBox
 
 from modules.image_registration_module.registration import registration
+from modules.zprojection_module.zprojection import zprojection
 from modules.image_registration_module.alignment import alignment
 from modules.image_registration_module.registrationEditing import editing
 from modules.groundtruth_generator_module.generator import generator_functions
 from modules.segmentation_module.segmentation import segmentation
 from modules.cell_tracking_module.cell_tracking import cell_tracking
 from modules.graph_filtering_module.graph_filtering import graph_filtering
-from general import general_functions
+from modules.graph_event_filter_module.graph_event_filter import graph_event_filter
+from general import general_functions as gf
+
 
 
 class QLineEditHandler(logging.Handler):
@@ -42,7 +46,7 @@ class QLineEditHandler(logging.Handler):
 
 class QMessageBoxErrorHandler(logging.Handler):
     """
-    logging handler to send message to QMessageBox.critical (with .
+    Logging handler to send message to QMessageBox.critical
 
     Examples
     --------
@@ -192,6 +196,14 @@ class Registration(Page):
         window = editing.Editing(param, parent=self)
         window.show()
 
+class zProjection(Page):
+    def __init__(self):
+        super().__init__()
+        self.window = QVBoxLayout(self.container)
+        self.window.addWidget(zprojection.zProjection())
+        self.window.addStretch()
+
+
 
 class GTGenerator(Page):
     def __init__(self):
@@ -253,25 +265,25 @@ class GTGenerator(Page):
     
     def process_input(self):
         path = self.selected_folder1.text()
-        result_path = self.selected_folder2.text()
-        result_path_checked = self.check_resfolder.isChecked()
+        output_path = self.selected_folder2.text()
+        output_path_checked = self.check_resfolder.isChecked()
         # Input path
         if path == '':
             self.submission_num_failed += 1
-            self.label_error = general_functions.error_empty(self.submission_num_failed, self.selected_folder1, self.window)
+            self.label_error = gf.error_empty(self.submission_num_failed, self.selected_folder1, self.window)
         # Output path
-        elif not result_path_checked and result_path == '':
+        elif not output_path_checked and output_path == '':
             self.submission_num_failed += 1
-            self.label_error = general_functions.error_empty(self.submission_num_failed, self.selected_folder2, self.window)  
+            self.label_error = gf.error_empty(self.submission_num_failed, self.selected_folder2, self.window)  
         else:
             if self.label_error:
                 self.window.removeRow(self.label_error)
-            if result_path_checked:
-                result_path = path
-            result_path = result_path + '/groundtruth_masks_generated/'
-            if not os.path.exists(result_path):
-                os.makedirs(result_path)
-            generator_functions.main(path, result_path)
+            if output_path_checked:
+                output_path = path
+            output_path = output_path + '/groundtruth_masks_generated/'
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+            generator_functions.main(path, output_path)
    
 
 class Segmentation(Page):
@@ -281,6 +293,7 @@ class Segmentation(Page):
         self.window.addWidget(segmentation.Segmentation())
         self.window.addStretch()
 
+
 class CellTracking(Page):
     def __init__(self):
         super().__init__()
@@ -288,12 +301,35 @@ class CellTracking(Page):
         self.window.addWidget(cell_tracking.CellTracking())
         self.window.addStretch()
 
+
 class GraphFiltering(Page):
     def __init__(self):
         super().__init__()
         self.window = QVBoxLayout(self.container)
         self.window.addWidget(graph_filtering.GraphFiltering())
         self.window.addStretch()
+
+
+class GraphEventFilter(Page):
+    def __init__(self):
+        super().__init__()
+        self.window = QVBoxLayout(self.container)
+        self.window.addWidget(graph_event_filter.GraphEventFilter())
+        self.window.addStretch()
+
+
+class NapariOpener(Page):
+    def __init__(self):
+        super().__init__()
+        self.window = QVBoxLayout(self.container)
+        self.button = QPushButton("Open Napari", self)
+        self.button.clicked.connect(self.open_napari)
+        self.window.addWidget(self.button, alignment=Qt.AlignCenter)
+        self.setLayout(self.window)
+
+    def open_napari(self):
+        viewer = napari.Viewer()
+        viewer.show(block=True)
 
 
 class MainWindow(QWidget):
@@ -308,10 +344,13 @@ class MainWindow(QWidget):
         window.addWidget(tabwizard)
         tabwizard.addHomePage(Home())
         tabwizard.addPage(Registration(), "Registration")
+        tabwizard.addPage(zProjection(), "Z-Projection")
         tabwizard.addPage(GTGenerator(), "GroundTruth")
         tabwizard.addPage(Segmentation(), "Segmentation")
         tabwizard.addPage(CellTracking(), "Cell tracking")
         tabwizard.addPage(GraphFiltering(), "Graph filtering")
+        tabwizard.addPage(GraphEventFilter(), "Graph event filter")
+        tabwizard.addPage(NapariOpener(), "Napari")
 
         layout = QHBoxLayout()
         self.status_line = QLineEdit()
@@ -328,27 +367,22 @@ class MainWindow(QWidget):
         layout.addWidget(self.quit_button, alignment=Qt.AlignRight)
         window.addLayout(layout)
 
-        # setup logging
-        logging.basicConfig(level=logging.INFO,
-                            format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s",
-                            handlers=[
-                                logging.StreamHandler(sys.stdout)
-                            ]
-                            )
+        # Setup logging
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s", handlers=[logging.StreamHandler(sys.stdout)])
 
-        # add a handler to output messages to self.status_line
+        # Add a handler to output messages to self.status_line
         self.qlabel_handler = QLineEditHandler(self.status_line)
         self.qlabel_handler.setFormatter(logging.Formatter('%(message)s'))
         logging.getLogger().addHandler(self.qlabel_handler)
 
-        # add a handler to output errors to QMessageBox
+        # Add a handler to output errors to QMessageBox
         self.qmessagebox_handler = QMessageBoxErrorHandler(self)
         self.qmessagebox_handler.setFormatter(logging.Formatter('%(message)s'))
         self.qmessagebox_handler.setLevel(logging.ERROR)
         logging.getLogger().addHandler(self.qmessagebox_handler)
 
     def __del__(self):
-        # remove handler to avoid problems after self and self.status_line are destroyed
+        # Remove handler to avoid problems after self and self.status_line are destroyed
         logging.getLogger().removeHandler(self.qlabel_handler)
         logging.getLogger().removeHandler(self.qmessagebox_handler)
 
