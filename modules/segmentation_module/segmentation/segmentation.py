@@ -132,7 +132,7 @@ class Segmentation(QWidget):
         self.browse_button = QPushButton("Browse", self)
         self.browse_button.clicked.connect(self.browse_model)
 
-        self.use_input_folder = QRadioButton("Use input image folder\n(segmentation_masks_raw sub-folder)")
+        self.use_input_folder = QRadioButton("Use input image folder\n(segmentation_masks sub-folder)")
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)
@@ -254,7 +254,7 @@ class Segmentation(QWidget):
             for image_path in image_paths:
                 if os.path.isfile(image_path):
                     if self.use_input_folder.isChecked():
-                        output_path = os.path.join(os.path.dirname(image_path), 'segmentation_masks_raw')
+                        output_path = os.path.join(os.path.dirname(image_path), 'segmentation_masks')
                     else:
                         output_path = self.output_folder.text()
                     self.logger.info("Segmenting image %s", image_path)

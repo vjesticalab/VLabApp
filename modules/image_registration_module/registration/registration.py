@@ -1,6 +1,7 @@
 import os
 from PyQt5.QtWidgets import QFileDialog, QLabel, QLineEdit, QCheckBox, QPushButton, QVBoxLayout, QWidget, QTextEdit, QMessageBox, QMainWindow, QFrame
 from PyQt5.QtCore import Qt
+import logging
 from modules.image_registration_module.registration import registration_functions as f
 
 class SingleFile(QWidget):
@@ -58,14 +59,7 @@ class SingleFile(QWidget):
             try:
                 f.registration_main(path, reference_identifier, coalignment)
             except Exception as e:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Critical)
-                msg.setText("Error - registration_main failed")
-                msg.setInformativeText(str(e))
-                msg.setWindowTitle("ERROR")
-                msg.exec_()
-                print('\n')
-                raise(e)
+                logging.getLogger(__name__).error('Registration failed\n'+str(e))
         else:
             print('\nNo such file found!')
 
@@ -132,14 +126,7 @@ class SingleFolder(QWidget):
             try:
                 f.registration_main(path, reference_identifier, coalignment)
             except Exception as e:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Critical)
-                msg.setText("Error - registration_main failed")
-                msg.setInformativeText(str(e))
-                msg.setWindowTitle("ERROR")
-                msg.exec_()
-                print('\n')
-                raise(e)
+                logging.getLogger(__name__).error('Registration failed\n'+str(e))
         else:
             print('\nNo such folder found!')
 
@@ -211,14 +198,7 @@ class MultiFolder(QWidget):
                 try:
                     f.registration_main(path, reference_identifier, coalignment)
                 except Exception as e:
-                    msg = QMessageBox()
-                    msg.setIcon(QMessageBox.Critical)
-                    msg.setText("Error - registration_main failed")
-                    msg.setInformativeText(str(e))
-                    msg.setWindowTitle("ERROR")
-                    msg.exec_()
-                    print('\n')
-                    raise(e)
+                    logging.getLogger(__name__).error('Registration failed\n'+str(e))
             else:
                 print('\nUnable to locate folder ', folder, '\nMoving onto next folder...')
 

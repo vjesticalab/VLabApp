@@ -25,7 +25,7 @@ def file_handling(path):
         reference_baseName = reference_matrix.split("_transformationMatrix.txt")[0]
         print(reference_matrix, 'will be used to register files:')
         for image_f in image_files:
-            image_baseName = gf.base_name(image_f)
+            image_baseName = image_f.split("_")[0]
             if reference_baseName == image_baseName:
                 files[reference_matrix].append(image_f)
                 print('\t',image_f)
@@ -33,6 +33,10 @@ def file_handling(path):
 
 
 def alignment_main(file_type, path, inventory, selected_file, skip_crop_decision):
+    ###########################
+    # Load image, mask and graph
+    ###########################
+
     pathsInventory = rf.build_paths_inventory(path)
 
     if file_type == 'transfMat':   
@@ -40,14 +44,22 @@ def alignment_main(file_type, path, inventory, selected_file, skip_crop_decision
         tmat_int = rf.read_transfMat(tmat_path)
         try:
             for image_path in inventory[selected_file]:
-                image = gf.Image(image_path)
+                try:
+                    image = gf.Image(image_path)
+                except Exception as e:
+                    logging.getLogger(__name__).error(e)
+                
                 image.imread()
                 rf.registration_with_tmat(pathsInventory, tmat_int, image, skip_crop_decision)
                 print(image.name,' DONE!')
         except Exception as e:
             logging.getLogger(__name__).error('Alignment failed.\nFile '+selected_file+' - '+str(e))
     else:
-        image = gf.Image(os.path.join(path, selected_file))                   
+        try:
+            image = gf.Image(os.path.join(path, selected_file))  
+        except Exception as e:
+            logging.getLogger(__name__).error(e)
+                         
         try:
             tmat_path = inventory[selected_file]
             tmat_int = rf.read_transfMat(tmat_path)
@@ -59,7 +71,15 @@ def alignment_main(file_type, path, inventory, selected_file, skip_crop_decision
 
 
 def view_main(path, image_name, inventory, skip_crop_decision):
-    image = gf.Image(os.path.join(path, image_name))                   
+    ###########################
+    # Load image, mask and graph
+    ###########################
+
+    try:
+        image = gf.Image(os.path.join(path, image_name)) 
+    except Exception as e:
+        logging.getLogger(__name__).error(e)
+                               
     try: 
         transfMat_path = inventory[image_name]
         # Open transformation matrix and image
@@ -77,6 +97,7 @@ def view_main(path, image_name, inventory, skip_crop_decision):
                 viewer.add_image(image_registered, name="Channel "+str(c), blending="additive")
     except:
         logging.getLogger(__name__).error('Missing matrix.\nTransformation matrix not found for image '+image_name)
+
 
 if __name__ == "__main__":
     folder_path = '/Users/aravera/Documents/CIG_Alexs/Registration/application/_VLSM_demoset/20230101_P0001_E0008_U003/'

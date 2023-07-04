@@ -11,6 +11,46 @@ import sys
 from general import general_functions as gf
 
 
+class IgnoreDuplicate(logging.Filter):
+    """
+    logging filter to ignore duplicate messages.
+
+    Examples
+    --------
+    logger=logging.getLogger()
+    filter=IgnoreDuplicate()
+    logger.addFilter(filter)
+    logger.info("message1")
+    logger.info("message1")
+    logger.removeFilter(filter)
+
+    filter=IgnoreDuplicate("message2")
+    logger.addFilter(filter)
+    logger.info("message1")
+    logger.info("message1")
+    logger.info("message2")
+    logger.info("message2")
+    logger.removeFilter(filter)
+
+    """
+
+    def __init__(self, message=None):
+        logging.Filter.__init__(self)
+        self.last = None
+        self.message = message
+
+    def filter(self, record):
+        current = (record.module, record.levelno, record.msg)
+        if self.message is None or self.message == record.msg:
+            # add other fields if you need more granular comparison, depends on your app
+            if self.last is None or current != self.last:
+                self.last = current
+                return True
+            return False
+        self.last = current
+        return True
+
+
 class NapariWidget(QWidget):
     def __init__(self, viewer: napari.Viewer):
         super().__init__()
@@ -41,7 +81,7 @@ class NapariWidget(QWidget):
         self.setLayout(layout)
 
     def button_clicked(self):
-        treshMasks(norm_channels_image,  self.lowerth.value(), self.upperth.value(), self.viewer)
+        tresh_mask(norm_channels_image,  self.lowerth.value(), self.upperth.value(), self.viewer)
         self.min_th_value = self.lowerth.value()
         self.max_th_value = self.upperth.value()
 
@@ -57,9 +97,9 @@ class MultipleViewerWidget(QSplitter):
 
 
 class SaveButton(QWidget):
-    def __init__(self, viewer: napari.Viewer, result_path):
+    def __init__(self, viewer: napari.Viewer, output_path):
         super().__init__()
-        self.result_path = result_path
+        self.output_path = output_path
         self.viewer = viewer
         self.button = QPushButton('Save layer')
         self.button.clicked.connect(self.save_layer)
@@ -70,7 +110,7 @@ class SaveButton(QWidget):
     def save_layer(self):
         for layer in self.viewer.layers:
             if layer in self.viewer.layers.selection:
-                tifffile.imwrite(self.result_path+'/'+image_name+'.tif', layer.data)
+                tifffile.imwrite(self.output_path+'/'+image_name+'.tif', layer.data)
         print('Layer saved!')
 
 
@@ -87,14 +127,14 @@ class QuitButton(QWidget):
 
 
 class NapariWindow(QWidget):
-    def __init__(self, result_path):
+    def __init__(self, output_path):
         super().__init__()
         viewer = napari.Viewer()
         viewer.add_image(norm_channels_image.astype('uint32'), name='image')
         viewer.window._qt_window.setWindowState(Qt.WindowMaximized)
         dock_widget = MultipleViewerWidget(viewer)
         viewer.window.add_dock_widget(dock_widget, name="Segment")
-        save_button = SaveButton(viewer, result_path)
+        save_button = SaveButton(viewer, output_path)
         viewer.window.add_dock_widget(save_button, name='Save', area='left')
         quit_button = QuitButton(viewer)
         viewer.window.add_dock_widget(quit_button, name='Quit', area='right')
@@ -128,7 +168,7 @@ def focal_plane(image: gf.Image):
     return zfocus_per_time
 
 
-def treshMasks(image, lowerTreshold, upperTreshold, viewer):
+def tresh_mask(image, lowerTreshold, upperTreshold, viewer):
     try:
         # Adaptive tresholding method to identify cell boundaries
         image8bit = np.array(image/256, dtype='uint8')
@@ -168,8 +208,12 @@ def treshMasks(image, lowerTreshold, upperTreshold, viewer):
         logging.getLogger(__name__).error("Error in mask generation.\n" + image_name + ' - ' + str(e))
 
 
-def main(path, result_path):
+def main(path, output_path):
     global norm_channels_image, image_name, min_th_value, max_th_value
+
+    ###########################
+    # Load image, mask and graph
+    ###########################
 
     min_th_value = 80
     max_th_value = 200
@@ -184,7 +228,10 @@ def main(path, result_path):
         
         try:
             image_path = os.path.join(path, image_name)
-            image = gf.Image(image_path)
+            try:
+                image = gf.Image(image_path)
+            except Exception as e:
+                logging.getLogger(__name__).error(e)
             image_name = image.name
             image.imread()
 
@@ -202,7 +249,7 @@ def main(path, result_path):
                     channels_image += channel_image
 
                 norm_channels_image = cv2.normalize(channels_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32F)  
-                nw = NapariWindow(result_path)
+                nw = NapariWindow(output_path)
                 nw.show()
 
         except Exception as e:
@@ -213,12 +260,12 @@ def main(path, result_path):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        main(path, result_path)
+        main(path, output_path)
 
 
 if __name__ == "__main__":
    path = '/Users/aravera/Documents/CIG_Aleks/_AVScript01-Calculating MAsks for AI/Script1_InputSample'
-   result_path = '/Users/aravera/Desktop'
+   output_path = '/Users/aravera/Desktop'
    app = QApplication(sys.argv)
    w = MainWindow()
    w.show()

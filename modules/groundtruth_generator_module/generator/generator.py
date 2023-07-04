@@ -58,8 +58,8 @@ class MainWindow(QWidget):
 
     def submit(self):
         path = self.selected_folder.text()
-        result_path = self.selected_folder2.text()
-        f.main(path, result_path)
+        output_path = self.selected_folder2.text()
+        f.main(path, output_path)
 
 
 class Generator(QMainWindow):

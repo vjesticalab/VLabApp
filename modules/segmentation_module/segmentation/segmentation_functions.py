@@ -10,8 +10,8 @@ from general import general_functions as gf
 
 def main(image_path, model_path, output_path, display_results=True, use_gpu=False):
     """
-    Load image from `image_path`, segment with cellpose and save the resulting masks
-    into `output_path` directory using filename <image basename>_masks.tif.
+    Load image from `image_path`, segment with cellpose and save the resulting mask
+    into `output_path` directory using filename <image basename>_mask.tif.
 
     Parameters
     ----------
@@ -22,7 +22,7 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
     output_path: str
         output directory.
     display_results: bool, default True
-        display input image and segmentation masks in napari.
+        display input image and segmentation mask in napari.
     use_gpu: bool, default False
         use GPU for cellpose segmentation.
 
@@ -57,16 +57,12 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
     # Load image
     logger.debug("loading %s", image_path)
     #input_image, axes = gf.open_suitable_files(image_path)
-    image = gf.Image(image_path)
+    try:
+        image = gf.Image(image_path)
+    except Exception as e:
+        logger.error(e)
+    
     image.imread()
-
-    ## TODO: deal with Z axis (z-stack projection)
-    ## TYX
-    """
-    tmpaxes=''.join(list(axes.keys())).upper()
-    if tmpaxes != "TYX":
-        raise TypeError(f'Input image is ({tmpaxes}) (should be TYX).\n({image_path})')
-    """
 
     # Create cellpose model
     logger.debug("loading cellpose model %s", model_path)
@@ -96,9 +92,9 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
     # Cellpose segmentation
     logger.info("Cellpose segmentation (model diameter=%s)", model.diam_labels)
     
-    
     iteration = 0
     multiple_fov = True if image.sizes['F'] > 1 else False
+
     for f in range(image.sizes['F']):
         mask = np.zeros((image.sizes['T'], image.sizes['Y'], image.sizes['X']), dtype='uint16')
         for t in range(image.sizes['T']):
@@ -112,12 +108,14 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
             mask[t,:,:], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
 
         # Save masks for each FoV -> dimensions: TZYX
-        if multiple_fov: 
-            output_name = os.path.join(output_path, image.name+"_FoV"+str(f+1)+"_masks.tif")
+        if multiple_fov:
+            output_name_originalimage = os.path.join(output_path, image.name+"_FoV"+str(f+1)+".tif")
+            tifffile.imwrite(output_name_originalimage, image.get_TYXarray(), metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
+            output_name = os.path.join(output_path, image.name+"_FoV"+str(f+1)+"_mask.tif")
         else:
-            output_name = os.path.join(output_path, image.name+"_masks.tif")
+            output_name = os.path.join(output_path, image.name+"_mask.tif")
         logger.info("Saving segmentation masks to %s", output_name)
-        tifffile.imwrite(output_name, mask, metadata={'axes': 'TYX'}, compression='zlib')
+        tifffile.imwrite(output_name, mask, metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
 
         if display_results:
             QMessageBox.information(viewer_images.window._qt_window, 'File saved', 'Masks saved to\n' + output_name)
@@ -127,9 +125,9 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
             napari.qt.get_app().restoreOverrideCursor()
             viewer_images.window._status_bar._toggle_activity_dock(False)
             pbr.close()
-            # Show masks in napari
-            layer_masks = viewer_images.add_labels(mask, name="Cell masks")
-            layer_masks.editable = False # Do not allow edition
+            # Show mask in napari
+            layer_mask = viewer_images.add_labels(mask, name="Cell mask")
+            layer_mask.editable = False # Do not allow edition
 
     # stop using logfile
     logger.removeHandler(logfile_handler)

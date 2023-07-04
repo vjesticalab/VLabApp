@@ -6,44 +6,6 @@ from modules.image_registration_module import registration_module_functions as r
 import tifffile
 from pystackreg import StackReg
 
-
-"""def registration_with_tmat_multiD(pathsInventory, tmat_int, image):
-    
-    This function uses a transformation matrix to performs registration and cropping of a 3D image
-        input tmat_int: transormation matrix in intigers, 2D-table where
-                       [:,0] is timpeoint
-                       [:,1] is x-displacement    
-                       [:,2] is y-displacement
-        input image_3D: image to register, tyx-dimension order
-        output img_cropped: registered and cropped image
-    
-   
-    timepoints_tmat, _ = tmat_int.shape
-    
-    if image.sizes['T'] != timepoints_tmat:
-        logging.getLogger(__name__).error('Image '+image.name+'\nThe number of timepoints('+str(image.sizes['T'])+ ') in the image and the transformation matrix('+str(timepoints_tmat)+ ') do NOT match. Generating an empty image to prevent script from crashing!')
-        return
-    
-    registered_image = image.image.copy()
-    for c in range(0, image.sizes['C']):
-        for z in range(0, image.sizes['Z']):
-            for timepoint in range(0, image.sizes['T']):
-                xyShift = (tmat_int[timepoint, 1]*-1, tmat_int[timepoint, 2]*-1)
-                registered_image[0, timepoint, c, z, :, :] = np.roll(image.image[0, timepoint, c, z, :, :], xyShift, axis=(1,0))
-        
-    # Crop to desired area
-    x_start = 0 - min(tmat_int[:,2])
-    x_end = image.sizes['X'] - max(tmat_int[:,2])
-    y_start = 0 - min(tmat_int[:,1])
-    y_end = image.sizes['Y'] - max(tmat_int[:,1])
-    # Crop along the y-axis
-    image_cropped = registered_image[:, :, :, :, y_start:y_end, x_start:x_end]
-    
-    # Save the registered and cropped image
-    registeredFilepath = pathsInventory['resultsRegisteredImagesFolder'] + image.name+'_registered.tif'
-    tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,:,:,:], metadata={'axes': 'TCZYX'})
-
-"""
 def registration_values(pathsInventory, image):
     """
     This function calculates the transformation matrices from brightfield images
@@ -121,7 +83,7 @@ def registration_main(path, referenceIdentifier, coalignNonReferenceFiles):
         text = 'The script co-aligned available files to the reference file with the same basename.\n Image files that lack a registration reference are:\n'
         for f in suitable_files:
             if referenceIdentifier not in f:
-                matchingBasename = gf.base_name(f)
+                matchingBasename = f.split("_")[0]
                 referenceKey=''
                 for searchRef in referenceFiles:
                     if matchingBasename in searchRef:
@@ -156,11 +118,15 @@ def registration_main(path, referenceIdentifier, coalignNonReferenceFiles):
     ############## REGISTRATION ##############      
     registeredFilesList=[]
     for REFfilename in files:
-        fileNameNoExtension, _ = gf.file_name_split(REFfilename)
+        fileNameNoExtension, _ = REFfilename.split(".")
         registeredFilesList.append(fileNameNoExtension)
         
         # Open the image file and read the image
-        imageREF = gf.Image(pathsInventory['dataFolder']+REFfilename)
+        try:
+            imageREF = gf.Image(pathsInventory['dataFolder']+REFfilename)
+        except Exception as e:
+            logging.getLogger(__name__).error(e)
+
         imageREF.imread()     
 
         # Calculate registration matrices
@@ -171,7 +137,11 @@ def registration_main(path, referenceIdentifier, coalignNonReferenceFiles):
         coAlignment_list.append(REFfilename)
 
         for coalignedFilename in coAlignment_list:
-            imageCoaligned = gf.Image(pathsInventory['dataFolder']+coalignedFilename)
+            try:
+                imageCoaligned = gf.Image(pathsInventory['dataFolder']+coalignedFilename)
+            except Exception as e:
+                logging.getLogger(__name__).error(e)
+            
             imageCoaligned.imread()
     
             if imageCoaligned.sizes['T'] == 1:
