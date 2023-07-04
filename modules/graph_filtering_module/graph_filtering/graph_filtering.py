@@ -87,13 +87,13 @@ class GraphFiltering(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        self.input_masks = DropFileLineEdit(filetypes=self.imagetypes)
+        self.input_mask = DropFileLineEdit(filetypes=self.imagetypes)
         browse_button = QPushButton("Browse", self)
-        browse_button.clicked.connect(self.browse_masks)
-        groupbox = QGroupBox("Segmentation masks")
+        browse_button.clicked.connect(self.browse_mask)
+        groupbox = QGroupBox("Segmentation mask")
         layout2 = QVBoxLayout()
         layout3 = QHBoxLayout()
-        layout3.addWidget(self.input_masks)
+        layout3.addWidget(self.input_mask)
         layout3.addWidget(browse_button, alignment=Qt.AlignCenter)
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
@@ -145,9 +145,9 @@ class GraphFiltering(QWidget):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
         self.input_image.setText(file_path)
 
-    def browse_masks(self):
+    def browse_mask(self):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
-        self.input_masks.setText(file_path)
+        self.input_mask.setText(file_path)
 
     def browse_graph(self):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Cell tracking graphs ('+' '.join(['*'+x for x in self.graphtypes])+')')
@@ -159,7 +159,7 @@ class GraphFiltering(QWidget):
 
     def process_input(self):
         image_path = self.input_image.text()
-        masks_path = self.input_masks.text()
+        mask_path = self.input_mask.text()
         graph_path = self.input_graph.text()
 
         # check input
@@ -171,13 +171,13 @@ class GraphFiltering(QWidget):
             self.logger.error('Image: not a valid file')
             self.input_image.setFocus()
             return
-        if masks_path == '':
-            self.logger.error('Segmentation masks missing')
-            self.input_masks.setFocus()
+        if mask_path == '':
+            self.logger.error('Segmentation mask missing')
+            self.input_mask.setFocus()
             return
-        if not os.path.isfile(masks_path):
-            self.logger.error('Segmentation masks: not a valid file')
-            self.input_masks.setFocus()
+        if not os.path.isfile(mask_path):
+            self.logger.error('Segmentation mask: not a valid file')
+            self.input_mask.setFocus()
             return
         if graph_path == '':
             self.logger.error('Cell tracking graph missing')
@@ -197,12 +197,12 @@ class GraphFiltering(QWidget):
             output_path = os.path.join(os.path.dirname(image_path), 'graph_filtering')
         else:
             output_path = self.output_folder.text()
-        self.logger.info("Graph filtering (image %s, masks %s, graph %s)", image_path, masks_path, graph_path)
+        self.logger.info("Graph filtering (image %s, mask %s, graph %s)", image_path, mask_path, graph_path)
 
         QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         QApplication.processEvents()
         try:
-            f.main(image_path, masks_path, graph_path, output_path=output_path, display_results=True)
+            f.main(image_path, mask_path, graph_path, output_path=output_path, display_results=True)
         except Exception as e:
             QApplication.restoreOverrideCursor()
             self.logger.error(str(e))

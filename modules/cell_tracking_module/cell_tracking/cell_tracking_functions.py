@@ -1157,7 +1157,7 @@ class CellTrackingWidget(QWidget):
         groupbox = QGroupBox("Help")
         layout2 = QVBoxLayout()
 
-        help_label = QLabel("Image viewer (this viewer):\n<left-click> on the Cell mask layer to center the view on the corresponding vertex in the cell tracking graph viewer. <right-click> to select the corresponding vertex in cell tracking graph and <shift>+<right-click> to extend selection.\nMasks can be manually edited using the Cell mask layer controls. Once done, click on the \"Relabel\" button to update the cell tracking tracking graph.\n\nCell tracking graph viewer:\nVertices (squares) correspond to mask regions (mask id) at a given frame. Edges correspond to overlap between mask. Vertices are ordered by time along the horizontal axis (time increases from left to right).\n<left-click> on a vertex to center the view on the corresponding mask in this viewer. <right-click> to select a vertex and <shift>+<right-click> to extend selection.")
+        help_label = QLabel("Image viewer (this viewer):\n<left-click> on the Cell mask layer to center the view on the corresponding vertex in the cell tracking graph viewer. <right-click> to select the corresponding vertex in cell tracking graph and <shift>+<right-click> to extend selection.\nMask can be manually edited using the Cell mask layer controls. Once done, click on the \"Relabel\" button to update the cell tracking tracking graph.\n\nCell tracking graph viewer:\nVertices (squares) correspond to mask regions (mask id) at a given frame. Edges correspond to overlap between mask. Vertices are ordered by time along the horizontal axis (time increases from left to right).\n<left-click> on a vertex to center the view on the corresponding mask in this viewer. <right-click> to select a vertex and <shift>+<right-click> to extend selection.")
         help_label.setWordWrap(True)
         help_label.setMinimumWidth(10)
         layout2.addWidget(help_label)
@@ -1571,11 +1571,7 @@ class CellTrackingWidget(QWidget):
         output_file1 = os.path.join(self.output_path, os.path.splitext(
             os.path.basename(self.image_path))[0]+"_mask.tif")
         self.logger.info("Saving segmentation mask to %s", output_file1)
-        tifffile.imwrite(output_file1,
-                         self.mask,
-                         metadata={'axes': 'TYX'},
-                         imagej=True,
-                         compression='zlib')
+        tifffile.imwrite(output_file1, self.mask, metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
 
         output_file2 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_graph.dot")
         self.logger.info("Saving cell tracking graph to %s", output_file2)
@@ -1594,7 +1590,7 @@ class CellTrackingWidget(QWidget):
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
-        QMessageBox.information(self, 'Files saved', 'Masks and graph saved to\n' + output_file1 + "\n" + output_file2 + "\n" + output_file3)
+        QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + output_file1 + "\n" + output_file2 + "\n" + output_file3)
 
     def quit(self):
         self.viewer_images.close()
@@ -1692,12 +1688,19 @@ def main(image_path, mask_path, output_path, min_area=300, max_delta_frame=5, mi
 
     # Load image
     logger.debug("loading %s", image_path)
-    image = gf.Image(image_path)
+    try:
+        image = gf.Image(image_path)
+    except Exception as e:
+        logger.error(e)
+
     image.imread()
 
     # Load mask
     logger.debug("loading %s", mask_path)
-    mask_image = gf.Image(mask_path)
+    try:
+        mask_image = gf.Image(mask_path)
+    except Exception as e:
+        logger.error(e)
     mask_image.imread()
     mask = mask_image.get_TYXarray()
 
@@ -1773,7 +1776,7 @@ def main(image_path, mask_path, output_path, min_area=300, max_delta_frame=5, mi
     else:
         output_file = os.path.join(output_path, image.name+"_mask.tif")
         logger.info("Saving segmentation mask to %s", output_file)
-        tifffile.imwrite(output_file, mask, metadata={'axes': 'TYX'}, compression='zlib')
+        tifffile.imwrite(output_file, mask, metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
 
         output_file = os.path.join(output_path, image.name+"_graph.dot")
         logger.info("Saving cell tracking graph to %s", output_file)
@@ -1786,6 +1789,6 @@ def main(image_path, mask_path, output_path, min_area=300, max_delta_frame=5, mi
 
 if __name__ == "__main__":
     image_path = ''
-    masks_path = ''
+    mask_path = ''
     output_path = ''
-    main(image_path, masks_path, output_path=output_path)
+    main(image_path, mask_path, output_path=output_path)

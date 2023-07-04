@@ -761,7 +761,7 @@ class GraphFilteringWidget(QWidget):
             ## TODO: adapt metadata to more generic input files (other axes)
             output_file1 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_celltrack"+str(n)+"_mask.tif")
             self.logger.info("Cell track %s/%s: saving segmentation mask to %s", n, len(self.selected_cell_tracks), output_file1)
-            tifffile.imwrite(output_file1, selected_mask, metadata={'axes': 'TYX'}, compression='zlib')
+            tifffile.imwrite(output_file1, selected_mask, metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
             output_files.append(output_file1)
 
             output_file3 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_celltrack"+str(n)+"_graph.graphmlz")
@@ -785,71 +785,61 @@ class GraphFilteringWidget(QWidget):
 
     def save(self, closing=False, relabel_mask_ids=True):
         """
-        save one masks and one graph file with all selected tracks
+        save one mask and one graph file with all selected tracks
         """
         # set cursor to BusyCursor
         napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
         napari.qt.get_app().processEvents()
         self.logger.debug("Done")
 
-        if self.masks_need_filtering:
+        if self.mask_need_filtering:
             self.filter(closing)
 
         if len(self.selected_cell_tracks) > 0:
             selected_graph_vertices = np.unique(np.concatenate(([x['graph_vertices'] for x in self.selected_cell_tracks])))
             selected_mask_ids = np.unique(np.concatenate(([x['mask_ids'] for x in self.selected_cell_tracks])))
         else:
-            selected_mask_ids = np.array([], dtype=self.masks.dtype)
+            selected_mask_ids = np.array([], dtype=self.mask.dtype)
             selected_graph_vertices = np.array([],dtype='int')
 
         self.logger.debug("filtering graph")
         g2 = self.graph.subgraph(selected_graph_vertices)
-        self.logger.debug("filtering masks")
-        selected_masks = self.masks.copy()
-        selected_masks[np.logical_not(np.isin(selected_masks, selected_mask_ids))] = 0
+        self.logger.debug("filtering mask")
+        selected_mask = self.mask.copy()
+        selected_mask[np.logical_not(np.isin(selected_mask, selected_mask_ids))] = 0
 
         # relabel mask ids to consecutive integer starting from 1 (keeping 0 for background)
         if relabel_mask_ids:
-            self.logger.debug("relabelling filtered masks and graph")
+            self.logger.debug("relabelling filtered mask and graph")
             # create mapping table
-            map_id = np.repeat(0, np.max(np.unique(selected_masks))+1).astype(selected_masks.dtype)
+            map_id = np.repeat(0, np.max(np.unique(selected_mask))+1).astype(selected_mask.dtype)
             map_id[0] = 0
             n_ids = 1
             for mask_id in selected_mask_ids:
                 map_id[mask_id] = n_ids
                 n_ids += 1
-            selected_masks = map_id[selected_masks]
-            g2.vs['mask_id'] = map_id[g2.vs['mask_id']].astype(selected_masks.dtype)
-            g2.es['mask_id_source'] = map_id[g2.es['mask_id_source']].astype(selected_masks.dtype)
-            g2.es['mask_id_target'] = map_id[g2.es['mask_id_target']].astype(selected_masks.dtype)
+            selected_mask = map_id[selected_mask]
+            g2.vs['mask_id'] = map_id[g2.vs['mask_id']].astype(selected_mask.dtype)
+            g2.es['mask_id_source'] = map_id[g2.es['mask_id_source']].astype(selected_mask.dtype)
+            g2.es['mask_id_target'] = map_id[g2.es['mask_id_target']].astype(selected_mask.dtype)
 
-        # TODO: adapt metadata to more generic input files (other axes)
-        output_file1 = os.path.join(self.output_path, os.path.splitext(
-            os.path.basename(self.image_path))[0]+"_masks.tif")
-        self.logger.info("Saving segmentation masks to %s", output_file1)
-        tifffile.imwrite(output_file1,
-                         selected_masks,
-                         metadata={'axes': 'TYX'},
-                         imagej=True,
-                         compression='zlib')
+        ## TODO: adapt metadata to more generic input files (other axes)
+        output_file1 = os.path.join(self.output_path, os.path.splitext( os.path.basename(self.image_path))[0]+"_mask.tif")
+        self.logger.info("Saving segmentation mask to %s", output_file1)
+        tifffile.imwrite(output_file1, selected_mask, metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
 
-        output_file3 = os.path.join(self.output_path, os.path.splitext(
-            os.path.basename(self.image_path))[0]+"_graph.graphmlz")
+        output_file3 = os.path.join(self.output_path, os.path.splitext( os.path.basename(self.image_path))[0]+"_graph.graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file3)
         g2.write_graphmlz(output_file3)
 
         if not closing:
-            self.masks_modified = False
+            self.mask_modified = False
             self.save_button.setStyleSheet("")
 
         # restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
-        QMessageBox.information(self,
-                                'Files saved',
-                                'Masks and graph saved to\n' +
-                                output_file1 + "\n" +
-                                output_file3)
+        QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + output_file1 + "\n" + output_file3)
 
     def quit(self):
         self.viewer_images.close()
@@ -896,7 +886,7 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
     """
 
     ###########################
-    # setup logging
+    # Setup logging
     ###########################
     logger = logging.getLogger(__name__)
     logger.info("GRAPH FILTERING MODULE")
@@ -904,7 +894,7 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
         logger.debug("creating: %s", output_path)
         os.makedirs(output_path)
 
-    # log to file
+    # Log to file
     logfile = os.path.join(output_path, os.path.splitext(os.path.basename(image_path))[0]+".log")
     logger.setLevel(logging.DEBUG)
     logger.debug("writing log output to: %s", logfile)
@@ -926,12 +916,18 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
 
     # Load image
     logger.debug("loading %s", image_path)
-    image = gf.Image(image_path)
+    try:
+        image = gf.Image(image_path)
+    except Exception as e:
+        logger.error(e)
     image.imread()
 
     # Load mask
     logger.debug("loading %s", mask_path)
-    mask = gf.Image(mask_path)
+    try:
+        mask = gf.Image(mask_path)
+    except Exception as e:
+        logger.error(e)
     mask.imread()
 
     # Load graph
