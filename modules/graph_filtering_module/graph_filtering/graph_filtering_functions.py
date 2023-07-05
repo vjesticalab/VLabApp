@@ -783,7 +783,7 @@ class GraphFilteringWidget(QWidget):
         msg.setDetailedText("\n".join(output_files))
         msg.exec()
 
-    def save(self, closing=False, relabel_mask_ids=True):
+    def save_per_track(self, closing=False, relabel_mask_ids=True):
         """
         save one mask and one graph file with all selected tracks
         """

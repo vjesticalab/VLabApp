@@ -7,65 +7,6 @@ from modules.graph_event_filter_module.graph_event_filter import graph_event_fil
 from general import general_functions as gf
 
 
-class DropFileLineEdit(QLineEdit):
-    """
-    A QLineEdit with drop support for files.
-    """
-
-    def __init__(self, parent=None, filetypes=None):
-        super().__init__(parent)
-        self.setAcceptDrops(True)
-        self.filetypes = filetypes
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls:
-            event.accept()
-        else:
-            event.ignore()
-
-    def dragMoveEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.accept()
-        else:
-            event.ignore()
-
-    def dropEvent(self, event):
-        for url in event.mimeData().urls():
-            if url.isLocalFile():
-                if os.path.isfile(url.toLocalFile()):
-                    filename = url.toLocalFile()
-                    if self.filetypes is None or os.path.splitext(filename)[1] in self.filetypes:
-                        self.setText(filename)
-
-
-class DropFolderLineEdit(QLineEdit):
-    """
-    A QLineEdit with drop support for folder.
-    """
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setAcceptDrops(True)
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls:
-            event.accept()
-        else:
-            event.ignore()
-
-    def dragMoveEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.accept()
-        else:
-            event.ignore()
-
-    def dropEvent(self, event):
-        for url in event.mimeData().urls():
-            if url.isLocalFile():
-                if os.path.isdir(url.toLocalFile()):
-                    self.setText(url.toLocalFile())
-
-
 class GraphEventFilter(QWidget):
     def __init__(self):
         super().__init__()
@@ -76,7 +17,7 @@ class GraphEventFilter(QWidget):
         self.graphtypes = ['.graphmlz']
 
         # Browse segmentation mask
-        self.input_mask = DropFileLineEdit(filetypes=self.imagetypes)
+        self.input_mask = gf.DropFileLineEdit(filetypes=self.imagetypes)
         browse_button = QPushButton("Browse", self)
         browse_button.clicked.connect(self.browse_mask)
         groupbox = QGroupBox("Segmentation mask")
@@ -87,7 +28,7 @@ class GraphEventFilter(QWidget):
         layout.addWidget(groupbox)
 
         # Browse cell graph
-        self.input_graph = DropFileLineEdit(filetypes=self.graphtypes)
+        self.input_graph = gf.DropFileLineEdit(filetypes=self.graphtypes)
         browse_button = QPushButton("Browse", self)
         browse_button.clicked.connect(self.browse_graph)
         groupbox = QGroupBox("Cell tracking graph")
@@ -98,28 +39,25 @@ class GraphEventFilter(QWidget):
         layout.addWidget(groupbox)
 
         # Browse type of event
-        radiobutton1 = QRadioButton("Fusion")
-        radiobutton1.setChecked(True)
-        radiobutton1.event = "fusion"
-        radiobutton1.toggled.connect(self.btnstate)
-        radiobutton2 = QRadioButton("Division")
-        radiobutton2.event = "division"
-        radiobutton2.toggled.connect(self.btnstate)
-        
+        self.button_fusion = QRadioButton("Fusion")
+        self.button_fusion.setChecked(True)
+        self.button_division = QRadioButton("Division")
         groupbox = QGroupBox("Type of event")
         layout2 = QGridLayout()
-        layout2.addWidget(radiobutton1, 0, 0)
-        layout2.addWidget(radiobutton2, 0, 1)
+        layout2.addWidget(self.button_fusion, 0, 0)
+        layout2.addWidget(self.button_division, 0, 1)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
         # Number timepoints before and after event
         label_before = QLabel("Number of timepoints before event")
         self.spinBox_before = QSpinBox(self)
-        self.spinBox_before.setRange(0, 100)
+        self.spinBox_before.setRange(0, 40)
+        self.spinBox_before.setValue(5)
         label_after = QLabel("Number of timepoints after event")
         self.spinBox_after = QSpinBox(self)
-        self.spinBox_after.setRange(0, 100)
+        self.spinBox_after.setRange(0, 40)
+        self.spinBox_after.setValue(5)
         groupbox = QGroupBox("Timepoints")
         layout2 = QGridLayout()
         layout2.addWidget(label_before, 0, 0, 1, 2)
@@ -134,7 +72,7 @@ class GraphEventFilter(QWidget):
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)
-        self.output_folder = DropFolderLineEdit()
+        self.output_folder = gf.DropFolderLineEdit()
         self.browse_button2 = QPushButton("Browse", self)
         self.browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setEnabled(self.use_custom_folder.isChecked())
@@ -176,19 +114,13 @@ class GraphEventFilter(QWidget):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         self.output_folder.setText(folder_path)
     
-    def btnstate(self):
-        radioButton = self.sender()
-        if radioButton.isChecked():
-            self.event_type = radioButton.event
-
     def process_input(self):
         mask_path = self.input_mask.text()
         graph_path = self.input_graph.text()
-        event = self.event_type
-        tp_before = self.spinBox_before.text()
-        tp_after = self.spinBox_after.text()
+        tp_before = int(self.spinBox_before.text())
+        tp_after = int(self.spinBox_after.text())
 
-        # check input
+        # Check inputs
         if mask_path == '':
             self.logger.error('Segmentation mask missing')
             self.input_mask.setFocus()
@@ -216,6 +148,11 @@ class GraphEventFilter(QWidget):
         else:
             output_path = self.output_folder.text()
         self.logger.info("Event filtering (mask %s, graph %s)", mask_path, graph_path)
+
+        if self.button_fusion.isChecked():
+            event = 'fusion'
+        elif self.button_division.isChecked():
+            event = 'division'
 
         QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         QApplication.processEvents()

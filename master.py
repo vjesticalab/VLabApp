@@ -11,11 +11,12 @@ from modules.image_registration_module.registration import registration
 from modules.zprojection_module.zprojection import zprojection
 from modules.image_registration_module.alignment import alignment
 from modules.image_registration_module.registrationEditing import editing
-from modules.groundtruth_generator_module.generator import generator_functions
+from modules.groundtruth_generator_module.generator import generator
 from modules.segmentation_module.segmentation import segmentation
 from modules.cell_tracking_module.cell_tracking import cell_tracking
 from modules.graph_filtering_module.graph_filtering import graph_filtering
 from modules.graph_event_filter_module.graph_event_filter import graph_event_filter
+from modules.viewer_module.viewer import viewer
 from general import general_functions as gf
 
 
@@ -196,6 +197,7 @@ class Registration(Page):
         window = editing.Editing(param, parent=self)
         window.show()
 
+
 class zProjection(Page):
     def __init__(self):
         super().__init__()
@@ -204,86 +206,12 @@ class zProjection(Page):
         self.window.addStretch()
 
 
-
 class GTGenerator(Page):
     def __init__(self):
         super().__init__()
-        self.window = QFormLayout(self.container)
-        self.title = QLabel('<b>Ground Truth Masks Generator</b>')
-        self.title.setFont(QFont('Arial', 18))
-        self.title.setAlignment(Qt.AlignCenter)
-        self.window.addRow(self.title)
-        self.line = QFrame()
-        self.line.setFrameShape(QFrame.HLine)
-        self.window.addRow(self.line)
-        
-        # Upload
-        self.input = QLabel("<b>Step 1: Input path</b>")
-        self.input.setFont(QFont('Arial', 16))
-        self.window.addRow(self.input)
-        self.window.addRow(QLabel("Select folder of images to process"))
-        self.selected_folder1 = QLineEdit()
-        self.selected_folder1.setMinimumWidth(300)
-        self.browse_button1 = QPushButton("Browse", self)
-        self.browse_button1.clicked.connect(self.browse_folder1)
-        self.window.addRow(self.selected_folder1, self.browse_button1)
-        self.line1 = QFrame()
-        self.line1.setFrameShape(QFrame.HLine)
-        self.window.addRow(self.line1)
-
-        # Define path where to save
-        self.output = QLabel("<b>Step 2: Output path</b>")
-        self.output.setFont(QFont('Arial', 16))
-        self.window.addRow(self.output)
-        self.check_resfolder = QCheckBox("Save results into the save directory (new folder)")
-        self.check_resfolder.setChecked(True)
-        self.window.addRow(self.check_resfolder)
-        self.window.addRow(QLabel("\nOR\n\nselect another folder where to save results"))
-        self.selected_folder2 = QLineEdit()
-        self.selected_folder2.setMinimumWidth(300)
-        self.browse_button2 = QPushButton("Browse", self)
-        self.browse_button2.clicked.connect(self.browse_folder2)
-        self.window.addRow(self.selected_folder2, self.browse_button2)
-        self.line2 = QFrame()
-        self.line2.setFrameShape(QFrame.HLine)
-        self.window.addRow(self.line2)
-
-        # Submit
-        self.submit_button = QPushButton("Submit", self)
-        self.submit_button.clicked.connect(self.process_input)
-        self.window.addWidget(self.submit_button)
-        self.submission_num_failed = 0
-        self.label_error = None
-              
-    def browse_folder1(self):
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        self.selected_folder1.setText(folder_path)
-
-    def browse_folder2(self):
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        self.selected_folder2.setText(folder_path)
-    
-    def process_input(self):
-        path = self.selected_folder1.text()
-        output_path = self.selected_folder2.text()
-        output_path_checked = self.check_resfolder.isChecked()
-        # Input path
-        if path == '':
-            self.submission_num_failed += 1
-            self.label_error = gf.error_empty(self.submission_num_failed, self.selected_folder1, self.window)
-        # Output path
-        elif not output_path_checked and output_path == '':
-            self.submission_num_failed += 1
-            self.label_error = gf.error_empty(self.submission_num_failed, self.selected_folder2, self.window)  
-        else:
-            if self.label_error:
-                self.window.removeRow(self.label_error)
-            if output_path_checked:
-                output_path = path
-            output_path = output_path + '/groundtruth_masks_generated/'
-            if not os.path.exists(output_path):
-                os.makedirs(output_path)
-            generator_functions.main(path, output_path)
+        self.window = QVBoxLayout(self.container)
+        self.window.addWidget(generator.Generator())
+        self.window.addStretch()
    
 
 class Segmentation(Page):
@@ -318,18 +246,12 @@ class GraphEventFilter(Page):
         self.window.addStretch()
 
 
-class NapariOpener(Page):
+class Viewer(Page):
     def __init__(self):
         super().__init__()
         self.window = QVBoxLayout(self.container)
-        self.button = QPushButton("Open Napari", self)
-        self.button.clicked.connect(self.open_napari)
-        self.window.addWidget(self.button, alignment=Qt.AlignCenter)
-        self.setLayout(self.window)
-
-    def open_napari(self):
-        viewer = napari.Viewer()
-        viewer.show(block=True)
+        self.window.addWidget(viewer.Viewer())
+        self.window.addStretch()
 
 
 class MainWindow(QWidget):
@@ -350,7 +272,7 @@ class MainWindow(QWidget):
         tabwizard.addPage(CellTracking(), "Cell tracking")
         tabwizard.addPage(GraphFiltering(), "Graph filtering")
         tabwizard.addPage(GraphEventFilter(), "Graph event filter")
-        tabwizard.addPage(NapariOpener(), "Napari")
+        tabwizard.addPage(Viewer(), "Napari")
 
         layout = QHBoxLayout()
         self.status_line = QLineEdit()

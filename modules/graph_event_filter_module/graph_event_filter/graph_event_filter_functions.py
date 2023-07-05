@@ -14,24 +14,11 @@ from PyQt5.QtGui import QCursor, QPixmap, QPainter, QPen, QIcon, QPolygonF
 from general import general_functions as gf
 
 
-def adjust_types(graph, mask_dtype):
-    graph.vs['frame'] = np.array(graph.vs['frame'], dtype='int32')
-    graph.vs['mask_id'] = np.array(graph.vs['mask_id'], dtype=mask_dtype)
-    graph.vs['area'] = np.array(graph.vs['area'], dtype='int64')
-    graph.es['overlap_area'] = np.array(graph.es['overlap_area'], dtype='int64')
-    graph.es['frame_source'] = np.array(graph.es['frame_source'], dtype='int32')
-    graph.es['frame_target'] = np.array(graph.es['frame_target'], dtype='int32')
-    graph.es['mask_id_source'] = np.array(graph.es['mask_id_source'], dtype=mask_dtype)
-    graph.es['mask_id_target'] = np.array(graph.es['mask_id_target'], dtype=mask_dtype)
-    # Remove useless attribute
-    del graph.vs['id']
-    return graph
-
 
 def save(subgraph, subgraph_masks, output_path, event_type):
-        output_path += '_'+event_type # output_path = chosen_path/imagename_eventname
-        tifffile.imwrite(output_path+'s_mask.tif', subgraph_masks, metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
-        subgraph.write_graphmlz(output_path+'s_graph.graphmlz')
+    output_path += '_'+event_type # output_path = chosen_path/imagename_eventname
+    tifffile.imwrite(output_path+'s_mask.tif', subgraph_masks, metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
+    subgraph.write_graphmlz(output_path+'s_graph.graphmlz')
 
 
 def evaluate_graph_properties(graph):
@@ -47,7 +34,7 @@ def evaluate_graph_properties(graph):
     for i, n in enumerate(components.sizes()):
         graph.vs[components[i]]['stable_component_size'] = n
 
-    # Eval cell tracks (i.e. connected components of the cell tracking graph)
+    # Evaluation cell tracks (i.e. connected components of the cell tracking graph)
     components = graph.connected_components(mode='weak')
     cell_tracks = []
     
@@ -172,13 +159,10 @@ def event_filter(mask, graph, event, tp_before, tp_after, output_path):
                     with open(output_path+'_'+event+'s_dictionary.csv', 'a') as file:
                         writer = csv.writer(file)
                         writer.writerow([min(tp_to_check), event_tp, max(tp_to_check), ids_before, ids_after])
-    # Delete duplicates in the events_vertices list
-    events_vertices_set = []
-    for v in events_vertices:
-        if v.index not in [vs.index for vs in events_vertices_set]:
-            events_vertices_set.append(v)
-    # Take the subgrapth with the listed vertex       
-    events_graph = graph.subgraph(events_vertices_set)
+    
+    # Take the subgraph with the listed vertex
+    subgraph_vs = (graph.vs(id=v['id'])[0].index for v in events_vertices)
+    events_graph = graph.subgraph(subgraph_vs)
     # Save the graph and the mask with the detected events
     save(events_graph, events_mask.astype(mask.dtype), output_path, event)
 
@@ -188,14 +172,6 @@ def event_filter(mask, graph, event, tp_before, tp_after, output_path):
 
 
 def main(mask_path, graph_path, event, tp_before, tp_after, output_path):
-    tp_before = int(tp_before)
-    tp_after = int(tp_after)
-    if not output_path.endswith('/'):
-        output_path += '/'
-    image_name = mask_path.replace('_mask.tif', '')
-    output_path += image_name
-    
-
     ###########################
     # Setup logging
     ###########################
@@ -234,7 +210,13 @@ def main(mask_path, graph_path, event, tp_before, tp_after, output_path):
     logger.debug("loading %s", graph_path)
     graph = ig.Graph().Read_GraphMLz(graph_path)
     # Adjust attibute types
-    graph = adjust_types(graph, mask.image.dtype)
+    graph = gf.adjust_graph_types(graph, mask.image.dtype)
+
+    # Output path
+    if not output_path.endswith('/'):
+        output_path += '/'
+    image_name = os.path.basename(mask_path).replace('_mask.tif', '')
+    output_path += image_name
 
     event_filter(mask.get_TYXarray(), graph, event, tp_before, tp_after, output_path)
     logger.info("Done!\n")

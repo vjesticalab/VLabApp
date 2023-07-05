@@ -7,65 +7,6 @@ from modules.graph_filtering_module.graph_filtering import graph_filtering_funct
 from general import general_functions as gf
 
 
-class DropFileLineEdit(QLineEdit):
-    """
-    A QLineEdit with drop support for files.
-    """
-
-    def __init__(self, parent=None, filetypes=None):
-        super().__init__(parent)
-        self.setAcceptDrops(True)
-        self.filetypes = filetypes
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls:
-            event.accept()
-        else:
-            event.ignore()
-
-    def dragMoveEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.accept()
-        else:
-            event.ignore()
-
-    def dropEvent(self, event):
-        for url in event.mimeData().urls():
-            if url.isLocalFile():
-                if os.path.isfile(url.toLocalFile()):
-                    filename = url.toLocalFile()
-                    if self.filetypes is None or os.path.splitext(filename)[1] in self.filetypes:
-                        self.setText(filename)
-
-
-class DropFolderLineEdit(QLineEdit):
-    """
-    A QLineEdit with drop support for folder.
-    """
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setAcceptDrops(True)
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls:
-            event.accept()
-        else:
-            event.ignore()
-
-    def dragMoveEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.accept()
-        else:
-            event.ignore()
-
-    def dropEvent(self, event):
-        for url in event.mimeData().urls():
-            if url.isLocalFile():
-                if os.path.isdir(url.toLocalFile()):
-                    self.setText(url.toLocalFile())
-
-
 class GraphFiltering(QWidget):
     def __init__(self):
         super().__init__()
@@ -75,7 +16,7 @@ class GraphFiltering(QWidget):
         self.imagetypes = ['.nd2', '.tif', '.tiff']
         self.graphtypes = ['.graphmlz']
 
-        self.input_image = DropFileLineEdit(filetypes=self.imagetypes)
+        self.input_image = gf.DropFileLineEdit(filetypes=self.imagetypes)
         browse_button = QPushButton("Browse", self)
         browse_button.clicked.connect(self.browse_image)
         groupbox = QGroupBox("Image")
@@ -87,7 +28,7 @@ class GraphFiltering(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        self.input_mask = DropFileLineEdit(filetypes=self.imagetypes)
+        self.input_mask = gf.DropFileLineEdit(filetypes=self.imagetypes)
         browse_button = QPushButton("Browse", self)
         browse_button.clicked.connect(self.browse_mask)
         groupbox = QGroupBox("Segmentation mask")
@@ -99,7 +40,7 @@ class GraphFiltering(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        self.input_graph = DropFileLineEdit(filetypes=self.graphtypes)
+        self.input_graph = gf.DropFileLineEdit(filetypes=self.graphtypes)
         browse_button = QPushButton("Browse", self)
         browse_button.clicked.connect(self.browse_graph)
         groupbox = QGroupBox("Cell tracking graph")
@@ -115,7 +56,7 @@ class GraphFiltering(QWidget):
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)
-        self.output_folder = DropFolderLineEdit()
+        self.output_folder = gf.DropFolderLineEdit()
         self.browse_button2 = QPushButton("Browse", self)
         self.browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setEnabled(self.use_custom_folder.isChecked())

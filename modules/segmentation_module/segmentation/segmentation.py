@@ -8,118 +8,12 @@ from modules.segmentation_module.segmentation import segmentation_functions as f
 from general import general_functions as gf
 
 
-class DropFilesListWidget(QListWidget):
-    """
-    A QListWidget with drop support for files and folders. If a folder is dropped, all files contained in the folder are added.
-    """
-
-    def __init__(self, parent=None, filetypes=None):
-        super().__init__(parent)
-        self.setAcceptDrops(True)
-        self.filetypes = filetypes
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls:
-            event.accept()
-        else:
-            event.ignore()
-
-    def dragMoveEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.accept()
-        else:
-            event.ignore()
-
-    def dropEvent(self, event):
-        for url in event.mimeData().urls():
-            if url.isLocalFile():
-                if os.path.isfile(url.toLocalFile()):
-                    filename = url.toLocalFile()
-                    if len(self.findItems(filename, Qt.MatchExactly)) == 0 and (self.filetypes is None or os.path.splitext(filename)[1] in self.filetypes):
-                        self.addItem(filename)
-                if os.path.isdir(url.toLocalFile()):
-                    d = url.toLocalFile()
-                    # keep only files (not folders)
-                    filenames = [os.path.join(d, f)
-                                 for f in os.listdir(d)]
-                    if not self.filetypes is None:
-                        # keep only allowed filetypes
-                        filenames = [f for f in filenames
-                                     if os.path.splitext(f)[1] in self.filetypes]
-                    # keep only existing files (not folders)
-                    filenames = [f for f in filenames
-                                 if os.path.isfile(f)]
-                    # do not add if already in the list
-                    filenames = [f for f in filenames
-                                 if len(self.findItems(f, Qt.MatchExactly)) == 0]
-                    self.addItems(filenames)
-
-
-class DropFileLineEdit(QLineEdit):
-    """
-    A QLineEdit with drop support for files.
-    """
-
-    def __init__(self, parent=None, filetypes=None):
-        super().__init__(parent)
-        self.setAcceptDrops(True)
-        self.filetypes = filetypes
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls:
-            event.accept()
-        else:
-            event.ignore()
-
-    def dragMoveEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.accept()
-        else:
-            event.ignore()
-
-    def dropEvent(self, event):
-        for url in event.mimeData().urls():
-            if url.isLocalFile():
-                if os.path.isfile(url.toLocalFile()):
-                    filename = url.toLocalFile()
-                    if self.filetypes is None or os.path.splitext(filename)[1] in self.filetypes:
-                        self.setText(filename)
-
-
-class DropFolderLineEdit(QLineEdit):
-    """
-    A QLineEdit with drop support for folder.
-    """
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setAcceptDrops(True)
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls:
-            event.accept()
-        else:
-            event.ignore()
-
-    def dragMoveEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.accept()
-        else:
-            event.ignore()
-
-    def dropEvent(self, event):
-        for url in event.mimeData().urls():
-            if url.isLocalFile():
-                if os.path.isdir(url.toLocalFile()):
-                    self.setText(url.toLocalFile())
-
-
 class Segmentation(QWidget):
     def __init__(self):
         super().__init__()
 
         self.imagetypes = ['.nd2', '.tif', '.tiff']
-        self.image_list = DropFilesListWidget(filetypes=self.imagetypes)
+        self.image_list = gf.DropFilesListWidget(filetypes=self.imagetypes)
         self.image_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.add_image_button = QPushButton("Add images", self)
         self.add_image_button.clicked.connect(self.add_image)
@@ -128,7 +22,7 @@ class Segmentation(QWidget):
         self.remove_button = QPushButton("Remove selected", self)
         self.remove_button.clicked.connect(self.remove)
 
-        self.selected_model = DropFileLineEdit()
+        self.selected_model = gf.DropFileLineEdit()
         self.browse_button = QPushButton("Browse", self)
         self.browse_button.clicked.connect(self.browse_model)
 
@@ -136,7 +30,7 @@ class Segmentation(QWidget):
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)
-        self.output_folder = DropFolderLineEdit()
+        self.output_folder = gf.DropFolderLineEdit()
         self.browse_button2 = QPushButton("Browse", self)
         self.browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setEnabled(self.use_custom_folder.isChecked())
