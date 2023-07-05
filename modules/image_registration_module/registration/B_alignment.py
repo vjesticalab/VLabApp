@@ -2,10 +2,9 @@ import os
 import logging
 from PyQt5.QtWidgets import QTextEdit, QMainWindow, QLabel, QPushButton, QListWidget, QFileDialog, QVBoxLayout, QWidget, QLineEdit, QCheckBox, QMessageBox, QFrame
 from PyQt5.QtCore import Qt
-from modules.image_registration_module.alignment import alignment_functions as f
 import napari
 from general import general_functions as gf
-from modules.image_registration_module import registration_module_functions as rf
+from modules.image_registration_module.registration import registration_functions as f
 
 class View(QWidget):
     def __init__(self, parent):
@@ -59,7 +58,7 @@ class View(QWidget):
         if self.folder_path.endswith('/'):
             self.folder_path = self.folder_path[:-1]
 
-        self.inventory = rf.image_matrix_correspondance(self.folder_path, 'imageFile')
+        self.inventory = f.image_matrix_correspondance(self.folder_path, 'imageFile')
 
 
     def click(self, item):
@@ -124,12 +123,12 @@ class SingleFile(QWidget):
         imageFiles = gf.extract_suitable_files(os.listdir(self.folder_path))
         for file in imageFiles:
             self.images_list.addItem(file)
-        self.imageFile_inventory = rf.image_matrix_correspondance(self.folder_path, 'imageFile')
+        self.imageFile_inventory = f.image_matrix_correspondance(self.folder_path, 'imageFile')
 
-        transfMatFiles = rf.extract_transfMat(os.listdir(self.folder_path))
+        transfMatFiles = f.extract_transfMat(os.listdir(self.folder_path))
         for file in transfMatFiles:
             self.transf_mat_list.addItem(file) 
-        self.transfMat_inventory = rf.image_matrix_correspondance(self.folder_path, 'transfMat')
+        self.transfMat_inventory = f.image_matrix_correspondance(self.folder_path, 'transfMat')
 
 
     def click_image(self, item):
@@ -189,7 +188,7 @@ class SingleFolder(QWidget):
         if os.path.isdir(folder_path):
             if folder_path.endswith('/'):
                 folder_path = folder_path[:-1]
-            imageFile_inventory = rf.image_matrix_correspondance(folder_path, 'imageFile')
+            imageFile_inventory = f.image_matrix_correspondance(folder_path, 'imageFile')
             for file in imageFile_inventory.keys():
                 f.alignment_main('imageFile', folder_path, imageFile_inventory, file, skip_crop_decision)
         else:
@@ -241,7 +240,7 @@ class MultiFolder(QWidget):
             if os.path.isdir(folder_path):
                 if folder_path.endswith('/'):
                     folder_path = folder_path[:-1]
-                imageFile_inventory = rf.image_matrix_correspondance(folder_path, 'imageFile')
+                imageFile_inventory = f.image_matrix_correspondance(folder_path, 'imageFile')
                 for file in imageFile_inventory.keys():
                     f.alignment_main('imageFile', folder_path, imageFile_inventory, file, skip_crop_decision)
             else:

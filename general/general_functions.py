@@ -3,11 +3,54 @@ import os
 import tifffile
 import nd2
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QLabel, QLineEdit, QListWidget
+from PyQt5.QtWidgets import QLabel, QLineEdit, QListWidget, QMessageBox
 import warnings
 import logging
 import igraph as ig
 from matplotlib import cm
+
+class QLineEditHandler(logging.Handler):
+    """
+    logging handler to send message to QLineEdit.
+
+    Examples
+    --------
+    label=QLineEdit()
+    handler=QLineEditHandler(label)
+    logging.getLogger().addHandler(handler)
+    """
+
+    def __init__(self, qlabel):
+        logging.Handler.__init__(self)
+        self.label = qlabel
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.label.setText(msg)
+        # to focus on the beginning of the text if too long
+        self.label.setCursorPosition(0)
+        # force repainting to update message even when busy
+        self.label.repaint()
+
+
+class QMessageBoxErrorHandler(logging.Handler):
+    """
+    Logging handler to send message to QMessageBox.critical
+
+    Examples
+    --------
+    handler= QMessageBoxErrorHandler(self)
+    handler.setLevel(logging.ERROR)
+    logging.getLogger().addHandler(handler)    
+    """
+
+    def __init__(self, parent):
+        logging.Handler.__init__(self)
+        self.parent = parent
+
+    def emit(self, record):
+        msg = self.format(record)
+        QMessageBox.critical(self.parent, 'Error', msg)
 
 
 class DropFilesListWidget(QListWidget):

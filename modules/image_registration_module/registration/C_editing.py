@@ -7,9 +7,8 @@ from PyQt5 import QtWidgets
 import matplotlib
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from  modules.image_registration_module.registrationEditing import editing_functions as f
-from modules.image_registration_module import registration_module_functions as rf
 from general import general_functions as gf
+from modules.image_registration_module.registration import registration_functions as f
 
 matplotlib.use("Qt5Agg")
 
@@ -70,7 +69,7 @@ class Single(QWidget):
     def browse_folder(self):
         self.folder_path = QFileDialog.getExistingDirectory()
         self.transfmat_path_edit.setText(self.folder_path)
-        transfMatFiles = rf.extract_transfMat(os.listdir(self.folder_path))
+        transfMatFiles = f.extract_transfMat(os.listdir(self.folder_path))
         for file in transfMatFiles:
             self.transf_mat_list.addItem(file)      
                
@@ -191,7 +190,7 @@ class DisplayGraphWindow(QWidget):
                 
     def plot_xy(self, transfmat_path):
         # Read the transformation matrix values
-        transformation_matrix = rf.read_transfMat(transfmat_path)
+        transformation_matrix = f.read_transfMat(transfmat_path)
         
         if transformation_matrix is None:
             return
