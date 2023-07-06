@@ -182,7 +182,7 @@ def main(image_path, output_path):
     try:
         image = gf.Image(image_path)
     except Exception as e:
-        logging.getLogger(__name__).error(e)
+        logging.getLogger(__name__).error('Error loading image '+image_path+' - '+str(e))
     image_name = image.name
     image.imread()
 
@@ -199,12 +199,12 @@ def main(image_path, output_path):
             z = z_pertime_perchannel[t][c]
             channel_image = image.image[0,t,c,z,:,:]
             channels_image += channel_image
-
+        
         norm_channels_image = cv2.normalize(channels_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32F)  
         nw = NapariWindow(output_path)
         nw.show()
       
-# Testing
+# To test
 """
 class MainWindow(QMainWindow):
     def __init__(self):

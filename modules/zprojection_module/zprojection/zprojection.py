@@ -81,22 +81,28 @@ class zProjection(QWidget):
         self.logger = logging.getLogger(__name__)
 
     def add_image(self):
+        # Add the selected image to the input file list
         file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
         for file_path in file_paths:
             if file_path and len(self.image_list.findItems(file_path, Qt.MatchExactly)) == 0:
                 self.image_list.addItem(file_path)
 
     def add_folder(self):
+        # Add all the images in the selected folder to the input file list
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder_path:
             images = [os.path.join(folder_path, i) for i in os.listdir(folder_path) if os.path.splitext(i)[1] in self.imagetypes]
             self.image_list.addItems([i for i in images if len(self.image_list.findItems(i, Qt.MatchExactly)) == 0])
 
     def remove(self):
+        # Remove the selected file from the file list
         for item in self.image_list.selectedItems():
             self.image_list.takeItem(self.image_list.row(item))
 
     def browse_output(self):
+        # Browse folders in order to choose the output one
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
+        self.output_folder.setText(folder_path)
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         self.output_folder.setText(folder_path)
 

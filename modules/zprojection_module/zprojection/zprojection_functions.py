@@ -38,7 +38,7 @@ def main(image_path, output_path, projection_type):
     try:
         image = gf.Image(image_path)
     except Exception as e:
-        logger.error(e)
+        logger.error('Error loading image '+image_path+' - '+str(e))
     image.imread()
 
     # Check z existance in the image
