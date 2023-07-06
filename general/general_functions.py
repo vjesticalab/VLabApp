@@ -3,7 +3,7 @@ import os
 import tifffile
 import nd2
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QLabel, QLineEdit, QListWidget, QMessageBox
+from PyQt5.QtWidgets import QLabel, QLineEdit, QListWidget, QMessageBox, QFileDialog
 import warnings
 import logging
 import igraph as ig
@@ -288,7 +288,8 @@ def extract_suitable_files(directory):
 def update_transfMat(tmat_int, reference_timepoint_index, range_start_index, range_end_index):
     """
     Update the transformation matrix
-    Inputs:
+    ---------------------
+    Parameters:
         tmat_int : original matrix
         reference_timepoint_index : index of the new reference point
         range_start_index : index of the starting timepoint (included)
@@ -509,3 +510,24 @@ def plot_graph(viewer, graph_path):
 
         viewer.reset_view()
 
+    
+class IgnoreDuplicate(logging.Filter):
+    """
+    logging filter to ignore duplicate messages.
+    """
+
+    def __init__(self, message=None):
+        logging.Filter.__init__(self)
+        self.last = None
+        self.message = message
+
+    def filter(self, record):
+        current = (record.module, record.levelno, record.msg)
+        if self.message is None or self.message == record.msg:
+            # add other fields if you need more granular comparison, depends on your app
+            if self.last is None or current != self.last:
+                self.last = current
+                return True
+            return False
+        self.last = current
+        return True

@@ -1,18 +1,17 @@
 import logging
 import os
-import logging
-from PyQt5.QtWidgets import QFileDialog, QLineEdit, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QListWidget, QAbstractItemView, QGroupBox, QRadioButton, QApplication
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QAbstractItemView, QGroupBox, QRadioButton, QApplication, QFileDialog
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.zprojection_module.zprojection import zprojection_functions as f
 from general import general_functions as gf
 
 
-
 class zProjection(QWidget):
     def __init__(self):
         super().__init__()
 
+        # Input widgets
         self.imagetypes = ['.nd2', '.tif', '.tiff']
         self.image_list = gf.DropFilesListWidget(filetypes=self.imagetypes)
         self.image_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -22,7 +21,7 @@ class zProjection(QWidget):
         self.add_folder_button.clicked.connect(self.add_folder)
         self.remove_button = QPushButton("Remove selected", self)
         self.remove_button.clicked.connect(self.remove)
-
+        # Output widgets
         self.use_input_folder = QRadioButton("Use input image folder\n(zprojection sub-folder)")
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
@@ -34,20 +33,16 @@ class zProjection(QWidget):
         self.browse_button2.setEnabled(self.use_custom_folder.isChecked())
         self.use_custom_folder.toggled.connect(self.output_folder.setEnabled)
         self.use_custom_folder.toggled.connect(self.browse_button2.setEnabled)
-
-        self.button_fusion = QRadioButton("Fusion")
-        self.button_fusion.setChecked(True)
-        self.button_division = QRadioButton("Division")
-
+        # Projection type widgets
         self.b1 = QRadioButton("Max")
         self.b1.setChecked(True)
         self.b2 = QRadioButton("Min")
         self.b3 = QRadioButton("Std")
         self.b4 = QRadioButton("Average")
         self.b5 = QRadioButton("Median")
-
+        # Submit
         self.submit_button = QPushButton("Submit", self)
-        self.submit_button.clicked.connect(self.click)
+        self.submit_button.clicked.connect(self.submit)
 
         # Layout
         layout = QVBoxLayout()
@@ -61,7 +56,6 @@ class zProjection(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-
         groupbox = QGroupBox("Output folder")
         layout2 = QVBoxLayout()
         layout2.addWidget(self.use_input_folder)
@@ -72,7 +66,6 @@ class zProjection(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-
         groupbox = QGroupBox("Projection type")
         layout2 = QVBoxLayout()
         layout2.addWidget(self.b1)
@@ -82,7 +75,6 @@ class zProjection(QWidget):
         layout2.addWidget(self.b5)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
 
@@ -104,17 +96,21 @@ class zProjection(QWidget):
         for item in self.image_list.selectedItems():
             self.image_list.takeItem(self.image_list.row(item))
 
-    def browse_model(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select File")
-        self.selected_model.setText(file_path)
-
     def browse_output(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         self.output_folder.setText(folder_path)
 
-    def click(self):
 
+    def submit(self):
+        """
+        Retrieve the input parameters
+        Iterate over the image paths given performing projection with f.main() function
+        """
         def check_inputs(image_paths):
+            """
+            Check if the inputs are valid
+            Return: True if valid, False otherwise
+            """
             if len(image_paths) == 0:
                 self.logger.error('Image missing')
                 self.add_image_button.setFocus()
@@ -131,7 +127,6 @@ class zProjection(QWidget):
             return True
 
         image_paths = [self.image_list.item(x).text() for x in range(self.image_list.count())]
-
         if not check_inputs(image_paths):
             return
         
@@ -148,22 +143,23 @@ class zProjection(QWidget):
 
         for image_path in image_paths:
             if os.path.isfile(image_path):
+                # Set output directory for each image path
                 if self.use_input_folder.isChecked():
                     output_path = os.path.join(os.path.dirname(image_path), 'zprojeczion')
                 else:
                     output_path = self.output_folder.text()
+                # Set log and cursor info
                 self.logger.info("Image %s", image_path)
                 QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
                 QApplication.processEvents()
-                
+                # Perform projection
                 try:
                     f.main(image_path, output_path, projection_type)
                 except Exception as e:
                     self.logger.error("Projecion failed.\n" + str(e))
-                
+                # Restore cursor
                 QApplication.restoreOverrideCursor()
             else:
                 self.logger.error("Unable to locate file %s", image_path)
-        
 
         self.logger.info("Done")

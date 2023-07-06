@@ -11,46 +11,6 @@ import sys
 from general import general_functions as gf
 
 
-class IgnoreDuplicate(logging.Filter):
-    """
-    logging filter to ignore duplicate messages.
-
-    Examples
-    --------
-    logger=logging.getLogger()
-    filter=IgnoreDuplicate()
-    logger.addFilter(filter)
-    logger.info("message1")
-    logger.info("message1")
-    logger.removeFilter(filter)
-
-    filter=IgnoreDuplicate("message2")
-    logger.addFilter(filter)
-    logger.info("message1")
-    logger.info("message1")
-    logger.info("message2")
-    logger.info("message2")
-    logger.removeFilter(filter)
-
-    """
-
-    def __init__(self, message=None):
-        logging.Filter.__init__(self)
-        self.last = None
-        self.message = message
-
-    def filter(self, record):
-        current = (record.module, record.levelno, record.msg)
-        if self.message is None or self.message == record.msg:
-            # add other fields if you need more granular comparison, depends on your app
-            if self.last is None or current != self.last:
-                self.last = current
-                return True
-            return False
-        self.last = current
-        return True
-
-
 class NapariWidget(QWidget):
     def __init__(self, viewer: napari.Viewer):
         super().__init__()
@@ -85,7 +45,6 @@ class NapariWidget(QWidget):
         self.min_th_value = self.lowerth.value()
         self.max_th_value = self.upperth.value()
 
-
 class MultipleViewerWidget(QSplitter):
     def __init__(self, viewer: napari.Viewer):
         super().__init__()
@@ -94,7 +53,6 @@ class MultipleViewerWidget(QSplitter):
         widget = NapariWidget(viewer)
         self.tab_widget.addTab(widget, "Thresholding")
         self.addWidget(self.tab_widget)
-
 
 class SaveButton(QWidget):
     def __init__(self, viewer: napari.Viewer, output_path):
@@ -113,7 +71,6 @@ class SaveButton(QWidget):
                 tifffile.imwrite(self.output_path+'/'+image_name+'.tif', layer.data)
         print('Layer saved!')
 
-
 class QuitButton(QWidget):
     def __init__(self, viewer: napari.Viewer):
         super().__init__()
@@ -124,7 +81,6 @@ class QuitButton(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.quit_button)
         self.setLayout(layout)
-
 
 class NapariWindow(QWidget):
     def __init__(self, output_path):
@@ -141,7 +97,7 @@ class NapariWindow(QWidget):
         viewer.show(block=True)
 
 
-def focal_plane(image: gf.Image):
+def focal_plane(image):
     """
     This function checks all the z-sections in the image file to find what is the best focused section.
     It relies on minimum image standard deviation in case of BF images and maximum standard deviation in case of fluorescence images.
@@ -166,7 +122,6 @@ def focal_plane(image: gf.Image):
             zfocus_per_time[time][c] = zfocus_per_channel[c]
 
     return zfocus_per_time
-
 
 def tresh_mask(image, lowerTreshold, upperTreshold, viewer):
     try:
@@ -208,52 +163,46 @@ def tresh_mask(image, lowerTreshold, upperTreshold, viewer):
         logging.getLogger(__name__).error("Error in mask generation.\n" + image_name + ' - ' + str(e))
 
 
-def main(path, output_path):
+def main(image_path, output_path):
+    """
+    Generate ground truth masks
+    ---------------------
+    Parameters:
+        image_path: str - input image path
+        output_path: str - output directory
+    Save:
+        z-projection image in the output directory
+
+    """
     global norm_channels_image, image_name, min_th_value, max_th_value
-
-    ###########################
-    # Load image, mask and graph
-    ###########################
-
     min_th_value = 80
     max_th_value = 200
 
-    images = gf.extract_suitable_files(os.listdir(path))
-   
-    if not images:
-        logging.getLogger(__name__).error("No images.\nThe folder does not contain .nd2 or .tif files")
+    # Load image
+    try:
+        image = gf.Image(image_path)
+    except Exception as e:
+        logging.getLogger(__name__).error(e)
+    image_name = image.name
+    image.imread()
 
-    for image_name in images:
-        print('Processing image '+image_name)
-        
-        try:
-            image_path = os.path.join(path, image_name)
-            try:
-                image = gf.Image(image_path)
-            except Exception as e:
-                logging.getLogger(__name__).error(e)
-            image_name = image.name
-            image.imread()
+    # Check channels existance in the image
+    if image.sizes['C'] < 2:
+        logging.getLogger(__name__).error('Image format.\n' + image_name + ' - The image must have at least one color channel. The BF will be considered as channel 0 and excluded from the analysis.')
+        return
+    
+    z_pertime_perchannel = focal_plane(image)
 
-            if image.sizes['C'] < 2:
-                logging.getLogger(__name__).error('Image format.\n' + image_name + ' - The image must have at least one color channel. The BF will be considered as channel 0 and excluded from the analysis.')
-                return
-            
-            z_pertime_perchannel = focal_plane(image)
+    for t in range(image.sizes['T']):
+        channels_image = np.zeros((image.sizes['Y'], image.sizes['X']))
+        for c in range(1,image.sizes['C']):
+            z = z_pertime_perchannel[t][c]
+            channel_image = image.image[0,t,c,z,:,:]
+            channels_image += channel_image
 
-            for t in range(image.sizes['T']):
-                channels_image = np.zeros((image.sizes['Y'], image.sizes['X']))
-                for c in range(1,image.sizes['C']):
-                    z = z_pertime_perchannel[t][c]
-                    channel_image = image.image[0,t,c,z,:,:]
-                    channels_image += channel_image
-
-                norm_channels_image = cv2.normalize(channels_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32F)  
-                nw = NapariWindow(output_path)
-                nw.show()
-
-        except Exception as e:
-            logging.getLogger(__name__).error("Alaysis failed.\n"+image_name+' - '+str(e))
+        norm_channels_image = cv2.normalize(channels_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32F)  
+        nw = NapariWindow(output_path)
+        nw.show()
       
 # Testing
 """

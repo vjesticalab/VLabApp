@@ -6,16 +6,14 @@ from general import general_functions as gf
 
 def main(image_path, output_path, projection_type):
     """
-    ...
-
-    Parameters
-    ----------
-    image_path: str
-        input image path
-    output_path: str
-        output directory
-    projection_type: str
-        type of the projection to perfrom
+    Perform z projection of the image given
+    ---------------------
+    Parameters:
+        image_path: str - input image path
+        output_path: str - output directory
+        projection_type: str - type of the projection to perfrom
+    Save:
+        z-projection image in the output directory
 
     """
 
@@ -41,13 +39,20 @@ def main(image_path, output_path, projection_type):
         image = gf.Image(image_path)
     except Exception as e:
         logger.error(e)
-    
     image.imread()
+
+    # Check z existance in the image
+    if image.sizes['Z'] == 0:
+        logger.error('Image '+str(image_path)+' has no z dimension')
+        return
+
+    # Perform projection
     projected_image = image.zProjection(projection_type)
+    
+    # Save the projection
     output_file_name = output_path+image.name+".tif"
     tifffile.imwrite(output_file_name, projected_image, metadata={'axes': 'FTCZYX'}, compression='zlib')
-
     logger.info("Projection performed and saved (%s)", output_file_name)
 
-    # stop using logfile
+    # Close logfile
     logger.removeHandler(logfile_handler)
