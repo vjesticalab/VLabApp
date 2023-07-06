@@ -23,14 +23,22 @@ def read_transfMat(tmat_path):
 def registration_with_tmat(tmat_int, image, skip_crop, output_path):
     """
     This function uses a transformation matrix to performs registration and eventually cropping of a 3D image
-    Input:
-        tmat_int - transformation matrix
-        image - Image object
-        skip_crop - boolean indicating whether to crop or not the registeret image
-        output_path - parent image path + /registration/
-    Save:
-        image - ndarray of the registered and eventually cropped image
-    Note: assuming FoV dimension of the image as empty     
+    Note - always assuming FoV dimension of the image as empty 
+
+    Parameters
+    ---------------------
+    tmat_int:
+        transformation matrix
+    image: Image object
+    skip_crop: boolean 
+        indicates whether to crop or not the registeret image
+    output_path: str
+        parent image path + /registration/
+    
+    Saves
+    ---------------------
+    image : ndarray
+        registered and eventually cropped image 
     """
     registeredFilepath = output_path + image.name + '_registered.tif'
 
@@ -60,15 +68,23 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
 def registration_values(image, output_path):
     """
     This function calculates the transformation matrices from brightfield images
-    Input:
-        image - Image object
-        output_path - parent image path + /registration/
-    Output:
-        tmats - integer pixel values transformation matrix
-    Save:
-        txt_res - file which contains the values t_x and t_y (x and y pixel shifts) as columns for each time point (rows)
     Note: aligned images are NOT saved since pixels are recalculated by StackReg method
-           
+
+    Parameters
+    ---------------------
+    image : Image object
+    output_path : str
+        parent image path + /registration/
+    
+    Returns
+    ---------------------
+    tmats :
+        integer pixel values transformation matrix
+    
+    Saves
+    ---------------------
+    txt_res :
+        file which contains the values t_x and t_y (x and y pixel shifts) as columns for each time point (rows)      
     """
     image3D = image.get_TYXarray()
     # Translation = only movements on x and y axis
@@ -103,7 +119,7 @@ def registration_main(image_path, skip_crop_decision):
         image = gf.Image(image_path)
         image.imread()
     except Exception as e:
-        logging.getLogger(__name__).error('Error loading image '+image_path+' - '+str(e))
+        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
            
     # Calculate transformation matrix
     tmat = registration_values(image, output_path)
@@ -119,7 +135,7 @@ def alignment_main(image_path, skip_crop_decision):
         image = gf.Image(image_path)  
         image.imread()
     except Exception as e:
-        logging.getLogger(__name__).error('Error loading image '+image_path+' - '+str(e))                       
+        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))                    
     try:
         tmat_path = output_path + 'tmats/' + image.name.split('_')[0] + '_transformationMatrix.txt'
         tmat_int = read_transfMat(tmat_path)

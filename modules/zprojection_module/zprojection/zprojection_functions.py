@@ -7,13 +7,20 @@ from general import general_functions as gf
 def main(image_path, output_path, projection_type):
     """
     Perform z projection of the image given
+    
+    Parameters
     ---------------------
-    Parameters:
-        image_path: str - input image path
-        output_path: str - output directory
-        projection_type: str - type of the projection to perfrom
-    Save:
-        z-projection image in the output directory
+    image_path: str
+        input image path
+    output_path: str
+        output directory
+    projection_type: str
+        type of the projection to perfrom
+
+    Saves
+    ---------------------
+    image: ndarry
+        z-projection image, in output directory
 
     """
 
@@ -37,9 +44,9 @@ def main(image_path, output_path, projection_type):
     logger.debug("loading %s", image_path)
     try:
         image = gf.Image(image_path)
+        image.imread()
     except Exception as e:
-        logger.error('Error loading image '+image_path+' - '+str(e))
-    image.imread()
+        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
 
     # Check z existance in the image
     if image.sizes['Z'] == 0:

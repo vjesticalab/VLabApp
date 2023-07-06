@@ -10,25 +10,23 @@ from general import general_functions as gf
 
 def main(image_path, model_path, output_path, display_results=True, use_gpu=False):
     """
-    Load image from `image_path`, segment with cellpose and save the resulting mask
-    into `output_path` directory using filename <image basename>_mask.tif.
+    Load image, segment with cellpose and save the resulting mask 
+    into `output_path` directory using filename <image basename>_mask.tif
+    Note : we assume that the image first channel is ALWAYS BF and we will only apply the segmentation on that channel
 
     Parameters
     ----------
     image_path: str
-        input image path. Must be a tif or nd2 image with axes T,Y,X.
+        input image path. Must be a tif or nd2 image with axes T,Y,X
     model_path: str
-        cellpose pretrained model path.
+        cellpose pretrained model path
     output_path: str
-        output directory.
+        output directory
     display_results: bool, default True
-        display input image and segmentation mask in napari.
+        display input image and segmentation mask in napari
     use_gpu: bool, default False
-        use GPU for cellpose segmentation.
-
+        use GPU for cellpose segmentation
     """
-
-    ## TODO: we assume that the image first channel is always Bf and we will only apply the segmentation on that channel!!!
 
     # Setup logging to file in output_path
     logger = logging.getLogger(__name__)
@@ -56,13 +54,11 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
 
     # Load image
     logger.debug("loading %s", image_path)
-    #input_image, axes = gf.open_suitable_files(image_path)
     try:
         image = gf.Image(image_path)
+        image.imread()
     except Exception as e:
-        logger.error(e)
-    
-    image.imread()
+        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
 
     # Create cellpose model
     logger.debug("loading cellpose model %s", model_path)

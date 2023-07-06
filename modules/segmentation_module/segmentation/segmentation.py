@@ -45,11 +45,10 @@ class Segmentation(QWidget):
         self.display_results.setChecked(False)
 
         self.submit_button = QPushButton("Submit", self)
-        self.submit_button.clicked.connect(self.click)
+        self.submit_button.clicked.connect(self.submit)
 
         # Layout
         layout = QVBoxLayout()
-
         groupbox = QGroupBox("Images to process")
         layout2 = QVBoxLayout()
         layout2.addWidget(self.image_list)
@@ -60,7 +59,6 @@ class Segmentation(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-
         groupbox = QGroupBox("Cellpose model")
         layout2 = QVBoxLayout()
         layout3 = QHBoxLayout()
@@ -69,7 +67,6 @@ class Segmentation(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-
         groupbox = QGroupBox("Output folder")
         layout2 = QVBoxLayout()
         layout2.addWidget(self.use_input_folder)
@@ -80,7 +77,6 @@ class Segmentation(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-
         layout.addWidget(self.use_gpu)
         layout.addWidget(self.display_results)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
@@ -112,8 +108,11 @@ class Segmentation(QWidget):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         self.output_folder.setText(folder_path)
 
-    def click(self):
-
+    def submit(self):
+        """
+        Retrieve the input parameters
+        Iterate over the image paths given performing f.main() function
+        """
         def check_inputs(image_paths, model_path):
             if len(image_paths) == 0:
                 self.logger.error('Image missing')

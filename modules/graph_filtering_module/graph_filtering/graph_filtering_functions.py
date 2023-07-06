@@ -32,46 +32,6 @@ class NapariStatusBarHandler(logging.Handler):
         # force repainting to update message even when busy
         self.status_bar.repaint()
 
-# inspired by https://stackoverflow.com/a/44692178
-class IgnoreDuplicate(logging.Filter):
-    """
-    logging filter to ignore duplicate messages.
-
-    Examples
-    --------
-    logger=logging.getLogger()
-    filter=IgnoreDuplicate()
-    logger.addFilter(filter)
-    logger.info("message1")
-    logger.info("message1")
-    logger.removeFilter(filter)
-
-    filter=IgnoreDuplicate("message2")
-    logger.addFilter(filter)
-    logger.info("message1")
-    logger.info("message1")
-    logger.info("message2")
-    logger.info("message2")
-    logger.removeFilter(filter)
-
-    """
-
-    def __init__(self, message=None):
-        logging.Filter.__init__(self)
-        self.last = None
-        self.message = message
-
-    def filter(self, record):
-        current = (record.module, record.levelno, record.msg)
-        if self.message is None or self.message == record.msg:
-            # add other fields if you need more granular comparison, depends on your app
-            if self.last is None or current != self.last:
-                self.last = current
-                return True
-            return False
-        self.last = current
-        return True
-
 
 def simplify_graph(g):
     """
@@ -901,7 +861,7 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
     logfile_handler = logging.FileHandler(logfile, mode='w')
     logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     logfile_handler.setLevel(logging.INFO)
-    logfile_handler.addFilter(IgnoreDuplicate("Manually editing mask"))
+    logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
     logger.addHandler(logfile_handler)
 
     logger.info("System info:\nplatform: %s\npython version: %s\nigraph version: %s\nnumpy version: %s\nnapari version: %s", platform(), python_version(), ig.__version__, np.__version__, napari.__version__)
@@ -918,18 +878,18 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
     logger.debug("loading %s", image_path)
     try:
         image = gf.Image(image_path)
+        image.imread()
     except Exception as e:
-        logger.error(e)
-    image.imread()
-
+        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
+    
     # Load mask
     logger.debug("loading %s", mask_path)
     try:
         mask = gf.Image(mask_path)
+        mask.imread()
     except Exception as e:
-        logger.error(e)
-    mask.imread()
-
+        logging.getLogger(__name__).error('Error loading mask '+mask_path+'\n'+str(e))
+    
     # Load graph
     logger.debug("loading %s", graph_path)
     graph = ig.Graph().Read_GraphMLz(graph_path)

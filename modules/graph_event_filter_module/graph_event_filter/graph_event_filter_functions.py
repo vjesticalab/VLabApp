@@ -1,27 +1,25 @@
 import os
 import logging
-from platform import python_version, platform
 import numpy as np
 import tifffile
 import igraph as ig
-import nd2
-import napari
 import csv
-import matplotlib.pyplot as plt
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QWidget, QPushButton, QLabel, QSpinBox, QScrollArea, QGroupBox, QCheckBox, QMessageBox, QSizePolicy
-from PyQt5.QtCore import Qt, QPoint, QPointF
-from PyQt5.QtGui import QCursor, QPixmap, QPainter, QPen, QIcon, QPolygonF
 from general import general_functions as gf
 
 
-
-def save(subgraph, subgraph_masks, output_path, event_type):
-    output_path += '_'+event_type # output_path = chosen_path/imagename_eventname
-    tifffile.imwrite(output_path+'s_mask.tif', subgraph_masks, metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
-    subgraph.write_graphmlz(output_path+'s_graph.graphmlz')
-
-
 def evaluate_graph_properties(graph):
+    """
+    Evaluate the properties of the graph
+    
+    Parameters
+    ---------------------
+    graph: igraph.Graph
+        cell tracking graph
+
+    Returns
+    ---------------------
+    cell_tracks
+    """
     # Set "stable" subgraph = if source vertex has a unique outgoing edge and target vertex has a unique incoming edge
     graph.es['stable'] = False
     graph.es.select(lambda edge: abs(edge['frame_source']-edge['frame_target']) == 1 and edge['mask_id_source'] == edge['mask_id_target'] and graph.outdegree(edge.source) == 1 and graph.indegree(edge.target) == 1)['stable'] = True
@@ -74,6 +72,34 @@ def evaluate_graph_properties(graph):
 
 
 def event_filter(mask, graph, event, tp_before, tp_after, output_path):
+    """
+    Filter the selected event in the graph and in the mask
+    
+    Parameters
+    ---------------------
+    mask: Image object
+        segmentation mask
+    graph: igraph.Graph
+        cell tracking graph
+    event: str
+        type of event to consider
+    tp_before: int
+        number of time points before the event to consider
+    tp_after: int
+        number of time points after the event to consider
+    output_path: str
+        output directory
+
+    Saves
+    ---------------------
+    event_mask
+        ndarray with the valid events selected
+    event_graph
+        igraph.Graph with the valid events selected
+    event_dictionary
+        csv file with the valid events selected
+    """
+
     # Initialize the cvs file with results
     with open(output_path+'_'+event+'s_dictionary.csv', "w") as file:
         writer = csv.writer(file)
@@ -163,18 +189,48 @@ def event_filter(mask, graph, event, tp_before, tp_after, output_path):
     # Take the subgraph with the listed vertex
     subgraph_vs = (graph.vs(id=v['id'])[0].index for v in events_vertices)
     events_graph = graph.subgraph(subgraph_vs)
+    
     # Save the graph and the mask with the detected events
-    save(events_graph, events_mask.astype(mask.dtype), output_path, event)
+    output_path += '_'+event # output_path = chosen_path/imagename_eventname
+    tifffile.imwrite(output_path+'s_mask.tif', events_mask.astype(mask.dtype), metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
+    events_graph.write_graphmlz(output_path+'s_graph.graphmlz')
 
-    ## TODO: There is still a problem with the mask ids not included in the event but included in the subgraph in consideration
+    ## TODO: There is a problem with the mask ids not included in the event but included in the subgraph in consideration
     ## See division1 in the test/test_segm/prova_event_filter/ folder
     print('Found '+str(n_valid_event)+' valid '+event+'s events')
 
 
 def main(mask_path, graph_path, event, tp_before, tp_after, output_path):
+    """
+    Generate mask and graph with for the specified event and with minimum 
+    tp_before and tp_after timepoints free of other events 
+    
+    Parameters
+    ---------------------
+    mask_path: str
+        input mask path
+    graph_path: str
+        input graph path
+    event: str
+        type of event to consider
+    tp_before: int
+        number of time points before the event to consider
+    tp_after: int
+        number of time points after the event to consider
+    output_path: str
+        output directory
+
+    Saves
+    ---------------------
+    mask with the valid events selected
+    graph with the valid events selected
+
+    """
+
     ###########################
     # Setup logging
     ###########################
+
     logger = logging.getLogger(__name__)
     logger.info("GRAPH EVENT FILTER MODULE")
     if not os.path.isdir(output_path):
@@ -201,11 +257,11 @@ def main(mask_path, graph_path, event, tp_before, tp_after, output_path):
     # Load mask
     logger.debug("loading %s", mask_path)
     try:
-        mask = gf.Image(mask_path)#gf.Image(mask_path)
+        mask = gf.Image(mask_path)
+        mask.imread()
     except Exception as e:
-        logger.error(e)
-    mask.imread()
-
+        logging.getLogger(__name__).error('Error loading masl '+mask_path+'\n'+str(e))
+    
     # Load graph
     logger.debug("loading %s", graph_path)
     graph = ig.Graph().Read_GraphMLz(graph_path)
@@ -221,8 +277,10 @@ def main(mask_path, graph_path, event, tp_before, tp_after, output_path):
     event_filter(mask.get_TYXarray(), graph, event, tp_before, tp_after, output_path)
     logger.info("Done!\n")
     
-    
-"""if __name__ == '__main__':
+
+# To test  
+"""
+if __name__ == '__main__':
     mask = '/Users/aravera/Documents/CIG_Aleks/Application/test/test_segm/cell_tracking/smp00_BF_registered_mask.tif'
     graph = '/Users/aravera/Documents/CIG_Aleks/Application/test/test_segm/cell_tracking/smp00_BF_registered_graph.graphmlz'
     event = 'fusion'
@@ -248,9 +306,4 @@ def main(mask_path, graph_path, event, tp_before, tp_after, output_path):
     # Remove useless attribute
     del graph2.vs['id']
     components = graph2.connected_components(mode='weak')
-"""
-"""
-fig, ax = plt.subplots()
-ig.plot(g, target=ax)
-plt.show()
 """

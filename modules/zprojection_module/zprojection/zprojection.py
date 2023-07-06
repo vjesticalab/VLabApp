@@ -106,7 +106,6 @@ class zProjection(QWidget):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         self.output_folder.setText(folder_path)
 
-
     def submit(self):
         """
         Retrieve the input parameters

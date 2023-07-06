@@ -1,13 +1,10 @@
-import os
 import logging
-import nd2
 import napari
 import cv2
 import numpy as np
 import tifffile
 from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QMessageBox, QSplitter, QWidget, QVBoxLayout, QLabel, QPushButton, QDoubleSpinBox, QTabWidget, QMainWindow,QApplication
-import sys
+from qtpy.QtWidgets import QSplitter, QWidget, QVBoxLayout, QLabel, QPushButton, QDoubleSpinBox, QTabWidget
 from general import general_functions as gf
 
 
@@ -166,12 +163,17 @@ def tresh_mask(image, lowerTreshold, upperTreshold, viewer):
 def main(image_path, output_path):
     """
     Generate ground truth masks
+    
+    Parameters
     ---------------------
-    Parameters:
-        image_path: str - input image path
-        output_path: str - output directory
-    Save:
-        z-projection image in the output directory
+    image_path: str
+        input image path
+    output_path: str
+        output directory
+
+    Saves
+    ---------------------
+    z-projection image in the output directory
 
     """
     global norm_channels_image, image_name, min_th_value, max_th_value
@@ -181,10 +183,11 @@ def main(image_path, output_path):
     # Load image
     try:
         image = gf.Image(image_path)
+        image_name = image.name
+        image.imread()
     except Exception as e:
-        logging.getLogger(__name__).error('Error loading image '+image_path+' - '+str(e))
-    image_name = image.name
-    image.imread()
+        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
+    
 
     # Check channels existance in the image
     if image.sizes['C'] < 2:

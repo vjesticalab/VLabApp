@@ -288,12 +288,17 @@ def extract_suitable_files(directory):
 def update_transfMat(tmat_int, reference_timepoint_index, range_start_index, range_end_index):
     """
     Update the transformation matrix
-    ---------------------
-    Parameters:
-        tmat_int : original matrix
-        reference_timepoint_index : index of the new reference point
-        range_start_index : index of the starting timepoint (included)
-        range_end_index : index of the ending timepoint (included)
+    
+    Parameters
+    ----------
+        tmat_int : 
+            original matrix
+        reference_timepoint_index : 
+            index of the new reference point
+        range_start_index : 
+            index of the starting timepoint (included)
+        range_end_index : 
+            index of the ending timepoint (included)
     """
 
     # Step 1:

@@ -1,6 +1,6 @@
 import os
 import logging
-from PyQt5.QtWidgets import QGridLayout, QLabel, QSpinBox, QFileDialog, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QGroupBox, QRadioButton, QApplication
+from PyQt5.QtWidgets import QGridLayout, QLabel, QSpinBox, QFileDialog, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QGroupBox, QRadioButton, QApplication
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.graph_event_filter_module.graph_event_filter import graph_event_filter_functions as f
@@ -10,45 +10,24 @@ from general import general_functions as gf
 class GraphEventFilter(QWidget):
     def __init__(self):
         super().__init__()
-
-        layout = QVBoxLayout()
-
         self.imagetypes = ['.nd2', '.tif', '.tiff']
         self.graphtypes = ['.graphmlz']
 
         # Browse segmentation mask
         self.input_mask = gf.DropFileLineEdit(filetypes=self.imagetypes)
         browse_button = QPushButton("Browse", self)
-        browse_button.clicked.connect(self.browse_mask)
-        groupbox = QGroupBox("Segmentation mask")
-        layout2 = QVBoxLayout()
-        layout2.addWidget(self.input_mask)
-        layout2.addWidget(browse_button, alignment=Qt.AlignCenter)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
-
+        browse_button.clicked.connect(self.add_mask)
+        
         # Browse cell graph
         self.input_graph = gf.DropFileLineEdit(filetypes=self.graphtypes)
         browse_button = QPushButton("Browse", self)
-        browse_button.clicked.connect(self.browse_graph)
-        groupbox = QGroupBox("Cell tracking graph")
-        layout2 = QVBoxLayout()
-        layout2.addWidget(self.input_graph)
-        layout2.addWidget(browse_button, alignment=Qt.AlignCenter)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
-
+        browse_button.clicked.connect(self.add_graph)
+        
         # Browse type of event
         self.button_fusion = QRadioButton("Fusion")
         self.button_fusion.setChecked(True)
         self.button_division = QRadioButton("Division")
-        groupbox = QGroupBox("Type of event")
-        layout2 = QGridLayout()
-        layout2.addWidget(self.button_fusion, 0, 0)
-        layout2.addWidget(self.button_division, 0, 1)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
-
+        
         # Number timepoints before and after event
         label_before = QLabel("Number of timepoints before event")
         self.spinBox_before = QSpinBox(self)
@@ -58,15 +37,7 @@ class GraphEventFilter(QWidget):
         self.spinBox_after = QSpinBox(self)
         self.spinBox_after.setRange(0, 40)
         self.spinBox_after.setValue(5)
-        groupbox = QGroupBox("Timepoints")
-        layout2 = QGridLayout()
-        layout2.addWidget(label_before, 0, 0, 1, 2)
-        layout2.addWidget(self.spinBox_before, 0, 2, 1, 1)
-        layout2.addWidget(label_after, 1, 0, 1, 2)
-        layout2.addWidget(self.spinBox_after, 1, 2, 1, 1)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
-
+        
         # Output directory
         self.use_input_folder = QRadioButton("Use input image folder\n(graph_event_filter sub-folder)")
         self.use_input_folder.setChecked(True)
@@ -79,6 +50,38 @@ class GraphEventFilter(QWidget):
         self.browse_button2.setEnabled(self.use_custom_folder.isChecked())
         self.use_custom_folder.toggled.connect(self.output_folder.setEnabled)
         self.use_custom_folder.toggled.connect(self.browse_button2.setEnabled)
+        
+        self.submit_button = QPushButton("Submit", self)
+        self.submit_button.clicked.connect(self.submit)
+
+        # Layout
+        layout = QVBoxLayout()
+        groupbox = QGroupBox("Segmentation mask")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.input_mask)
+        layout2.addWidget(browse_button, alignment=Qt.AlignCenter)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        groupbox = QGroupBox("Cell tracking graph")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.input_graph)
+        layout2.addWidget(browse_button, alignment=Qt.AlignCenter)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        groupbox = QGroupBox("Type of event")
+        layout2 = QGridLayout()
+        layout2.addWidget(self.button_fusion, 0, 0)
+        layout2.addWidget(self.button_division, 0, 1)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        groupbox = QGroupBox("Timepoints")
+        layout2 = QGridLayout()
+        layout2.addWidget(label_before, 0, 0, 1, 2)
+        layout2.addWidget(self.spinBox_before, 0, 2, 1, 1)
+        layout2.addWidget(label_after, 1, 0, 1, 2)
+        layout2.addWidget(self.spinBox_after, 1, 2, 1, 1)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
         groupbox = QGroupBox("Output folder")
         layout2 = QVBoxLayout()
         layout2.addWidget(self.use_input_folder)
@@ -89,32 +92,30 @@ class GraphEventFilter(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-
-        self.submit_button = QPushButton("Submit", self)
-        self.submit_button.clicked.connect(self.process_input)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
-
         self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
 
-    def browse_image(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
-        self.input_image.setText(file_path)
-
-    def browse_mask(self):
+    def add_mask(self):
+        # Add the selected mask as input
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
         self.input_mask.setText(file_path)
 
-    def browse_graph(self):
+    def add_graph(self):
+        # Add the selected graph as input
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Cell tracking graphs ('+' '.join(['*'+x for x in self.graphtypes])+')')
         self.input_graph.setText(file_path)
 
     def browse_output(self):
+        # Browse folders in order to choose the output one
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         self.output_folder.setText(folder_path)
     
-    def process_input(self):
+    def submit(self):
+        """
+        Retrieve the input parameters and process them in f.main()
+        """
         mask_path = self.input_mask.text()
         graph_path = self.input_graph.text()
         tp_before = int(self.spinBox_before.text())
@@ -143,12 +144,14 @@ class GraphEventFilter(QWidget):
             self.output_folder.setFocus()
             return
 
+        # Set output_path
         if self.use_input_folder.isChecked():
             output_path = os.path.join(os.path.dirname(mask_path), 'graph_event_filter')
         else:
             output_path = self.output_folder.text()
         self.logger.info("Event filtering (mask %s, graph %s)", mask_path, graph_path)
 
+        # Set event
         if self.button_fusion.isChecked():
             event = 'fusion'
         elif self.button_division.isChecked():
