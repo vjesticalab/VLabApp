@@ -1,9 +1,9 @@
 import os
 import logging
-from PyQt5.QtWidgets import QGridLayout, QLabel, QSpinBox, QFileDialog, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QGroupBox, QRadioButton, QApplication
+from PyQt5.QtWidgets import QGridLayout, QLabel, QSpinBox, QFileDialog, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
-from modules.graph_event_filter_module.graph_event_filter import graph_event_filter_functions as f
+from modules.graph_event_filter_module import graph_event_filter_functions as f
 from general import general_functions as gf
 
 
@@ -15,13 +15,13 @@ class GraphEventFilter(QWidget):
 
         # Browse segmentation mask
         self.input_mask = gf.DropFileLineEdit(filetypes=self.imagetypes)
-        browse_button = QPushButton("Browse", self)
-        browse_button.clicked.connect(self.add_mask)
+        browse_button1 = QPushButton("Browse", self)
+        browse_button1.clicked.connect(self.add_mask)
         
         # Browse cell graph
         self.input_graph = gf.DropFileLineEdit(filetypes=self.graphtypes)
-        browse_button = QPushButton("Browse", self)
-        browse_button.clicked.connect(self.add_graph)
+        browse_button2 = QPushButton("Browse", self)
+        browse_button2.clicked.connect(self.add_graph)
         
         # Browse type of event
         self.button_fusion = QRadioButton("Fusion")
@@ -59,13 +59,13 @@ class GraphEventFilter(QWidget):
         groupbox = QGroupBox("Segmentation mask")
         layout2 = QVBoxLayout()
         layout2.addWidget(self.input_mask)
-        layout2.addWidget(browse_button, alignment=Qt.AlignCenter)
+        layout2.addWidget(browse_button1, alignment=Qt.AlignCenter)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Cell tracking graph")
         layout2 = QVBoxLayout()
         layout2.addWidget(self.input_graph)
-        layout2.addWidget(browse_button, alignment=Qt.AlignCenter)
+        layout2.addWidget(browse_button2, alignment=Qt.AlignCenter)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Type of event")

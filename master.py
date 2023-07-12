@@ -1,58 +1,21 @@
 import sys
 import logging
-from PyQt5.QtCore import Qt, pyqtSignal, QSize
-from PyQt5.QtGui import QPixmap, QIcon, QFont, QPalette
-from PyQt5.QtWidgets import QApplication, QFrame, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTabWidget, QFormLayout, QLineEdit, QScrollArea
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtWidgets import QApplication, QFrame, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QFormLayout, QLineEdit
 
-from modules.image_registration_module.registration import registration
-from modules.zprojection_module.zprojection import zprojection
-from modules.groundtruth_generator_module.generator import generator
-from modules.segmentation_module.segmentation import segmentation
-from modules.cell_tracking_module.cell_tracking import cell_tracking
-from modules.graph_filtering_module.graph_filtering import graph_filtering
-from modules.graph_event_filter_module.graph_event_filter import graph_event_filter
-from modules.viewer_module.viewer import viewer
+from modules.registration_module import registration
+from modules.zprojection_module import zprojection
+from modules.groundtruth_generator_module import generator
+from modules.segmentation_module import segmentation
+from modules.cell_tracking_module import cell_tracking
+from modules.graph_filtering_module import graph_filtering
+from modules.graph_event_filter_module import graph_event_filter
+from modules.viewer_module import viewer
 from general import general_functions as gf
 
 
-class TabWizard(QTabWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.tabBar().installEventFilter(self)
-
-    def addPage(self, page, title):
-        if not isinstance(page, Page):
-            raise TypeError(f"{page} must be Page object")
-        self.addTab(page, title)
-        page.completeChanged.connect(self.nextPage)
-    
-    def addHomePage(self, page):
-        tab_index = self.addTab(page, '')
-        self.setTabIcon(tab_index, QIcon('support_files/home.svg'))
-        self.setIconSize(QSize(12,12))
-        page.completeChanged.connect(self.nextPage)
-
-    def nextPage(self):
-        next_index = self.currentIndex() + 1
-        if next_index < self.count():
-            self.setCurrentIndex(next_index)
-
-
-class Page(QWidget):
-    completeChanged = pyqtSignal()
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.container = QWidget()
-        lay = QVBoxLayout(self)
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(self.container)
-        scroll.setBackgroundRole(QPalette.Base)
-        scroll.setFrameShape(QFrame.NoFrame)
-        lay.addWidget(scroll)
-
-
-class Home(Page):
+class Home(gf.Page):
     def __init__(self, page_description):
         super().__init__()
         self.window = QFormLayout(self.container)
@@ -69,7 +32,7 @@ class Home(Page):
         self.window.addRow(self.text)
 
         
-class Registration(Page):
+class Registration(gf.Page):
     def __init__(self):
         super().__init__()
         self.window = QVBoxLayout(self.container)
@@ -77,7 +40,7 @@ class Registration(Page):
         self.window.addStretch()
 
 
-class zProjection(Page):
+class zProjection(gf.Page):
     def __init__(self):
         super().__init__()
         self.window = QVBoxLayout(self.container)
@@ -85,7 +48,7 @@ class zProjection(Page):
         self.window.addStretch()
 
 
-class GTGenerator(Page):
+class GTGenerator(gf.Page):
     def __init__(self):
         super().__init__()
         self.window = QVBoxLayout(self.container)
@@ -93,7 +56,7 @@ class GTGenerator(Page):
         self.window.addStretch()
    
 
-class Segmentation(Page):
+class Segmentation(gf.Page):
     def __init__(self):
         super().__init__()
         self.window = QVBoxLayout(self.container)
@@ -101,7 +64,7 @@ class Segmentation(Page):
         self.window.addStretch()
 
 
-class CellTracking(Page):
+class CellTracking(gf.Page):
     def __init__(self):
         super().__init__()
         self.window = QVBoxLayout(self.container)
@@ -109,7 +72,7 @@ class CellTracking(Page):
         self.window.addStretch()
 
 
-class GraphFiltering(Page):
+class GraphFiltering(gf.Page):
     def __init__(self):
         super().__init__()
         self.window = QVBoxLayout(self.container)
@@ -117,7 +80,7 @@ class GraphFiltering(Page):
         self.window.addStretch()
 
 
-class GraphEventFilter(Page):
+class GraphEventFilter(gf.Page):
     def __init__(self):
         super().__init__()
         self.window = QVBoxLayout(self.container)
@@ -125,7 +88,7 @@ class GraphEventFilter(Page):
         self.window.addStretch()
 
 
-class Viewer(Page):
+class Viewer(gf.Page):
     def __init__(self):
         super().__init__()
         self.window = QVBoxLayout(self.container)
@@ -141,7 +104,7 @@ class MainWindow(QWidget):
         self.image.setPixmap(QPixmap("support_files/Vlab_icon_50x50-01.png"))
         self.image.setAlignment(Qt.AlignCenter)
         window.addWidget(self.image)
-        tabwizard = TabWizard()
+        tabwizard = gf.TabWizard()
         window.addWidget(tabwizard)
         
         page_description = 'The VLabApplication is created with the aim of automating the cellular image analysis process, from the recording of the movies that come out of the microscope, to the tracking of the events within each time frame.\n\n\nThe application is in fact divided into several sub-sections that can be used consecutively or automatically:\n\n  - Image Registration\n\n  - GroundTruth Dataset Construction\n\n  - Image Segmentation\n\n  - Event Tracking'
@@ -195,5 +158,5 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     w = MainWindow()
     w.show()
-    #w.resize(500,720)
+    w.resize(900,800)
     sys.exit(app.exec_())

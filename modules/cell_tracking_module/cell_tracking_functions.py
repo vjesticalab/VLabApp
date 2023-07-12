@@ -1323,7 +1323,7 @@ class CellTrackingWidget(QWidget):
         self.mask_need_relabelling = True
         self.save_button.setText("Relabel && Save")
 
-        self.logger.debug("Done")
+        self.logger.info("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
@@ -1383,7 +1383,7 @@ class CellTrackingWidget(QWidget):
         self.mask_need_relabelling = True
         self.save_button.setText("Relabel && Save")
 
-        self.logger.debug("Done")
+        self.logger.info("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
@@ -1436,7 +1436,7 @@ class CellTrackingWidget(QWidget):
         self.mask_modified = True
         self.mask_need_relabelling = False
 
-        self.logger.debug("Done")
+        self.logger.info("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
@@ -1452,12 +1452,12 @@ class CellTrackingWidget(QWidget):
         output_file1 = os.path.join(self.output_path, os.path.splitext(
             os.path.basename(self.image_path))[0]+"_mask.tif")
         self.logger.info("Saving segmentation mask to %s", output_file1)
-        tifffile.imwrite(output_file1, self.mask, metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
+        self.mask = self.mask[:, np.newaxis, : ,:]
+        tifffile.imwrite(output_file1, self.mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
 
-        output_file2 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_graph.dot")
-        self.logger.info("Saving cell tracking graph to %s", output_file2)
-
-        self.cell_tracking_graph.write_dot(output_file2)
+        #output_file2 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_graph.dot")
+        #self.logger.info("Saving cell tracking graph to %s", output_file2)
+        #self.cell_tracking_graph.write_dot(output_file2)
 
         output_file3 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_graph.graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file3)
@@ -1467,7 +1467,7 @@ class CellTrackingWidget(QWidget):
             self.mask_modified = False
             self.save_button.setStyleSheet("")
 
-        self.logger.debug("Done")
+        self.logger.info("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
@@ -1653,11 +1653,12 @@ def main(image_path, mask_path, output_path, min_area=300, max_delta_frame=5, mi
     else:
         output_file = os.path.join(output_path, image.name+"_mask.tif")
         logger.info("Saving segmentation mask to %s", output_file)
-        tifffile.imwrite(output_file, mask, metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
+        mask = mask[:, np.newaxis, : ,:]
+        tifffile.imwrite(output_file, mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
 
-        output_file = os.path.join(output_path, image.name+"_graph.dot")
-        logger.info("Saving cell tracking graph to %s", output_file)
-        cell_tracking_graph.write_dot(output_file)
+        #output_file = os.path.join(output_path, image.name+"_graph.dot")
+        #logger.info("Saving cell tracking graph to %s", output_file)
+        #cell_tracking_graph.write_dot(output_file)
 
         output_file = os.path.join(output_path, image.name+"_graph.graphmlz")
         logger.info("Saving cell tracking graph to %s", output_file)

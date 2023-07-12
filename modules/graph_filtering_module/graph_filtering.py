@@ -1,9 +1,9 @@
 import os
 import logging
-from PyQt5.QtWidgets import QFileDialog, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QGroupBox, QRadioButton, QApplication
+from PyQt5.QtWidgets import QFileDialog, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
-from modules.graph_filtering_module.graph_filtering import graph_filtering_functions as f
+from modules.graph_filtering_module import graph_filtering_functions as f
 from general import general_functions as gf
 
 

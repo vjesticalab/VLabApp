@@ -63,7 +63,6 @@ def main(image_path, output_path, projection_type):
     
     # Save the projection
     output_file_name = output_path+image.name+"_"+projection_type+".tif"
-    print(projected_image.shape)
     tifffile.imwrite(output_file_name, projected_image[0,:,:,0,:,:].astype('uint16'), metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
     logger.info("Projection performed and saved (%s)", output_file_name)
 

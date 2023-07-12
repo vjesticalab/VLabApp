@@ -4,8 +4,8 @@ import numpy as np
 import os
 import tifffile
 import time
-import napari
 from pystackreg import StackReg
+
 
 def read_transfMat(tmat_path):
     try:
@@ -41,17 +41,28 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
         registered and eventually cropped image 
     """
     registeredFilepath = output_path + image.name + '_registered.tif'
+    
+    # Assuming empty dimension F
+    # If Z not empty then make z-projection std
+    if image.sizes['Z'] > 1:
+        try:
+            projection = image.zProjection('std')
+            logging.getLogger(__name__).info('Made z-projection (std) for image '+image.basename)
+        except Exception:
+            logging.getLogger(__name__).error('Z-projection failed for image '+image.basename)
+        image6D = projection
+    else:
+        image6D = image.image
 
-    registered_image = image.image.copy()
+    registered_image = image6D.copy()
     for c in range(0, image.sizes['C']):
-        for z in range(0, image.sizes['Z']):
-            for timepoint in range(0, image.sizes['T']):
-                xyShift = (tmat_int[timepoint, 1]*-1, tmat_int[timepoint, 2]*-1)
-                registered_image[0, timepoint, c, z, :, :] = np.roll(image.image[0, timepoint, c, z, :, :], xyShift, axis=(1,0)) 
+        for timepoint in range(0, image.sizes['T']):
+            xyShift = (tmat_int[timepoint, 1]*-1, tmat_int[timepoint, 2]*-1)
+            registered_image[0, timepoint, c, 0, :, :] = np.roll(image6D[0, timepoint, c, 0, :, :], xyShift, axis=(1,0)) 
 
     if skip_crop:
         # Save the registered and un-cropped image
-        tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,:,:,:], metadata={'axes': 'TCZYX'})
+        tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
     
     else:
         # Crop to desired area
@@ -63,7 +74,7 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
         image_cropped = registered_image[:, :, :, :, y_start:y_end, x_start:x_end]
         
         # Save the registered and cropped image
-        tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,:,:,:], metadata={'axes': 'TCZYX'})
+        tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
 
 def registration_values(image, output_path):
     """
@@ -86,11 +97,21 @@ def registration_values(image, output_path):
     txt_res :
         file which contains the values t_x and t_y (x and y pixel shifts) as columns for each time point (rows)      
     """
-    image3D = image.get_TYXarray()
+    # Assuming empty dimensions F and T
+    # if Z not empty then make z-projection std
+    if image.sizes['Z'] > 1:
+        try:
+            projection = image.zProjection('std')
+            logging.getLogger(__name__).info('Made z-projection (std) for image '+image.basename)
+        except Exception:
+            logging.getLogger(__name__).error('Z-projection failed for image '+image.basename)
+        image3D = projection[0,:,0,0,:,:]
+    # Otherwise read the 3D image 
+    else:
+        image3D = image.get_TYXarray()
     # Translation = only movements on x and y axis
     sr = StackReg(StackReg.TRANSLATION)
     # Align each frame at the previous one
-    z = 0
     tmats_float = sr.register_stack(image3D, reference='previous')    
     # Convert tmats_float into integers
     tmats_int = tmats_float
@@ -104,17 +125,21 @@ def registration_values(image, output_path):
     # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
     transformation_matrices = np.array(translation)
     # Save the txt file with the translation matrix
-    txt_name = output_path + 'tmats/' + image.name.split('_')[0] +'_transformationMatrix.txt'
+    txt_name = output_path + 'tranf_matrices/' + image.name.split('_')[0] +'_transformationMatrix.txt'
     np.savetxt(txt_name, transformation_matrices, fmt = '%d, %d, %d, %d, %d, %d, %d, %d', header = 'timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y, x, y', delimiter = '\t')    
     
     return transformation_matrices
 
 ################################################################
 
-def registration_main(image_path, skip_crop_decision):
+def registration_main(image_path, skip_crop_decision, coalignment_images_list):
     # Load image
     # Note: by default the image have to be ALWAYS 3D with TYX
     output_path = os.path.dirname(image_path)+'/registration/'
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+    if not os.path.exists(output_path + 'tranf_matrices/'):
+        os.mkdir(output_path + 'tranf_matrices/')
     try:
         image = gf.Image(image_path)
         image.imread()
@@ -123,8 +148,20 @@ def registration_main(image_path, skip_crop_decision):
            
     # Calculate transformation matrix
     tmat = registration_values(image, output_path)
+
     # Align and save
     registration_with_tmat(tmat, image, skip_crop_decision, output_path)
+
+    for im_coal_path in coalignment_images_list:
+        try:
+            image_coal = gf.Image(im_coal_path)
+            image_coal.imread()
+        except Exception as e:
+            logging.getLogger(__name__).error('Error loading image '+im_coal_path+'\n'+str(e))
+        try:
+            registration_with_tmat(tmat, image_coal, skip_crop_decision, output_path)
+        except Exception as e:
+            logging.getLogger(__name__).error('Alignment failed for image '+im_coal_path+' - '+str(e))
 
 ################################################################
 
@@ -137,7 +174,7 @@ def alignment_main(image_path, skip_crop_decision):
     except Exception as e:
         logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))                    
     try:
-        tmat_path = output_path + 'tmats/' + image.name.split('_')[0] + '_transformationMatrix.txt'
+        tmat_path = output_path + 'tranf_matrices/' + image.name.split('_')[0] + '_transformationMatrix.txt'
         tmat_int = read_transfMat(tmat_path)
     except Exception as e:
         logging.getLogger(__name__).error('Error loading transformation matrix for image '+image_path+' - '+str(e))

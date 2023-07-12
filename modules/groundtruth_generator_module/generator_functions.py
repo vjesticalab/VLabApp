@@ -3,7 +3,6 @@ import napari
 import cv2
 import numpy as np
 import tifffile
-from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QSplitter, QWidget, QVBoxLayout, QLabel, QPushButton, QDoubleSpinBox, QTabWidget
 from general import general_functions as gf
 
@@ -65,7 +64,7 @@ class SaveButton(QWidget):
     def save_layer(self):
         for layer in self.viewer.layers:
             if layer in self.viewer.layers.selection:
-                tifffile.imwrite(self.output_path+'/'+image_name+'_gtmask.tif', layer.data)
+                tifffile.imwrite(self.output_path+'/'+image_name+'_gtmask.tif', layer.data, imagej=True, compression='zlib')
         print('Layer saved!')
 
 class QuitButton(QWidget):

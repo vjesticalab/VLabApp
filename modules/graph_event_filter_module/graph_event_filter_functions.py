@@ -192,7 +192,9 @@ def event_filter(mask, graph, event, tp_before, tp_after, output_path):
     
     # Save the graph and the mask with the detected events
     output_path += '_'+event # output_path = chosen_path/imagename_eventname
-    tifffile.imwrite(output_path+'s_mask.tif', events_mask.astype(mask.dtype), metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
+    events_mask = events_mask.astype(mask.dtype)
+    events_mask = events_mask[:, np.newaxis, : ,:]
+    tifffile.imwrite(output_path+'s_mask.tif', events_mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
     events_graph.write_graphmlz(output_path+'s_graph.graphmlz')
 
     ## TODO: There is a problem with the mask ids not included in the event but included in the subgraph in consideration

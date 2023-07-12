@@ -103,15 +103,20 @@ def main(image_path, model_path, output_path, display_results=True, use_gpu=Fals
             logger.info("cellpose segmentation %s/%s", iteration, tot_iterations)
             mask[t,:,:], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
 
-        # Save masks for each FoV -> dimensions: TZYX
+        # Save image for each FoV
         if multiple_fov:
             output_name_originalimage = os.path.join(output_path, image.name+"_FoV"+str(f+1)+".tif")
-            tifffile.imwrite(output_name_originalimage, image.get_TYXarray(), metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
+            fov_image = image.get_TYXarray()
+            fov_image = fov_image[:, np.newaxis, : ,:]
+            tifffile.imwrite(output_name_originalimage, fov_image, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
             output_name = os.path.join(output_path, image.name+"_FoV"+str(f+1)+"_mask.tif")
         else:
             output_name = os.path.join(output_path, image.name+"_mask.tif")
+        # Save the mask
+        mask = mask[:, np.newaxis, : ,:]
+        tifffile.imwrite(output_name, mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
+
         logger.info("Saving segmentation masks to %s", output_name)
-        tifffile.imwrite(output_name, mask, metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
 
         if display_results:
             QMessageBox.information(viewer_images.window._qt_window, 'File saved', 'Masks saved to\n' + output_name)

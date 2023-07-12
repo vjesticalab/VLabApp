@@ -2,9 +2,11 @@ import numpy as np
 import os
 import tifffile
 import nd2
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QLabel, QLineEdit, QListWidget, QMessageBox, QFileDialog
-import warnings
+
+from PyQt5.QtCore import Qt, pyqtSignal, QSize
+from PyQt5.QtGui import QIcon, QPalette
+from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox
+
 import logging
 import igraph as ig
 from matplotlib import cm
@@ -159,10 +161,47 @@ class DropFolderLineEdit(QLineEdit):
                     self.setText(url.toLocalFile())
 
 
+class TabWizard(QTabWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.tabBar().installEventFilter(self)
+
+    def addPage(self, page, title):
+        if not isinstance(page, Page):
+            raise TypeError(f"{page} must be Page object")
+        self.addTab(page, title)
+        page.completeChanged.connect(self.nextPage)
+    
+    def addHomePage(self, page):
+        tab_index = self.addTab(page, '')
+        self.setTabIcon(tab_index, QIcon('support_files/home.svg'))
+        self.setIconSize(QSize(12,12))
+        page.completeChanged.connect(self.nextPage)
+
+    def nextPage(self):
+        next_index = self.currentIndex() + 1
+        if next_index < self.count():
+            self.setCurrentIndex(next_index)
+
+
+class Page(QWidget):
+    completeChanged = pyqtSignal()
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.container = QWidget()
+        lay = QVBoxLayout(self)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(self.container)
+        scroll.setBackgroundRole(QPalette.Base)
+        scroll.setFrameShape(QFrame.NoFrame)
+        lay.addWidget(scroll)
+
+
 class Image:
     """
     Class used to read and elaborate images
-    Defualt dimension positions = {'F': 0, 'T': 1, 'C': 2, 'Z': 3, 'Y': 4, 'X': 5}
+    Default dimension positions = {'F': 0, 'T': 1, 'C': 2, 'Z': 3, 'Y': 4, 'X': 5}
 
     Attributes
     ----------
@@ -203,9 +242,8 @@ class Image:
         self.sizes = None
         self.image = None
         self.shape = None
-        
+    
     def imread(self):
-
         def set_6Dimage(image, axes):
             """
             Return a 6D ndarray of the input image
@@ -229,8 +267,8 @@ class Image:
                 position = dimensions[dim]
                 image = np.expand_dims(image, axis=position)
             return image, image.shape
-
-        # axis default order: FTCZXY for 6D - F = FieldofView, T = time, C = channels
+   
+        # axis default order: FTCZYX for 6D - F = FieldofView, T = time, C = channels
         if self.extension == '.nd2':
             reader = nd2.ND2File(self.path)
             axes_order = str(''.join(list(reader.sizes.keys()))).upper() #eg. reader.sizes = {'T': 10, 'C': 2, 'Y': 2048, 'X': 2048}
@@ -240,7 +278,6 @@ class Image:
             self.image, self.shape = set_6Dimage(image, axes_order)
             for key, value in zip('FTCZYX', self.shape):
                 self.sizes[key] = value # eg. {'F': 1, 'T': 10, 'C': 2, 'Z': 1, 'Y': 2048, 'X': 2048}
-            self.shape = self.image.shape
             return self.image
 
         elif (self.extension == '.tiff' or self.extension == '.tif'):
@@ -252,7 +289,6 @@ class Image:
             self.image, self.shape = set_6Dimage(image, axes_order)
             for key, value in zip('FTCZYX', self.shape):
                 self.sizes[key] = value
-            self.shape = self.image.shape
             return self.image
         else:
             logging.getLogger(__name__).error('Image format not supported. Please upload a tiff or nd2 image file.')
@@ -266,23 +302,23 @@ class Image:
         return self.image[0,:,0,0,:,:]
 
     def zProjection(self, projection_type):
-        if projection_type == 'max': projected_image = np.max(self.image, axis=4).astype('uint16')
-        elif projection_type == 'min': projected_image = np.min(self.image, axis=4).astype('uint16')
-        elif projection_type == 'std': projected_image = np.std(self.image, axis=4, ddof=1).astype('uint16') #float32
-        elif projection_type == 'avg': projected_image = np.average(self.image, axis=4).astype('uint16')
-        elif projection_type == 'megian': projected_image = np.median(self.image, axis=4).astype('uint16') #float32
-        else: logging.error('Projection type not recognized')
+        """
+        Return a 6D array with original sizes but empty Z
+        """
+        projected_image = np.zeros((self.sizes['F'], self.sizes['T'], self.sizes['C'], 1, self.sizes['Y'], self.sizes['X']))
+        for f in range(self.sizes['F']):
+            for t in range(self.sizes['T']):
+                for c in range(self.sizes['C']):
+                    if projection_type == 'max': projected_image[f,t,c,0,:,:] = np.max(self.image[f,t,c,:,:,:], axis=0).astype('uint16')
+                    elif projection_type == 'min': projected_image[f,t,c,0,:,:] = np.min(self.image[f,t,c,:,:,:], axis=0).astype('uint16')
+                    elif projection_type == 'std': projected_image[f,t,c,0,:,:] = np.std(self.image[f,t,c,:,:,:], axis=0, ddof=1).astype('uint16') #float32
+                    elif projection_type == 'avg': projected_image[f,t,c,0,:,:] = np.average(self.image[f,t,c,:,:,:], axis=0).astype('uint16')
+                    elif projection_type == 'median': projected_image[f,t,c,0,:,:] = np.median(self.image[f,t,c,:,:,:], axis=0).astype('uint16') #float32
+                    else: 
+                        logging.error('Projection type not recognized')
+                        return
+        
         return projected_image
-
-
-def extract_suitable_files(directory):
-    """
-    Filter and sort the list of suitable files in the given directory
-    In this version suitable files = TIF and ND2 files
-    """
-    suitable_files = [i for i in directory if i.endswith('.nd2') or i.endswith('.tif')]
-    suitable_files = sorted(suitable_files)
-    return suitable_files
 
 
 def update_transfMat(tmat_int, reference_timepoint_index, range_start_index, range_end_index):

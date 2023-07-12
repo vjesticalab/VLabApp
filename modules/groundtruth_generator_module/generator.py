@@ -1,8 +1,7 @@
 import os
-from PyQt5.QtWidgets import QVBoxLayout, QRadioButton, QGroupBox, QHBoxLayout, QFileDialog, QAbstractItemView, QPushButton, QWidget, QApplication
+from PyQt5.QtWidgets import QVBoxLayout, QRadioButton, QGroupBox, QHBoxLayout, QFileDialog, QAbstractItemView, QPushButton, QWidget
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QCursor
-from modules.groundtruth_generator_module.generator import generator_functions as f
+from modules.groundtruth_generator_module import generator_functions as f
 from general import general_functions as gf
 import logging
 

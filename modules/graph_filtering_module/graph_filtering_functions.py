@@ -6,8 +6,8 @@ import napari
 import tifffile
 import igraph as ig
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QWidget, QPushButton, QLabel, QSpinBox, QScrollArea, QGroupBox, QCheckBox, QMessageBox, QSizePolicy
-from PyQt5.QtCore import Qt, QPoint, QPointF
-from PyQt5.QtGui import QCursor, QPixmap, QPainter, QPen, QIcon, QPolygonF
+from PyQt5.QtCore import Qt, QPointF
+from PyQt5.QtGui import QCursor, QPixmap, QPainter, QPen, QPolygonF
 from general import general_functions as gf
 
 
@@ -681,7 +681,7 @@ class GraphFilteringWidget(QWidget):
         self.mask_need_filtering = False
         self.filter_button.setStyleSheet("")
         self.save_button.setText("Save")
-        self.logger.debug("done")
+        self.logger.info("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
@@ -689,7 +689,7 @@ class GraphFilteringWidget(QWidget):
         # Set cursor to BusyCursor
         napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
         napari.qt.get_app().processEvents()
-        self.logger.debug("Done")
+        self.logger.info("Done")
 
         if self.mask_need_filtering:
             self.filter(closing)
@@ -721,7 +721,8 @@ class GraphFilteringWidget(QWidget):
             ## TODO: adapt metadata to more generic input files (other axes)
             output_file1 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_celltrack"+str(n)+"_mask.tif")
             self.logger.info("Cell track %s/%s: saving segmentation mask to %s", n, len(self.selected_cell_tracks), output_file1)
-            tifffile.imwrite(output_file1, selected_mask, metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
+            mask = mask [:, np.newaxis, : ,:]
+            tifffile.imwrite(output_file1, selected_mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
             output_files.append(output_file1)
 
             output_file3 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_celltrack"+str(n)+"_graph.graphmlz")
@@ -750,7 +751,7 @@ class GraphFilteringWidget(QWidget):
         # set cursor to BusyCursor
         napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
         napari.qt.get_app().processEvents()
-        self.logger.debug("Done")
+        self.logger.info("Done")
 
         if self.mask_need_filtering:
             self.filter(closing)
@@ -786,7 +787,8 @@ class GraphFilteringWidget(QWidget):
         ## TODO: adapt metadata to more generic input files (other axes)
         output_file1 = os.path.join(self.output_path, os.path.splitext( os.path.basename(self.image_path))[0]+"_mask.tif")
         self.logger.info("Saving segmentation mask to %s", output_file1)
-        tifffile.imwrite(output_file1, selected_mask, metadata={'axes': 'TYX'}, imagej=True, compression='zlib')
+        selected_mask = selected_mask[:, np.newaxis, : ,:]
+        tifffile.imwrite(output_file1, selected_mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
 
         output_file3 = os.path.join(self.output_path, os.path.splitext( os.path.basename(self.image_path))[0]+"_graph.graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file3)

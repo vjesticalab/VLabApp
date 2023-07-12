@@ -1,9 +1,9 @@
 import os
 import logging
-from PyQt5.QtWidgets import QFileDialog, QLabel, QLineEdit, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QGroupBox, QRadioButton, QApplication, QSpinBox, QGridLayout
+from PyQt5.QtWidgets import QFileDialog, QLabel, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QGroupBox, QRadioButton, QApplication, QSpinBox, QGridLayout
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
-from modules.cell_tracking_module.cell_tracking import cell_tracking_functions as f
+from modules.cell_tracking_module import cell_tracking_functions as f
 from general import general_functions as gf
 
 
