@@ -65,7 +65,7 @@ class SaveButton(QWidget):
     def save_layer(self):
         for layer in self.viewer.layers:
             if layer in self.viewer.layers.selection:
-                tifffile.imwrite(self.output_path+'/'+image_name+'.tif', layer.data)
+                tifffile.imwrite(self.output_path+'/'+image_name+'_gtmask.tif', layer.data)
         print('Layer saved!')
 
 class QuitButton(QWidget):
@@ -84,14 +84,13 @@ class NapariWindow(QWidget):
         super().__init__()
         viewer = napari.Viewer()
         viewer.add_image(norm_channels_image.astype('uint32'), name='image')
-        viewer.window._qt_window.setWindowState(Qt.WindowMaximized)
         dock_widget = MultipleViewerWidget(viewer)
         viewer.window.add_dock_widget(dock_widget, name="Segment")
         save_button = SaveButton(viewer, output_path)
         viewer.window.add_dock_widget(save_button, name='Save', area='left')
         quit_button = QuitButton(viewer)
         viewer.window.add_dock_widget(quit_button, name='Quit', area='right')
-        viewer.show(block=True)
+        viewer.show()
 
 
 def focal_plane(image):
@@ -205,7 +204,6 @@ def main(image_path, output_path):
         
         norm_channels_image = cv2.normalize(channels_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32F)  
         nw = NapariWindow(output_path)
-        nw.show()
       
 # To test
 """

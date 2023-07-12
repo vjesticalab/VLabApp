@@ -47,6 +47,7 @@ def main(image_path, output_path, projection_type):
         image.imread()
     except Exception as e:
         logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
+        return
 
     # Check z existance in the image
     if image.sizes['Z'] == 0:
@@ -54,12 +55,26 @@ def main(image_path, output_path, projection_type):
         return
 
     # Perform projection
-    projected_image = image.zProjection(projection_type)
+    try:
+        projected_image = image.zProjection(projection_type)
+    except Exception as e:
+        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
+        return
     
     # Save the projection
-    output_file_name = output_path+image.name+".tif"
-    tifffile.imwrite(output_file_name, projected_image, metadata={'axes': 'FTCZYX'}, compression='zlib')
+    output_file_name = output_path+image.name+"_"+projection_type+".tif"
+    print(projected_image.shape)
+    tifffile.imwrite(output_file_name, projected_image[0,:,:,0,:,:].astype('uint16'), metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
     logger.info("Projection performed and saved (%s)", output_file_name)
+
+    print('Projection performed and saved '+output_file_name)
 
     # Close logfile
     logger.removeHandler(logfile_handler)
+
+
+if __name__ == "__main__":
+    image_path = '/Volumes/RECHERCHE/FAC/FBM/CIG/avjestic/zygoticfate/D2c/Lab_Data/20221111_P0001_E0008_U002/Sporulated-BF10/001_SP10.nd2'
+    output_path = '/Users/aravera/Desktop/'
+    projection_type = 'max'
+    main(image_path, output_path, projection_type)

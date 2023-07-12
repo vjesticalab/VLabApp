@@ -153,6 +153,8 @@ class zProjection(QWidget):
                     output_path = os.path.join(os.path.dirname(image_path), 'zprojeczion')
                 else:
                     output_path = self.output_folder.text()
+                if not output_path.endswith('/'): output_path += '/'
+                if not os.path.exists(output_path): os.makedirs(output_path)
                 # Set log and cursor info
                 self.logger.info("Image %s", image_path)
                 QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))

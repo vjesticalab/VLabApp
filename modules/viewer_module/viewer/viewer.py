@@ -35,6 +35,9 @@ class Viewer(QWidget):
         groupbox.setLayout(layout2)
         self.setLayout(layout)
 
+
+        self.logger = logging.getLogger(__name__)
+
     def browse_graph(self):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Cell tracking graphs ('+' '.join(['*'+x for x in self.graphtypes])+')')
         self.input_graph.setText(file_path)
@@ -52,13 +55,13 @@ class Viewer(QWidget):
         """
         graph_path = self.input_graph.text()
         if graph_path == '':
-            self.logger.error('Cell tracking graph missing')
+            self.logger.error('Missing graph path')
             self.input_graph.setFocus()
             return
         viewer = napari.Viewer()
         try:
             gf.plot_graph(viewer, graph_path)
         except Exception as e:
-            logging.error('Error in opening the graph: '+str(e))
+            self.logger.error('Error in opening the graph: '+str(e))
 
 

@@ -127,17 +127,15 @@ class Generator(QWidget):
                     output_path = os.path.join(os.path.dirname(image_path), 'ground_truth')
                 else:
                     output_path = self.output_folder.text()
+                if not output_path.endswith('/'): output_path += '/'
+                if not os.path.exists(output_path): os.makedirs(output_path)
                 # Set log and cursor info
                 self.logger.info("Image %s", image_path)
-                QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
-                QApplication.processEvents()
                 # Perform projection
                 try:
                     f.main(image_path, output_path)
                 except Exception as e:
                     self.logger.error("Generation failed.\n" + str(e))
-                # Restore cursor
-                QApplication.restoreOverrideCursor()
             else:
                 self.logger.error("Unable to locate file %s", image_path)
 
