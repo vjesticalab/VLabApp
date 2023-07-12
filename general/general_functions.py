@@ -2,289 +2,343 @@ import numpy as np
 import os
 import tifffile
 import nd2
-from pystackreg import StackReg
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QLabel, QMessageBox
-import warnings
-warnings.filterwarnings(action='ignore', category=DeprecationWarning, message='`np.bool` is a deprecated alias')
-#warnings.filterwarnings("error", category=UserWarning)
 
-def base_name(fileName):
-    #This function uses the underscore symbol to separate the basename from the channel information
-    return fileName.split("_")[0]
+from PyQt5.QtCore import Qt, pyqtSignal, QSize
+from PyQt5.QtGui import QIcon, QPalette
+from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox
 
-def file_name_split(fileName):
-    #This function splits the full filename into extension and filename
-    return fileName.split(".")[0], fileName.split(".")[1]
+import logging
+import igraph as ig
+from matplotlib import cm
 
-def folder_name(path):
-    return path.split('/')[-2]
+class QLineEditHandler(logging.Handler):
+    """
+    logging handler to send message to QLineEdit.
 
-def file_handling(path):
-    ############# FILE HANDLING ##############
-    content = os.listdir(path)
-    #Get a list of image files
-    image_files = extract_suitable_files(content)
-    transformation_matrices = [i for i in content if i.endswith('_transformationMatrix.txt')]
-    transformation_matrices.sort()
+    Examples
+    --------
+    label=QLineEdit()
+    handler=QLineEditHandler(label)
+    logging.getLogger().addHandler(handler)
+    """
+
+    def __init__(self, qlabel):
+        logging.Handler.__init__(self)
+        self.label = qlabel
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.label.setText(msg)
+        # to focus on the beginning of the text if too long
+        self.label.setCursorPosition(0)
+        # force repainting to update message even when busy
+        self.label.repaint()
+
+
+class QMessageBoxErrorHandler(logging.Handler):
+    """
+    Logging handler to send message to QMessageBox.critical
+
+    Examples
+    --------
+    handler= QMessageBoxErrorHandler(self)
+    handler.setLevel(logging.ERROR)
+    logging.getLogger().addHandler(handler)    
+    """
+
+    def __init__(self, parent):
+        logging.Handler.__init__(self)
+        self.parent = parent
+
+    def emit(self, record):
+        msg = self.format(record)
+        QMessageBox.critical(self.parent, 'Error', msg)
+
+
+class DropFilesListWidget(QListWidget):
+    """
+    A QListWidget with drop support for files and folders. If a folder is dropped, all files contained in the folder are added.
+    """
+
+    def __init__(self, parent=None, filetypes=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.filetypes = filetypes
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls:
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            if url.isLocalFile():
+                if os.path.isfile(url.toLocalFile()):
+                    filename = url.toLocalFile()
+                    if len(self.findItems(filename, Qt.MatchExactly)) == 0 and (self.filetypes is None or os.path.splitext(filename)[1] in self.filetypes):
+                        self.addItem(filename)
+                if os.path.isdir(url.toLocalFile()):
+                    d = url.toLocalFile()
+                    # keep only files (not folders)
+                    filenames = [os.path.join(d, f)
+                                 for f in os.listdir(d)]
+                    if not self.filetypes is None:
+                        # keep only allowed filetypes
+                        filenames = [f for f in filenames
+                                     if os.path.splitext(f)[1] in self.filetypes]
+                    # keep only existing files (not folders)
+                    filenames = [f for f in filenames
+                                 if os.path.isfile(f)]
+                    # do not add if already in the list
+                    filenames = [f for f in filenames
+                                 if len(self.findItems(f, Qt.MatchExactly)) == 0]
+                    self.addItems(filenames)
+
+
+class DropFileLineEdit(QLineEdit):
+    """
+    A QLineEdit with drop support for files.
+    """
+
+    def __init__(self, parent=None, filetypes=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.filetypes = filetypes
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls:
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            if url.isLocalFile():
+                if os.path.isfile(url.toLocalFile()):
+                    filename = url.toLocalFile()
+                    if self.filetypes is None or os.path.splitext(filename)[1] in self.filetypes:
+                        self.setText(filename)
+
+
+class DropFolderLineEdit(QLineEdit):
+    """
+    A QLineEdit with drop support for folder.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls:
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            if url.isLocalFile():
+                if os.path.isdir(url.toLocalFile()):
+                    self.setText(url.toLocalFile())
+
+
+class TabWizard(QTabWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.tabBar().installEventFilter(self)
+
+    def addPage(self, page, title):
+        if not isinstance(page, Page):
+            raise TypeError(f"{page} must be Page object")
+        self.addTab(page, title)
+        page.completeChanged.connect(self.nextPage)
     
-    #Build dictionary with keys from transformation matrices
-    files = {}
-    for f in transformation_matrices:
-        files[f] = []
-    
-    #For each transformation matrix find image files with the same basename files
-    for reference_matrix in files.keys():
-        reference_baseName = reference_matrix.split("_transformationMatrix.txt")[0]
-        print(reference_matrix, 'will be used to register files:')
-        for image_f in image_files:
-            image_baseName= base_name(image_f)
-            if reference_baseName == image_baseName:
-                files[reference_matrix].append(image_f)
-                print('\t',image_f)
-    return files
+    def addHomePage(self, page):
+        tab_index = self.addTab(page, '')
+        self.setTabIcon(tab_index, QIcon('support_files/home.svg'))
+        self.setIconSize(QSize(12,12))
+        page.completeChanged.connect(self.nextPage)
 
-def read_transfMat(tmat_path):
-    try:
-        tmat_string = np.loadtxt(tmat_path, delimiter=",", dtype=str)
+    def nextPage(self):
+        next_index = self.currentIndex() + 1
+        if next_index < self.count():
+            self.setCurrentIndex(next_index)
 
-    except Warning as e:
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setText("Error")
-        msg.setInformativeText(str(e))
-        msg.setWindowTitle("Error")
-        msg.exec_()
-        return
 
-    else:
-        tmat_float = tmat_string.astype(float)
-        tmat_int = tmat_float.astype(int)
-        return tmat_int
+class Page(QWidget):
+    completeChanged = pyqtSignal()
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.container = QWidget()
+        lay = QVBoxLayout(self)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(self.container)
+        scroll.setBackgroundRole(QPalette.Base)
+        scroll.setFrameShape(QFrame.NoFrame)
+        lay.addWidget(scroll)
 
-def extract_suitable_files(content):
-    #This function filters and sorts the list of files for those that are opened with openSuitableFiles_ver01_ver01 function
-    #this version includes TIF and ND2 file formats
-    suitable_files = [i for i in content if i.endswith('.nd2') or i.endswith('.tif')]
-    suitable_files = sorted(suitable_files)
-    return suitable_files
-    
-def open_suitable_files(filepath):
-    #This function opens both TIF and ND2 files and 
-    #generates a dictionary with information about image axes
-    #Step1: Load the images
-    #Step2: Build an axes dictionary where keys are channels (eg. T C Z Y X) 
-    #and values contain axis of iteration [0] and size [1]
-    #e.g. axes_inventory = {'T': [0, 120], 
-    #                       'Z': [1, 3], 
-    #                       'C': [2, 2], 
-    #                       'Y': [3, 275], 
-    #                       'X': [4, 390]}
-    
-    fileName = os.path.basename(filepath)
-    _, fileExtension = file_name_split(fileName)   
-    
-    if 'tif' in fileExtension:
-        #Step1: Load the image
-        imageLoad = tifffile.imread(filepath)        
-        #Step2: Build an axes dictionary 
-        infoFile = tifffile.TiffFile(filepath) #Get file information 
-        image_shape =  imageLoad.shape
-        image_axes = infoFile.series[0].axes
-        axes_inventory = {}
-        for channel_position, axis in enumerate(image_axes):
-            axes_inventory[axis] = [channel_position, image_shape[channel_position]]      
-    
-    elif 'nd2' in fileExtension:
-        #Step1: Load the image
-        imageLoad = nd2.imread(filepath)
-        #Step2: Build an axes dictionary
-        with nd2.ND2File(filepath) as infoFile:
-            image_shape = imageLoad.shape
-            image_dimensions = infoFile.sizes
-            axes_inventory = {}
-            for channel_position, axis in enumerate(image_dimensions.keys()):
-                axes_inventory[axis] = [channel_position, image_shape[channel_position]] 
-    
-    else:
-        print('\nThe file', filepath, ' is neither TIF nor ND2. Generating a 5x5x5 random array instead to allow script to run')
-        #Write a warning txt file.
-        with open(filepath[:-4]+'-!!!WARNING!!!.txt', 'a') as out:
-            text = 'This image is not suitable format!'
-            out.write(text)       
-        imageLoad = [[[0 for i in range(5)] for j in range(5)] for k in range(5)]
-        axes_inventory = {'T': [0, 120], 'Z': [1, 3], 'C': [2, 2], 'Y': [3, 275], 'X': [4, 390]}
-    
-    return imageLoad, axes_inventory
 
-def array_slice(a, axis, start, end, step=1):
-    return a[(slice(None),) * (axis % a.ndim) + (slice(start, end, step),)]
+class Image:
+    """
+    Class used to read and elaborate images
+    Default dimension positions = {'F': 0, 'T': 1, 'C': 2, 'Z': 3, 'Y': 4, 'X': 5}
 
-def register_with_tmat_multiD(tmat_int, image_multiD, y_axis, x_axis, skip_decision):
-    #This function uses a transformation matrix to performs registration and cropping of a 3D image
-    #   input tmat_int: transormation matrix in intigers, 2D-table where
-    #                   [:,0] is timpeoint
-    #                   [:,1] is x-displacement    
-    #                   [:,2] is y-displacement   
-    #   input image_3D: image to register, tyx-dimension order
-    #   output img_cropped: registered and cropped image
-    #Perform registration
-    dimensions = image_multiD.shape
-    timepoints_image = dimensions[0]
-    h_dim = dimensions[y_axis]
-    w_dim = dimensions[x_axis]
-    timepoints_tmat, _ = tmat_int.shape
+    Attributes
+    ----------
+    path : str
+        path to the image
+    basename : str
+        image name with extension
+    name : str
+        image name without extension
+    extension : str
+        extension of the image
+    sizes : dict
+        dictionary with dimesions names and values
+        # eg. {'F': 1, 'T': 1, 'C': 3, 'Z': 11, 'Y': 2048, 'X': 2048}
+    image : ndarray
+        numpy ndarray with the image
+    shape : list
+        list with image shapes
+
+    Methods
+    -------
+    imread()
+        Read the image from the already setted 'path'
+        Attributes image, sizes and shape are populated here
+    save()
+        Empty
+    get_TYXarray()
+        Return the 3D image with the dimensions T, Y and X.
+        When used the other dimensions F,C,Z MUST be empty (with size = 1)
+    zProjection(projection_type)
+        Return the z-projection of the image and the selected projection type.
+        Possible projection types: max, min, std, avg, median
+    """
+    def __init__(self, im_path):
+        self.path = im_path
+        self.basename = os.path.basename(self.path)
+        self.name, self.extension = os.path.splitext(self.basename)
+        self.sizes = None
+        self.image = None
+        self.shape = None
     
-    if timepoints_image != timepoints_tmat:
-        print('\nNumber of timepoints(',timepoints_image, ') in the image and the transformation matrix(',timepoints_tmat, ') do NOT match. Generating an empty image to prevent script from crashing!')
-        fakeImage = np.zeros((tmat_int.shape[0],abs(max(tmat_int[:,2]))+abs(min(tmat_int[:,2])),abs(max(tmat_int[:,1]))+abs(min(tmat_int[:,1]))), dtype='uint8')   
-        return fakeImage
-    else:
-        #Column 4 of the transformation matrix holds information on timepoints that will be
-        #registered (value 1) and those that will not be registered (value 0)
-        tmat_range = np.array([row for row in tmat_int if row[3]==1])
-        timepoints_range, _ = tmat_range.shape
-        
-        #List of timepoints that are included, which may be non-sequential
-        list_included_timepoints = [tp_incl-1 for tp_incl in tmat_range[:,0]]
-        #print(list_included_timepoints)
-        
-        #Extract only the images of timepoints which should be included
-        image_range = np.take(image_multiD, list_included_timepoints, axis=0)
-        registered_image = np.copy(image_range)
-                      
-        for timepoint in range(0,timepoints_range):
-            yxShift = (tmat_range[timepoint, 2]*-1, tmat_range[timepoint, 1]*-1)
-            registered_image[timepoint] = np.roll(image_range[timepoint], yxShift, axis=(y_axis-1,x_axis-1))
-
-        if skip_decision:
-            print('\nImage cropping has been skipped')
-            return registered_image
-        
-        else:            
-            print('\nshapePostShift ', registered_image.shape)            
-            #Crop to desired area
-            #Step1: Determine maximum and minimum drifts along x-axis and y-axis, within the range
-            max_x = max(tmat_range[:,1])
-            max_y = max(tmat_range[:,2])
-            min_x = min(tmat_range[:,1])
-            min_y = min(tmat_range[:,2])
-            #Step2: Determine the croppinng area
-            y_start = 0-min_y
-            y_end = h_dim-max_y
-            x_start = 0-min_x
-            x_end = w_dim-max_x
-            
-            print('\nystart', y_start,'yend', y_end)
-            print('\nxstart',x_start, 'xend', x_end)
-            #Step3: Crop along the y-axis
-            y_croped = array_slice(registered_image, y_axis, y_start, y_end)
-            yx_croped = array_slice(y_croped, x_axis, x_start, x_end)
-            return yx_croped
-
-def registration_with_tmat_multiD(pathsInventory, tmat_int, image_multiD, img_name, y_axis, x_axis, axes_positions):
-    #This function uses a transformation matrix to performs registration and cropping of a 3D image
-    #   input tmat_int: transormation matrix in intigers, 2D-table where
-    #                   [:,0] is timpeoint
-    #                   [:,1] is x-displacement    
-    #                   [:,2] is y-displacement   
-    #   input image_3D: image to register, tyx-dimension order
-    #   output img_cropped: registered and cropped image
-    #Perform registration
-    dimensions = image_multiD.shape
-    timepoints_image = dimensions[0]
-    h_dim = dimensions[y_axis]
-    w_dim = dimensions[x_axis]
+    def imread(self):
+        def set_6Dimage(image, axes):
+            """
+            Return a 6D ndarray of the input image
+            """
+            dimensions = {'F': 0, 'T': 1, 'C': 2, 'Z': 3, 'Y': 4, 'X': 5}
+            # Dictionary with image axes order
+            axes_order = {}
+            for i, char in enumerate(axes):
+                axes_order[char] = i
+            # Mapping for the desired order of dimensions
+            mapping = [axes_order.get(d, None) for d in 'FTCZYX']
+            mapping = [i for i in mapping if i is not None]
+            # Rearrange the image array based on the desired order
+            image = np.transpose(image, axes=mapping)
+            # Determine the missing dimensions and reshape the array filling the missing dimensions
+            missing_dims = []
+            for c in 'FTCZYX':
+                if c not in axes:
+                    missing_dims.append(c)
+            for dim in missing_dims:
+                position = dimensions[dim]
+                image = np.expand_dims(image, axis=position)
+            return image, image.shape
    
-    timepoints_tmat, _ = tmat_int.shape
-    
-    if timepoints_image != timepoints_tmat:
-        print('\nNumber of timepoints(',timepoints_image, ') in the image and the transformation matrix(',timepoints_tmat, ') do NOT match. Generating an empty image to prevent script from crashing!')
-        yx_cropped=np.zeros((tmat_int.shape[0],abs(max(tmat_int[:,2]))+abs(min(tmat_int[:,2])),abs(max(tmat_int[:,1]))+abs(min(tmat_int[:,1]))), dtype='uint8')   
-    else:
-        registered_image=np.copy(image_multiD)
-        for timepoint in range(0,timepoints_image):
-            yxShift=(tmat_int[timepoint, 2]*-1, tmat_int[timepoint, 1]*-1)
-            registered_image[timepoint]=np.roll(image_multiD[timepoint], yxShift, axis=(y_axis-1,x_axis-1))
-            
-        #Crop to desired area
-        #Step1: Determine maximum and minimum drifts along x-axis and y-axis
-        max_x = max(tmat_int[:,1])
-        max_y = max(tmat_int[:,2])
-        min_x = min(tmat_int[:,1])
-        min_y = min(tmat_int[:,2])
-        #Step2: Determine the croppinng range and crop the image
-        y_start = 0-min_y
-        y_end = h_dim-max_y
-        x_start = 0-min_x
-        x_end = w_dim-max_x
-        #Step3: Crop along the y-axis
-        y_croped = array_slice(registered_image, y_axis, y_start, y_end)
-        yx_croped = array_slice(y_croped, x_axis, x_start, x_end)       
-    
-    # Save the registered and cropped image
-    fileNameNoExtension, fileExtension = file_name_split(img_name)
-    registeredFilename=fileNameNoExtension+'_registered.tif'
-    registeredFilepath = pathsInventory['resultsRegisteredImagesFolder']+registeredFilename
-    tifffile.imwrite(registeredFilepath, data=yx_croped, metadata={'axes': axes_positions}, imagej=True)
+        # axis default order: FTCZYX for 6D - F = FieldofView, T = time, C = channels
+        if self.extension == '.nd2':
+            reader = nd2.ND2File(self.path)
+            axes_order = str(''.join(list(reader.sizes.keys()))).upper() #eg. reader.sizes = {'T': 10, 'C': 2, 'Y': 2048, 'X': 2048}
+            image = reader.asarray() #nd2.imread(self.path)
+            reader.close()
+            self.sizes = {}
+            self.image, self.shape = set_6Dimage(image, axes_order)
+            for key, value in zip('FTCZYX', self.shape):
+                self.sizes[key] = value # eg. {'F': 1, 'T': 10, 'C': 2, 'Z': 1, 'Y': 2048, 'X': 2048}
+            return self.image
 
-def extract_transfMat(content):
-    #This function filters and sorts the list of files for those that are opened with openSuitableFiles_ver01_ver01 function
-    #Ver01 includes TIF and ND2 file formats
-    suitable_files = [i for i in content if i.endswith('_transformationMatrix.txt')]
-    suitable_files = sorted(suitable_files)
-    return suitable_files
+        elif (self.extension == '.tiff' or self.extension == '.tif'):
+            reader = tifffile.TiffFile(self.path)
+            axes_order = str(reader.series[0].axes).upper()
+            image = reader.asarray()
+            reader.close()
+            self.sizes = {}
+            self.image, self.shape = set_6Dimage(image, axes_order)
+            for key, value in zip('FTCZYX', self.shape):
+                self.sizes[key] = value
+            return self.image
+        else:
+            logging.getLogger(__name__).error('Image format not supported. Please upload a tiff or nd2 image file.')
+    
+    def save(self):
+        pass
 
-def build_dictionary(path, _type):
-    content = os.listdir(path)
-    #Get a list of image files
-    image_files = extract_suitable_files(content)
-    transformation_matrices = [i for i in content if i.endswith('_transformationMatrix.txt')]
-    transformation_matrices.sort()
-    
-    if _type == 'imageFile':
-        #Build dictionary with keys from image files
-        files={}
-        for f in image_files:
-            files[f] = []
-        #For each transformation matrix find image files with the same basename files
-        for image_file in files.keys():        
-            image_baseName = base_name(image_file)
-            print(image_file, image_baseName, 'will be registered with matrices:') 
-            for transfMat_file in transformation_matrices:
-                transfMat_baseName = transfMat_file.split('_transformationMatrix.txt')[0]
-                if transfMat_baseName == image_baseName:
-                    files[image_file].append(transfMat_file)
-                    print('\n\t',transfMat_file)
-    
-    elif _type == 'transfMat':
-        #Build dictionary with keys from transformation matrices
-        files = {}
-        for f in transformation_matrices:
-            files[f] = []
+    def get_TYXarray(self):
+        if self.sizes['F'] > 1 or self.sizes['C'] > 1 or self.sizes['Z'] > 1:
+            logging.getLogger(__name__).error('Image format not supported. Please upload an image with only TYX dimesions.')
+        return self.image[0,:,0,0,:,:]
+
+    def zProjection(self, projection_type):
+        """
+        Return a 6D array with original sizes but empty Z
+        """
+        projected_image = np.zeros((self.sizes['F'], self.sizes['T'], self.sizes['C'], 1, self.sizes['Y'], self.sizes['X']))
+        for f in range(self.sizes['F']):
+            for t in range(self.sizes['T']):
+                for c in range(self.sizes['C']):
+                    if projection_type == 'max': projected_image[f,t,c,0,:,:] = np.max(self.image[f,t,c,:,:,:], axis=0).astype('uint16')
+                    elif projection_type == 'min': projected_image[f,t,c,0,:,:] = np.min(self.image[f,t,c,:,:,:], axis=0).astype('uint16')
+                    elif projection_type == 'std': projected_image[f,t,c,0,:,:] = np.std(self.image[f,t,c,:,:,:], axis=0, ddof=1).astype('uint16') #float32
+                    elif projection_type == 'avg': projected_image[f,t,c,0,:,:] = np.average(self.image[f,t,c,:,:,:], axis=0).astype('uint16')
+                    elif projection_type == 'median': projected_image[f,t,c,0,:,:] = np.median(self.image[f,t,c,:,:,:], axis=0).astype('uint16') #float32
+                    else: 
+                        logging.error('Projection type not recognized')
+                        return
         
-        #For each transformation matrix find image files with the same basename files
-        for reference_matrix in files.keys():
-            nameParts = reference_matrix.split("_transformationMatrix.txt")
-            reference_baseName=nameParts[0]
-            print(reference_matrix, 'will be used to register files:')
-            for image_f in image_files:
-                image_baseName = base_name(image_f)
-                if reference_baseName == image_baseName:
-                    files[reference_matrix].append(image_f)
-                    print('\n\t',image_f)
-    
-    return files
+        return projected_image
+
 
 def update_transfMat(tmat_int, reference_timepoint_index, range_start_index, range_end_index):
-    #This function updates the transformation matrix
-    #inputs     tmat_int : original matrix
-    #           reference_timepoint_index : index of the new reference point
-    #           range_start_index : index of the starting timepoint (included)
-    #           range_end_index : index of the ending timepoint (included)
+    """
+    Update the transformation matrix
+    
+    Parameters
+    ----------
+        tmat_int : 
+            original matrix
+        reference_timepoint_index : 
+            index of the new reference point
+        range_start_index : 
+            index of the starting timepoint (included)
+        range_end_index : 
+            index of the ending timepoint (included)
+    """
 
-    #Step1: Get x- and y- offset values for the reference timepoint
-
+    # Step 1:
+    # get x- and y- offset values for the reference timepoint
     min_timepoint = min(tmat_int[:,0]) -1 
     max_timepoint = max(tmat_int[:,0]) -1
 
@@ -294,82 +348,33 @@ def update_transfMat(tmat_int, reference_timepoint_index, range_start_index, ran
     exc4 = range_end_index > max_timepoint
 
     if exc1 or exc2 or exc3 or exc4:
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Critical)
-        msg.setText("Error")
-        msg.setInformativeText("Values out of range")
-        msg.setWindowTitle("Error")
-        msg.exec_()
+        logging.getLogger(__name__).error('Values out of range')
         return tmat_int
 
     reference_rawXoffset = tmat_int[reference_timepoint_index,4]
     reference_rawYoffset = tmat_int[reference_timepoint_index,5]
     
-    #Step2: Subtract reference point offset values from all other timepoints and write them to 2nd and 3rd columns, which will are used for registration from transformation matrices
+    # Step 2:
+    # subtract reference point offset values from all other timepoints and write them to 2nd and 3rd columns,
+    # which will are used for registration from transformation matrices
     tmat_updated = np.copy(tmat_int)
     for counter in range(0,len(tmat_int)):
         tmat_updated[counter,1] = tmat_int[counter,4]-reference_rawXoffset
         tmat_updated[counter,2] = tmat_int[counter,5]-reference_rawYoffset
         tmat_updated[counter,3] = 0        
     
-    #Step3: Write in 4th column whether the timepoint is included in the registration (value = 1) or excluded from registration (value = 0)
+    # Step 3:
+    # write in 4th column whether the timepoint is included in the registration (value = 1)
+    # or excluded from registration (value = 0)
     for counter in range(range_start_index, range_end_index+1):
         tmat_updated[counter,3] = 1
     return tmat_updated
 
-def list_transfMat(transfmat_path):
-    all_files = os.listdir(transfmat_path)
-    print(all_files)
-    list_transfmat_files = [i for i in all_files if i.endswith('_transformationMatrix.txt')]
-    print('\nTransformation matrices are:', list_transfmat_files)
-    list_transfmat_files.sort()
-    return list_transfmat_files
-
-def registration_values(pathsInventory, imgForRegCalculations, img_name):
-    #This function calculates the transformation matrices from brightfield images
-    #input:  imgForRegCalculations = original 3-D image used to calculate registration matrix
-    #input:  img_name = name of the image
-    #output: tmats = integer pixel values transformation matrix
-    #save:   txt_res = file which contains the values t_x and t_y (x and y pixel shifts) as columns for each time point (rows)
-    #Note that aligned images are NOT saved since pixels are recalculated by StackReg method
-    
-    print('\nCalculating transformation matrix for ',img_name)       
-    # TRANSLATION: only movements on x and y axis
-    sr = StackReg(StackReg.TRANSLATION)
-    # previous: align each frame at the previous one
-    tmats_float = sr.register_stack(imgForRegCalculations, reference='previous')    
-    #The package calculates transormations into tmats_float as floats and not integers. These need to be converted to integers to avoid any image medification
-    
-    h_dim = imgForRegCalculations.shape[1]
-    w_dim = imgForRegCalculations.shape[2]
-
-    #Converting calculated transformation matrix into intigers to avoid any image modification
-    tmats_int = tmats_float
-    transfation = [] 
-    for i in range(0, tmats_int.shape[0]):
-        tmats_int[i, 0, 2] = int(tmats_float[i, 0, 2])
-        tmats_int[i, 1, 2] = int(tmats_float[i, 1, 2])
-        transfation.append([int(i)+1, int(tmats_int[i, 0, 2]), int(tmats_int[i, 1, 2]), 1, int(tmats_int[i, 0, 2]), int(tmats_int[i, 1, 2]), w_dim, h_dim])
-    
-    #Building the final transformation matrix that has the following 6 columns
-    #timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y
-    #where align_ and raw_ values are identical. Other scripts will modify align, but not raw_ values which are costly to calculate
-    transformation_matrices = np.array(transfation)
-    # Save the txt file with the transfation values
-    txt_name = pathsInventory['resultsTransformationMatricesFolder'] + base_name(img_name)+'_transformationMatrix.txt'
-    np.savetxt(txt_name, transformation_matrices, fmt = '%d, %d, %d, %d, %d, %d, %d, %d', header = 'timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y, x, y', delimiter = '\t')    
-    return transformation_matrices
-
-def build_paths_inventory(path):
-    pathsInventory={}
-    pathsInventory['dataFolder']=path   
-    pathsInventory['resultsMasterFolder']=pathsInventory['dataFolder']+folder_name(pathsInventory['dataFolder'])+'_registrationResults/'
-    pathsInventory['resultsTransformationMatricesFolder']=pathsInventory['resultsMasterFolder']+folder_name(pathsInventory['dataFolder'])+'_transformationMatrices/'
-    pathsInventory['resultsRegisteredImagesFolder']=pathsInventory['resultsMasterFolder']+folder_name(pathsInventory['dataFolder'])+'_registeredImages/'
-    pathsInventory['resultsRegistrationAnalysesFolder']=pathsInventory['resultsMasterFolder']+folder_name(pathsInventory['dataFolder'])+'_registrationAnalyses/'
-    return pathsInventory
 
 def error_empty(submission_num, widget, window):
+    """
+    Add an error line in the main application window when missing input values
+    """
     widget.setFocus()
     if submission_num == 1:
         label_error = QLabel('Error : missing value')
@@ -377,4 +382,193 @@ def error_empty(submission_num, widget, window):
         label_error.setStyleSheet("color: red;")
         window.addRow(label_error)
         return label_error
+
+
+def adjust_graph_types(graph, mask_dtype):
+    graph.vs['frame'] = np.array(graph.vs['frame'], dtype='int32')
+    graph.vs['mask_id'] = np.array(graph.vs['mask_id'], dtype=mask_dtype)
+    graph.vs['area'] = np.array(graph.vs['area'], dtype='int64')
+    graph.es['overlap_area'] = np.array(graph.es['overlap_area'], dtype='int64')
+    graph.es['frame_source'] = np.array(graph.es['frame_source'], dtype='int32')
+    graph.es['frame_target'] = np.array(graph.es['frame_target'], dtype='int32')
+    graph.es['mask_id_source'] = np.array(graph.es['mask_id_source'], dtype=mask_dtype)
+    graph.es['mask_id_target'] = np.array(graph.es['mask_id_target'], dtype=mask_dtype)
+    # Remove useless attribute
+    return graph
+
+
+def plot_graph(viewer, graph_path):
+    """
+    Add two layers (with names 'Edges' and 'Vertices') to the `viewer_graph`
+    and plot the cell tracking graph.
+    Existing layers  'Edges' and 'Vertices' will be cleared.
+    Setup mouse click callbacks to allow vertices selection in `viewer_graph`
+    and centering `viewer_images` camera to specific vertex.
+
+    Parameters
+    ----------
+    viewer_graph: napari.Viewer
+        napari viewer in which the graph should be displayed.
+    viewer_images: napari.Viewer
+        napari viewer with image and mask.
+    mask_layer: napari.layer.Labels
+        napari layer with segmentation mask.
+    graph: igraph.Graph
+        cell tracking graph.
+    colors: numpy.array
+        numpy array with shape (number of colors,4) with one color per
+        row (row index i corresponds to to mask id i)
+    """
+    graph = ig.Graph().Read_GraphMLz(graph_path)
+    # Adjust attibute types
+    graph = adjust_graph_types(graph, 'uint16')
+
+    mask_ids = [v['mask_id'] for v in graph.vs]
+
+    colors = []
+    for i, c in enumerate(cm.hsv(np.linspace(0, 1, max(mask_ids)+1))):
+        colors.append(c.tolist())
+    colors = np.asarray(colors)
     
+    layout_per_component=True
+    if layout_per_component:
+        # Layout_sugiyama doesn't always properly split connectected components.
+        # This is an attempt to overcome this problem.
+        # A better option would probably be to use the algorithm used by graphviz (dot) or graphviz.
+        components = graph.connected_components(mode='weak')
+        layout = [[0.0,0.0] for v in graph.vs]
+        lastx = 0
+        for cmp in components:
+            g2 = graph.subgraph(cmp)
+            layout_tmp = g2.layout_sugiyama(
+                layers = [f+min(graph.vs['frame']) for f in g2.vs['frame']], maxiter=1000)
+            # Shift x coord by lastx
+            minx = min([x for x,y in layout_tmp.coords])
+            maxx = max([x for x,y in layout_tmp.coords])
+            for i, j in  enumerate(cmp):
+                x,y = layout_tmp[i]
+                layout[j] = [x-minx+lastx,y]
+            lastx = lastx-minx+maxx+1 #max([x+lastx for x,y in layout_tmp.coords])+1
+    else:
+        # Simple layout_sugiyama
+        layout = graph.layout_sugiyama(
+            layers = [f+min(graph.vs['frame']) for f in graph.vs['frame']], maxiter=1000)
+
+    vertex_size = 0.4
+    edge_w_min = 0.01
+    edge_w_max = vertex_size*0.8
+
+    # Edges
+    if not 'Edges' in viewer.layers:
+        edges_layer = viewer.add_shapes(name='Edges', opacity=1)
+    else:
+        edges_layer = viewer.layers['Edges']
+        edges_layer.data = []
+
+    # Note: (x,y) to reverse horizontal order (left to right)
+    edges_coords = [[[layout[e.source][0], layout[e.source][1]], [
+        layout[e.target][0], layout[e.target][1]]] for e in graph.es]
+    edges_layer.add(edges_coords,
+                    edge_width=np.minimum(graph.es['overlap_fraction_target'],
+                                          graph.es['overlap_fraction_source']) * (edge_w_max - edge_w_min) + edge_w_min,
+                    edge_color="lightgrey",
+                    shape_type='line')
+    edges_layer.editable = False
+    edges_layer.refresh()
+
+    # Add vertices
+    if not 'Vertices' in viewer.layers:
+        vertices_layer = viewer.add_points(name='Vertices', opacity=1)
+        vertices_layer.help = "<left-click> to set view, <right-click> to select, <shift>+<right-click> to extend selection"
+        vertices_layer_isnew = True
+    else:
+        vertices_layer = viewer.layers['Vertices']
+        vertices_layer.data = []
+        vertices_layer_isnew = False
+
+    vertices_layer.add(np.array(layout[:graph.vcount()]))
+    vertices_layer.edge_width_is_relative = True
+    vertices_layer.edge_width = 0.0
+    vertices_layer.symbol = 'square'
+    vertices_layer.size = vertex_size
+    vertices_layer.face_color = colors[mask_ids]
+    vertices_layer.properties = {'frame': graph.vs['frame'],
+                                 'mask_id': graph.vs['mask_id'],
+                                 'selected': np.repeat(False, graph.vcount())}
+    vertices_layer.selected_data = set()
+    vertices_layer.editable = False
+
+    vertices_layer.refresh()
+
+    # Note: it would be probably better to use the already existing option to select points in the Points layer instead of using an additional 'selected' property.
+    # However I couldn't manage to allow selecting points without allowing to move, add or delete points (moving, adding, deleting points should not be allowed as it would cause trouble later).
+
+    if vertices_layer_isnew:
+        # mouse click on viewer_graph
+        @vertices_layer.mouse_drag_callbacks.append
+        def click_drag(layer, event):
+            dragged = False
+            yield
+            # on move
+            while event.type == 'mouse_move':
+                dragged = True
+                yield
+            # on release
+            if not dragged:  # i.e. simple click
+                if event.button == 1:  # center view (left-click)
+                    # center view on corresponding vertex
+                    point_id = layer.get_value(event.position)
+                elif event.button == 2:  # selection (right-click)
+                    # vertices selection (multple mask_ids, same frame range for all)
+                    point_id = layer.get_value(event.position)
+                    if not point_id is None:
+                        if 'Shift' in event.modifiers:
+                            # add to selection
+                            layer.properties['selected'][point_id] = True
+                            # find frame range
+                            v_selected = np.where(layer.properties['selected'])[0]
+                            frame_min = np.min(layer.properties['frame'][v_selected])
+                            frame_max = np.max(layer.properties['frame'][v_selected])
+                            # find selected mask_ids
+                            mask_ids = layer.properties['mask_id'][v_selected]
+                            # erase previous selection
+                            layer.properties['selected'] = False
+                            # select all vertice with mask_id in mask_ids and within frame_range
+                            layer.properties['selected'][(layer.properties['frame'] >= frame_min) & (layer.properties['frame'] <= frame_max) & (np.isin(layer.properties['mask_id'], mask_ids))] = True
+                        else:
+                            # replace selection
+                            layer.properties['selected'][layer.properties['selected']] = False
+                            layer.properties['selected'][point_id] = not layer.properties['selected'][point_id]
+                    else:
+                        if not 'Control' in event.modifiers and not 'Shift' in event.modifiers:
+                            # erase selection
+                            layer.properties['selected'][layer.properties['selected']] = False
+                    # change style
+                    layer.edge_color[layer.properties['selected']] = [1.0, 1.0, 1.0, 1.0]  # white
+                    layer.edge_width[~layer.properties['selected']] = 0
+                    layer.edge_width[layer.properties['selected']] = 0.4
+                    layer.refresh()
+
+        viewer.reset_view()
+
+    
+class IgnoreDuplicate(logging.Filter):
+    """
+    logging filter to ignore duplicate messages.
+    """
+
+    def __init__(self, message=None):
+        logging.Filter.__init__(self)
+        self.last = None
+        self.message = message
+
+    def filter(self, record):
+        current = (record.module, record.levelno, record.msg)
+        if self.message is None or self.message == record.msg:
+            # add other fields if you need more granular comparison, depends on your app
+            if self.last is None or current != self.last:
+                self.last = current
+                return True
+            return False
+        self.last = current
+        return True
