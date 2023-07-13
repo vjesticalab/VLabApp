@@ -685,7 +685,10 @@ class GraphFilteringWidget(QWidget):
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
-    def save(self, closing=False, relabel_mask_ids=True):
+    def save_per_track(self, closing=False, relabel_mask_ids=True):
+        """
+        Save one mask and one graph file for each selected tracks
+        """
         # Set cursor to BusyCursor
         napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
         napari.qt.get_app().processEvents()
@@ -721,7 +724,7 @@ class GraphFilteringWidget(QWidget):
             ## TODO: adapt metadata to more generic input files (other axes)
             output_file1 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_celltrack"+str(n)+"_mask.tif")
             self.logger.info("Cell track %s/%s: saving segmentation mask to %s", n, len(self.selected_cell_tracks), output_file1)
-            mask = mask [:, np.newaxis, : ,:]
+            selected_mask = selected_mask[:, np.newaxis, : ,:]
             tifffile.imwrite(output_file1, selected_mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
             output_files.append(output_file1)
 
@@ -744,11 +747,11 @@ class GraphFilteringWidget(QWidget):
         msg.setDetailedText("\n".join(output_files))
         msg.exec()
 
-    def save_per_track(self, closing=False, relabel_mask_ids=True):
+    def save(self, closing=False, relabel_mask_ids=True):
         """
-        save one mask and one graph file with all selected tracks
+        Save one mask and one graph file with all selected tracks
         """
-        # set cursor to BusyCursor
+        # Set cursor to BusyCursor
         napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
         napari.qt.get_app().processEvents()
         self.logger.info("Done")

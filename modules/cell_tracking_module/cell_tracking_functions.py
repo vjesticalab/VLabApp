@@ -1471,7 +1471,7 @@ class CellTrackingWidget(QWidget):
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
-        QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + output_file1 + "\n" + output_file2 + "\n" + output_file3)
+        QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + output_file1 + "\n" + output_file3)
 
     def quit(self):
         self.viewer_images.close()
