@@ -12,21 +12,17 @@
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
+<!--[![LinkedIn][linkedin-shield]][linkedin-url]-->
 
 
 
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/vjesticalab/Application">
-    <img src="support_files/Vlab_icon_50x50-01.png" alt="Logo" width="80" height="80">
-  </a>
-
   <h3 align="center">VLabApplication</h3>
 
   <p align="center">
-    Automating the cellular image analysis.
+    Automating cellular image analysis
     <br />
     <a href="https://github.com/vjesticalab/Application"><strong>Explore the docs »</strong></a>
     <br />
@@ -38,8 +34,6 @@
     <a href="https://github.com/othneildrew/Best-README-Template/issues">Request Feature</a>
   </p>
 </div>
-
-
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -66,28 +60,22 @@
   </ol>
 </details>
 
-
-
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-<div align="center"><img src="support_files/Screenshot.png" alt="Logo" width="300"></div>
+<div align="center"><img src="support_files/Screenshot.png" alt="Logo" width="600"></div>
 
-The VLabApplication is created with the aim of automating the cellular image analysis process, from the recording of the movies that come out of the microscope, to the tracking of the events within each time frame.
+The VLabApp is created with the aim of automating the cellular image analysis process, from the recording of the movies that come out of the microscope, to the tracking of the events within each time frame.
 
-The application is in fact divided into several sub-sections that can be used consecutively or automatically:
-* Image Registration
-* GroundTruth Dataset Construction
-* Image Segmentation
-* Event Tracking
-
-
-
-### Built With
-
-This section will list any major frameworks/libraries used into the project.
-
-[![Python][Python.com]][Python-url]
+The application is divided into several modules that can be used consecutively and/or independently:
+* <b>Viewer</b> - to easily view the generated images, masks or graphs in Napari;
+* <b>Z-Projection</b> - to make a projection of the z stack. Max, min, std, average and median projections possible;
+* <b>GroundTruth</b> - to quickly and easily generate the ground truth masks useful for a possible retraining of the network to be used in the Segmentation module;
+* <b>Registration</b> - to register and align images;
+* <b>Segmentation</b> - to segment the images and generate the corresponding masks;
+* <b>Cell tracking</b> - to create the graph tracking the segmented masks;
+* <b>Graph filtering</b> - to filter anche clean the graph and the corresponding mask;
+* <b>Graph event filter</b> - to filter Fusion and Division events and get their corresponding masks and graphs.
 
 <p align="right"><a href="#readme-top">back to top</a></p>
 
@@ -95,52 +83,74 @@ This section will list any major frameworks/libraries used into the project.
 <!-- GETTING STARTED -->
 ## Getting Started
 
-Give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
+### Installation
+The use of Anaconda is supposed.
+ 
+1. Create a virtual environment for your code, in the terminal: 
+
+  `conda create --name venv_VLabApp`
+ 
+2. Once the venv is created, activate it: 
+ 
+  `conda activate name_of_venv`
+
+3. Clone this git repository. Open the terminal where you want to put the App code (eg. Desktop): 
+
+  `git clone https://github.com/vjesticalab/VLabApp.git`
+ 
+Now you have the VLabApp folder into the chosen directory (eg. Desktop/VLabApp)
+ 
+4. Open the terminal within the VLabApp, activate your venv and install the libraries running:
+
+  `conda install qt`
+  `pip install -r requirements.txt`
+ 
+  (If you have troubles with pyqt, try to install this and then the requirements.txt again:
+  `pip install pyqt5 --config-settings --confirm-license= --verbose`)
+ 
+Now you have everything you need to use the Application!
+
+5. To open the application, run:
+  
+  `python3 master.py`
 
 
 ### Prerequisites
 
 List of things you need to use the software and how to install them.
+* PyQt5==5.15.9
+* PyQt5_sip==12.12.1
+* cellpose==2.2
 * matplotlib==3.7.1
 * napari==0.4.17
 * nd2==0.5.3
 * numpy==1.23.5
 * opencv_python_headless==4.7.0.72
-* PyQt5==5.15.9
-* PyQt5_sip==12.11.0
 * pystackreg==0.2.7
+* python_igraph==0.10.5
 * QtPy==2.3.1
-* tifffile==2023.4.12
-* cellpose==2.2
-* igraph==0.10.4
+* roifile==2023.5.12
+* scikit_image==0.19.3
 * scipy==1.9.1
+* tifffile==2023.4.12
 
-### Installation
 
-_Below is an example of how you can instruct your audience on installing and setting up your app. This template doesn't rely on any external dependencies or services._
 
-1. ...
-2. Clone the repo
-   ```sh
-   git clone https://github.com/vjesticalab/Application
-   ```
-3. Install prerequired packages
-   ```sh
-   pip install matplotlib
-   ...
-   ```
+
+
 <p align="right"><a href="#readme-top">back to top</a></p>
 
 
 <!-- USAGE EXAMPLES -->
 ## Usage
 
+<!-- 
 Useful examples of how the application can be used. Additional screenshots, code examples and demos. Also link to more resources.
 
 _For more examples, please refer to the [Documentation](https://example.com)_
 
 <p align="right"><a href="#readme-top">back to top</a></p>
+-->
 
 
 <!-- CONTRIBUTING -->
@@ -177,12 +187,12 @@ Julien Dorier -
 
 Aleksandar Vjestica - 
 
-Project Link: [https://github.com/vjesticalab/Application](https://github.com/vjesticalab/Application)
+Project Link: [VLabApp](https://github.com/vjesticalab/VLabApp)
 
 <p align="right"><a href="#readme-top">back to top</a></p>
 
 
-<!-- ACKNOWLEDGMENTS -->
+<!-- ACKNOWLEDGMENTS 
 ## Acknowledgments
 
 Space to list helpful resources and would like to give credit to. I've included a few of my favorites to kick things off!
@@ -191,6 +201,7 @@ Space to list helpful resources and would like to give credit to. I've included 
 * [GitHub Pages eg.Cellpose](https://pages.github.com)
 
 <p align="right"><a href="#readme-top">back to top</a></p>
+-->
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
