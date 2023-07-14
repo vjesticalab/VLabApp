@@ -100,6 +100,10 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         window = QVBoxLayout(self)
+
+        title = "VLabApp"
+        self.setWindowTitle(title)
+
         self.image = QLabel()
         self.image.setPixmap(QPixmap("support_files/Vlab_icon_50x50-01.png"))
         self.image.setAlignment(Qt.AlignCenter)
@@ -107,9 +111,9 @@ class MainWindow(QWidget):
         tabwizard = gf.TabWizard()
         window.addWidget(tabwizard)
         
-        page_description = 'The VLabApplication is created with the aim of automating the cellular image analysis process, from the recording of the movies that come out of the microscope, to the tracking of the events within each time frame.\n\n\nThe application is in fact divided into several sub-sections that can be used consecutively or automatically:\n\n  - Image Registration\n\n  - GroundTruth Dataset Construction\n\n  - Image Segmentation\n\n  - Event Tracking'
+        #page_description = 'The VLabApp is created with the aim of automating the cellular image analysis process, from the recording of the movies that come out of the microscope, to the tracking of the events within each time frame.\n\n\nThe application is in fact divided into several sub-sections that can be used consecutively or automatically:\n\n  - Image Registration\n\n  - GroundTruth Dataset Construction\n\n  - Image Segmentation\n\n  - Event Tracking'
         
-        tabwizard.addHomePage(Home(page_description))
+        #tabwizard.addHomePage(Home(page_description))
         tabwizard.addPage(Viewer(), "Viewer")
         tabwizard.addPage(zProjection(), "Z-Projection")
         tabwizard.addPage(GTGenerator(), "GroundTruth")
