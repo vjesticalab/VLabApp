@@ -120,7 +120,7 @@ def event_filter(mask, graph, event, tp_before, tp_after, output_path):
     border_mask_ids = border_mask_ids[border_mask_ids > 0]
     selected_cell_tracks = [x for x in selected_cell_tracks if np.isin(x['mask_ids'], border_mask_ids).any() == False]
 
-    # Delete the cells masks with more than nmissing detections
+    # Delete the cells masks with more than nmissing missing detections
     selected_cell_tracks = [x for x in selected_cell_tracks if x['n_missing'] <= nmissing]
 
     # Initilize final results objects

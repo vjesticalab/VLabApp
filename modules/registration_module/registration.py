@@ -18,7 +18,7 @@ class Perform(gf.Page):
         super().__init__()
         ####### Section Registration #######
         label = QLabel("Perform registration")
-        label2 = QLabel('(performed by default over only BF images)')
+        label2 = QLabel('(performed by default over the channel in position 0, we normally assume it as BF)')
         font = label2.font()
         font.setItalic(True)
         label2.setFont(font)
@@ -50,7 +50,8 @@ class Perform(gf.Page):
         layout.addLayout(layout3)
         layout3 = QGridLayout()
         layout3.addWidget(self.skip_cropping_yn_A, 0, 0)
-        layout3.addWidget(self.coalignment_yn_A, 0, 1)
+        layout3.addWidget(self.coalignment_yn_A, 1, 0)
+        layout3.addWidget(QLabel('<i>\tNote that if you have > 1 images with the same unique id, they will be aligned to the last one processed!</i>'), 2, 0)
         layout.addLayout(layout3)
         layout.addWidget(self.buttonA, alignment=Qt.AlignCenter)
 
@@ -62,7 +63,7 @@ class Perform(gf.Page):
 
     def register(self):
         """
-        Consider ONLY BF images = images containing "_BF" in the name
+        Consider Unique Identifier as split('_')[0]
         """
         def check_inputs(image_paths):
             """
@@ -88,26 +89,27 @@ class Perform(gf.Page):
         
         for image_path in image_paths:
             if os.path.isfile(image_path):
-                if '_BF' in image_path:
-                    # Set log and cursor info
-                    self.logger.info("Image %s", image_path)
-                    QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
-                    QApplication.processEvents()
+                # Arianna 19/07/23: removed because Ayo asked me that
+                #if '_BF' in image_path:
+                # Set log and cursor info
+                self.logger.info("Image %s", image_path)
+                QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+                QApplication.processEvents()
 
-                    coalignment_images_list = []
-                    if coalignment:
-                        unique_identifier = os.path.basename(image_path).split('_BF')[0]
-                        for im in image_paths:
-                            if unique_identifier in im and '_BF' not in im and im != image_path:
-                                coalignment_images_list.append(im)
+                coalignment_images_list = []
+                if coalignment:
+                    unique_identifier = os.path.basename(image_path).split('_')[0]
+                    for im in image_paths:
+                        if unique_identifier in im and im != image_path:
+                            coalignment_images_list.append(im)
 
-                    # Perform projection
-                    try:
-                        f.registration_main(image_path, skip_crop_decision, coalignment_images_list)
-                    except Exception as e:
-                        self.logger.error("Registration failed.\n" + str(e))
-                    # Restore cursor
-                    QApplication.restoreOverrideCursor()
+                # Perform projection
+                try:
+                    f.registration_main(image_path, skip_crop_decision, coalignment_images_list)
+                except Exception as e:
+                    self.logger.error("Registration failed.\n" + str(e))
+                # Restore cursor
+                QApplication.restoreOverrideCursor()
             else:
                 self.logger.error("Unable to locate file %s", image_path)
         self.logger.info("Done")

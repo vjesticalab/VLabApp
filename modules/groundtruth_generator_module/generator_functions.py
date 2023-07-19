@@ -171,7 +171,7 @@ def main(image_path, output_path):
 
     Saves
     ---------------------
-    z-projection image in the output directory
+    ground truth image in the output directory
 
     """
     global norm_channels_image, image_name, min_th_value, max_th_value

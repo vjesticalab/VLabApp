@@ -22,7 +22,7 @@ def read_transfMat(tmat_path):
 
 def registration_with_tmat(tmat_int, image, skip_crop, output_path):
     """
-    This function uses a transformation matrix to performs registration and eventually cropping of a 3D image
+    This function uses a transformation matrix to performs registration and eventually cropping of an image
     Note - always assuming FoV dimension of the image as empty 
 
     Parameters
@@ -62,8 +62,12 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
 
     if skip_crop:
         # Save the registered and un-cropped image
-        tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
-    
+        try:
+            tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
+        except:
+            tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, compression='zlib')
+      
+
     else:
         # Crop to desired area
         y_start = 0 - min(tmat_int[:,2])
@@ -74,7 +78,11 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
         image_cropped = registered_image[:, :, :, :, y_start:y_end, x_start:x_end]
         
         # Save the registered and cropped image
-        tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
+        try:
+            tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
+        except:
+            tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, compression='zlib')
+
 
 def registration_values(image, output_path):
     """
@@ -97,7 +105,7 @@ def registration_values(image, output_path):
     txt_res :
         file which contains the values t_x and t_y (x and y pixel shifts) as columns for each time point (rows)      
     """
-    # Assuming empty dimensions F and T
+    # Assuming empty dimensions F and C
     # if Z not empty then make z-projection std
     if image.sizes['Z'] > 1:
         try:
