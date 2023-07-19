@@ -10,6 +10,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from modules.registration_module import registration_functions as f
 from general import general_functions as gf
+import concurrent.futures
 
 matplotlib.use("Qt5Agg")
 
@@ -108,14 +109,18 @@ class Perform(gf.Page):
         
         if not check_inputs(image_paths):
             return
-        
+
+        QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+        QApplication.processEvents()
+
+        arguments = []
+        output_path = os.path.join(os.path.dirname(image_paths[0]), 'registration')
+        os.makedirs(os.path.join(output_path, 'tranf_matrices'), exist_ok=True)
         for image_path in image_paths:
             if os.path.isfile(image_path):
                 if '_'+channel_name in image_path or channel_name in image_path:
                     # Set log and cursor info
                     self.logger.info("Image %s", image_path)
-                    QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
-                    QApplication.processEvents()
 
                     coalignment_images_list = []
                     if coalignment:
@@ -124,15 +129,39 @@ class Perform(gf.Page):
                             if unique_identifier in im and im != image_path:
                                 coalignment_images_list.append(im)
 
-                    # Perform projection
-                    try:
-                        f.registration_main(image_path, channel_position, projection_type, skip_crop_decision, coalignment_images_list)
-                    except Exception as e:
-                        self.logger.error("Registration failed.\n" + str(e))
-                    # Restore cursor
-                    QApplication.restoreOverrideCursor()
+
+                    # collect arguments
+                    arguments.append((image_path, output_path, channel_position, projection_type,skip_crop_decision, coalignment_images_list))
+
             else:
                 self.logger.error("Unable to locate file %s", image_path)
+
+        # we use as many cores as images on the list but not more than half of the cores available
+        nprocs = min(len(arguments), os.cpu_count()//2)
+        self.logger.info(f"Using: {nprocs} cores to perform registration")
+        if not arguments:
+            return
+        # Perform projection
+        if len(arguments) == 1:
+            f.registration_main(*arguments[0])
+        else:
+            # we go parallel
+            with concurrent.futures.ProcessPoolExecutor(max_workers=nprocs) as executor:
+                future_reg = {
+                    executor.submit(f.registration_main, *args): args for args in arguments
+                }
+                for future in concurrent.futures.as_completed(future_reg):
+                    try:
+
+                        image_path = future.result()
+                    except Exception:
+                        self.logger.exception("An exception occurred")
+                    else:
+                        self.logger.info(f" Image: {image_path} Done")
+
+
+        # Restore cursor
+        QApplication.restoreOverrideCursor()
         self.logger.info("Done")
     
     def add_file(self, filelist, filetypes):

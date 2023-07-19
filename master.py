@@ -13,7 +13,7 @@ from modules.graph_filtering_module import graph_filtering
 from modules.graph_event_filter_module import graph_event_filter
 from modules.viewer_module import viewer
 from general import general_functions as gf
-
+import multiprocessing as mp
 
 class Home(gf.Page):
     def __init__(self, page_description):
@@ -159,6 +159,10 @@ class MainWindow(QWidget):
 
 
 if __name__ == "__main__":
+    try:
+        mp.set_start_method('spawn', force=True)
+    except RuntimeError:
+        sys.exit(1)
     app = QApplication(sys.argv)
     w = MainWindow()
     w.show()

@@ -41,7 +41,7 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
     image : ndarray
         registered and eventually cropped image 
     """
-    registeredFilepath = output_path + image.name + '_registered.tif'
+    registeredFilepath = os.path.join(output_path, image.name + '_registered.tif')
     
     # Assuming empty dimension F
     image6D = image.image
@@ -162,32 +162,28 @@ def registration_values(image, projection_type, channel_position, output_path):
     # Align each frame at the previous one
     tmats_float = sr.register_stack(image3D, reference='previous')    
     # Convert tmats_float into integers
-    tmats_int = tmats_float
-    translation = [] 
-    for i in range(0, tmats_int.shape[0]):
-        tmats_int[i, 0, 2] = int(tmats_float[i, 0, 2])
-        tmats_int[i, 1, 2] = int(tmats_float[i, 1, 2])
-        translation.append([int(i)+1, int(tmats_int[i, 0, 2]), int(tmats_int[i, 1, 2]), 1, int(tmats_int[i, 0, 2]), int(tmats_int[i, 1, 2]), image.sizes['X'], image.sizes['Y']])
-    
+
+
     # Transformation matrix has 6 columns:
     # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
-    transformation_matrices = np.array(translation)
+    transformation_matrices = np.zeros((tmats_float.shape[0], 8), dtype=np.int)
+    transformation_matrices[:, 0] = np.arange(1, tmats_float.shape[0]+1)
+    transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = tmats_float[:, 0:2, 2].astype(int)
+    transformation_matrices[:, 3] = 1
+    transformation_matrices[:, 6] = image.sizes['X']
+    transformation_matrices[:, 7] = image.sizes['Y']
     # Save the txt file with the translation matrix
-    txt_name = output_path + 'tranf_matrices/' + image.name.split('_')[0] +'_transformationMatrix.txt'
+    txt_name = os.path.join(output_path,'tranf_matrices', image.name.split('_')[0] +'_transformationMatrix.txt')
     np.savetxt(txt_name, transformation_matrices, fmt = '%d, %d, %d, %d, %d, %d, %d, %d', header = 'timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y, x, y', delimiter = '\t')    
     
     return transformation_matrices
 
 ################################################################
 
-def registration_main(image_path, channel_position, projection_type, skip_crop_decision, coalignment_images_list):
+
+def registration_main(image_path, output_path, channel_position, projection_type, skip_crop_decision, coalignment_images_list):
     # Load image
     # Note: by default the image have to be ALWAYS 3D with TYX
-    output_path = os.path.dirname(image_path)+'/registration/'
-    if not os.path.exists(output_path):
-        os.mkdir(output_path)
-    if not os.path.exists(output_path + 'tranf_matrices/'):
-        os.mkdir(output_path + 'tranf_matrices/')
     try:
         image = gf.Image(image_path)
         image.imread()
@@ -215,18 +211,20 @@ def registration_main(image_path, channel_position, projection_type, skip_crop_d
         except Exception as e:
             logging.getLogger(__name__).error('Alignment failed for image '+im_coal_path+' - '+str(e))
 
+    return image_path
+
 ################################################################
 
 def alignment_main(image_path, skip_crop_decision):
     # Load image and matrix
-    output_path = os.path.dirname(image_path)+'/registration/'
+    output_path = os.path.join(os.path.dirname(image_path),'registration')
     try:
         image = gf.Image(image_path)  
         image.imread()
     except Exception as e:
         logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))                    
     try:
-        tmat_path = output_path + 'tranf_matrices/' + image.name.split('_')[0] + '_transformationMatrix.txt'
+        tmat_path = os.path.join(output_path, 'tranf_matrices', image.name.split('_')[0] + '_transformationMatrix.txt')
         tmat_int = read_transfMat(tmat_path)
     except Exception as e:
         logging.getLogger(__name__).error('Error loading transformation matrix for image '+image_path+' - '+str(e))
