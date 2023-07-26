@@ -1057,7 +1057,7 @@ class CellTrackingWidget(QWidget):
         self.stable_overlap_fraction = QSpinBox()
         self.stable_overlap_fraction.setMinimum(0)
         self.stable_overlap_fraction.setMaximum(100)
-        self.stable_overlap_fraction.setValue(100*stable_overlap_fraction)
+        self.stable_overlap_fraction.setValue(int(100*stable_overlap_fraction))
         self.stable_overlap_fraction.setSuffix('%')
         self.stable_overlap_fraction.setToolTip('Cell tracking graph edges corresponding to an overlap fraction below this value are considered as not stable.')
         layout2.addWidget(QLabel("Stable overlap fraction:"), 1, 0)
@@ -1066,7 +1066,7 @@ class CellTrackingWidget(QWidget):
         self.nframes_defect = QSpinBox()
         self.nframes_defect.setMinimum(1)
         self.nframes_defect.setMaximum(50)
-        self.nframes_defect.setValue(nframes_defect)
+        self.nframes_defect.setValue(int(nframes_defect))
         self.nframes_defect.setToolTip('Maximum size of the defect (number of frames).')
         self.nframes_defect.valueChanged.connect(self.nframes_defect_changed)
         layout2.addWidget(QLabel("Max defect size (frames):"), 2, 0)
@@ -1075,7 +1075,7 @@ class CellTrackingWidget(QWidget):
         self.max_delta_frame_interpolation = QSpinBox()
         self.max_delta_frame_interpolation.setMinimum(1)
         self.max_delta_frame_interpolation.setMaximum(50)
-        self.max_delta_frame_interpolation.setValue(max_delta_frame_interpolation)
+        self.max_delta_frame_interpolation.setValue(int(max_delta_frame_interpolation))
         self.max_delta_frame_interpolation.setToolTip('Number of previous and subsequent frames to consider for mask interpolation.')
         self.max_delta_frame_interpolation.valueChanged.connect(self.max_delta_frame_interpolation_changed)
         layout2.addWidget(QLabel("Max delta frame (interpolation):"), 3, 0)
@@ -1084,7 +1084,7 @@ class CellTrackingWidget(QWidget):
         self.nframes_stable = QSpinBox()
         self.nframes_stable.setMinimum(1)
         self.nframes_stable.setMaximum(50)
-        self.nframes_stable.setValue(nframes_stable)
+        self.nframes_stable.setValue(int(nframes_stable))
         self.nframes_stable.setToolTip('Minimum number of stable frames before and after the defect.')
         self.nframes_stable.valueChanged.connect(self.nframes_stable_changed)
         layout2.addWidget(QLabel("Min stable size (frames):"), 4, 0)
@@ -1093,7 +1093,7 @@ class CellTrackingWidget(QWidget):
         self.min_area = QSpinBox()
         self.min_area.setMinimum(1)
         self.min_area.setMaximum(10000)
-        self.min_area.setValue(min_area)
+        self.min_area.setValue(int(min_area))
         self.min_area.setToolTip('Remove mask regions with area (number of pixels) below this value')
         layout2.addWidget(QLabel("Min area:"), 5, 0)
         layout2.addWidget(self.min_area, 5, 1)
@@ -1128,7 +1128,7 @@ class CellTrackingWidget(QWidget):
         self.max_delta_frame_interpolation2 = QSpinBox()
         self.max_delta_frame_interpolation2.setMinimum(1)
         self.max_delta_frame_interpolation2.setMaximum(50)
-        self.max_delta_frame_interpolation2.setValue(max_delta_frame_interpolation)
+        self.max_delta_frame_interpolation2.setValue(int(max_delta_frame_interpolation))
         self.max_delta_frame_interpolation2.setToolTip('Number of previous and subsequent frames to consider for mask interpolation.')
         layout2.addWidget(QLabel("Max delta frame (interpolation):"), 1, 0)
         layout2.addWidget(self.max_delta_frame_interpolation2, 1, 1)
@@ -1136,7 +1136,7 @@ class CellTrackingWidget(QWidget):
         self.min_area2 = QSpinBox()
         self.min_area2.setMinimum(1)
         self.min_area2.setMaximum(10000)
-        self.min_area2.setValue(min_area)
+        self.min_area2.setValue(int(min_area))
         self.min_area2.setToolTip('Remove mask regions with area (number of pixels) below this value')
         layout2.addWidget(QLabel("Min area:"), 2, 0)
         layout2.addWidget(self.min_area2, 2, 1)
@@ -1165,7 +1165,7 @@ class CellTrackingWidget(QWidget):
         self.max_delta_frame = QSpinBox()
         self.max_delta_frame.setMinimum(1)
         self.max_delta_frame.setMaximum(50)
-        self.max_delta_frame.setValue(max_delta_frame)
+        self.max_delta_frame.setValue(int(max_delta_frame))
         self.max_delta_frame.setToolTip('Number of previous frames to consider when creating the cell tracking graph.')
         layout2.addWidget(QLabel("Max delta frame:"), 1, 0)
         layout2.addWidget(self.max_delta_frame, 1, 1)
@@ -1173,7 +1173,7 @@ class CellTrackingWidget(QWidget):
         self.min_area3 = QSpinBox()
         self.min_area3.setMinimum(1)
         self.min_area3.setMaximum(10000)
-        self.min_area3.setValue(min_area)
+        self.min_area3.setValue(int(min_area))
         self.min_area3.setToolTip('Remove mask regions with area (number of pixels) below this value.')
         layout2.addWidget(QLabel("Min area:"), 2, 0)
         layout2.addWidget(self.min_area3, 2, 1)
@@ -1181,7 +1181,7 @@ class CellTrackingWidget(QWidget):
         self.min_overlap_fraction = QSpinBox()
         self.min_overlap_fraction.setMinimum(0)
         self.min_overlap_fraction.setMaximum(100)
-        self.min_overlap_fraction.setValue(100*min_overlap_fraction)
+        self.min_overlap_fraction.setValue(int(100*min_overlap_fraction))
         self.min_overlap_fraction.setSuffix('%')
         self.min_overlap_fraction.setToolTip('minimum overlap fraction (w.r.t mask area) to consider when creating edges in the cell tracking graph.')
         layout2.addWidget(QLabel("Min overlap fraction:"), 3, 0)
@@ -1252,23 +1252,23 @@ class CellTrackingWidget(QWidget):
     def nframes_defect_changed(self, value):
         # Set nframes_defect<=max_delta_frame_interpolation<=nframes_stable
         if self.nframes_stable.value() < value:
-            self.nframes_stable.setValue(value)
+            self.nframes_stable.setValue(int(value))
         if self.max_delta_frame_interpolation.value() < value:
-            self.max_delta_frame_interpolation.setValue(value)
+            self.max_delta_frame_interpolation.setValue(int(value))
 
     def max_delta_frame_interpolation_changed(self, value):
         # Set nframes_defect<=max_delta_frame_interpolation<=nframes_stable
         if self.nframes_stable.value() < value:
-            self.nframes_stable.setValue(value)
+            self.nframes_stable.setValue(int(value))
         if self.nframes_defect.value() > value:
-            self.nframes_defect.setValue(value)
+            self.nframes_defect.setValue(int(value))
 
     def nframes_stable_changed(self, value):
         # Set nframes_defect<=max_delta_frame_interpolation<=nframes_stable
         if self.nframes_defect.value() > value:
-            self.nframes_defect.setValue(value)
+            self.nframes_defect.setValue(int(value))
         if self.max_delta_frame_interpolation.value() > value:
-            self.max_delta_frame_interpolation.setValue(value)
+            self.max_delta_frame_interpolation.setValue(int(value))
 
     def clean_mask(self):
         # Set cursor to BusyCursor
