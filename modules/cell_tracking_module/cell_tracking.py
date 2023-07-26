@@ -20,7 +20,7 @@ class CellTracking(QWidget):
         browse_button2 = QPushButton("Browse", self)
         browse_button2.clicked.connect(self.add_mask)
 
-        self.use_input_folder = QRadioButton("Use input image folder\n(cell_tracking sub-folder)")
+        self.use_input_folder = QRadioButton("Use input image folder (cell_tracking sub-folder)")
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)

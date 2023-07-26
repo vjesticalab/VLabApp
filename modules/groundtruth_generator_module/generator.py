@@ -21,7 +21,7 @@ class Generator(QWidget):
         self.remove_button = QPushButton("Remove selected", self)
         self.remove_button.clicked.connect(self.remove)
         # Output widgets
-        self.use_input_folder = QRadioButton("Use input image folder\n(ground_truth sub-folder)")
+        self.use_input_folder = QRadioButton("Use input image folder (ground_truth sub-folder)")
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)

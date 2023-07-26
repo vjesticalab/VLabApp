@@ -1,7 +1,7 @@
 import os
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QCheckBox, QFileDialog, QPushButton, QVBoxLayout, QWidget, QAbstractItemView, QGridLayout, QLabel, QLineEdit, QHBoxLayout, QApplication
-from PyQt5.QtGui import QCursor
+from PyQt5.QtWidgets import QCheckBox, QComboBox, QFormLayout, QPushButton, QVBoxLayout, QWidget, QAbstractItemView, QGridLayout, QLabel, QLineEdit, QHBoxLayout, QApplication
+from PyQt5.QtGui import QCursor, QIntValidator
 from functools import partial
 import numpy as np
 import logging
@@ -17,11 +17,6 @@ class Perform(gf.Page):
     def __init__(self):
         super().__init__()
         ####### Section Registration #######
-        label = QLabel("Perform registration")
-        label2 = QLabel('(performed by default over the channel in position 0, we normally assume it as BF)')
-        font = label2.font()
-        font.setItalic(True)
-        label2.setFont(font)
         self.imagetypes = ['.nd2', '.tif', '.tiff']
         self.image_listA = gf.DropFilesListWidget(filetypes=self.imagetypes)
         self.image_listA.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -31,27 +26,43 @@ class Perform(gf.Page):
         self.add_folder_buttonA.clicked.connect(partial(self.add_folder, self.image_listA, self.imagetypes))
         self.remove_buttonA = QPushButton("Remove selected", self)
         self.remove_buttonA.clicked.connect(partial(self.remove, self.image_listA))
-        """self.label_idA = QLabel("Specify the unique identifier of reference files:")
-        self.reference_identifierA = QLineEdit()"""
-        self.coalignment_yn_A = QCheckBox("Co-align files with the same unique identifier (eg. smp01 for smp01_BF.nd2)")
-        self.skip_cropping_yn_A = QCheckBox("Do NOT crop aligned image")
+        
+        label = QLabel("<b>OPTIONS:</b>")
+        self.channel_name = QLineEdit(placeholderText='eg. BF (default) / WL508 / ...')
+        self.channel_name.setMinimumWidth(200)
+        self.channel_position = QLineEdit(placeholderText='eg. 0 (default) / 1 / ...')
+        self.channel_position.setMinimumWidth(200)
+        self.channel_position.setValidator(QIntValidator())
+        self.projection_type = QComboBox(self)
+        self.projection_type.addItem("std")
+        self.projection_type.addItem("max")
+        self.projection_type.addItem("min")
+        self.projection_type.addItem("avg") #mean
+        self.projection_type.addItem("median")
+        self.coalignment_yn_A = QCheckBox("")
+        self.skip_cropping_yn_A = QCheckBox("")
         self.buttonA = QPushButton("Register")
         self.buttonA.clicked.connect(self.register)
 
         # Layout
         layout = QVBoxLayout()
-        layout.addWidget(label)
-        layout.addWidget(label2)
+        layout.addWidget(QLabel("Images to process"))
         layout.addWidget(self.image_listA)
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.add_image_buttonA)
-        layout3.addWidget(self.add_folder_buttonA)
-        layout3.addWidget(self.remove_buttonA)
-        layout.addLayout(layout3)
-        layout3 = QGridLayout()
-        layout3.addWidget(self.skip_cropping_yn_A, 0, 0)
-        layout3.addWidget(self.coalignment_yn_A, 1, 0)
-        layout3.addWidget(QLabel('<i>\tNote that if you have > 1 images with the same unique id, they will be aligned to the last one processed!</i>'), 2, 0)
+        layout2 = QHBoxLayout()
+        layout2.addWidget(self.add_image_buttonA)
+        layout2.addWidget(self.add_folder_buttonA)
+        layout2.addWidget(self.remove_buttonA)
+        layout.addLayout(layout2)
+        
+        layout.addWidget(label)
+        layout3 = QFormLayout()
+        layout3.setLabelAlignment(Qt.AlignLeft)
+        layout3.setFormAlignment(Qt.AlignLeft)
+        layout3.addRow(" - Channel name:",self.channel_name)
+        layout3.addRow(" - If needed, channel position into the c-stack:",self.channel_position)
+        layout3.addRow(" - If needed, projection for the z-stack:",self.projection_type)
+        layout3.addRow(" - Co-align files with the same unique identifier (eg. smp01 for smp01_BF.nd2)", self.skip_cropping_yn_A)
+        layout3.addRow(" - Do NOT crop aligned image", self.coalignment_yn_A)
         layout.addLayout(layout3)
         layout.addWidget(self.buttonA, alignment=Qt.AlignCenter)
 
@@ -82,34 +93,44 @@ class Perform(gf.Page):
             return True
         
         image_paths = [self.image_listA.item(x).text() for x in range(self.image_listA.count())]
-        skip_crop_decision = self.skip_cropping_yn_A.isChecked()
+        
+        # Arianna 26/07/23: added the three options channel_name, channel_position, projection_type
+        channel_name = self.channel_name.text()
+        channel_position = self.channel_position.text()
+        projection_type = self.projection_type.currentText()
         coalignment = self.coalignment_yn_A.isChecked()
+        skip_crop_decision = self.skip_cropping_yn_A.isChecked()
+
+        if channel_name == '': channel_name = 'BF'
+        
+        if channel_position == '': channel_position = 0
+        else: channel_position = int(channel_position)
+        
         if not check_inputs(image_paths):
             return
         
         for image_path in image_paths:
             if os.path.isfile(image_path):
-                # Arianna 19/07/23: removed because Ayo asked me that
-                #if '_BF' in image_path:
-                # Set log and cursor info
-                self.logger.info("Image %s", image_path)
-                QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
-                QApplication.processEvents()
+                if '_'+channel_name in image_path:
+                    # Set log and cursor info
+                    self.logger.info("Image %s", image_path)
+                    QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+                    QApplication.processEvents()
 
-                coalignment_images_list = []
-                if coalignment:
-                    unique_identifier = os.path.basename(image_path).split('_')[0]
-                    for im in image_paths:
-                        if unique_identifier in im and im != image_path:
-                            coalignment_images_list.append(im)
+                    coalignment_images_list = []
+                    if coalignment:
+                        unique_identifier = os.path.basename(image_path).split('_')[0]
+                        for im in image_paths:
+                            if unique_identifier in im and im != image_path:
+                                coalignment_images_list.append(im)
 
-                # Perform projection
-                try:
-                    f.registration_main(image_path, skip_crop_decision, coalignment_images_list)
-                except Exception as e:
-                    self.logger.error("Registration failed.\n" + str(e))
-                # Restore cursor
-                QApplication.restoreOverrideCursor()
+                    # Perform projection
+                    try:
+                        f.registration_main(image_path, channel_position, projection_type, skip_crop_decision, coalignment_images_list)
+                    except Exception as e:
+                        self.logger.error("Registration failed.\n" + str(e))
+                    # Restore cursor
+                    QApplication.restoreOverrideCursor()
             else:
                 self.logger.error("Unable to locate file %s", image_path)
         self.logger.info("Done")
@@ -138,7 +159,7 @@ class Align(gf.Page):
     def __init__(self):
         super().__init__()
         ####### Section Alignment #######
-        label = QLabel("Align images")
+        label = QLabel("Images to align")
         label2 = QLabel('(the corresponding matrices have to be in "image_path/registration/tranf_matrices/" folder)')
         font = label2.font()
         font.setItalic(True)
@@ -238,7 +259,7 @@ class Edit(gf.Page):
     def __init__(self):
         super().__init__()
         ####### Section Editing #######
-        label = QLabel("Edit transformation matrices")
+        label = QLabel("Matrices to edit")
         label2 = QLabel('(double click on the transformation matrix to visualize it)')
         font = label2.font()
         font.setItalic(True)

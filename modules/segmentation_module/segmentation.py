@@ -28,7 +28,7 @@ class Segmentation(QWidget):
         self.browse_button = QPushButton("Browse", self)
         self.browse_button.clicked.connect(self.browse_model)
 
-        self.use_input_folder = QRadioButton("Use input image folder\n(segmentation_masks sub-folder)")
+        self.use_input_folder = QRadioButton("Use input image folder (segmentation_masks sub-folder)")
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)

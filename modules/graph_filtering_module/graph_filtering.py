@@ -52,7 +52,7 @@ class GraphFiltering(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        self.use_input_folder = QRadioButton("Use input image folder\n(graph_filtering sub-folder)")
+        self.use_input_folder = QRadioButton("Use input image folder (graph_filtering sub-folder)")
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)
