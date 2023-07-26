@@ -111,7 +111,7 @@ class Perform(gf.Page):
         
         for image_path in image_paths:
             if os.path.isfile(image_path):
-                if '_'+channel_name in image_path:
+                if '_'+channel_name in image_path or channel_name in image_path:
                     # Set log and cursor info
                     self.logger.info("Image %s", image_path)
                     QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
