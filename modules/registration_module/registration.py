@@ -61,8 +61,8 @@ class Perform(gf.Page):
         layout3.addRow(" - Channel name:",self.channel_name)
         layout3.addRow(" - If needed, channel position into the c-stack:",self.channel_position)
         layout3.addRow(" - If needed, projection for the z-stack:",self.projection_type)
-        layout3.addRow(" - Co-align files with the same unique identifier (eg. smp01 for smp01_BF.nd2)", self.skip_cropping_yn_A)
-        layout3.addRow(" - Do NOT crop aligned image", self.coalignment_yn_A)
+        layout3.addRow(" - Co-align files with the same unique identifier (eg. smp01 for smp01_BF.nd2)", self.coalignment_yn_A)
+        layout3.addRow(" - Do NOT crop aligned image", self.skip_cropping_yn_A)
         layout.addLayout(layout3)
         layout.addWidget(self.buttonA, alignment=Qt.AlignCenter)
 
@@ -118,11 +118,12 @@ class Perform(gf.Page):
                     QApplication.processEvents()
 
                     coalignment_images_list = []
+                        
                     if coalignment:
                         unique_identifier = os.path.basename(image_path).split('_')[0]
-                        for im in image_paths:
+                        for im in os.listdir(os.path.dirname(image_path)):
                             if unique_identifier in im and im != image_path:
-                                coalignment_images_list.append(im)
+                                coalignment_images_list.append(os.path.join(os.path.dirname(image_path),im))
 
                     # Perform projection
                     try:
