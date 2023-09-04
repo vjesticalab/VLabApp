@@ -35,7 +35,8 @@ class zProjection(QWidget):
         self.use_custom_folder.toggled.connect(self.browse_button2.setEnabled)
         # Projection type widgets
         self.projection_type = QComboBox(self)
-        self.projection_type.addItem("best")
+        self.projection_type.addItem("bestZ")
+        self.projection_type.setItemData(0, "keep only Z section with best focus.", Qt.ToolTipRole)
         self.projection_type.addItem("max")
         self.projection_type.addItem("min")
         self.projection_type.addItem("mean")
@@ -47,7 +48,7 @@ class zProjection(QWidget):
         self.projection_zrange.setMinimum(0)
         self.projection_zrange.setMaximum(20)
         self.projection_zrange.setValue(3)
-        self.projection_zrange.setToolTip('Number of Z sections on each side of the section with best focus to use for projection.')
+        self.projection_zrange.setToolTip('Number of Z sections on each side of the section with best focus (bestZ) to use for projection.')
 
         # Submit
         self.submit_button = QPushButton("Submit", self)

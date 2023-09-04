@@ -235,7 +235,7 @@ class Image:
         When used the other dimensions F,C,Z MUST be empty (with size = 1)
     zProjection(projection_type, zrange)
         Return the z-projection of the image using the selected projection type over the range of z values [z_best-zrange,z_best+zrange], where z_best is the Z corresponding to best focus.
-        Possible projection types: best, max, min, std, avg (or mean), median
+        Possible projection types: bestZ, max, min, std, avg (or mean), median
     """
     def __init__(self, im_path):
         self.path = im_path
@@ -311,7 +311,7 @@ class Image:
         Parameters
         ----------
         projection_type: str
-            the projection type (best, max, min, std, avg, mean or median)
+            the projection type (bestZ, max, min, std, avg, mean or median)
         zrange: int
             the number of z sections on each side of the Z with best focus
             to use for for the projection.
@@ -342,7 +342,7 @@ class Image:
                         fit_error=True
 
 
-                    if projection_type == 'best':
+                    if projection_type == 'bestZ':
                         z_values = [z_best]
                     else:
                         #if z_best is too close to min or maz 'Z' => shift best_z so as to keep (2*zrange+1) z values (z_values).
@@ -354,7 +354,7 @@ class Image:
                     else:
                         logging.getLogger(__name__).info('Z-Projection (F: %s, T: %s, C: %s): %s over z in %s (Best z=%s)',f, t, c, projection_type, z_values, z_best)
 
-                    if projection_type == 'best':
+                    if projection_type == 'bestZ':
                         projected_image[f,t,c,0,:,:] = self.image[f,t,c,z_best,:,:].copy()
                     elif projection_type == 'max':
                         projected_image[f,t,c,0,:,:] = np.max(self.image[f,t,c,z_values,:,:], axis=0)

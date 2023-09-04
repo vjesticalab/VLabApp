@@ -69,7 +69,7 @@ def main(image_path, output_path, projection_type, projection_zrange):
         return
 
     # Save the projection
-    output_file_name = os.path.join(output_path, image.name+"_"+projection_type+("" if projection_type == "best" else str(projection_zrange))+".tif")
+    output_file_name = os.path.join(output_path, image.name+"_"+projection_type+("" if projection_type == "bestZ" else str(projection_zrange))+".tif")
     # TODO: properly deal with 'F' axis, i.e. the first 0 in projected_image[0,:,:,0,:,:] is problematic if there are more than one FOV.
     tifffile.imwrite(output_file_name, projected_image[0,:,:,0,:,:].astype('uint16'), metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
     logger.info("Projection performed and saved (%s)", output_file_name)

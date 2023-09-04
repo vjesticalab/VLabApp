@@ -78,7 +78,7 @@ def registration_projection_with_tmat(tmat_int, image, projection_type, projecti
     """
     As the previous one but made for the projected image of the z-stack 
     """
-    registeredFilepath = output_path + image.name + '_' + projection_type + ("" if projection_type == "best" else str(projection_zrange)) + 'Projection_registered.tif'
+    registeredFilepath = output_path + image.name + '_' + projection_type + ("" if projection_type == "bestZ" else str(projection_zrange)) + 'Projection_registered.tif'
 
     # Assuming empty dimension F
     image6D = image.zProjection(projection_type, projection_zrange)
