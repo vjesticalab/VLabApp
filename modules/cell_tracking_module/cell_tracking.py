@@ -13,7 +13,7 @@ class CellTracking(QWidget):
 
         label_documentation=QLabel()
         label_documentation.setOpenExternalLinks(True)
-        label_documentation.setText('<a href="'+os.path.join(os.path.dirname(__file__),"doc","METHODS.html")+'">Methods</a>')
+        label_documentation.setText('<a href="file://'+os.path.join(os.path.dirname(__file__),"doc","METHODS.html")+'">Methods</a>')
         
         self.imagetypes = ['.nd2', '.tif', '.tiff']
 
