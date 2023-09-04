@@ -10,6 +10,11 @@ from general import general_functions as gf
 class CellTracking(QWidget):
     def __init__(self):
         super().__init__()
+
+        label_documentation=QLabel()
+        label_documentation.setOpenExternalLinks(True)
+        label_documentation.setText('<a href="'+os.path.join(os.path.dirname(__file__),"doc","METHODS.html")+'">Methods</a>')
+        
         self.imagetypes = ['.nd2', '.tif', '.tiff']
 
         self.input_image = gf.DropFileLineEdit(filetypes=self.imagetypes)
@@ -86,6 +91,12 @@ class CellTracking(QWidget):
         self.submit_button.clicked.connect(self.submit)
         
         layout = QVBoxLayout()
+        groupbox = QGroupBox("Documentation")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(label_documentation)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
         groupbox = QGroupBox("Image")
         layout2 = QVBoxLayout()
         layout3 = QHBoxLayout()
