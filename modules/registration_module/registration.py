@@ -1,6 +1,6 @@
 import os
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QCheckBox, QComboBox, QFileDialog, QFormLayout, QPushButton, QVBoxLayout, QWidget, QAbstractItemView, QGridLayout, QLabel, QLineEdit, QHBoxLayout, QApplication
+from PyQt5.QtWidgets import QCheckBox, QComboBox, QFileDialog, QFormLayout, QPushButton, QVBoxLayout, QWidget, QAbstractItemView, QGridLayout, QLabel, QLineEdit, QHBoxLayout, QApplication, QSpinBox
 from PyQt5.QtGui import QCursor, QIntValidator
 from functools import partial
 import numpy as np
@@ -27,7 +27,7 @@ class Perform(gf.Page):
         self.add_folder_buttonA.clicked.connect(partial(self.add_folder, self.image_listA, self.imagetypes))
         self.remove_buttonA = QPushButton("Remove selected", self)
         self.remove_buttonA.clicked.connect(partial(self.remove, self.image_listA))
-        
+
         label = QLabel("<b>OPTIONS:</b>")
         self.channel_name = QLineEdit(placeholderText='eg. BF (default) / WL508 / ...')
         self.channel_name.setMinimumWidth(200)
@@ -35,11 +35,18 @@ class Perform(gf.Page):
         self.channel_position.setMinimumWidth(200)
         self.channel_position.setValidator(QIntValidator())
         self.projection_type = QComboBox(self)
-        self.projection_type.addItem("std")
+        self.projection_type.addItem("best")
         self.projection_type.addItem("max")
         self.projection_type.addItem("min")
-        self.projection_type.addItem("avg") #mean
+        self.projection_type.addItem("mean")
         self.projection_type.addItem("median")
+        self.projection_type.addItem("std")
+        self.projection_type.setCurrentText("std")
+        self.projection_zrange = QSpinBox()
+        self.projection_zrange.setMinimum(0)
+        self.projection_zrange.setMaximum(20)
+        self.projection_zrange.setValue(3)
+        self.projection_zrange.setToolTip('Number of Z sections on each side of the section with best focus to use for projection.')
         self.coalignment_yn_A = QCheckBox("")
         self.skip_cropping_yn_A = QCheckBox("")
         self.buttonA = QPushButton("Register")
@@ -54,7 +61,7 @@ class Perform(gf.Page):
         layout2.addWidget(self.add_folder_buttonA)
         layout2.addWidget(self.remove_buttonA)
         layout.addLayout(layout2)
-        
+
         layout.addWidget(label)
         layout3 = QFormLayout()
         layout3.setLabelAlignment(Qt.AlignLeft)
@@ -62,6 +69,7 @@ class Perform(gf.Page):
         layout3.addRow(" - Channel name:",self.channel_name)
         layout3.addRow(" - If needed, channel position into the c-stack:",self.channel_position)
         layout3.addRow(" - If needed, projection for the z-stack:",self.projection_type)
+        layout3.addRow(" - If needed, projection range for the z-stack:",self.projection_zrange)
         layout3.addRow(" - Co-align files with the same unique identifier (eg. smp01 for smp01_BF.nd2)", self.coalignment_yn_A)
         layout3.addRow(" - Do NOT crop aligned image", self.skip_cropping_yn_A)
         layout.addLayout(layout3)
@@ -92,21 +100,22 @@ class Perform(gf.Page):
                     self.add_image_buttonA.setFocus()
                     return False
             return True
-        
+
         image_paths = [self.image_listA.item(x).text() for x in range(self.image_listA.count())]
-        
+
         # Arianna 26/07/23: added the three options channel_name, channel_position, projection_type
         channel_name = self.channel_name.text()
         channel_position = self.channel_position.text()
         projection_type = self.projection_type.currentText()
+        projection_zrange = self.projection_zrange.value()
         coalignment = self.coalignment_yn_A.isChecked()
         skip_crop_decision = self.skip_cropping_yn_A.isChecked()
 
         if channel_name == '': channel_name = 'BF'
-        
+
         if channel_position == '': channel_position = 0
         else: channel_position = int(channel_position)
-        
+
         if not check_inputs(image_paths):
             return
 
@@ -123,7 +132,7 @@ class Perform(gf.Page):
                     self.logger.info("Image %s", image_path)
 
                     coalignment_images_list = []
-                        
+
                     if coalignment:
                         unique_identifier = os.path.basename(image_path).split('_')[0]
                         for im in os.listdir(os.path.dirname(image_path)):
@@ -132,7 +141,7 @@ class Perform(gf.Page):
 
 
                     # collect arguments
-                    arguments.append((image_path, output_path, channel_position, projection_type,skip_crop_decision, coalignment_images_list))
+                    arguments.append((image_path, output_path, channel_position, projection_type, projection_zrange, skip_crop_decision, coalignment_images_list))
 
             else:
                 self.logger.error("Unable to locate file %s", image_path)
@@ -164,7 +173,7 @@ class Perform(gf.Page):
         # Restore cursor
         QApplication.restoreOverrideCursor()
         self.logger.info("Done")
-    
+
     def add_file(self, filelist, filetypes):
         # Add the selected file to the input file list
         file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Files ('+' '.join(['*'+x for x in filetypes])+')')
@@ -183,7 +192,7 @@ class Perform(gf.Page):
         # Remove the selected file from the file list
         for item in filelist.selectedItems():
             filelist.takeItem(filelist.row(item))
-    
+
 
 class Align(gf.Page):
     def __init__(self):
@@ -206,7 +215,7 @@ class Align(gf.Page):
         self.skip_cropping_yn_B = QCheckBox("Do NOT crop aligned image")
         self.buttonB = QPushButton("Align")
         self.buttonB.clicked.connect(self.align)
-        
+
         # Layout
         layout = QVBoxLayout()
         layout.addWidget(label)
@@ -219,7 +228,7 @@ class Align(gf.Page):
         layout.addLayout(layout3)
         layout.addWidget(self.skip_cropping_yn_B)
         layout.addWidget(self.buttonB, alignment=Qt.AlignCenter)
-        
+
         self.window = QVBoxLayout(self.container)
         self.window.addLayout(layout)
         self.window.addStretch()
@@ -242,7 +251,7 @@ class Align(gf.Page):
                     self.add_image_buttonB.setFocus()
                     return False
             return True
-            
+
         image_paths = [self.image_listB.item(x).text() for x in range(self.image_listB.count())]
         skip_crop_decision = self.skip_cropping_yn_B.isChecked()
         if not check_inputs(image_paths):
@@ -263,8 +272,8 @@ class Align(gf.Page):
                 self.logger.info("Done")
             else:
                 self.logger.error("Unable to locate file %s", image_path)
-        
-    
+
+
     def add_file(self, filelist, filetypes):
         # Add the selected file to the input file list
         file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Files ('+' '.join(['*'+x for x in filetypes])+')')
@@ -283,8 +292,8 @@ class Align(gf.Page):
         # Remove the selected file from the file list
         for item in filelist.selectedItems():
             filelist.takeItem(filelist.row(item))
-    
-   
+
+
 class Edit(gf.Page):
     def __init__(self):
         super().__init__()
@@ -359,15 +368,15 @@ class Edit(gf.Page):
                 self.end_timepoint_edit.setFocus()
                 return False
             return True
-        
+
         transfmat_paths = [self.matrices_list.item(x).text() for x in range(self.matrices_list.count())]
         start_timepoint = self.start_timepoint_edit.text()
         end_timepoint = self.end_timepoint_edit.text()
-        
+
         if not check_inputs(transfmat_paths, start_timepoint, end_timepoint):
             return
         for transfmat_path in transfmat_paths:
-            self.transfmat_path = transfmat_path        
+            self.transfmat_path = transfmat_path
             # Update the transformation matrix with indicated values
             f.edit_main(self.transfmat_path, int(start_timepoint), int(start_timepoint), int(end_timepoint))
             # Create an instance of the second window
@@ -375,8 +384,8 @@ class Edit(gf.Page):
             self.display_graph.setWindowTitle(os.path.splitext(os.path.basename(self.transfmat_path))[0])
             self.display_graph.move(700,0)
             self.display_graph.show()
-        
-    
+
+
     def display_matrix(self, item):
         self.transfmat_path = item.text()
         # Display the matrix
@@ -403,15 +412,15 @@ class Edit(gf.Page):
         # Remove the selected file from the file list
         for item in filelist.selectedItems():
             filelist.takeItem(filelist.row(item))
-    
+
 
 class Registration(QWidget):
     def __init__(self):
         super().__init__()
-        
+
         window = QVBoxLayout(self)
         tabwizard = gf.TabWizard()
-        
+
         tabwizard.addPage(Perform(), "Registration")
         tabwizard.addPage(Align(), "Alignment")
         tabwizard.addPage(Edit(), "Editing")
@@ -422,20 +431,20 @@ class Registration(QWidget):
 class DisplayGraphWindow(QWidget):
     def __init__(self, transfmat_path):
         super().__init__()
-         
+
         self.plot_xy(transfmat_path)
-        
+
         layout = QVBoxLayout()
         widget_graph = QWidget(self)
         widget_graph.setLayout(layout)
-                
+
     def plot_xy(self, transfmat_path):
         # Read the transformation matrix values
         transformation_matrix = f.read_transfMat(transfmat_path)
-        
+
         if transformation_matrix is None:
             return
-        
+
         time = list(transformation_matrix[:,0])
         included_x_shift = transformation_matrix[:,1]
         included_y_shift = transformation_matrix[:,2]
@@ -462,7 +471,7 @@ class DisplayGraphWindow(QWidget):
             max_distance = np.sqrt((dim_x[i]**2) + (dim_y[i]**2))
             xy_shift.append((max_distance-distance)/max_distance)
             included_xy_shift.append((max_distance-included_distance)/max_distance)
-        
+
         # Create a figure and a canvas
         figure = Figure()
         canvas = FigureCanvas(figure)
@@ -475,7 +484,7 @@ class DisplayGraphWindow(QWidget):
         ax.set_title('Offset')
         ax.set_xlabel('timepoints')
         ax.set_ylabel('offset values')
-                
+
         # Add the canvas to the layout
         layout = QVBoxLayout(self)
         layout.addWidget(canvas)

@@ -4,7 +4,7 @@ import tifffile
 from general import general_functions as gf
 
 
-def main(image_path, output_path, projection_type):
+def main(image_path, output_path, projection_type, projection_zrange):
     """
     Perform z projection of the image given
     
@@ -16,6 +16,9 @@ def main(image_path, output_path, projection_type):
         output directory
     projection_type: str
         type of the projection to perfrom
+    projection_zrange: int
+        the number of z sections on each side of the Z with best focus
+        to use for for the projection.
 
     Saves
     ---------------------
@@ -40,6 +43,10 @@ def main(image_path, output_path, projection_type):
     logfile_handler.setLevel(logging.INFO)
     logger.addHandler(logfile_handler)
 
+    # Also save general.general_functions logger to the same file (to log information on z-projection)
+    logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
+    logging.getLogger('general.general_functions').addHandler(logfile_handler)
+
     # Load image
     logger.debug("loading %s", image_path)
     try:
@@ -56,13 +63,14 @@ def main(image_path, output_path, projection_type):
 
     # Perform projection
     try:
-        projected_image = image.zProjection(projection_type)
+        projected_image = image.zProjection(projection_type,projection_zrange)
     except Exception as e:
         logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
         return
-    
+
     # Save the projection
-    output_file_name = output_path+image.name+"_"+projection_type+".tif"
+    output_file_name = os.path.join(output_path, image.name+"_"+projection_type+("" if projection_type == "best" else str(projection_zrange))+".tif")
+    # TODO: properly deal with 'F' axis, i.e. the first 0 in projected_image[0,:,:,0,:,:] is problematic if there are more than one FOV.
     tifffile.imwrite(output_file_name, projected_image[0,:,:,0,:,:].astype('uint16'), metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
     logger.info("Projection performed and saved (%s)", output_file_name)
 
@@ -70,10 +78,12 @@ def main(image_path, output_path, projection_type):
 
     # Close logfile
     logger.removeHandler(logfile_handler)
+    logging.getLogger('general.general_functions').removeHandler(logfile_handler)
 
 
 if __name__ == "__main__":
     image_path = '/Volumes/RECHERCHE/FAC/FBM/CIG/avjestic/zygoticfate/D2c/Lab_Data/20221111_P0001_E0008_U002/Sporulated-BF10/001_SP10.nd2'
     output_path = '/Users/aravera/Desktop/'
     projection_type = 'max'
-    main(image_path, output_path, projection_type)
+    projection_zrange = 3
+    main(image_path, output_path, projection_type, projection_zrange)

@@ -42,7 +42,7 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
         registered and eventually cropped image 
     """
     registeredFilepath = os.path.join(output_path, image.name + '_registered.tif')
-    
+
     # Assuming empty dimension F
     image6D = image.image
     registered_image = image6D.copy()
@@ -50,14 +50,14 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
         for c in range(0, image.sizes['C']):
             for timepoint in range(0, image.sizes['T']):
                 xyShift = (tmat_int[timepoint, 1]*-1, tmat_int[timepoint, 2]*-1)
-                registered_image[0, timepoint, c, z, :, :] = np.roll(image6D[0, timepoint, c, z, :, :], xyShift, axis=(1,0)) 
+                registered_image[0, timepoint, c, z, :, :] = np.roll(image6D[0, timepoint, c, z, :, :], xyShift, axis=(1,0))
 
     if skip_crop:
         # Save the registered and un-cropped image
         try:
             tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,:,:,:], metadata={'axes': 'TCZYX'}, imagej=True, compression='zlib')
         except:
-            tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,:,:,:], metadata={'axes': 'TCZYX'}, compression='zlib')   
+            tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,:,:,:], metadata={'axes': 'TCZYX'}, compression='zlib')
 
     else:
         # Crop to desired area
@@ -67,33 +67,33 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
         x_end = image.sizes['X'] - max(tmat_int[:,1])
         # Crop along the y-axis
         image_cropped = registered_image[:, :, :, :, y_start:y_end, x_start:x_end]
-        
+
         # Save the registered and cropped image
         try:
             tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,:,:,:], metadata={'axes': 'TCZYX'}, imagej=True, compression='zlib')
         except:
             tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,:,:,:], metadata={'axes': 'TCZYX'}, compression='zlib')
 
-def registration_projection_with_tmat(tmat_int, image, projection_type, skip_crop, output_path):
+def registration_projection_with_tmat(tmat_int, image, projection_type, projection_zrange, skip_crop, output_path):
     """
     As the previous one but made for the projected image of the z-stack 
     """
-    registeredFilepath = output_path + image.name + '_' + projection_type + 'Projection_registered.tif'
-    
+    registeredFilepath = output_path + image.name + '_' + projection_type + ("" if projection_type == "best" else str(projection_zrange)) + 'Projection_registered.tif'
+
     # Assuming empty dimension F
-    image6D = image.zProjection('std')
+    image6D = image.zProjection(projection_type, projection_zrange)
     registered_image = image6D.copy()
     for c in range(0, image.sizes['C']):
         for timepoint in range(0, image.sizes['T']):
             xyShift = (tmat_int[timepoint, 1]*-1, tmat_int[timepoint, 2]*-1)
-            registered_image[0, timepoint, c, 0, :, :] = np.roll(image6D[0, timepoint, c, 0, :, :], xyShift, axis=(1,0)) 
+            registered_image[0, timepoint, c, 0, :, :] = np.roll(image6D[0, timepoint, c, 0, :, :], xyShift, axis=(1,0))
 
     if skip_crop:
         # Save the registered and un-cropped image
         try:
             tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
         except:
-            tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, compression='zlib')   
+            tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, compression='zlib')
 
     else:
         # Crop to desired area
@@ -103,7 +103,7 @@ def registration_projection_with_tmat(tmat_int, image, projection_type, skip_cro
         x_end = image.sizes['X'] - max(tmat_int[:,1])
         # Crop along the y-axis
         image_cropped = registered_image[:, :, :, :, y_start:y_end, x_start:x_end]
-        
+
         # Save the registered and cropped image
         try:
             tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
@@ -111,7 +111,7 @@ def registration_projection_with_tmat(tmat_int, image, projection_type, skip_cro
             tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, compression='zlib')
 
 
-def registration_values(image, projection_type, channel_position, output_path):
+def registration_values(image, projection_type, projection_zrange, channel_position, output_path):
     """
     This function calculates the transformation matrices from brightfield images
     Note: aligned images are NOT saved since pixels are recalculated by StackReg method
@@ -121,6 +121,9 @@ def registration_values(image, projection_type, channel_position, output_path):
     image : Image object
     projection_type : str
         type of projection to perform if it is a z-stack
+    projection_zrange: int
+        the number of z sections on each side of the Z with best focus
+        to use for for the projection.
     channel_position : int
         posizion of the channel to register if it is a c-stack
     output_path : str
@@ -137,30 +140,30 @@ def registration_values(image, projection_type, channel_position, output_path):
         file which contains the values t_x and t_y (x and y pixel shifts) as columns for each time point (rows)      
     """
     # Assuming empty dimensions F and C defined in channel_position
-    # if Z not empty then make z-projection (projection_type)
+    # if Z not empty then make z-projection (projection_type,projection_zrange)
     if image.sizes['Z'] > 1:
         try:
-            projection = image.zProjection(projection_type)
-            logging.getLogger(__name__).info('Made z-projection ('+projection_type+') for image '+image.basename)
+            projection = image.zProjection(projection_type, projection_zrange)
+            logging.getLogger(__name__).info('Made z-projection ('+projection_type+', zrange '+str(projection_zrange)+') for image '+image.basename)
         except Exception:
             logging.getLogger(__name__).error('Z-projection failed for image '+image.basename)
         if image.sizes['C'] > channel_position:
             image3D = projection[0,:,channel_position,0,:,:]
         else:
             logging.getLogger(__name__).error('Position of the channel given ('+channel_position+') is out of range for image '+image.basename)
-    # Otherwise read the 3D image 
+    # Otherwise read the 3D image
     else:
         if image.sizes['C'] > 1:
             if image.sizes['C'] > channel_position:
                 image3D = image.image[0,:,channel_position,0,:,:]
             else:
-                logging.getLogger(__name__).error('Position of the channel given ('+channel_position+') is out of range for image '+image.basename)            
+                logging.getLogger(__name__).error('Position of the channel given ('+channel_position+') is out of range for image '+image.basename)
         else:
             image3D = image.get_TYXarray()
     # Translation = only movements on x and y axis
     sr = StackReg(StackReg.TRANSLATION)
     # Align each frame at the previous one
-    tmats_float = sr.register_stack(image3D, reference='previous')    
+    tmats_float = sr.register_stack(image3D, reference='previous')
     # Convert tmats_float into integers
 
 
@@ -174,14 +177,14 @@ def registration_values(image, projection_type, channel_position, output_path):
     transformation_matrices[:, 7] = image.sizes['Y']
     # Save the txt file with the translation matrix
     txt_name = os.path.join(output_path,'tranf_matrices', image.name.split('_')[0] +'_transformationMatrix.txt')
-    np.savetxt(txt_name, transformation_matrices, fmt = '%d, %d, %d, %d, %d, %d, %d, %d', header = 'timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y, x, y', delimiter = '\t')    
-    
+    np.savetxt(txt_name, transformation_matrices, fmt = '%d, %d, %d, %d, %d, %d, %d, %d', header = 'timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y, x, y', delimiter = '\t')
+
     return transformation_matrices
 
 ################################################################
 
 
-def registration_main(image_path, output_path, channel_position, projection_type, skip_crop_decision, coalignment_images_list):
+def registration_main(image_path, output_path, channel_position, projection_type, projection_zrange, skip_crop_decision, coalignment_images_list):
     # Load image
     # Note: by default the image have to be ALWAYS 3D with TYX
     try:
@@ -189,16 +192,16 @@ def registration_main(image_path, output_path, channel_position, projection_type
         image.imread()
     except Exception as e:
         logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
-           
+
     # Calculate transformation matrix
-    tmat = registration_values(image, projection_type, channel_position, output_path)
+    tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path)
 
     # Align and save
     registration_with_tmat(tmat, image, skip_crop_decision, output_path)
 
     # If Z not empty it means that in the registration there was a z projection, so save also this
     if image.sizes['Z'] > 1:
-        registration_projection_with_tmat(tmat, image, projection_type, skip_crop_decision, output_path)
+        registration_projection_with_tmat(tmat, image, projection_type, projection_zrange, skip_crop_decision, output_path)
 
     for im_coal_path in coalignment_images_list:
         try:
@@ -219,10 +222,10 @@ def alignment_main(image_path, skip_crop_decision):
     # Load image and matrix
     output_path = os.path.join(os.path.dirname(image_path),'registration')
     try:
-        image = gf.Image(image_path)  
+        image = gf.Image(image_path)
         image.imread()
     except Exception as e:
-        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))                    
+        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
     try:
         tmat_path = os.path.join(output_path, 'tranf_matrices', image.name.split('_')[0] + '_transformationMatrix.txt')
         tmat_int = read_transfMat(tmat_path)
@@ -237,7 +240,7 @@ def alignment_main(image_path, skip_crop_decision):
 ################################################################
 
 def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end):
-    # Load the transformation matrix 
+    # Load the transformation matrix
     tmat_int = read_transfMat(reference_matrix_path)
     # Load the transformation matrix header
     with open(reference_matrix_path) as f:
@@ -251,5 +254,5 @@ def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end
     # Make sure reference point is within range and update transformation matrix
     tmat_updated  = gf.update_transfMat(tmat_int, reference_timepoint-1, range_start-1, range_end-1)
     headerText += time.strftime('Updated on %Y/%m/%d at %H:%M:%S .') + ' Timepoints range: ' + str(range_start) + ' - ' + str(range_end) + ' . Reference timepoint: ' + str(reference_timepoint)
-    # Save the new matrix  
+    # Save the new matrix
     np.savetxt(reference_matrix_path, tmat_updated, fmt = '%d, %d, %d, %d, %d, %d, %d, %d', header=headerText, delimiter='\t')

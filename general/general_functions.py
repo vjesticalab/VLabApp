@@ -10,6 +10,8 @@ from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget, QTabWidget, QL
 import logging
 import igraph as ig
 from matplotlib import cm
+from scipy.optimize import curve_fit
+import cv2 as cv
 
 class QLineEditHandler(logging.Handler):
     """
@@ -231,9 +233,9 @@ class Image:
     get_TYXarray()
         Return the 3D image with the dimensions T, Y and X.
         When used the other dimensions F,C,Z MUST be empty (with size = 1)
-    zProjection(projection_type)
-        Return the z-projection of the image and the selected projection type.
-        Possible projection types: max, min, std, avg, median
+    zProjection(projection_type, zrange)
+        Return the z-projection of the image using the selected projection type over the range of z values [z_best-zrange,z_best+zrange], where z_best is the Z corresponding to best focus.
+        Possible projection types: best, max, min, std, avg (or mean), median
     """
     def __init__(self, im_path):
         self.path = im_path
@@ -242,7 +244,7 @@ class Image:
         self.sizes = None
         self.image = None
         self.shape = None
-    
+
     def imread(self):
         def set_6Dimage(image, axes):
             """
@@ -267,7 +269,7 @@ class Image:
                 position = dimensions[dim]
                 image = np.expand_dims(image, axis=position)
             return image, image.shape
-   
+
         # axis default order: FTCZYX for 6D - F = FieldofView, T = time, C = channels
         if self.extension == '.nd2':
             reader = nd2.ND2File(self.path)
@@ -292,7 +294,7 @@ class Image:
             return self.image
         else:
             logging.getLogger(__name__).error('Image format not supported. Please upload a tiff or nd2 image file.')
-    
+
     def save(self):
         pass
 
@@ -301,23 +303,73 @@ class Image:
             logging.getLogger(__name__).error('Image format not supported. Please upload an image with only TYX dimesions.')
         return self.image[0,:,0,0,:,:]
 
-    def zProjection(self, projection_type):
+    def zProjection(self, projection_type, zrange):
         """
-        Return a 6D array with original sizes but empty Z
+        Return the z-projection of the image using the selected projection type over the range of z values [z_best-zrange,z_best+zrange],
+        where z_best is the Z corresponding to best focus.
+
+        Parameters
+        ----------
+        projection_type: str
+            the projection type (best, max, min, std, avg, mean or median)
+        zrange: int
+            the number of z sections on each side of the Z with best focus
+            to use for for the projection.
+
+        Returns
+        -------
+        ndarray
+            a 6D array with original image size, except for Z axis which has size 1.
         """
-        projected_image = np.zeros((self.sizes['F'], self.sizes['T'], self.sizes['C'], 1, self.sizes['Y'], self.sizes['X']))
+        logging.getLogger(__name__).info('Z-Projection: projection type=%s, zrange=%s', projection_type, zrange)
+        projected_image = np.zeros((self.sizes['F'], self.sizes['T'], self.sizes['C'], 1, self.sizes['Y'], self.sizes['X']),dtype=self.image.dtype)
+        sharpness = np.zeros(self.sizes['Z'])
+        def gaus(x,a,x0,sigma,b):
+            return a*np.exp(-(x-x0)**2/(2*sigma**2))+b
         for f in range(self.sizes['F']):
             for t in range(self.sizes['T']):
                 for c in range(self.sizes['C']):
-                    if projection_type == 'max': projected_image[f,t,c,0,:,:] = np.max(self.image[f,t,c,:,:,:], axis=0).astype('uint16')
-                    elif projection_type == 'min': projected_image[f,t,c,0,:,:] = np.min(self.image[f,t,c,:,:,:], axis=0).astype('uint16')
-                    elif projection_type == 'std': projected_image[f,t,c,0,:,:] = np.std(self.image[f,t,c,:,:,:], axis=0, ddof=1).astype('uint16') #float32
-                    elif projection_type == 'avg': projected_image[f,t,c,0,:,:] = np.average(self.image[f,t,c,:,:,:], axis=0).astype('uint16')
-                    elif projection_type == 'median': projected_image[f,t,c,0,:,:] = np.median(self.image[f,t,c,:,:,:], axis=0).astype('uint16') #float32
-                    else: 
-                        logging.error('Projection type not recognized')
+                    for z in range(self.sizes['Z']):
+                        sharpness[z] = cv.Laplacian(self.image[f,t,c,z,:,:].astype("float64"), cv.CV_64F,ksize=11).var()
+
+                    ##fit a gaussian and extract position of the max
+                    try:
+                        popt,pcov = curve_fit(gaus,np.arange(sharpness.shape[0]),sharpness/max(sharpness), p0=[1,5,2,0.1])
+                        z_best = round(popt[1])
+                        fit_error=False
+                    except:
+                        z_best = int((self.sizes['Z']-1)/2)
+                        fit_error=True
+
+
+                    if projection_type == 'best':
+                        z_values = [z_best]
+                    else:
+                        #if z_best is too close to min or maz 'Z' => shift best_z so as to keep (2*zrange+1) z values (z_values).
+                        z_best_tmp = min(max(z_best, zrange), self.sizes['Z']-zrange-1)
+                        z_values = [z for z in range(z_best_tmp-zrange, z_best_tmp+zrange+1) if z < self.sizes['Z'] and z >= 0 ]
+
+                    if fit_error:
+                        logging.getLogger(__name__).info('Z-Projection (F: %s, T: %s, C: %s): %s over z in %s (Best z estimation failed, using default value %s)',f, t, c, projection_type, z_values, z_best)
+                    else:
+                        logging.getLogger(__name__).info('Z-Projection (F: %s, T: %s, C: %s): %s over z in %s (Best z=%s)',f, t, c, projection_type, z_values, z_best)
+
+                    if projection_type == 'best':
+                        projected_image[f,t,c,0,:,:] = self.image[f,t,c,z_best,:,:].copy()
+                    elif projection_type == 'max':
+                        projected_image[f,t,c,0,:,:] = np.max(self.image[f,t,c,z_values,:,:], axis=0)
+                    elif projection_type == 'min':
+                        projected_image[f,t,c,0,:,:] = np.min(self.image[f,t,c,z_values,:,:], axis=0)
+                    elif projection_type == 'std':
+                        projected_image[f,t,c,0,:,:] = np.std(self.image[f,t,c,z_values,:,:], axis=0, ddof=1)
+                    elif projection_type == 'avg' or projection_type == 'mean':
+                        projected_image[f,t,c,0,:,:] = np.mean(self.image[f,t,c,z_values,:,:], axis=0)
+                    elif projection_type == 'median':
+                        projected_image[f,t,c,0,:,:] = np.median(self.image[f,t,c,z_values,:,:], axis=0)
+                    else:
+                        logging.getLogger(__name__).error('Projection type not recognized')
                         return
-        
+
         return projected_image
 
 
@@ -339,7 +391,7 @@ def update_transfMat(tmat_int, reference_timepoint_index, range_start_index, ran
 
     # Step 1:
     # get x- and y- offset values for the reference timepoint
-    min_timepoint = min(tmat_int[:,0]) -1 
+    min_timepoint = min(tmat_int[:,0]) -1
     max_timepoint = max(tmat_int[:,0]) -1
 
     exc1 = reference_timepoint_index < range_start_index
@@ -551,7 +603,7 @@ def plot_graph(viewer, graph_path):
 
         viewer.reset_view()
 
-    
+
 class IgnoreDuplicate(logging.Filter):
     """
     logging filter to ignore duplicate messages.

@@ -1,6 +1,6 @@
 import logging
 import os
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QAbstractItemView, QGroupBox, QRadioButton, QApplication, QFileDialog
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QGridLayout, QWidget, QAbstractItemView, QGroupBox, QRadioButton, QApplication, QFileDialog, QComboBox, QSpinBox, QLabel
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.zprojection_module import zprojection_functions as f
@@ -34,12 +34,21 @@ class zProjection(QWidget):
         self.use_custom_folder.toggled.connect(self.output_folder.setEnabled)
         self.use_custom_folder.toggled.connect(self.browse_button2.setEnabled)
         # Projection type widgets
-        self.b1 = QRadioButton("Max")
-        self.b1.setChecked(True)
-        self.b2 = QRadioButton("Min")
-        self.b3 = QRadioButton("Std")
-        self.b4 = QRadioButton("Average")
-        self.b5 = QRadioButton("Median")
+        self.projection_type = QComboBox(self)
+        self.projection_type.addItem("best")
+        self.projection_type.addItem("max")
+        self.projection_type.addItem("min")
+        self.projection_type.addItem("mean")
+        self.projection_type.addItem("median")
+        self.projection_type.addItem("std")
+        self.projection_type.setCurrentText("mean")
+        # Projection range
+        self.projection_zrange = QSpinBox()
+        self.projection_zrange.setMinimum(0)
+        self.projection_zrange.setMaximum(20)
+        self.projection_zrange.setValue(3)
+        self.projection_zrange.setToolTip('Number of Z sections on each side of the section with best focus to use for projection.')
+
         # Submit
         self.submit_button = QPushButton("Submit", self)
         self.submit_button.clicked.connect(self.submit)
@@ -66,13 +75,12 @@ class zProjection(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        groupbox = QGroupBox("Projection type")
-        layout2 = QVBoxLayout()
-        layout2.addWidget(self.b1)
-        layout2.addWidget(self.b2)
-        layout2.addWidget(self.b3)
-        layout2.addWidget(self.b4)
-        layout2.addWidget(self.b5)
+        groupbox = QGroupBox("Projection")
+        layout2 = QGridLayout()
+        layout2.addWidget(QLabel("Type:"),0,0)
+        layout2.addWidget(self.projection_type,0,1)
+        layout2.addWidget(QLabel("Range:"),1,0)
+        layout2.addWidget(self.projection_zrange,1,1)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
@@ -134,17 +142,9 @@ class zProjection(QWidget):
         image_paths = [self.image_list.item(x).text() for x in range(self.image_list.count())]
         if not check_inputs(image_paths):
             return
-        
-        if self.b1.isChecked() == True:
-            projection_type = 'max'
-        elif self.b2.isChecked() == True:
-            projection_type = 'min'
-        elif self.b3.isChecked() == True:
-            projection_type = 'std'
-        elif self.b4.isChecked() == True:
-            projection_type = 'avg'
-        elif self.b5.isChecked() == True:
-            projection_type = 'median'
+
+        projection_type = self.projection_type.currentText()
+        projection_zrange = self.projection_zrange.value()
 
         for image_path in image_paths:
             if os.path.isfile(image_path):
@@ -161,7 +161,7 @@ class zProjection(QWidget):
                 QApplication.processEvents()
                 # Perform projection
                 try:
-                    f.main(image_path, output_path, projection_type)
+                    f.main(image_path, output_path, projection_type, projection_zrange)
                 except Exception as e:
                     self.logger.error("Projecion failed.\n" + str(e))
                 # Restore cursor
