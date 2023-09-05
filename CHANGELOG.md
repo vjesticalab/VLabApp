@@ -2,6 +2,9 @@
 
 ### Added
 
+* Add parallelization into Registration module (lib: multiprocessing).
+  (Note that the parellilization works on multiple images and not on the analysis of a single image)
+* Add 'OPTIONS' menu into Registration module
 * Add a description of the methods in cell_tracking_module.
 
 ### Changed
@@ -11,6 +14,8 @@
 ### Removed
 
 ### Fixed
+
+* Small bugs in Registration module
 
 
 
