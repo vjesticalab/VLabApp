@@ -11,6 +11,11 @@ class zProjection(QWidget):
     def __init__(self):
         super().__init__()
 
+        # Documentation
+        label_documentation=QLabel()
+        label_documentation.setOpenExternalLinks(True)
+        label_documentation.setText('<a href="file://'+os.path.join(os.path.dirname(__file__),"doc","METHODS.html")+'">Methods</a>')
+
         # Input widgets
         self.imagetypes = ['.nd2', '.tif', '.tiff']
         self.image_list = gf.DropFilesListWidget(filetypes=self.imagetypes)
@@ -56,6 +61,11 @@ class zProjection(QWidget):
 
         # Layout
         layout = QVBoxLayout()
+        groupbox = QGroupBox("Documentation")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(label_documentation)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
         groupbox = QGroupBox("Images to process")
         layout2 = QVBoxLayout()
         layout2.addWidget(self.image_list)

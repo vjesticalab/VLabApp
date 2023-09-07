@@ -3,6 +3,7 @@
 ### Added
 
 * Add a description of the methods in cell_tracking_module.
+* Add a description of the methods in zprojection_module.
 
 ### Changed
 
