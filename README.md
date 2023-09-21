@@ -155,6 +155,10 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 <!-- METHODS DESCRIPTION -->
 ## Documentation
 
+Z-Projection module:
+
+[modules/zprojection_module/doc/METHODS.md](modules/zprojection_module/doc/METHODS.md)
+
 Cell tracking module:
 
 [modules/cell_tracking_module/doc/METHODS.md](modules/cell_tracking_module/doc/METHODS.md)
