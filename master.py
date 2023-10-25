@@ -1,7 +1,7 @@
 import sys
 import logging
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtGui import QPixmap, QFont, QIcon
 from PyQt5.QtWidgets import QApplication, QFrame, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QFormLayout, QLineEdit
 
 from modules.registration_module import registration
@@ -164,6 +164,7 @@ if __name__ == "__main__":
     except RuntimeError:
         sys.exit(1)
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon('support_files/Vlab_icon_50x50-01.png'))
     w = MainWindow()
     w.show()
     w.resize(900,800)

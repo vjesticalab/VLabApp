@@ -124,7 +124,7 @@ class Perform(gf.Page):
 
         arguments = []
         output_path = os.path.join(os.path.dirname(image_paths[0]), 'registration')
-        os.makedirs(os.path.join(output_path, 'tranf_matrices'), exist_ok=True)
+        os.makedirs(os.path.join(output_path, 'transf_matrices'), exist_ok=True)
         for image_path in image_paths:
             if os.path.isfile(image_path):
                 if '_'+channel_name in image_path or channel_name in image_path:
@@ -199,7 +199,7 @@ class Align(gf.Page):
         super().__init__()
         ####### Section Alignment #######
         label = QLabel("Images to align")
-        label2 = QLabel('(the corresponding matrices have to be in "image_path/registration/tranf_matrices/" folder)')
+        label2 = QLabel('(the corresponding matrices have to be in "image_path/registration/transf_matrices/" folder)')
         font = label2.font()
         font.setItalic(True)
         label2.setFont(font)

@@ -54,9 +54,12 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
 
     if skip_crop:
         # Save the registered and un-cropped image
-        try:
-            tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,:,:,:], metadata={'axes': 'TCZYX'}, imagej=True, compression='zlib')
-        except:
+        if image.sizes['C'] == 1:
+            try:
+                tifffile.imwrite(registeredFilepath, data=registered_image[0,:,0,:,:,:], metadata={'axes': 'TZYX'}, imagej=True, compression='zlib')
+            except:
+                tifffile.imwrite(registeredFilepath, data=registered_image[0,:,0,:,:,:], metadata={'axes': 'TZYX'}, compression='zlib')
+        else:
             tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,:,:,:], metadata={'axes': 'TCZYX'}, compression='zlib')
 
     else:
@@ -69,10 +72,14 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
         image_cropped = registered_image[:, :, :, :, y_start:y_end, x_start:x_end]
 
         # Save the registered and cropped image
-        try:
-            tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,:,:,:], metadata={'axes': 'TCZYX'}, imagej=True, compression='zlib')
-        except:
+        if image.sizes['C'] == 1:
+            try:
+                tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,0,:,:,:], metadata={'axes': 'TZYX'}, compression='zlib')
+            except:
+                tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,0,:,:,:], metadata={'axes': 'TZYX'}, compression='zlib')
+        else:
             tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,:,:,:], metadata={'axes': 'TCZYX'}, compression='zlib')
+
 
 def registration_projection_with_tmat(tmat_int, image, projection_type, projection_zrange, skip_crop, output_path):
     """
@@ -176,7 +183,7 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
     transformation_matrices[:, 6] = image.sizes['X']
     transformation_matrices[:, 7] = image.sizes['Y']
     # Save the txt file with the translation matrix
-    txt_name = os.path.join(output_path,'tranf_matrices', image.name.split('_')[0] +'_transformationMatrix.txt')
+    txt_name = os.path.join(output_path,'transf_matrices', image.name.split('_')[0] +'_transformationMatrix.txt')
     np.savetxt(txt_name, transformation_matrices, fmt = '%d, %d, %d, %d, %d, %d, %d, %d', header = 'timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y, x, y', delimiter = '\t')
 
     return transformation_matrices
@@ -227,7 +234,7 @@ def alignment_main(image_path, skip_crop_decision):
     except Exception as e:
         logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
     try:
-        tmat_path = os.path.join(output_path, 'tranf_matrices', image.name.split('_')[0] + '_transformationMatrix.txt')
+        tmat_path = os.path.join(output_path, 'transf_matrices', image.name.split('_')[0] + '_transformationMatrix.txt')
         tmat_int = read_transfMat(tmat_path)
     except Exception as e:
         logging.getLogger(__name__).error('Error loading transformation matrix for image '+image_path+' - '+str(e))

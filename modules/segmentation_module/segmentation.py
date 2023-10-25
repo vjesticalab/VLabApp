@@ -145,27 +145,24 @@ class Segmentation(QWidget):
         if not check_inputs(image_paths, model_path):
             return
         
-        if os.path.isfile(model_path):
-            for image_path in image_paths:
-                if os.path.isfile(image_path):
-                    if '_BF' in image_path:
-                        if self.use_input_folder.isChecked():
-                            output_path = os.path.join(os.path.dirname(image_path), 'segmentation_masks')
-                        else:
-                            output_path = self.output_folder.text()
-                        self.logger.info("Segmenting image %s", image_path)
-                        QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
-                        QApplication.processEvents()
-                        
-                        try:
-                            f.main(image_path, model_path, output_path, self.display_results.isChecked(), self.use_gpu.isChecked())
-                        except Exception as e:
-                            self.logger.error("Segmentation failed.\n" + str(e))
-                        
-                        QApplication.restoreOverrideCursor()
-                else:
-                    self.logger.error("Image %s not found", image_path)
-        else:
-            self.logger.error("Model %s not found", model_path)
+        for image_path in image_paths:
+            if os.path.isfile(image_path):
+                if '_BF' in image_path:
+                    if self.use_input_folder.isChecked():
+                        output_path = os.path.join(os.path.dirname(image_path), 'segmentation_masks')
+                    else:
+                        output_path = self.output_folder.text()
+                    self.logger.info("Segmenting image %s", image_path)
+                    QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+                    QApplication.processEvents()
+                    
+                    try:
+                        f.main(image_path, model_path, output_path, self.display_results.isChecked(), self.use_gpu.isChecked())
+                    except Exception as e:
+                        self.logger.error("Segmentation failed.\n" + str(e))
+                    
+                    QApplication.restoreOverrideCursor()
+            else:
+                self.logger.error("Image %s not found", image_path)
 
         self.logger.info("Done")
