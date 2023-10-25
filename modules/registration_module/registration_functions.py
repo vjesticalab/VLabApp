@@ -85,7 +85,16 @@ def registration_projection_with_tmat(tmat_int, image, projection_type, projecti
     """
     As the previous one but made for the projected image of the z-stack 
     """
-    registeredFilepath = output_path + image.name + '_' + projection_type + ("" if projection_type == "bestZ" else str(projection_zrange)) + 'Projection_registered.tif'
+    filename_suffix=None
+    if projection_zrange is None:
+        filename_suffix=projection_type
+    elif isinstance(projection_zrange,int) and projection_zrange==0:
+        filename_suffix="bestZ"
+    elif isinstance(projection_zrange,int):
+        filename_suffix=projection_type+str(projection_zrange)
+    elif isinstance(projection_zrange,tuple) and len(projection_zrange) == 2 and projection_zrange[0]<=projection_zrange[1]:
+        filename_suffix=projection_type+str(projection_zrange[0])+"-"+str(projection_zrange[1])
+    registeredFilepath = os.path.join(output_path, image.name + '_' + filename_suffix + '_registered.tif')
 
     # Assuming empty dimension F
     image6D = image.zProjection(projection_type, projection_zrange)
@@ -128,9 +137,12 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
     image : Image object
     projection_type : str
         type of projection to perform if it is a z-stack
-    projection_zrange: int
-        the number of z sections on each side of the Z with best focus
-        to use for for the projection.
+    projection_zrange: int or (int,int) or None
+        the range of z sections to use for projection.
+        If zrange is None, use all z sections.
+        If zrange is an integer, use all z sections in the interval [z_best-zrange,z_best+zrange]
+        where z_best is the Z corresponding to best focus.
+        If zrange is tuple (zmin,zmax), use all z sections in the interval [zmin,zmax].
     channel_position : int
         posizion of the channel to register if it is a c-stack
     output_path : str

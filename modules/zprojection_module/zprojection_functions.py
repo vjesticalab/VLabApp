@@ -7,7 +7,7 @@ from general import general_functions as gf
 def main(image_path, output_path, projection_type, projection_zrange):
     """
     Perform z projection of the image given
-    
+
     Parameters
     ---------------------
     image_path: str
@@ -16,9 +16,12 @@ def main(image_path, output_path, projection_type, projection_zrange):
         output directory
     projection_type: str
         type of the projection to perfrom
-    projection_zrange: int
-        the number of z sections on each side of the Z with best focus
-        to use for for the projection.
+    projection_zrange:  int or (int,int) or None
+        the range of z sections to use for projection.
+        If zrange is None, use all z sections.
+        If zrange is an integer, use all z sections in the interval [z_best-zrange,z_best+zrange]
+        where z_best is the Z corresponding to best focus.
+        If zrange is tuple (zmin,zmax), use all z sections in the interval [zmin,zmax].
 
     Saves
     ---------------------
@@ -63,13 +66,22 @@ def main(image_path, output_path, projection_type, projection_zrange):
 
     # Perform projection
     try:
-        projected_image = image.zProjection(projection_type,projection_zrange)
+        projected_image = image.zProjection(projection_type, projection_zrange)
     except Exception as e:
-        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
+        logging.getLogger(__name__).error('Error projecting image '+image_path+'\n'+str(e))
         return
 
     # Save the projection
-    output_file_name = os.path.join(output_path, image.name+"_"+projection_type+("" if projection_type == "bestZ" else str(projection_zrange))+".tif")
+    filename_suffix = None
+    if projection_zrange is None:
+        filename_suffix = projection_type
+    elif isinstance(projection_zrange, int) and projection_zrange == 0:
+        filename_suffix = "bestZ"
+    elif isinstance(projection_zrange, int):
+        filename_suffix = projection_type+str(projection_zrange)
+    elif isinstance(projection_zrange, tuple) and len(projection_zrange) == 2 and projection_zrange[0] <= projection_zrange[1]:
+        filename_suffix = projection_type + str(projection_zrange[0]) + "-" + str(projection_zrange[1])
+    output_file_name = os.path.join(output_path, image.name+"_"+filename_suffix+".tif")
     # TODO: properly deal with 'F' axis, i.e. the first 0 in projected_image[0,:,:,0,:,:] is problematic if there are more than one FOV.
     tifffile.imwrite(output_file_name, projected_image[0,:,:,0,:,:].astype('uint16'), metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
     logger.info("Projection performed and saved (%s)", output_file_name)

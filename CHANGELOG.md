@@ -10,7 +10,7 @@
 
 ### Changed
 
-* Z-projection method improved with option to project only a user-specified window of Z sections around the Z section with best focus.
+* Z-projection method improved with option to project a user-specified range of Z sections (all, fixed range, only best focus or window around best focus).
 
 ### Removed
 

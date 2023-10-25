@@ -6,6 +6,30 @@ We consider the problem of reducing a Z-stack of 2D images to a unique 2D image 
 
 The value $v(x,y)$ of the pixel at position $(x,y)$ in the new image is obtained by summarizing the values of the pixels at the same position over all Z sections (or a subset of Z sections) using a given summary statistics (e.g. mean, median, max,...).
 
+The subset of Z sections used for projection can be:
+
+* all Z sections.
+* a fixed range of Z sections.
+* a range of Z sections around the Z section with best focus.
+* only the Z section with best focus.
+
+
+### All Z sections
+
+All Z sections are used for the projection.
+
+
+### Fixed range of Z sections
+
+The subset of Z sections used for projection is chosen as all Z sections within the fixed interval $Z\in[Z_\text{min},Z_\text{max}]$, with user-defined $Z_\text{min}$ and $Z_\text{max}$.
+
+Note:
+
+* $Z_\text{min}$ and $Z_\text{max}$ are called "From" and "To" in the GUI and `zrange` or `projection_zrange` in the code (tuple of length 2).
+
+
+### Range of Z sections around the Z section with best focus.
+
 The subset of Z sections used for projection is chosen as all Z sections within a user specified window around the Z section with best focus. I.e. Z sections with $Z\in \{Z_\text{best}-\Delta_Z,Z_\text{best}-\Delta_Z +1,\cdots,Z_\text{best}+\Delta_Z\}$, where $Z_\text{best}$ corresponds to the Z-section with best focus and $\Delta_Z$ is the size of the Z window.
 
 If $Z_\text{best}$ and $\Delta_Z$ are such that some values in $\{Z_\text{best}-\Delta_Z,Z_\text{best}-\Delta_Z +1,\cdots,Z_\text{best}+\Delta_Z\}$ are outside the range of Z sections existing in the image, then the set is shifted towards valid values of Z.
@@ -31,11 +55,14 @@ is fitted to the data using unction `curve_fit` implemented in scipy (blue curve
   <figcaption>Figure 2: same as Figure 1 but with a fluorescence image.</figcaption>
 </figure>
 
-
 Note:
 
-* The window size $\Delta_Z$ is called "Projection range" in the GUI and `zrange` or `projection_zrange` in the code.
+* The window size $\Delta_Z$ is called "Projection range" in the GUI and `zrange` or `projection_zrange` in the code (integer).
 
+
+### Z section with best focus
+
+The stack of Z sections is simply replaced by the Z section with best focus (obtained as described above).
 
 
 ## Implementation
