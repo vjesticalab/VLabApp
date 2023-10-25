@@ -37,7 +37,6 @@ class Registration(gf.Page):
         super().__init__()
         self.window = QVBoxLayout(self.container)
         self.window.addWidget(registration.Registration())
-        self.window.addStretch()
 
 
 class zProjection(gf.Page):
