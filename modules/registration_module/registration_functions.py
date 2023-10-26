@@ -5,6 +5,7 @@ import os
 import tifffile
 import time
 from pystackreg import StackReg
+import cv2 as cv
 
 
 def read_transfMat(tmat_path):
@@ -20,6 +21,63 @@ def read_transfMat(tmat_path):
         tmat_int = tmat_float.astype(int)
         return tmat_int
 
+def register_stack_phase_correlation(image,blur=5):
+    """
+    Register an image using phase correlation algorithm implemented in opencv
+
+    Parameters
+    ----------
+    image: ndarray
+        a 3D (TYX) 16bit unsigned integer (uint16) numpy array.
+    blur: int
+        kernel size for gaussian blue
+
+    Returns
+    -------
+    list of tuples
+        list with one (x,y) tuple per time frame.
+        Each (x,y) tuple corresponds to the shift between images at the corresponding time frame and previous time frame.
+    """
+
+    h = image.shape[1]
+    w = image.shape[2]
+    hanningWindow = cv.createHanningWindow((w,h), cv.CV_32F)
+    shifts = [(0, 0)]
+    if blur>1:
+        prev = cv.GaussianBlur(cv.normalize(image[0], None, 0, 1, cv.NORM_MINMAX, dtype=cv.CV_32F), (blur, blur), 0)
+    else:
+        prev = cv.normalize(image[0], None, 0, 1, cv.NORM_MINMAX, dtype=cv.CV_32F)
+
+    for i in range(1, image.shape[0]):
+        if blur > 1:
+            curr = cv.GaussianBlur(cv.normalize(image[i], None, 0, 1, cv.NORM_MINMAX, dtype=cv.CV_32F), (blur, blur), 0)
+        else:
+            curr = cv.normalize(image[i], None, 0, 1, cv.NORM_MINMAX, dtype=cv.CV_32F)
+
+        lastshift = (round(shifts[-1][0]), round(shifts[-1][1]))
+        #crop window prev (shifted)
+        xmin1 = max(lastshift[0], 0)
+        xmax1 = min(w+lastshift[0], w)
+        ymin1 = max(lastshift[1], 0)
+        ymax1 = min(h+lastshift[1], h)
+        #crop window curr
+        xmin2 = max(-lastshift[0], 0)
+        xmax2 = min(w-lastshift[0], w)
+        ymin2 = max(-lastshift[1], 0)
+        ymax2 = min(h-lastshift[1], h)
+
+        ##register to previous image (shifted and cropped)
+        shift, response = cv.phaseCorrelate(curr[ymin2:ymax2, xmin2:xmax2],
+                                            prev[ymin1:ymax1, xmin1:xmax1],
+                                            cv.createHanningWindow((xmax1-xmin1, ymax1-ymin1), cv.CV_32F))
+
+        shifts.append((lastshift[0]+shift[0], lastshift[1]+shift[1]))
+
+        ## store shifted and cropped image as previous image
+        prev = cv.warpAffine(curr, M=np.float32([[1, 0, shifts[-1][0]], [0, 1, shifts[-1][1]]]), dsize=(w, h), borderMode=cv.BORDER_CONSTANT, borderValue=curr.max()/2)
+        #i = i+1
+
+    return [(-x,-y) for x, y in shifts]
 
 def registration_with_tmat(tmat_int, image, skip_crop, output_path):
     """
@@ -127,7 +185,7 @@ def registration_projection_with_tmat(tmat_int, image, projection_type, projecti
             tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, compression='zlib')
 
 
-def registration_values(image, projection_type, projection_zrange, channel_position, output_path):
+def registration_values(image, projection_type, projection_zrange, channel_position, output_path, registration_method):
     """
     This function calculates the transformation matrices from brightfield images
     Note: aligned images are NOT saved since pixels are recalculated by StackReg method
@@ -147,16 +205,18 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         posizion of the channel to register if it is a c-stack
     output_path : str
         parent image path + /registration/
-    
+    registration_method : str
+        method to use for registration. Can be "stackreg" or "phase correlation"
+
     Returns
     ---------------------
     tmats :
         integer pixel values transformation matrix
-    
+
     Saves
     ---------------------
     txt_res :
-        file which contains the values t_x and t_y (x and y pixel shifts) as columns for each time point (rows)      
+        file which contains the values t_x and t_y (x and y pixel shifts) as columns for each time point (rows)
     """
     # Assuming empty dimensions F and C defined in channel_position
     # if Z not empty then make z-projection (projection_type,projection_zrange)
@@ -179,21 +239,39 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
                 logging.getLogger(__name__).error('Position of the channel given ('+channel_position+') is out of range for image '+image.basename)
         else:
             image3D = image.get_TYXarray()
-    # Translation = only movements on x and y axis
-    sr = StackReg(StackReg.TRANSLATION)
-    # Align each frame at the previous one
-    tmats_float = sr.register_stack(image3D, reference='previous')
-    # Convert tmats_float into integers
+
+    if registration_method == "stackreg":
+        logging.getLogger(__name__).info('Registration with stackreg')
+
+        # Translation = only movements on x and y axis
+        sr = StackReg(StackReg.TRANSLATION)
+        # Align each frame at the previous one
+        tmats_float = sr.register_stack(image3D, reference='previous')
+        # Convert tmats_float into integers
 
 
-    # Transformation matrix has 6 columns:
-    # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
-    transformation_matrices = np.zeros((tmats_float.shape[0], 8), dtype=np.int)
-    transformation_matrices[:, 0] = np.arange(1, tmats_float.shape[0]+1)
-    transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = tmats_float[:, 0:2, 2].astype(int)
-    transformation_matrices[:, 3] = 1
-    transformation_matrices[:, 6] = image.sizes['X']
-    transformation_matrices[:, 7] = image.sizes['Y']
+        # Transformation matrix has 6 columns:
+        # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
+        transformation_matrices = np.zeros((tmats_float.shape[0], 8), dtype=np.int)
+        transformation_matrices[:, 0] = np.arange(1, tmats_float.shape[0]+1)
+        transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = tmats_float[:, 0:2, 2].astype(int)
+        transformation_matrices[:, 3] = 1
+        transformation_matrices[:, 6] = image.sizes['X']
+        transformation_matrices[:, 7] = image.sizes['Y']
+    elif registration_method == "phase correlation":
+        logging.getLogger(__name__).info('Registration with phase correlation')
+        shifts=register_stack_phase_correlation(image3D,blur=5)
+        # Transformation matrix has 6 columns:
+        # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
+        transformation_matrices = np.zeros((len(shifts), 8), dtype=int)
+        transformation_matrices[:, 0] = np.arange(1, len(shifts)+1)
+        transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = np.round(np.array(shifts)).astype(int)
+        transformation_matrices[:, 3] = 1
+        transformation_matrices[:, 6] = image.sizes['X']
+        transformation_matrices[:, 7] = image.sizes['Y']
+    else:
+        logging.getLogger(__name__).error('Error unknown registration method '+method+'\n')
+
     # Save the txt file with the translation matrix
     txt_name = os.path.join(output_path,'transf_matrices', image.name.split('_')[0] +'_transformationMatrix.txt')
     np.savetxt(txt_name, transformation_matrices, fmt = '%d, %d, %d, %d, %d, %d, %d, %d', header = 'timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y, x, y', delimiter = '\t')
@@ -203,7 +281,7 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
 ################################################################
 
 
-def registration_main(image_path, output_path, channel_position, projection_type, projection_zrange, skip_crop_decision, coalignment_images_list):
+def registration_main(image_path, output_path, channel_position, projection_type, projection_zrange, skip_crop_decision, coalignment_images_list, registration_method):
     # Load image
     # Note: by default the image have to be ALWAYS 3D with TYX
     try:
@@ -213,7 +291,7 @@ def registration_main(image_path, output_path, channel_position, projection_type
         logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
 
     # Calculate transformation matrix
-    tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path)
+    tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, registration_method)
 
     # Align and save
     registration_with_tmat(tmat, image, skip_crop_decision, output_path)

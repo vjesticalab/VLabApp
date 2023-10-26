@@ -73,6 +73,11 @@ class Perform(gf.Page):
         self.projection_mode_fixed_zmax.setMaximum(20)
         self.projection_mode_fixed_zmax.setValue(6)
         self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
+        # registration method
+        self.registration_method = QComboBox(self)
+        self.registration_method.addItem("stackreg")
+        self.registration_method.addItem("phase correlation")
+        self.registration_method.setCurrentText("stackreg")
         self.coalignment_yn_A = QCheckBox("Co-align files with the same unique identifier (eg. smp01 for smp01_BF.nd2)")
         self.skip_cropping_yn_A = QCheckBox("Do NOT crop aligned image")
         self.buttonA = QPushButton("Register")
@@ -125,6 +130,7 @@ class Perform(gf.Page):
         layout4.addWidget(groupbox2)
         widget.setLayout(layout4)
         layout3.addRow("If needed, projection range for the z-stack:",widget)
+        layout3.addRow("Registration method:",self.registration_method)
         layout3.addRow(self.coalignment_yn_A)
         layout3.addRow(self.skip_cropping_yn_A)
         groupbox.setLayout(layout3)
@@ -171,6 +177,7 @@ class Perform(gf.Page):
             projection_zrange = self.projection_mode_around_bestZ_zrange.value()
         elif self.projection_mode_fixed.isChecked():
             projection_zrange = (self.projection_mode_fixed_zmin.value(), self.projection_mode_fixed_zmax.value())
+        registration_method = self.registration_method.currentText()
         coalignment = self.coalignment_yn_A.isChecked()
         skip_crop_decision = self.skip_cropping_yn_A.isChecked()
 
@@ -204,7 +211,7 @@ class Perform(gf.Page):
 
 
                     # collect arguments
-                    arguments.append((image_path, output_path, channel_position, projection_type, projection_zrange, skip_crop_decision, coalignment_images_list))
+                    arguments.append((image_path, output_path, channel_position, projection_type, projection_zrange, skip_crop_decision, coalignment_images_list,registration_method))
 
             else:
                 self.logger.error("Unable to locate file %s", image_path)
