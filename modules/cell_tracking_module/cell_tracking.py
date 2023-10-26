@@ -1,6 +1,6 @@
 import os
 import logging
-from PyQt5.QtWidgets import QFileDialog, QLabel, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QGroupBox, QRadioButton, QApplication, QSpinBox, QGridLayout
+from PyQt5.QtWidgets import QFileDialog, QLabel, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.cell_tracking_module import cell_tracking_functions as f
@@ -14,7 +14,7 @@ class CellTracking(QWidget):
         label_documentation=QLabel()
         label_documentation.setOpenExternalLinks(True)
         label_documentation.setText('<a href="file://'+os.path.join(os.path.dirname(__file__),"doc","METHODS.html")+'">Methods</a>')
-        
+
         self.imagetypes = ['.nd2', '.tif', '.tiff']
 
         self.input_image = gf.DropFileLineEdit(filetypes=self.imagetypes)
@@ -42,7 +42,7 @@ class CellTracking(QWidget):
         self.min_area.setMaximum(10000)
         self.min_area.setValue(300)
         self.min_area.setToolTip('Remove mask regions with area (number of pixels) below this value.')
-        
+
         self.max_delta_frame = QSpinBox()
         self.max_delta_frame.setMinimum(1)
         self.max_delta_frame.setMaximum(50)
@@ -55,14 +55,14 @@ class CellTracking(QWidget):
         self.min_overlap_fraction.setValue(20)
         self.min_overlap_fraction.setSuffix("%")
         self.min_overlap_fraction.setToolTip('minimum overlap fraction (w.r.t mask area) to consider when creating edges in the cell tracking graph.')
-       
+
         self.stable_overlap_fraction = QSpinBox()
         self.stable_overlap_fraction.setMinimum(0)
         self.stable_overlap_fraction.setMaximum(100)
         self.stable_overlap_fraction.setValue(90)
         self.stable_overlap_fraction.setSuffix("%")
         self.stable_overlap_fraction.setToolTip('Cell tracking graph edges corresponding to an overlap fraction below this value are considered as not stable.')
-    
+
         self.nframes_defect = QSpinBox()
         self.nframes_defect.setMinimum(1)
         self.nframes_defect.setMaximum(50)
@@ -86,10 +86,10 @@ class CellTracking(QWidget):
 
         self.display_results = QCheckBox("Show (and edit) results in napari")
         self.display_results.setChecked(True)
-        
+
         self.submit_button = QPushButton("Submit", self)
         self.submit_button.clicked.connect(self.submit)
-        
+
         layout = QVBoxLayout()
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
@@ -123,30 +123,24 @@ class CellTracking(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        groupbox = QGroupBox("Cell tracking graph")
-        layout2 = QGridLayout()
-        layout2.addWidget(QLabel("Min area:"), 0, 0)
-        layout2.addWidget(self.min_area, 0, 1)
-        layout2.addWidget(QLabel("Max delta frame:"), 1, 0)
-        layout2.addWidget(self.max_delta_frame, 1, 1)
-        layout2.addWidget(QLabel("Min overlap fraction:"), 2, 0)
-        layout2.addWidget(self.min_overlap_fraction, 2, 1)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
-        self.auto_clean = QGroupBox("Automatic cleaning")
+        groupbox = QGroupBox("Options")
+        layout2 = QFormLayout()
+        layout2.addRow(QLabel("Cell tracking graph:"))
+        layout2.addRow("Min area:", self.min_area)
+        layout2.addRow("Max delta frame:", self.max_delta_frame)
+        layout2.addRow("Min overlap fraction:", self.min_overlap_fraction)
+        self.auto_clean = QGroupBox("Automatic cleaning:")
         self.auto_clean.setCheckable(True)
         self.auto_clean.setChecked(True)
-        layout2 = QGridLayout()
-        layout2.addWidget(QLabel("Stable overlap fraction:"), 0, 0)
-        layout2.addWidget(self.stable_overlap_fraction, 0, 1)
-        layout2.addWidget(QLabel("Max defect size (frames):"), 1, 0)
-        layout2.addWidget(self.nframes_defect, 1, 1)
-        layout2.addWidget(QLabel("Max delta frame (interpolation):"), 2, 0)
-        layout2.addWidget(self.max_delta_frame_interpolation, 2, 1)
-        layout2.addWidget(QLabel("Min stable size (frames):"), 3, 0)
-        layout2.addWidget(self.nframes_stable, 3, 1)
-        self.auto_clean.setLayout(layout2)
-        layout.addWidget(self.auto_clean)
+        layout3 = QFormLayout()
+        layout3.addRow("Stable overlap fraction:", self.stable_overlap_fraction)
+        layout3.addRow("Max defect size (frames):", self.nframes_defect)
+        layout3.addRow("Max delta frame (interpolation):", self.max_delta_frame_interpolation)
+        layout3.addRow("Min stable size (frames):", self.nframes_stable)
+        self.auto_clean.setLayout(layout3)
+        layout2.addRow(self.auto_clean)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
         layout.addWidget(self.display_results)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
@@ -174,14 +168,14 @@ class CellTracking(QWidget):
             self.nframes_stable.setValue(value)
         if self.max_delta_frame_interpolation.value() < value:
             self.max_delta_frame_interpolation.setValue(value)
-    
+
     def max_delta_frame_interpolation_changed(self, value):
         # Set nframes_defect <= max_delta_frame_interpolation <= nframes_stable
         if self.nframes_stable.value() < value:
             self.nframes_stable.setValue(value)
         if self.nframes_defect.value() > value:
             self.nframes_defect.setValue(value)
-    
+
     def nframes_stable_changed(self, value):
         # Set nframes_defect <= max_delta_frame_interpolation <= nframes_stable
         if self.nframes_defect.value() > value:
@@ -216,7 +210,7 @@ class CellTracking(QWidget):
                 self.output_folder.setFocus()
                 return False
             return True
-            
+
         image_path = self.input_image.text()
         mask_path = self.input_mask.text()
 
@@ -245,7 +239,7 @@ class CellTracking(QWidget):
                    display_results=self.display_results.isChecked())
         except Exception as e:
             self.logger.error('Tracking failed\n' + str(e))
-        
+
         QApplication.restoreOverrideCursor()
 
         self.logger.info("Done")
