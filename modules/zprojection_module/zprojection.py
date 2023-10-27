@@ -40,20 +40,7 @@ class zProjection(QWidget):
         self.use_custom_folder.toggled.connect(self.output_folder.setEnabled)
         self.use_custom_folder.toggled.connect(self.browse_button2.setEnabled)
 
-        # Z-Projection type
-        self.projection_type = QComboBox(self)
-        self.projection_type.addItem("max")
-        self.projection_type.addItem("min")
-        self.projection_type.addItem("mean")
-        self.projection_type.addItem("median")
-        self.projection_type.addItem("std")
-        self.projection_type.setCurrentText("mean")
-
         # Z-Projection range
-        # all
-        self.projection_mode_all = QRadioButton("All Z sections")
-        self.projection_mode_all.setChecked(False)
-        self.projection_mode_all.setToolTip('Project all Z sections.')
         # only bestZ
         self.projection_mode_bestZ = QRadioButton("Z section with best focus")
         self.projection_mode_bestZ.setChecked(False)
@@ -80,6 +67,20 @@ class zProjection(QWidget):
         self.projection_mode_fixed_zmax.setMaximum(20)
         self.projection_mode_fixed_zmax.setValue(6)
         self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
+        # all
+        self.projection_mode_all = QRadioButton("All Z sections")
+        self.projection_mode_all.setChecked(False)
+        self.projection_mode_all.setToolTip('Project all Z sections.')
+        # Z-Projection type
+        self.projection_type = QComboBox(self)
+        self.projection_type.addItem("max")
+        self.projection_type.addItem("min")
+        self.projection_type.addItem("mean")
+        self.projection_type.addItem("median")
+        self.projection_type.addItem("std")
+        self.projection_type.setCurrentText("mean")
+        self.projection_type.setDisabled(self.projection_mode_bestZ.isChecked())
+        self.projection_mode_bestZ.toggled.connect(self.projection_type.setDisabled)
         # Submit
         self.submit_button = QPushButton("Submit", self)
         self.submit_button.clicked.connect(self.submit)
@@ -119,16 +120,11 @@ class zProjection(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        # Z-Projection type
         groupbox = QGroupBox("Options")
         layout2 = QFormLayout()
-        layout2.addRow("Projection type:", self.projection_type)
-
         # Z-Projection range
         widget = QWidget()
         layout3 = QVBoxLayout()
-        # all
-        layout3.addWidget(self.projection_mode_all)
         # only bestZ
         layout3.addWidget(self.projection_mode_bestZ)
         # around bestZ
@@ -156,10 +152,14 @@ class zProjection(QWidget):
         layout4.addLayout(layout5)
         groupbox2.setLayout(layout4)
         layout3.addWidget(groupbox2)
+        # all
+        layout3.addWidget(self.projection_mode_all)
         widget.setLayout(layout3)
         layout2.addRow("Projection range:", widget)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
+        # Z-Projection type
+        layout2.addRow("Projection type:", self.projection_type)
 
         # Submit
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
@@ -231,14 +231,14 @@ class zProjection(QWidget):
             return
 
         projection_type = self.projection_type.currentText()
-        if self.projection_mode_all.isChecked():
-            projection_zrange = None
-        elif self.projection_mode_bestZ.isChecked():
+        if self.projection_mode_bestZ.isChecked():
             projection_zrange = 0
         elif self.projection_mode_around_bestZ.isChecked():
             projection_zrange = self.projection_mode_around_bestZ_zrange.value()
         elif self.projection_mode_fixed.isChecked():
             projection_zrange = (self.projection_mode_fixed_zmin.value(), self.projection_mode_fixed_zmax.value())
+        elif self.projection_mode_all.isChecked():
+            projection_zrange = None
 
         for image_path in image_paths:
             if os.path.isfile(image_path):
