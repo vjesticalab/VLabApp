@@ -1016,7 +1016,7 @@ class CellTrackingWidget(QWidget):
     A widget to use inside napari
     """
 
-    def __init__(self, mask, cell_tracking_graph, viewer_graph, viewer_images, image_path, output_path, min_area=300, max_delta_frame=5, min_overlap_fraction=0.2, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0):
+    def __init__(self, mask, cell_tracking_graph, viewer_graph, viewer_images, image_path, output_path, output_basename, min_area=300, max_delta_frame=5, min_overlap_fraction=0.2, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0):
         super().__init__()
         self.logger = logging.getLogger(__name__)
         self.logger.debug("CellTrackingWidget.__init__")
@@ -1449,17 +1449,16 @@ class CellTrackingWidget(QWidget):
             self.relabel(closing)
 
         ## TODO: adapt metadata to more generic input files (other axes)
-        output_file1 = os.path.join(self.output_path, os.path.splitext(
-            os.path.basename(self.image_path))[0]+"_mask.tif")
+        output_file1 = os.path.join(self.output_path, output_basename+"_mask.tif")
         self.logger.info("Saving segmentation mask to %s", output_file1)
         self.mask = self.mask[:, np.newaxis, : ,:]
         tifffile.imwrite(output_file1, self.mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
 
-        #output_file2 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_graph.dot")
+        #output_file2 = os.path.join(self.output_path, output_basename+"_graph.dot")
         #self.logger.info("Saving cell tracking graph to %s", output_file2)
         #self.cell_tracking_graph.write_dot(output_file2)
 
-        output_file3 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_graph.graphmlz")
+        output_file3 = os.path.join(self.output_path, output_basename+"_graph.graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file3)
         self.cell_tracking_graph.get_graph().write_graphmlz(output_file3)
 
@@ -1493,7 +1492,7 @@ class CellTrackingWidget(QWidget):
         self.logger.info("Done")
 
 
-def main(image_path, mask_path, output_path, min_area=300, max_delta_frame=5, min_overlap_fraction=0.2, clean=False, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0, display_results=True):
+def main(image_path, mask_path, output_path, output_basename, min_area=300, max_delta_frame=5, min_overlap_fraction=0.2, clean=False, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0, display_results=True):
     """
     Load mask from `mask_path`, evaluate cell tracking graph, relabel mask,
     save the resulting mask and cell tracking graph into `output_path` directory
@@ -1542,7 +1541,7 @@ def main(image_path, mask_path, output_path, min_area=300, max_delta_frame=5, mi
         logger.debug("creating: %s", output_path)
         os.makedirs(output_path)
 
-    logfile = os.path.join(output_path, os.path.splitext(os.path.basename(image_path))[0]+".log")
+    logfile = os.path.join(output_path, output_basename+".log")
     logger.setLevel(logging.DEBUG)
     logger.debug("writing log output to: %s", logfile)
     logfile_handler = logging.FileHandler(logfile, mode='w')
@@ -1564,12 +1563,13 @@ def main(image_path, mask_path, output_path, min_area=300, max_delta_frame=5, mi
     ###########################
 
     # Load image
-    logger.debug("loading %s", image_path)
-    try:
-        image = gf.Image(image_path)
-        image.imread()
-    except Exception as e:
-        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
+    if image_path != '':
+        logger.debug("loading %s", image_path)
+        try:
+            image = gf.Image(image_path)
+            image.imread()
+        except Exception as e:
+            logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
 
     # Load mask
     logger.debug("loading %s", mask_path)
@@ -1616,8 +1616,9 @@ def main(image_path, mask_path, output_path, min_area=300, max_delta_frame=5, mi
 
     if display_results:
         logger.debug("displaying image and mask")
-        viewer_images = napari.Viewer(title=image_path)
-        viewer_images.add_image(image.get_TYXarray(), name="Image")
+        viewer_images = napari.Viewer(title=mask_path)
+        if image_path != '':
+            viewer_images.add_image(image.get_TYXarray(), name="Image")
         if plot_debug and clean:
             mask_diff = np.zeros(mask.shape, dtype='uint8')
             mask_diff[mask == mask_image_original] = 0
@@ -1643,7 +1644,7 @@ def main(image_path, mask_path, output_path, min_area=300, max_delta_frame=5, mi
         # Add CellTrackingWidget to napari
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setWidget(CellTrackingWidget(mask, cell_tracking_graph, viewer_graph, viewer_images, image_path, output_path,
+        scroll_area.setWidget(CellTrackingWidget(mask, cell_tracking_graph, viewer_graph, viewer_images, image_path, output_path, output_basename,
                                min_area=min_area, max_delta_frame=max_delta_frame,
                                min_overlap_fraction=min_overlap_fraction, max_delta_frame_interpolation=max_delta_frame_interpolation,
                                nframes_defect=nframes_defect, nframes_stable=nframes_stable,
@@ -1651,16 +1652,16 @@ def main(image_path, mask_path, output_path, min_area=300, max_delta_frame=5, mi
         viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
 
     else:
-        output_file = os.path.join(output_path, image.name+"_mask.tif")
+        output_file = os.path.join(output_path, output_basename+"_mask.tif")
         logger.info("Saving segmentation mask to %s", output_file)
         mask = mask[:, np.newaxis, : ,:]
         tifffile.imwrite(output_file, mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
 
-        #output_file = os.path.join(output_path, image.name+"_graph.dot")
+        #output_file = os.path.join(output_path, output_basename+"_graph.dot")
         #logger.info("Saving cell tracking graph to %s", output_file)
         #cell_tracking_graph.write_dot(output_file)
 
-        output_file = os.path.join(output_path, image.name+"_graph.graphmlz")
+        output_file = os.path.join(output_path, output_basename+"_graph.graphmlz")
         logger.info("Saving cell tracking graph to %s", output_file)
         cell_tracking_graph.get_graph().write_graphmlz(output_file)
 

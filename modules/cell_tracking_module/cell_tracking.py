@@ -1,5 +1,6 @@
 import os
 import logging
+import re
 from PyQt5.QtWidgets import QFileDialog, QLabel, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
@@ -17,15 +18,11 @@ class CellTracking(QWidget):
 
         self.imagetypes = ['.nd2', '.tif', '.tiff']
 
-        self.input_image = gf.DropFileLineEdit(filetypes=self.imagetypes)
-        browse_button1 = QPushButton("Browse", self)
-        browse_button1.clicked.connect(self.add_image)
-
         self.input_mask = gf.DropFileLineEdit(filetypes=self.imagetypes)
         browse_button2 = QPushButton("Browse", self)
         browse_button2.clicked.connect(self.add_mask)
 
-        self.use_input_folder = QRadioButton("Use input image folder (cell_tracking sub-folder)")
+        self.use_input_folder = QRadioButton("Use input mask folder (cell_tracking sub-folder)")
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)
@@ -84,8 +81,13 @@ class CellTracking(QWidget):
         self.nframes_stable.setToolTip('Minimum number of stable frames before and after the defect.')
         self.nframes_stable.valueChanged.connect(self.nframes_stable_changed)
 
-        self.display_results = QCheckBox("Show (and edit) results in napari")
+        self.display_results = QGroupBox("Show (and edit) results in napari")
+        self.display_results.setCheckable(True)
         self.display_results.setChecked(True)
+
+        self.input_image = gf.DropFileLineEdit(filetypes=self.imagetypes)
+        browse_button1 = QPushButton("Browse", self)
+        browse_button1.clicked.connect(self.add_image)
 
         self.submit_button = QPushButton("Submit", self)
         self.submit_button.clicked.connect(self.submit)
@@ -94,15 +96,6 @@ class CellTracking(QWidget):
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
         layout2.addWidget(label_documentation)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
-
-        groupbox = QGroupBox("Image")
-        layout2 = QVBoxLayout()
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.input_image)
-        layout3.addWidget(browse_button1, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Segmentation mask")
@@ -141,7 +134,16 @@ class CellTracking(QWidget):
         layout2.addRow(self.auto_clean)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
+
+        layout2 = QVBoxLayout()
+        layout2.addWidget(QLabel("Input image:"))
+        layout3 = QHBoxLayout()
+        layout3.addWidget(self.input_image)
+        layout3.addWidget(browse_button1, alignment=Qt.AlignCenter)
+        layout2.addLayout(layout3)
+        self.display_results.setLayout(layout2)
         layout.addWidget(self.display_results)
+        
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
 
@@ -189,11 +191,7 @@ class CellTracking(QWidget):
         Process the image in f.main()
         """
         def check_inputs(image_path, mask_path):
-            if image_path == '':
-                self.logger.error('Image missing')
-                self.input_image.setFocus()
-                return False
-            if not os.path.isfile(image_path):
+            if image_path != '' and not os.path.isfile(image_path):
                 self.logger.error('Image: not a valid file')
                 self.input_image.setFocus()
                 return False
@@ -218,7 +216,7 @@ class CellTracking(QWidget):
             return
 
         if self.use_input_folder.isChecked():
-            output_path = os.path.join(os.path.dirname(image_path), 'cell_tracking')
+            output_path = os.path.join(os.path.dirname(mask_path), 'cell_tracking')
         else:
             output_path = self.output_folder.text()
         self.logger.info("Cell tracking (image %s, mask %s)", image_path, mask_path)
@@ -226,8 +224,11 @@ class CellTracking(QWidget):
         QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         QApplication.processEvents()
 
+        mask_basename, mask_extension=os.path.splitext(os.path.basename(mask_path))
+        output_basename=re.sub("_masks{0,1}$","",mask_basename)
         try:
             f.main(image_path, mask_path, output_path=output_path,
+                   output_basename=output_basename,
                    min_area=self.min_area.value(),
                    max_delta_frame=self.max_delta_frame.value(),
                    min_overlap_fraction=self.min_overlap_fraction.value()/100.0,

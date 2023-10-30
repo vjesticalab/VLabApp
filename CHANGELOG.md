@@ -11,6 +11,7 @@
 
 ### Changed
 
+* Cell tracking module: save to input mask folder instead of input image folder by default.
 * Z-projection method improved with option to project a user-specified range of Z sections (all, fixed range, only best focus or window around best focus).
 
 ### Removed
