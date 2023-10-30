@@ -62,10 +62,11 @@ class DropFilesListWidget(QListWidget):
     A QListWidget with drop support for files and folders. If a folder is dropped, all files contained in the folder are added.
     """
 
-    def __init__(self, parent=None, filetypes=None):
+    def __init__(self, parent=None, filetypes=None,filenames_filter=None):
         super().__init__(parent)
         self.setAcceptDrops(True)
         self.filetypes = filetypes
+        self.filenames_filter = filenames_filter
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls:
@@ -84,17 +85,21 @@ class DropFilesListWidget(QListWidget):
             if url.isLocalFile():
                 if os.path.isfile(url.toLocalFile()):
                     filename = url.toLocalFile()
-                    if len(self.findItems(filename, Qt.MatchExactly)) == 0 and (self.filetypes is None or os.path.splitext(filename)[1] in self.filetypes):
+                    if len(self.findItems(filename, Qt.MatchExactly)) == 0 and (len(self.filetypes) == 0 or self.filetypes is None or os.path.splitext(filename)[1] in self.filetypes) and (self.filenames_filter is None or self.filenames_filter in os.path.basename(filename)):
                         self.addItem(filename)
                 if os.path.isdir(url.toLocalFile()):
                     d = url.toLocalFile()
                     # keep only files (not folders)
                     filenames = [os.path.join(d, f)
                                  for f in os.listdir(d)]
-                    if not self.filetypes is None:
+                    if not self.filetype == '' and not self.filetypes is None:
                         # keep only allowed filetypes
                         filenames = [f for f in filenames
                                      if os.path.splitext(f)[1] in self.filetypes]
+                    if not self.filenames_filter is None:
+                        # keep only filenames containing filenames_filter
+                        filenames = [f for f in filenames
+                                     if self.filenames_filter in os.path.basename(filename)]
                     # keep only existing files (not folders)
                     filenames = [f for f in filenames
                                  if os.path.isfile(f)]
@@ -131,7 +136,7 @@ class DropFileLineEdit(QLineEdit):
             if url.isLocalFile():
                 if os.path.isfile(url.toLocalFile()):
                     filename = url.toLocalFile()
-                    if self.filetypes is None or os.path.splitext(filename)[1] in self.filetypes:
+                    if len(self.filetypes) == 0 or self.filetypes is None or os.path.splitext(filename)[1] in self.filetypes:
                         self.setText(filename)
 
 

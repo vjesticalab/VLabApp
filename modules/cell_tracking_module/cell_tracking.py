@@ -1,7 +1,7 @@
 import os
 import logging
 import re
-from PyQt5.QtWidgets import QFileDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QAbstractItemView
+from PyQt5.QtWidgets import QFileDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QAbstractItemView, QLineEdit
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.cell_tracking_module import cell_tracking_functions as f
@@ -18,7 +18,13 @@ class CellTracking(QWidget):
 
         self.imagetypes = ['.nd2', '.tif', '.tiff']
 
-        self.mask_list = gf.DropFilesListWidget(filetypes=self.imagetypes)
+        self.mask_filter_name = QLineEdit('_mask',placeholderText='e.g.: _mask')
+        self.mask_filter_name.setToolTip('Accept only filenames containing this text')
+        self.mask_filter_name.textChanged.connect(self.mask_filter_name_changed)
+        self.mask_filter_type = QLineEdit(' '.join(self.imagetypes),placeholderText='e.g.: .nd2 .tif .tiff')
+        self.mask_filter_type.setToolTip('Space separated list of accepted file extensions.')
+        self.mask_filter_type.textChanged.connect(self.mask_filter_type_changed)
+        self.mask_list = gf.DropFilesListWidget(filetypes=self.mask_filter_type.text().split(),filenames_filter=self.mask_filter_name.text())
         self.mask_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.mask_list.model().rowsInserted.connect(self.mask_list_changed)
         self.mask_list.model().rowsRemoved.connect(self.mask_list_changed)
@@ -114,6 +120,15 @@ class CellTracking(QWidget):
         layout3.addWidget(self.add_folder_button)
         layout3.addWidget(self.remove_button)
         layout2.addLayout(layout3)
+        layout3 = QHBoxLayout()
+        #layout3.addWidget(QLabel("Filters: "))
+        layout4 = QFormLayout()
+        layout4.addRow("Filter file names:",self.mask_filter_name)
+        layout3.addLayout(layout4)
+        layout4 = QFormLayout()
+        layout4.addRow("file types:",self.mask_filter_type)
+        layout3.addLayout(layout4)
+        layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
 
         layout.addWidget(groupbox)
@@ -160,21 +175,35 @@ class CellTracking(QWidget):
 
         self.logger = logging.getLogger(__name__)
 
+    def mask_filter_name_changed(self):
+        self.mask_list.filenames_filter = self.mask_filter_name.text()
+
+    def mask_filter_type_changed(self):
+        self.mask_list.filetypes = self.mask_filter_type.text().split()
+        self.input_image.filetypes = self.mask_filter_type.text().split()
+
     def mask_list_changed(self):
         if self.mask_list.count() > 1:
             self.display_results.setChecked(False)
         self.display_results.setEnabled(self.mask_list.count() <= 1)
 
     def add_mask(self):
-        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        type_list = ['*'+x for x in self.mask_filter_type.text().split()]
+        if len(type_list) == 0:
+            type_list = ['*']
+        if self.mask_filter_name.text() != '':
+            type_list = ['*'+self.mask_filter_name.text()+x for x in type_list]
+
+        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Images ('+' '.join(type_list)+')')
         for file_path in file_paths:
-            if file_path and len(self.mask_list.findItems(file_path, Qt.MatchExactly)) == 0:
-                self.mask_list.addItem(file_path)
+            if self.mask_filter_name.text() in os.path.basename(file_path):
+                if file_path and len(self.mask_list.findItems(file_path, Qt.MatchExactly)) == 0:
+                    self.mask_list.addItem(file_path)
 
     def add_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder_path:
-            masks = [os.path.join(folder_path, i) for i in os.listdir(folder_path) if os.path.splitext(i)[1] in self.imagetypes]
+            masks = [os.path.join(folder_path, i) for i in os.listdir(folder_path) if os.path.splitext(i)[1] in self.mask_filter_type.text().split() and self.mask_filter_name.text() in i]
             self.mask_list.addItems([i for i in masks if len(self.mask_list.findItems(i, Qt.MatchExactly)) == 0])
 
     def remove(self):
