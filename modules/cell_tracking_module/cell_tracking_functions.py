@@ -1027,6 +1027,7 @@ class CellTrackingWidget(QWidget):
         self.viewer_images = viewer_images
         self.image_path = image_path
         self.output_path = output_path
+        self.output_basename = output_basename
 
         # True if mask have been modified using napari paint tools (and thus need to call self.relabel()):
         self.mask_need_relabelling = False
@@ -1449,16 +1450,16 @@ class CellTrackingWidget(QWidget):
             self.relabel(closing)
 
         ## TODO: adapt metadata to more generic input files (other axes)
-        output_file1 = os.path.join(self.output_path, output_basename+"_mask.tif")
+        output_file1 = os.path.join(self.output_path, self.output_basename+"_mask.tif")
         self.logger.info("Saving segmentation mask to %s", output_file1)
         self.mask = self.mask[:, np.newaxis, : ,:]
         tifffile.imwrite(output_file1, self.mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
 
-        #output_file2 = os.path.join(self.output_path, output_basename+"_graph.dot")
+        #output_file2 = os.path.join(self.output_path, self.output_basename+"_graph.dot")
         #self.logger.info("Saving cell tracking graph to %s", output_file2)
         #self.cell_tracking_graph.write_dot(output_file2)
 
-        output_file3 = os.path.join(self.output_path, output_basename+"_graph.graphmlz")
+        output_file3 = os.path.join(self.output_path, self.output_basename+"_graph.graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file3)
         self.cell_tracking_graph.get_graph().write_graphmlz(output_file3)
 
@@ -1664,6 +1665,8 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         output_file = os.path.join(output_path, output_basename+"_graph.graphmlz")
         logger.info("Saving cell tracking graph to %s", output_file)
         cell_tracking_graph.get_graph().write_graphmlz(output_file)
+        # stop using logfile
+        logger.removeHandler(logfile_handler)
 
 # To test
 """

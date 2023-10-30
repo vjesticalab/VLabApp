@@ -1,7 +1,7 @@
 import os
 import logging
 import re
-from PyQt5.QtWidgets import QFileDialog, QLabel, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout
+from PyQt5.QtWidgets import QFileDialog, QLabel, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QAbstractItemView
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.cell_tracking_module import cell_tracking_functions as f
@@ -18,9 +18,16 @@ class CellTracking(QWidget):
 
         self.imagetypes = ['.nd2', '.tif', '.tiff']
 
-        self.input_mask = gf.DropFileLineEdit(filetypes=self.imagetypes)
-        browse_button2 = QPushButton("Browse", self)
-        browse_button2.clicked.connect(self.add_mask)
+        self.mask_list = gf.DropFilesListWidget(filetypes=self.imagetypes)
+        self.mask_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.mask_list.model().rowsInserted.connect(self.mask_list_changed)
+        self.mask_list.model().rowsRemoved.connect(self.mask_list_changed)
+        self.add_mask_button = QPushButton("Add masks", self)
+        self.add_mask_button.clicked.connect(self.add_mask)
+        self.add_folder_button = QPushButton("Add folder", self)
+        self.add_folder_button.clicked.connect(self.add_folder)
+        self.remove_button = QPushButton("Remove selected", self)
+        self.remove_button.clicked.connect(self.remove)
 
         self.use_input_folder = QRadioButton("Use input mask folder (cell_tracking sub-folder)")
         self.use_input_folder.setChecked(True)
@@ -98,13 +105,17 @@ class CellTracking(QWidget):
         layout2.addWidget(label_documentation)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        groupbox = QGroupBox("Segmentation mask")
+
+        groupbox = QGroupBox('Segmentation masks to process')
         layout2 = QVBoxLayout()
+        layout2.addWidget(self.mask_list)
         layout3 = QHBoxLayout()
-        layout3.addWidget(self.input_mask)
-        layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
+        layout3.addWidget(self.add_mask_button)
+        layout3.addWidget(self.add_folder_button)
+        layout3.addWidget(self.remove_button)
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
+
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Output folder")
         layout2 = QVBoxLayout()
@@ -143,21 +154,33 @@ class CellTracking(QWidget):
         layout2.addLayout(layout3)
         self.display_results.setLayout(layout2)
         layout.addWidget(self.display_results)
-        
+
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
 
-    def add_image(self):
-        # Add the selected image as input
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
-        self.input_image.setText(file_path)
+    def mask_list_changed(self):
+        if self.mask_list.count() > 1:
+            self.display_results.setChecked(False)
+        self.display_results.setEnabled(self.mask_list.count() <= 1)
 
     def add_mask(self):
-        # Add the selected mask as input
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
-        self.input_mask.setText(file_path)
+        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        for file_path in file_paths:
+            if file_path and len(self.mask_list.findItems(file_path, Qt.MatchExactly)) == 0:
+                self.mask_list.addItem(file_path)
+
+    def add_folder(self):
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
+        if folder_path:
+            masks = [os.path.join(folder_path, i) for i in os.listdir(folder_path) if os.path.splitext(i)[1] in self.imagetypes]
+            self.mask_list.addItems([i for i in masks if len(self.mask_list.findItems(i, Qt.MatchExactly)) == 0])
+
+    def remove(self):
+        for item in self.mask_list.selectedItems():
+            self.mask_list.takeItem(self.mask_list.row(item))
+
 
     def browse_output(self):
         # Browse folders in order to choose the output one
@@ -185,62 +208,71 @@ class CellTracking(QWidget):
         if self.max_delta_frame_interpolation.value() > value:
             self.max_delta_frame_interpolation.setValue(value)
 
+    def add_image(self):
+        # Add the selected image as input
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        self.input_image.setText(file_path)
+
     def submit(self):
         """
         Retrieve the input parameters
         Process the image in f.main()
         """
-        def check_inputs(image_path, mask_path):
+        def check_inputs(image_path, mask_paths):
             if image_path != '' and not os.path.isfile(image_path):
                 self.logger.error('Image: not a valid file')
                 self.input_image.setFocus()
                 return False
-            if mask_path == '':
+            if len(mask_paths) == 0:
                 self.logger.error('Segmentation mask missing')
-                self.input_mask.setFocus()
+                self.add_mask_button.setFocus()
                 return False
-            if not os.path.isfile(mask_path):
-                self.logger.error('Segmentation mask - Invalid file')
-                self.input_mask.setFocus()
-                return False
+            for path in mask_paths:
+                if not os.path.isfile(path):
+                    self.logger.error('Segmentation mask not found\n' + path)
+                    self.add_mask_button.setFocus()
+                    return False
             if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
                 self.logger.error('Output folder missing')
                 self.output_folder.setFocus()
                 return False
             return True
 
-        image_path = self.input_image.text()
-        mask_path = self.input_mask.text()
+        if self.input_image.isEnabled():
+            image_path = self.input_image.text()
+        else:
+            image_path = ""
+        mask_paths = [self.mask_list.item(x).text() for x in range(self.mask_list.count())]
 
-        if not check_inputs(image_path, mask_path):
+        if not check_inputs(image_path, mask_paths):
             return
 
-        if self.use_input_folder.isChecked():
-            output_path = os.path.join(os.path.dirname(mask_path), 'cell_tracking')
-        else:
-            output_path = self.output_folder.text()
-        self.logger.info("Cell tracking (image %s, mask %s)", image_path, mask_path)
+        for mask_path in mask_paths:
+            if self.use_input_folder.isChecked():
+                output_path = os.path.join(os.path.dirname(mask_path), 'cell_tracking')
+            else:
+                output_path = self.output_folder.text()
+            self.logger.info("Cell tracking (image %s, mask %s)", image_path, mask_path)
+            QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+            QApplication.processEvents()
 
-        QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
-        QApplication.processEvents()
+            mask_basename, mask_extension=os.path.splitext(os.path.basename(mask_path))
+            output_basename=re.sub("_masks{0,1}$","",mask_basename)
+            try:
+                f.main(image_path, mask_path, output_path=output_path,
+                       output_basename=output_basename,
+                       min_area=self.min_area.value(),
+                       max_delta_frame=self.max_delta_frame.value(),
+                       min_overlap_fraction=self.min_overlap_fraction.value()/100.0,
+                       clean=self.auto_clean.isChecked(),
+                       max_delta_frame_interpolation=self.max_delta_frame_interpolation.value(),
+                       nframes_defect=self.nframes_defect.value(),
+                       nframes_stable=self.nframes_stable.value(),
+                       stable_overlap_fraction=self.stable_overlap_fraction.value()/100.0,
+                       display_results=self.display_results.isChecked())
+            except Exception as e:
+                self.logger.error('Tracking failed\n' + str(e))
 
-        mask_basename, mask_extension=os.path.splitext(os.path.basename(mask_path))
-        output_basename=re.sub("_masks{0,1}$","",mask_basename)
-        try:
-            f.main(image_path, mask_path, output_path=output_path,
-                   output_basename=output_basename,
-                   min_area=self.min_area.value(),
-                   max_delta_frame=self.max_delta_frame.value(),
-                   min_overlap_fraction=self.min_overlap_fraction.value()/100.0,
-                   clean=self.auto_clean.isChecked(),
-                   max_delta_frame_interpolation=self.max_delta_frame_interpolation.value(),
-                   nframes_defect=self.nframes_defect.value(),
-                   nframes_stable=self.nframes_stable.value(),
-                   stable_overlap_fraction=self.stable_overlap_fraction.value()/100.0,
-                   display_results=self.display_results.isChecked())
-        except Exception as e:
-            self.logger.error('Tracking failed\n' + str(e))
-
-        QApplication.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
 
         self.logger.info("Done")
