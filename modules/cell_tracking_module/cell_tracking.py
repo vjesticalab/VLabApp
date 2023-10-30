@@ -1,7 +1,7 @@
 import os
 import logging
 import re
-from PyQt5.QtWidgets import QFileDialog, QLabel, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QAbstractItemView
+from PyQt5.QtWidgets import QFileDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QAbstractItemView
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.cell_tracking_module import cell_tracking_functions as f
@@ -79,7 +79,7 @@ class CellTracking(QWidget):
         self.max_delta_frame_interpolation.setMaximum(50)
         self.max_delta_frame_interpolation.setValue(3)
         self.max_delta_frame_interpolation.setToolTip('Number of previous and subsequent frames to consider for mask interpolation.')
-        self.max_delta_frame_interpolation.valueChanged.connect(self.max_delta_frame_interpolation_changed) 
+        self.max_delta_frame_interpolation.valueChanged.connect(self.max_delta_frame_interpolation_changed)
 
         self.nframes_stable = QSpinBox()
         self.nframes_stable.setMinimum(1)
@@ -229,7 +229,7 @@ class CellTracking(QWidget):
                 return False
             for path in mask_paths:
                 if not os.path.isfile(path):
-                    self.logger.error('Segmentation mask not found\n' + path)
+                    self.logger.error('Segmentation mask not found: %s', path)
                     self.add_mask_button.setFocus()
                     return False
             if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
@@ -271,7 +271,7 @@ class CellTracking(QWidget):
                        stable_overlap_fraction=self.stable_overlap_fraction.value()/100.0,
                        display_results=self.display_results.isChecked())
             except Exception as e:
-                self.logger.error('Tracking failed\n' + str(e))
+                self.logger.error('Tracking failed. %s', str(e))
 
             QApplication.restoreOverrideCursor()
 

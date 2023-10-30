@@ -254,8 +254,8 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
             layout_tmp = g2.layout_sugiyama(
                 layers = [f+min(graph.vs['frame']) for f in g2.vs['frame']], maxiter=1000)
             # Shift x coord by lastx
-            minx = min([x for x,y in layout_tmp.coords])
-            maxx = max([x for x,y in layout_tmp.coords])
+            minx = min(x for x,y in layout_tmp.coords)
+            maxx = max(x for x,y in layout_tmp.coords)
             for i, j in  enumerate(cmp):
                 x,y = layout_tmp[i]
                 layout[j] = [x-minx+lastx,y]
@@ -1570,7 +1570,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
             image = gf.Image(image_path)
             image.imread()
         except Exception as e:
-            logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
+            logging.getLogger(__name__).error('Error loading image %s. %s', image_path, str(e))
 
     # Load mask
     logger.debug("loading %s", mask_path)
@@ -1579,7 +1579,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         mask_image.imread()
         mask = mask_image.get_TYXarray()
     except Exception as e:
-        logging.getLogger(__name__).error('Error loading mask '+mask_path+'\n'+str(e))
+        logging.getLogger(__name__).error('Error loading mask %s. %s', mask_path, str(e))
     
     ###########################
     # Cell tracking
