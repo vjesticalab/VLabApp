@@ -36,7 +36,7 @@ class NapariStatusBarHandler(logging.Handler):
 def simplify_graph(g):
     """
     Simplify graph by contracting chains of vertices with indegree=1 and outdegree=1.
-    Resulting multi-edges are removed by inserting a vertex into each duplicated edge.    
+    Resulting multi-edges are removed by inserting a vertex into each duplicated edge.
 
     Parameters
     ----------
@@ -657,7 +657,7 @@ class GraphFilteringWidget(QWidget):
             selected_topologies = [i for i, checkbox in enumerate(self.topology_yn) if checkbox.isChecked()]
             self.logger.debug("filtering topology: %s",  ", ".join([str(i) for i in selected_topologies]))
             self.selected_cell_tracks = [x for x in self.selected_cell_tracks if np.isin(x['graph_topology'], selected_topologies).any()]
-        
+
         self.logger.debug("Selected cell tracks: %s/%s", len(self.selected_cell_tracks), len(self.cell_tracks))
         if not closing:
             self.logger.debug("selecting mask_ids")
@@ -886,7 +886,7 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
         image.imread()
     except Exception as e:
         logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
-    
+
     # Load mask
     logger.debug("loading %s", mask_path)
     try:
@@ -894,7 +894,7 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
         mask.imread()
     except Exception as e:
         logging.getLogger(__name__).error('Error loading mask '+mask_path+'\n'+str(e))
-    
+
     # Load graph
     logger.debug("loading %s", graph_path)
     graph = ig.Graph().Read_GraphMLz(graph_path)
@@ -928,3 +928,6 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
         scroll_area.setWidgetResizable(True)
         scroll_area.setWidget(GraphFilteringWidget(mask, graph, viewer_images, image_path, output_path))
         viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
+    else:
+        # stop using logfile
+        logger.removeHandler(logfile_handler)
