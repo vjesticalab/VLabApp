@@ -180,8 +180,8 @@ def clean_mask(mask, cell_tracking_graph, max_delta_frame_interpolation=3, nfram
     nframes_stable: int
         minimum number of stable frames before and after the defect, should >= than `max_delta_frame_interpolation`
     stable_overlap_fraction: float
-        edges stable = with overlap_fraction_target < `stable_overlap_fraction`
-                         or overlap_fraction_source < `stable_overlap_fraction`
+        edges stable = with overlap_fraction_target >= `stable_overlap_fraction`
+                        and overlap_fraction_source >= `stable_overlap_fraction`
     min_area: int
         remove mask regions with area (number of pixels) below `min_area`
     only_missing: bool
@@ -673,8 +673,8 @@ class CellTrackingGraph:
         nframes_stable: int
             minimum number of stable frames before and after the defect
         stable_overlap_fraction: float
-            stable edges = with overlap_fraction_target < `stable_overlap_fraction`
-                             or overlap_fraction_source < `stable_overlap_fraction`
+            stable edges = with overlap_fraction_target >= `stable_overlap_fraction`
+                             and overlap_fraction_source >= `stable_overlap_fraction`
         only_missing: bool
             only consider missing vertices type of defect
 
@@ -1507,6 +1507,8 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         segmentation mask (uint16 tif 3D image TYX)
     output_path: str
         output directory
+    output_basename: str
+        output basename. Output file will be saved as `output_path`/`output_basename`_mask.tif, `output_path`/`output_basename`_graph.graphmlz,  `output_path`/`output_basename`.log.
     min_area: int
         remove mask regions with area (number of pixels) below `min_area`
     max_delta_frame: int
@@ -1526,8 +1528,8 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         minimum number of stable frames before and after the defect, >= than max_delta_frame_interpolation.
         Only used with `clean`=True
     stable_overlap_fraction: float
-        stable edges = with overlap_fraction_target < `stable_overlap_fraction`
-                         or overlap_fraction_source < `stable_overlap_fraction`
+        stable edges = with overlap_fraction_target >= `stable_overlap_fraction`
+                        and overlap_fraction_source >= `stable_overlap_fraction`
         Only used with `clean`=True
     display_results: bool
         display image, mask and results in napari
