@@ -92,14 +92,14 @@ class DropFilesListWidget(QListWidget):
                     # keep only files (not folders)
                     filenames = [os.path.join(d, f)
                                  for f in os.listdir(d)]
-                    if not self.filetype == '' and not self.filetypes is None:
+                    if not self.filetypes == '' and not self.filetypes is None:
                         # keep only allowed filetypes
                         filenames = [f for f in filenames
                                      if os.path.splitext(f)[1] in self.filetypes]
                     if not self.filenames_filter is None:
                         # keep only filenames containing filenames_filter
                         filenames = [f for f in filenames
-                                     if self.filenames_filter in os.path.basename(filename)]
+                                     if self.filenames_filter in os.path.basename(f)]
                     # keep only existing files (not folders)
                     filenames = [f for f in filenames
                                  if os.path.isfile(f)]
