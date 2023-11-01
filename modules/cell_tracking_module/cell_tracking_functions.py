@@ -1508,7 +1508,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
     output_path: str
         output directory
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`_mask.tif, `output_path`/`output_basename`_graph.graphmlz,  `output_path`/`output_basename`.log.
+        output basename. Output file will be saved as `output_path`/`output_basename`_mask.tif, `output_path`/`output_basename`_graph.graphmlz and `output_path`/`output_basename`.log.
     min_area: int
         remove mask regions with area (number of pixels) below `min_area`
     max_delta_frame: int
@@ -1556,7 +1556,8 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
     logger.info("System info: igraph version: %s\nopencv version: %s\nnumpy version: %s\nnapari version: %s", ig.__version__, cv.__version__, np.__version__, napari.__version__)
     logger.info("image: %s", image_path)
     logger.info("mask: %s", mask_path)
-    logger.info("output: %s", output_path)
+    logger.info("output directory: %s", output_path)
+    logger.info("output basename: %s", output_basename)
     logger.debug("min area: %s", min_area)
     logger.debug("max delta frame: %s", max_delta_frame)
     logger.debug("min overlap fraction: %s%%", min_overlap_fraction*100)
