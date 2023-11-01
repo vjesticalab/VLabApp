@@ -2,6 +2,7 @@
 
 ### Added
 
+* Add 'OPTIONS' menu into Graph filtering module
 * Add batch processing to Cell tracking module.
 * Add optional registration method "phase correlation" to Registration module.
 * Add parallelization into Registration module (lib: multiprocessing).
@@ -12,6 +13,7 @@
 
 ### Changed
 
+* Graph filtering module: save to input mask folder instead of input image folder by default.
 * Cell tracking module: save to input mask folder instead of input image folder by default.
 * Z-projection method improved with option to project a user-specified range of Z sections (all, fixed range, only best focus or window around best focus).
 

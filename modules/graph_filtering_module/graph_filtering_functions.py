@@ -411,7 +411,7 @@ class CellTracksFiltering:
         """
 
         # Find mask_id touching the border (assuming mask T,Y,X axes)
-        self.logger.debug("filtering cell touching border (border width: %s)", border_width)
+        self.logger.info("filtering cell touching the border (border width: %s)", border_width)
         border_mask_ids = np.unique(
             np.concatenate([
                 np.unique(self.mask[:, :border_width, :]),
@@ -432,7 +432,7 @@ class CellTracksFiltering:
         max_area: int
             maximum area (number of pixels)
         """
-        self.logger.debug("filtering cell area (all cells) in range: [%s,%s]", min_area, max_area)
+        self.logger.info("filtering cell area (keep cell tracks with all cells area in [%s,%s])", min_area, max_area)
         self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if self.cell_tracks[i]['min_area'] >= min_area and self.cell_tracks[i]['max_area'] <= max_area]
 
     def filter_cell_area_one(self, min_area, max_area):
@@ -446,7 +446,7 @@ class CellTracksFiltering:
         max_area: int
             maximum area (number of pixels)
         """
-        self.logger.debug("filtering cell area (at least one cell) in range: [%s,%s]", min_area, max_area)
+        self.logger.info("filtering cell area (keep cell tracks with at least one area in [%s,%s])", min_area, max_area)
         self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if self.cell_tracks[i]['max_area'] >= min_area and self.cell_tracks[i]['min_area'] <= max_area]
 
     def filter_track_length(self, track_length):
@@ -458,10 +458,10 @@ class CellTracksFiltering:
         track_length: int
             minimum track length (number of frames).
         """
-        self.logger.debug("filtering cell track length: %s", track_length)
+        self.logger.info("filtering cell track length (keep cell tracks with minimum track length: %s)", track_length)
         self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if self.cell_tracks[i]['frame_max']-self.cell_tracks[i]['frame_min']+1 >= track_length]
 
-    def filter_n_missing_cells(self, n):
+    def filter_n_missing(self, n):
         """
         Keep only cell tracks with at most `n` missing cell masks (i.e. edges spanning more than 1 frame).
 
@@ -470,7 +470,7 @@ class CellTracksFiltering:
         n: int
             maximum number of missing cell masks.
         """
-        self.logger.debug("filtering number of missing cells: %s", n)
+        self.logger.info("filtering number of missing cells (maximum number of missing cells: %s", n)
         self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if self.cell_tracks[i]['n_missing'] <= n]
 
     def filter_n_divisions(self, min_n, max_n, nframes_stable, stable_overlap_fraction):
@@ -491,7 +491,7 @@ class CellTracksFiltering:
         if not nframes_stable == self.nframes_stable_division or not stable_overlap_fraction == self.stable_overlap_fraction:
             self._evaluate_cell_tracks(self.nframes_stable_fusion, nframes_stable, stable_overlap_fraction)
 
-        self.logger.debug("filtering number of divisions in range: [%s,%s]", min_n, max_n)
+        self.logger.info("filtering number of divisions (number of divisions in [%s,%s], number of stable frames: %s)", min_n, max_n, nframes_stable)
         self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if self.cell_tracks[i]['n_divisions'] >= min_n and self.cell_tracks[i]['n_divisions'] <= max_n]
 
     def filter_n_fusions(self, min_n, max_n, nframes_stable, stable_overlap_fraction):
@@ -512,7 +512,7 @@ class CellTracksFiltering:
         if not nframes_stable == self.nframes_stable_fusion or not stable_overlap_fraction == self.stable_overlap_fraction:
             self._evaluate_cell_tracks(nframes_stable, self.nframes_stable_division, stable_overlap_fraction)
 
-        self.logger.debug("filtering number of fusions in range: [%s,%s]", min_n, max_n)
+        self.logger.info("filtering number of fusions (number fusions in [%s,%s], number of stable frames: %s)", min_n, max_n, nframes_stable)
         self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if self.cell_tracks[i]['n_fusions'] >= min_n and self.cell_tracks[i]['n_fusions'] <= max_n]
 
     def filter_topology(self, selected_topologies):
@@ -525,14 +525,14 @@ class CellTracksFiltering:
             indices of topologies for list self.graph_topologies.
         """
 
-        self.logger.debug("filtering topology: %s",  ", ".join([str(i) for i in selected_topologies]))
+        self.logger.info("filtering topology (topologies: %s)",  ", ".join([str(i) for i in selected_topologies]))
         self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if np.isin(self.cell_tracks[i]['graph_topology'], selected_topologies).any()]
 
     def reset_filters(self):
         """
         Remove filters
         """
-        self.logger.debug("resetting filters")
+        self.logger.info("resetting filters")
         self.selected_cell_track_ids = set(range(len(self.cell_tracks)))
 
     def get_mask(self, relabel_mask_ids=False):
@@ -647,7 +647,7 @@ class GraphFilteringWidget(QWidget):
     A widget to use inside napari
     """
 
-    def __init__(self, mask, graph, viewer_images, image_path, output_path):
+    def __init__(self, mask, graph, viewer_images, image_path, output_path, output_basename, graph_topologies=None):
         super().__init__()
         self.logger = logging.getLogger(__name__)
 
@@ -656,13 +656,14 @@ class GraphFilteringWidget(QWidget):
         self.viewer_images = viewer_images
         self.image_path = image_path
         self.output_path = output_path
+        self.output_basename = output_basename
 
         # True if filter settings have been changed but filtering has not been applied:
         self.mask_need_filtering = False
         # True if mask have been modified since last save (or not yet saved):
         self.mask_modified = True
 
-        self.cell_tracks_filtering = CellTracksFiltering(self.mask, self.graph)
+        self.cell_tracks_filtering = CellTracksFiltering(self.mask, self.graph, graph_topologies=graph_topologies)
 
         layout = QVBoxLayout()
 
@@ -946,7 +947,7 @@ class GraphFilteringWidget(QWidget):
 
         # n_missing
         if self.filter_nmissing.isChecked():
-            self.cell_tracks_filtering.filter_n_missing_cells(self.nmissing.value())
+            self.cell_tracks_filtering.filter_n_missing(self.nmissing.value())
 
         # n_divisions
         if self.filter_ndivisions.isChecked():
@@ -960,7 +961,8 @@ class GraphFilteringWidget(QWidget):
 
         # Topology
         if self.filter_topology.isChecked():
-            self.cell_tracks_filtering.filter_topology([i for i, checkbox in enumerate(self.topology_yn) if checkbox.isChecked()])
+            topology_ids=[i for i, checkbox in enumerate(self.topology_yn) if checkbox.isChecked()]
+            self.cell_tracks_filtering.filter_topology(topology_ids)
 
         if not closing:
             selected_mask = self.cell_tracks_filtering.get_mask()
@@ -991,8 +993,7 @@ class GraphFilteringWidget(QWidget):
         if self.mask_need_filtering:
             self.filter(closing)
 
-        output_basename = os.path.splitext( os.path.basename(self.image_path))[0]
-        self.cell_tracks_filtering.save(self.output_path, output_basename, relabel_mask_ids)
+        self.cell_tracks_filtering.save(self.output_path, self.output_basename, relabel_mask_ids)
 
         if not closing:
             self.mask_modified = False
@@ -1001,7 +1002,7 @@ class GraphFilteringWidget(QWidget):
         # restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
-        QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + os.path.join(self.output_path, output_basename+"_mask.tif") + "\n" + os.path.join(self.output_path, output_basename+"_graph.graphmlz"))
+        QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + os.path.join(self.output_path, self.output_basename+"_mask.tif") + "\n" + os.path.join(self.output_path, self.output_basename+"_graph.graphmlz"))
 
     def quit(self):
         self.viewer_images.close()
@@ -1027,7 +1028,7 @@ class GraphFilteringWidget(QWidget):
         self.logger.info("Done")
 
 
-def main(image_path, mask_path, graph_path, output_path, display_results=True):
+def main(image_path, mask_path, graph_path, output_path, output_basename, filters, display_results=True, graph_topologies=None):
     """
     Load mask (`mask_path`), cell tracking graph (`graph_path`).
     Save the selected mask and cell tracking graph into `output_path` directory.
@@ -1043,8 +1044,23 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
         cell tracking graph (graphmlz format).
     output_path: str
         output directory.
+    output_basename: str
+        output basename. Output file will be saved as `output_path`/`output_basename`_mask.tif, `output_path`/`output_basename`_graph.graphmlz and `output_path`/`output_basename`.log.
+    filters: list of tuple
+        list of filters to apply. Each filter is defined by a tuple with filter name (str) as first element, following by filter parameters.
+        Possible filters are (see CellTrackingFiltering for more information):
+            ('border',border_width)
+            ('cell_area_all', min_area, max_area)
+            ('cell_area_one', min_area, max_area)
+            ('track_length', track_length)
+            ('n_missing', n)
+            ('n_divisions', min_n, max_n, nframes_stable, stable_overlap_fraction)
+            ('n_fusions', min_n, max_n, nframes_stable, stable_overlap_fraction)
+            ('topology', selected_topologies)
     display_results: bool
         display image, mask and results in napari.
+    graph_topologies: list of igraph.Graph
+        list of graph topologies. If None, create from graph. (only used when display_results == True)
     """
 
     ###########################
@@ -1057,7 +1073,7 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
         os.makedirs(output_path)
 
     # Log to file
-    logfile = os.path.join(output_path, os.path.splitext(os.path.basename(image_path))[0]+".log")
+    logfile = os.path.join(output_path, output_basename+".log")
     logger.setLevel(logging.DEBUG)
     logger.debug("writing log output to: %s", logfile)
     logfile_handler = logging.FileHandler(logfile, mode='w')
@@ -1070,19 +1086,21 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
     logger.info("image: %s", image_path)
     logger.info("mask: %s", mask_path)
     logger.info("graph: %s", graph_path)
-    logger.info("output: %s", output_path)
+    logger.info("output directory: %s", output_path)
+    logger.info("output basename: %s", output_basename)
 
     ###########################
     # Load image, mask and graph
     ###########################
 
     # Load image
-    logger.debug("loading %s", image_path)
-    try:
-        image = gf.Image(image_path)
-        image.imread()
-    except Exception as e:
-        logging.getLogger(__name__).error('Error loading image %s. %s', image_path, str(e))
+    if image_path != '':
+        logger.debug("loading %s", image_path)
+        try:
+            image = gf.Image(image_path)
+            image.imread()
+        except Exception as e:
+            logger.error('Error loading image %s. %s', image_path, str(e))
 
     # Load mask
     logger.debug("loading %s", mask_path)
@@ -1090,7 +1108,7 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
         mask = gf.Image(mask_path)
         mask.imread()
     except Exception as e:
-        logging.getLogger(__name__).error('Error loading mask %s. %s', mask_path, str(e))
+        logger.error('Error loading mask %s. %s', mask_path, str(e))
 
     # Load graph
     logger.debug("loading %s", graph_path)
@@ -1108,13 +1126,14 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
     del graph.vs['id']
 
     ###########################
-    # Napari
+    # filter
     ###########################
 
     if display_results:
         logger.debug("displaying image and mask")
         viewer_images = napari.Viewer(title=image_path)
-        viewer_images.add_image(image.get_TYXarray(), name="Image")
+        if image_path != '':
+            viewer_images.add_image(image.get_TYXarray(), name="Image")
         layer = viewer_images.add_labels(mask.get_TYXarray(), name="Cell mask", visible=False)
         layer.editable = False
         selected_mask_layer = viewer_images.add_labels(mask.get_TYXarray(), name="Selected cell mask")
@@ -1123,8 +1142,69 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
         # add GraphFilteringWidget to napari
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setWidget(GraphFilteringWidget(mask, graph, viewer_images, image_path, output_path))
+        graph_filtering_widget = GraphFilteringWidget(mask, graph, viewer_images, image_path, output_path, output_basename, graph_topologies=graph_topologies)
+        scroll_area.setWidget(graph_filtering_widget)
         viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
+        if len(filters) > 0:
+            for filter_name, *filter_params in filters:
+                if filter_name == 'border':
+                    graph_filtering_widget.filter_border.setChecked(True)
+                    graph_filtering_widget.border_width.setValue(filter_params[0])
+                elif filter_name == 'cell_area_all':
+                    graph_filtering_widget.filter_all_cells_area_range.setChecked(True)
+                    graph_filtering_widget.all_cells_min_area.setValue(filter_params[0])
+                    graph_filtering_widget.all_cells_max_area.setValue(filter_params[1])
+                elif filter_name == 'cell_area_one':
+                    graph_filtering_widget.filter_one_cell_area_range.setChecked(True)
+                    graph_filtering_widget.one_cell_min_area.setValue(filter_params[0])
+                    graph_filtering_widget.one_cell_max_area.setValue(filter_params[1])
+                elif filter_name == 'track_length':
+                    graph_filtering_widget.filter_nframes.setChecked(True)
+                    graph_filtering_widget.nframes.setValue(filter_params[0])
+                elif filter_name == 'n_missing':
+                    graph_filtering_widget.filter_nmissing.setChecked(True)
+                    graph_filtering_widget.nmissing.setValue(filter_params[0])
+                elif filter_name == 'n_divisions':
+                    graph_filtering_widget.filter_ndivisions.setChecked(True)
+                    graph_filtering_widget.min_ndivisions.setValue(filter_params[0])
+                    graph_filtering_widget.max_ndivisions.setValue(filter_params[1])
+                    graph_filtering_widget.stable_ndivisions.setValue(filter_params[2])
+                elif filter_name == 'n_fusions':
+                    graph_filtering_widget.filter_nfusions.setChecked(True)
+                    graph_filtering_widget.min_nfusions.setValue(filter_params[0])
+                    graph_filtering_widget.max_nfusions.setValue(filter_params[1])
+                    graph_filtering_widget.stable_nfusions.setValue(filter_params[2])
+                elif filter_name == 'topology':
+                    graph_filtering_widget.filter_topology.setChecked(True)
+                    for i in filter_params[0]:
+                        graph_filtering_widget.topology_yn[i].setChecked(True)
+                else:
+                    logger.error("ignoring unknown filter %s.",filter_name)
+            graph_filtering_widget.filter()
     else:
+        cell_tracks_filtering = CellTracksFiltering(mask.get_TYXarray(), graph, graph_topologies=graph_topologies)
+        if len(filters) > 0:
+            for filter_name, *filter_params in filters:
+                if filter_name == 'border':
+                    cell_tracks_filtering.filter_border(filter_params[0])
+                elif filter_name == 'cell_area_all':
+                    cell_tracks_filtering.filter_cell_area_all(filter_params[0], filter_params[1])
+                elif filter_name == 'cell_area_one':
+                    cell_tracks_filtering.filter_cell_area_one(filter_params[0], filter_params[1])
+                elif filter_name == 'track_length':
+                    cell_tracks_filtering.filter_track_length(filter_params[0])
+                elif filter_name == 'n_missing':
+                    cell_tracks_filtering.filter_n_missing(filter_params[0])
+                elif filter_name == 'n_divisions':
+                    cell_tracks_filtering.filter_n_divisions(filter_params[0], filter_params[1], filter_params[2], filter_params[3])
+                elif filter_name == 'n_fusions':
+                    cell_tracks_filtering.filter_n_fusions(filter_params[0], filter_params[1], filter_params[2], filter_params[3])
+                elif filter_name == 'topology':
+                    cell_tracks_filtering.filter_topology(filter_params[0])
+                else:
+                    logger.error("ignoring unknown filter %s.",filter_name)
+
+        cell_tracks_filtering.save(output_path, output_basename, relabel_mask_ids=True)
         # stop using logfile
         logger.removeHandler(logfile_handler)
+
