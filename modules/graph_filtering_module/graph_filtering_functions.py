@@ -66,7 +66,7 @@ def simplify_graph(g):
     # remove self-loops
     g.simplify(multiple=False)
     # deal with multi edges: insert a node in each multi edge
-    #Note: for each pair of vertices (v1,v2), _is_multiple returns all edges connecting v1 to v2 except one. We want all edges connecting v1 to v2.
+    # Note: for each pair of vertices (v1,v2), _is_multiple returns all edges connecting v1 to v2 except one. We want all edges connecting v1 to v2.
     multi_edges = set([(e.source, e.target) for e in g.es.select(_is_multiple=True)])
     if len(multi_edges) > 0:
         edges_new = []
@@ -109,10 +109,10 @@ def get_graph_qpixmap(g, w, h, hide_intermediate=True):
     arrow_size = 3*edge_width
     layout = g.layout_sugiyama()  # layers=g.topological_sorting())
     layout.rotate(-90)
-    g_xmin = min([p[0] for p in layout.coords])
-    g_xmax = max([p[0] for p in layout.coords])
-    g_ymin = min([p[1] for p in layout.coords])
-    g_ymax = max([p[1] for p in layout.coords])
+    g_xmin = min(p[0] for p in layout.coords)
+    g_xmax = max(p[0] for p in layout.coords)
+    g_ymin = min(p[1] for p in layout.coords)
+    g_ymax = max(p[1] for p in layout.coords)
     g_w = g_xmax-g_xmin
     g_h = g_ymax-g_ymin
     if g_w < 0.0001:
@@ -163,6 +163,485 @@ def get_graph_qpixmap(g, w, h, hide_intermediate=True):
     return image
 
 
+class CellTracksFiltering:
+    """
+    A class to manipulate (currently only filter) cell tracking graph and mask.
+    """
+
+    def __init__(self, mask, graph, graph_topologies=None):
+        """
+        Parameters
+        ----------
+        mask: ndarray
+            a 3D (TYX) 16bit unsigned integer (uint16) numpy array
+        graph: igraph.Graph
+            a graph to plot.
+        graph_topologies: list of igraph.Graph
+            list of graph topologies. If None, create from graph.
+        """
+
+        self.logger = logging.getLogger(__name__)
+        self.mask = mask
+        self.graph = graph
+        self.cell_tracks = None
+        self.selected_cell_track_ids = None
+        # store cell tracks topologies. I.e. self.cell_tracks_topology[n]=[i1,i2,...] => self.cell_track[n] is isomorphic to self.graph_topologies[i1] and  self.graph_topologies[i2] and ...
+        self.cell_tracks_topology = None
+        # graph topologies to search for
+        self.graph_topologies = []
+
+        # store last used parameters in self._evaluate_cell_tracks()
+        self.nframes_stable_fusion = None
+        self.nframes_stable_division = None
+        self.stable_overlap_fraction = None
+
+        if graph_topologies is None:
+            # extract existing topologies from graph
+            components = self.graph.connected_components(mode='weak')
+            self.graph_topologies = []
+            graph_topologies_sortkey = []
+            # Ignore topologies with more than max_fusion_divisions fusions or divisions
+            max_fusion_divisions = 4
+            # Ignore topologies with more than max_others events of type: cells dividing in more than 2 or more than 2 cells merging
+            max_others = 0
+            # Ignore topologies with less than min_vertices vertices
+            min_vertices = 2
+            for cmp in components:
+                g = simplify_graph(self.graph.subgraph(cmp))
+                if not any(g.isomorphic(g2) for g2 in self.graph_topologies):
+                    nothers = len(g.vs.select(lambda v: v.indegree() > 2 or v.outdegree() > 2))
+                    nfusions = len(g.vs.select(_indegree=2))
+                    ndivisions = len(g.vs.select(_outdegree=2))
+                    #nvertices, ignoring intermediate nodes with indegree == outdegree == 1
+                    nvertices = len(g.vs.select(lambda v: not ( v.indegree() == 1 and v.outdegree() == 1)))
+                    if nfusions+ndivisions <= max_fusion_divisions and nothers <= max_others and nvertices >= min_vertices:
+                        self.graph_topologies.append(g)
+                        graph_topologies_sortkey.append((nfusions+ndivisions, nfusions, ndivisions, nothers, nvertices))
+
+            # Order by sortkey (using lexicographical order)
+            idx = np.lexsort(np.array(graph_topologies_sortkey).T)
+            self.graph_topologies = np.array(self.graph_topologies)[idx].tolist()
+            del graph_topologies_sortkey
+        else:
+            self.graph_topologies = []
+            for g in graph_topologies:
+                self.graph_topologies.append(simplify_graph(g))
+            """# # to use user defined topologies instead:
+            # self.graph_topologies = []
+            # # 0 division, 0 fusion
+            # self.graph_topologies.append(
+            #     simplify_graph(ig.Graph(directed=True,
+            #                             edges=[[0, 1]])))
+            # # 1 division, 0 fusion
+            # self.graph_topologies.append(
+            #     simplify_graph(ig.Graph(directed=True,
+            #                             edges=[[0, 1],
+            #                                    [1, 2],
+            #                                    [1, 3]])))
+            # # 0 division, 1 fusion
+            # self.graph_topologies.append(
+            #     simplify_graph(ig.Graph(directed=True,
+            #                             edges=[[0, 2],
+            #                                    [1, 2],
+            #                                    [2, 3]])))
+            # # 1 division, 1 fusion
+            # self.graph_topologies.append(
+            #     simplify_graph(ig.Graph(directed=True,
+            #                             edges=[[0, 1],
+            #                                    [1, 2],
+            #                                    [1, 2],
+            #                                    [2, 3]])))
+            # # 1 division, 1 fusion
+            # self.graph_topologies.append(
+            #     simplify_graph(ig.Graph(directed=True,
+            #                             edges=[[0, 2],
+            #                                    [1, 2],
+            #                                    [2, 3],
+            #                                    [3, 4],
+            #                                    [3, 5]])))
+            # # 1 division, 1 fusion
+            # self.graph_topologies.append(
+            #     simplify_graph(ig.Graph(directed=True,
+            #                             edges=[[0, 2],
+            #                                    [1, 3],
+            #                                    [2, 4],
+            #                                    [2, 3],
+            #                                    [3, 5]])))
+            # # 2 divisions
+            # self.graph_topologies.append(
+            #     simplify_graph(ig.Graph(directed=True,
+            #                             edges=[[0, 1],
+            #                                    [1, 2],
+            #                                    [1, 3],
+            #                                    [3, 4],
+            #                                    [3, 5]])))
+            # # 2 fusions
+            # self.graph_topologies.append(
+            #     simplify_graph(ig.Graph(directed=True,
+            #                             edges=[[0, 4],
+            #                                    [1, 3],
+            #                                    [2, 3],
+            #                                    [3, 4],
+            #                                    [4, 5]])))"""
+
+        self._evaluate_cell_tracks()
+        self.selected_cell_track_ids = set(range(len(self.cell_tracks)))
+
+    def _evaluate_cell_tracks(self, nframes_stable_fusion=0, nframes_stable_division=0, stable_overlap_fraction=0):
+        """
+        Evaluate cell tracks (connected components of the cell tracking graph) and their properties.
+
+        Parameters
+        ----------
+        nframes_stable_fusion: int
+            minimum number of stable frames before and after a fusion event for it to be considered as a fusion.
+        nframes_stable_division: int
+            minimum number of stable frames before and after a division event for it to be considered as a division.
+        stable_overlap_fraction: float
+            edges are considered as not stable if overlap_fraction_target < `stable_overlap_fraction` or overlap_fraction_source < `stable_overlap_fraction`.
+
+        Returns
+        -------
+        list of dict
+            Each element of the list is a dict that correspond to one cell track
+            with the following keys:
+                graph_vertices: list of int
+                    indices of vertices in the cell track (in `graph`).
+                mask_ids: ndarray
+                    mask ids of the vertices in the cell track.
+                frame_min: int
+                    minimum frame across all vertices in the cell track.
+                frame_max: int
+                    maximum frame across all vertices in the cell track.
+                n_missing: int
+                     number of missing vertices in the cell track (i.e. edges spanning more than 1 frame).
+                n_fusions: int
+                     number of fusions events (surrounded by `nframes_stable_fusion` stable frames) in the cell track.
+                n_divisions: int
+                     number of divisions events (surrounded by `nframes_stable_fusion` stable frames) in the cell track.
+                min_area: int
+                     minimum cell area in the cell track.
+                max_area: int
+                     maximum cell area in the cell track.
+                graph_topology: list of int
+                     list of indices. For each index `i` in the list, the cell track is isomorphic to the topology `cell_track_topology[i]`.
+        """
+        self.logger.debug("evaluating cell tracks")
+
+        self.nframes_stable_fusion = nframes_stable_fusion
+        self.nframes_stable_division = nframes_stable_division
+        self.stable_overlap_fraction = stable_overlap_fraction
+
+        # Flag edges as stable if source vertex has a unique outgoing edge and target vertex has a unique incoming edge
+        self.graph.es['stable'] = False
+        self.graph.es.select(lambda edge: abs(edge['frame_source']-edge['frame_target']) == 1 and edge['mask_id_source'] == edge['mask_id_target'] and self.graph.outdegree(edge.source) == 1 and self.graph.indegree(edge.target) == 1)['stable']=True
+        # Flag edge with low overlap as unstable
+        self.graph.es.select(overlap_fraction_source_lt=stable_overlap_fraction)['stable'] = False
+        self.graph.es.select(overlap_fraction_target_lt=stable_overlap_fraction)['stable'] = False
+
+        # Evaluate length of "stable edges" regions (size of connected components in the subgraph of "stable edges") and store it as vertex attribute
+        g2 = self.graph.subgraph_edges(self.graph.es.select(stable=True),
+                                       delete_vertices=False)
+        components = g2.connected_components(mode='weak')
+        for i, n in enumerate(components.sizes()):
+            self.graph.vs[components[i]]['stable_component_size'] = n
+
+        # Eval cell tracks (i.e. connected components of the cell tracking graph)
+        self.logger.debug("finding connected components")
+        components = self.graph.connected_components(mode='weak')
+
+        # Topology
+        if self.cell_tracks_topology is None:
+            self.cell_tracks_topology = []
+            for cmp in components:
+               # self.cell_tracks_topology[n]=[i1,i2,...] => self.cell_track[n] is isomorphic to self.graph_topologies[i1] and  self.graph_topologies[i2] and ...
+                g2 = simplify_graph(self.graph.subgraph(cmp))
+                self.cell_tracks_topology.append([i for i, g3 in enumerate(self.graph_topologies) if g2.isomorphic(g3)])
+
+        self.logger.debug("building table of cell tracks properties")
+        self.cell_tracks = []
+        for i, cmp in enumerate(components):
+            g2 = self.graph.subgraph(cmp)
+            mask_ids = np.unique(g2.vs['mask_id'])
+            frame_min = np.min(g2.vs['frame'])
+            frame_max = np.max(g2.vs['frame'])
+            # Number of missing mask regions (edges spanning more than 1 frame)
+            n_missing = np.sum(e['frame_target'] - e['frame_source'] - 1 for e in g2.es)
+            # Number fusion events with stable neighborhood
+            n_fusions = np.sum(1 if v.indegree() > 1 and min(v2['stable_component_size'] for v2 in v.neighbors()) >= nframes_stable_fusion+1 else 0 for v in g2.vs)
+            # Number division events with stable neighborhood
+            n_divisions = np.sum(1 if v.outdegree() > 1 and min(v2['stable_component_size'] for v2 in v.neighbors()) >= nframes_stable_division+1 else 0 for v in g2.vs)
+            min_area = np.min(g2.vs['area'])
+            max_area = np.max(g2.vs['area'])
+            # Topology
+            self.cell_tracks.append({'graph_vertices': cmp,
+                                     'mask_ids': mask_ids,
+                                     'frame_min': frame_min,
+                                     'frame_max': frame_max,
+                                     'n_missing': n_missing,
+                                     'n_fusions': n_fusions,
+                                     'n_divisions': n_divisions,
+                                     'min_area': min_area,
+                                     'max_area': max_area,
+                                     'graph_topology': self.cell_tracks_topology[i]})
+
+    def get_max_area(self):
+        return [x['max_area'] for x in self.cell_tracks]
+
+    def get_min_area(self):
+        return [x['min_area'] for x in self.cell_tracks]
+
+    def get_n_missing(self):
+        return [x['n_missing'] for x in self.cell_tracks]
+
+    def get_n_divisions(self):
+        return [x['n_divisions'] for x in self.cell_tracks]
+
+    def get_n_fusions(self):
+        return [x['n_fusions'] for x in self.cell_tracks]
+
+    def filter_border(self, border_width):
+        """
+        Filter out cell tracks with at least one cell touching the border of the mask.
+
+        Parameters
+        ----------
+        border_width: int
+            thickness of the border (in pixel). It should be strictly greater than 0.
+        """
+
+        # Find mask_id touching the border (assuming mask T,Y,X axes)
+        self.logger.debug("filtering cell touching border (border width: %s)", border_width)
+        border_mask_ids = np.unique(
+            np.concatenate([
+                np.unique(self.mask[:, :border_width, :]),
+                np.unique(self.mask[:, -border_width:, :]),
+                np.unique(self.mask[:, :, :border_width]),
+                np.unique(self.mask[:, :, -border_width:])]))
+        border_mask_ids = border_mask_ids[border_mask_ids > 0]
+        self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if np.isin(self.cell_tracks[i]['mask_ids'], border_mask_ids).any() == False]
+
+    def filter_cell_area_all(self, min_area, max_area):
+        """
+        Keep only cell tracks with all cell area within the interval [`min_area`,`max_area`].
+
+        Parameters
+        ----------
+        min_area: int
+            minimum area (number of pixels)
+        max_area: int
+            maximum area (number of pixels)
+        """
+        self.logger.debug("filtering cell area (all cells) in range: [%s,%s]", min_area, max_area)
+        self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if self.cell_tracks[i]['min_area'] >= min_area and self.cell_tracks[i]['max_area'] <= max_area]
+
+    def filter_cell_area_one(self, min_area, max_area):
+        """
+        Keep only cell tracks with at least one cell with area < `max_area` and at least one cell with area > `min_area` (not necessarily the same cell).
+
+        Parameters
+        ----------
+        min_area: int
+            minimum area (number of pixels)
+        max_area: int
+            maximum area (number of pixels)
+        """
+        self.logger.debug("filtering cell area (at least one cell) in range: [%s,%s]", min_area, max_area)
+        self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if self.cell_tracks[i]['max_area'] >= min_area and self.cell_tracks[i]['min_area'] <= max_area]
+
+    def filter_track_length(self, track_length):
+        """
+        Keep only cell tracks spanning at least `track_length`.
+
+        Parameters
+        ----------
+        track_length: int
+            minimum track length (number of frames).
+        """
+        self.logger.debug("filtering cell track length: %s", track_length)
+        self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if self.cell_tracks[i]['frame_max']-self.cell_tracks[i]['frame_min']+1 >= track_length]
+
+    def filter_n_missing_cells(self, n):
+        """
+        Keep only cell tracks with at most `n` missing cell masks (i.e. edges spanning more than 1 frame).
+
+        Parameters
+        ----------
+        n: int
+            maximum number of missing cell masks.
+        """
+        self.logger.debug("filtering number of missing cells: %s", n)
+        self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if self.cell_tracks[i]['n_missing'] <= n]
+
+    def filter_n_divisions(self, min_n, max_n, nframes_stable, stable_overlap_fraction):
+        """
+        Keep only cell tracks with a number of division events within [`min_n`,`max_n`] interval. Each division event must be surrounded by the `nframes_stable` stable frames.
+
+        Parameters
+        ----------
+        min_n: int
+            minimum number of division event.
+        max_n: int
+            maximum number of division event.
+        nframes_stable: int
+            minimum number of stable frames before and after a division event for it to be considered as a division.
+        stable_overlap_fraction: float
+            edges are considered as not stable if overlap_fraction_target < `stable_overlap_fraction` or overlap_fraction_source < `stable_overlap_fraction`.
+        """
+        if not nframes_stable == self.nframes_stable_division or not stable_overlap_fraction == self.stable_overlap_fraction:
+            self._evaluate_cell_tracks(self.nframes_stable_fusion, nframes_stable, stable_overlap_fraction)
+
+        self.logger.debug("filtering number of divisions in range: [%s,%s]", min_n, max_n)
+        self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if self.cell_tracks[i]['n_divisions'] >= min_n and self.cell_tracks[i]['n_divisions'] <= max_n]
+
+    def filter_n_fusions(self, min_n, max_n, nframes_stable, stable_overlap_fraction):
+        """
+        Keep only cell tracks with a number of fusion events within [`min_n`,`max_n`] interval. Each fusion event must be surrounded by the `nframes_stable` stable frames.
+
+        Parameters
+        ----------
+        min_n: int
+            minimum number of fusion event.
+        max_n: int
+            maximum number of fusion event.
+        nframes_stable: int
+            minimum number of stable frames before and after a fusion event for it to be considered as a fusion.
+        stable_overlap_fraction: float
+            edges are considered as not stable if overlap_fraction_target < `stable_overlap_fraction` or overlap_fraction_source < `stable_overlap_fraction`.
+        """
+        if not nframes_stable == self.nframes_stable_fusion or not stable_overlap_fraction == self.stable_overlap_fraction:
+            self._evaluate_cell_tracks(nframes_stable, self.nframes_stable_division, stable_overlap_fraction)
+
+        self.logger.debug("filtering number of fusions in range: [%s,%s]", min_n, max_n)
+        self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if self.cell_tracks[i]['n_fusions'] >= min_n and self.cell_tracks[i]['n_fusions'] <= max_n]
+
+    def filter_topology(self, selected_topologies):
+        """
+        Keep only cell tracks with topology matching at least of the topologies self.graph_topologies[i] for i in selected_topologies.
+
+        Parameters
+        ----------
+        selected_topologies: list of int
+            indices of topologies for list self.graph_topologies.
+        """
+
+        self.logger.debug("filtering topology: %s",  ", ".join([str(i) for i in selected_topologies]))
+        self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if np.isin(self.cell_tracks[i]['graph_topology'], selected_topologies).any()]
+
+    def reset_filters(self):
+        """
+        Remove filters
+        """
+        self.logger.debug("resetting filters")
+        self.selected_cell_track_ids = set(range(len(self.cell_tracks)))
+
+    def get_mask(self, relabel_mask_ids=False):
+        """
+        Parameters
+        ----------
+        relabel_mask_ids: bool
+            relabel mask ids to consecutive integer starting from 1 (keeping 0 for background).
+
+        Returns
+        -------
+        ndarray
+            filtered cell mask
+        """
+        selected_cell_tracks = [self.cell_tracks[i] for i in self.selected_cell_track_ids]
+        self.logger.debug("Selected cell tracks: %s/%s", len(selected_cell_tracks), len(self.cell_tracks))
+        self.logger.debug("selecting mask_ids")
+        if len(selected_cell_tracks) > 0:
+            selected_mask_ids = np.unique(np.concatenate(([x['mask_ids'] for x in selected_cell_tracks])))
+        else:
+            selected_mask_ids = np.array([], dtype=self.mask.dtype)
+        self.logger.debug("copying mask")
+        selected_mask = self.mask.copy()
+        if len(selected_cell_tracks) != len(self.cell_tracks):
+            self.logger.debug("filtering mask")
+            selected_mask[np.logical_not(np.isin(selected_mask, selected_mask_ids))] = 0
+
+        # relabel mask ids to consecutive integer starting from 1 (keeping 0 for background)
+        if relabel_mask_ids:
+            self.logger.debug("relabelling filtered mask")
+            # create mapping table
+            map_id = np.repeat(0, np.max(self.mask)+1).astype(self.mask.dtype)
+            map_id[0] = 0
+            n_ids = 1
+            for mask_id in selected_mask_ids:
+                map_id[mask_id] = n_ids
+                n_ids += 1
+            selected_mask = map_id[selected_mask]
+
+        return selected_mask
+
+    def get_graph(self, relabel_mask_ids=False):
+        """
+        Parameters
+        ----------
+        relabel_mask_ids: bool
+            relabel mask ids to consecutive integer starting from 1 (keeping 0 for background).
+
+        Returns
+        -------
+        igraph.Graph
+            filtered cell tracking graph
+        """
+        selected_cell_tracks = [self.cell_tracks[i] for i in self.selected_cell_track_ids]
+        self.logger.debug("Selected cell tracks: %s/%s", len(selected_cell_tracks), len(self.cell_tracks))
+        self.logger.debug("filtering graph")
+        if len(selected_cell_tracks) > 0:
+            selected_mask_ids = np.unique(np.concatenate(([x['mask_ids'] for x in selected_cell_tracks])))
+            selected_graph_vertices = np.unique(np.concatenate(([x['graph_vertices'] for x in selected_cell_tracks])))
+        else:
+            selected_mask_ids = np.array([], dtype=self.mask.dtype)
+            selected_graph_vertices = np.array([], dtype='int')
+        g2 = self.graph.subgraph(selected_graph_vertices)
+
+        # relabel mask ids to consecutive integer starting from 1 (keeping 0 for background)
+        if relabel_mask_ids:
+            self.logger.debug("relabelling filtered graph")
+            # create mapping table
+            map_id = np.repeat(0, np.max(self.mask)+1).astype(self.mask.dtype)
+            map_id[0] = 0
+            n_ids = 1
+            for mask_id in selected_mask_ids:
+                map_id[mask_id] = n_ids
+                n_ids += 1
+            g2.vs['mask_id'] = map_id[g2.vs['mask_id']].astype(self.mask.dtype)
+            g2.es['mask_id_source'] = map_id[g2.es['mask_id_source']].astype(self.mask.dtype)
+            g2.es['mask_id_target'] = map_id[g2.es['mask_id_target']].astype(self.mask.dtype)
+
+        return g2
+
+    def save(self, output_path, output_basename, relabel_mask_ids=True):
+        """
+        Save filtered cell tracking graph and cell mask as  `output_path`/`output_basename`_graph.graphmlz and `output_path`/`output_basename`_mask.tif.
+
+        Parameters
+        ----------
+        output_path: str
+            output directory
+        output_basename: str
+            output basename
+        relabel_mask_ids: bool
+            relabel mask ids to consecutive integer starting from 1 (keeping 0 for background).
+        """
+        if not os.path.isdir(output_path):
+            logger.debug("creating: %s", output_path)
+            os.makedirs(output_path)
+
+        output_file = os.path.join(output_path, output_basename+"_mask.tif")
+        self.logger.info("Saving segmentation mask to %s", output_file)
+        selected_mask = self.get_mask(relabel_mask_ids)
+        selected_mask = selected_mask[:, np.newaxis, :, :]
+        tifffile.imwrite(output_file, selected_mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
+
+        output_file = os.path.join(output_path, output_basename+"_graph.graphmlz")
+        self.logger.info("Saving cell tracking graph to %s", output_file)
+        g = self.get_graph(relabel_mask_ids)
+        g.write_graphmlz(output_file)
+
+
 class GraphFilteringWidget(QWidget):
     """
     A widget to use inside napari
@@ -173,7 +652,6 @@ class GraphFilteringWidget(QWidget):
         self.logger = logging.getLogger(__name__)
 
         self.mask = mask.get_TYXarray()
-        ## WARNING: graph should not be modified
         self.graph = graph
         self.viewer_images = viewer_images
         self.image_path = image_path
@@ -184,95 +662,7 @@ class GraphFilteringWidget(QWidget):
         # True if mask have been modified since last save (or not yet saved):
         self.mask_modified = True
 
-        # Graph topologies to search for (existing topologies):
-        components = self.graph.connected_components(mode='weak')
-        self.graph_topologies = []
-        graph_topologies_sortkey = []
-        # Ignore topologies with more than max_fusion_divisions fusions or divisions
-        max_fusion_divisions = 4
-        # Ignore topologies with more than max_others events of type: cells dividing in more than 2 or more than 2 cells merging
-        max_others = 0
-        min_vertices = 2
-        for cmp in components:
-            g = simplify_graph(self.graph.subgraph(cmp))
-            if not any([g.isomorphic(g2) for g2 in self.graph_topologies]):
-                nothers = len(g.vs.select(lambda v: v.indegree() > 2 or v.outdegree() > 2))
-                nfusions = len(g.vs.select(_indegree=2))
-                ndivisions = len(g.vs.select(_outdegree=2))
-                #nvertices, ignoring intermediate nodes with indegree == outdegree == 1
-                nvertices = len(g.vs.select(lambda v: not ( v.indegree() == 1 and v.outdegree() == 1)))
-                if nfusions+ndivisions <= max_fusion_divisions and nothers <= max_others and nvertices >= min_vertices:
-                    self.graph_topologies.append(g)
-                    graph_topologies_sortkey.append((nfusions+ndivisions, nfusions, ndivisions, nothers, nvertices))
-
-        # Order by sortkey (using lexicographical order)
-        idx = np.lexsort(np.array(graph_topologies_sortkey).T)
-        self.graph_topologies = np.array(self.graph_topologies)[idx].tolist()
-        del graph_topologies_sortkey
-
-        """# # to use user defined topologies instead:
-        # self.graph_topologies = []
-        # # 0 division, 0 fusion
-        # self.graph_topologies.append(
-        #     simplify_graph(ig.Graph(directed=True,
-        #                             edges=[[0, 1]])))
-        # # 1 division, 0 fusion
-        # self.graph_topologies.append(
-        #     simplify_graph(ig.Graph(directed=True,
-        #                             edges=[[0, 1],
-        #                                    [1, 2],
-        #                                    [1, 3]])))
-        # # 0 division, 1 fusion
-        # self.graph_topologies.append(
-        #     simplify_graph(ig.Graph(directed=True,
-        #                             edges=[[0, 2],
-        #                                    [1, 2],
-        #                                    [2, 3]])))
-        # # 1 division, 1 fusion
-        # self.graph_topologies.append(
-        #     simplify_graph(ig.Graph(directed=True,
-        #                             edges=[[0, 1],
-        #                                    [1, 2],
-        #                                    [1, 2],
-        #                                    [2, 3]])))
-        # # 1 division, 1 fusion
-        # self.graph_topologies.append(
-        #     simplify_graph(ig.Graph(directed=True,
-        #                             edges=[[0, 2],
-        #                                    [1, 2],
-        #                                    [2, 3],
-        #                                    [3, 4],
-        #                                    [3, 5]])))
-        # # 1 division, 1 fusion
-        # self.graph_topologies.append(
-        #     simplify_graph(ig.Graph(directed=True,
-        #                             edges=[[0, 2],
-        #                                    [1, 3],
-        #                                    [2, 4],
-        #                                    [2, 3],
-        #                                    [3, 5]])))
-        # # 2 divisions
-        # self.graph_topologies.append(
-        #     simplify_graph(ig.Graph(directed=True,
-        #                             edges=[[0, 1],
-        #                                    [1, 2],
-        #                                    [1, 3],
-        #                                    [3, 4],
-        #                                    [3, 5]])))
-        # # 2 fusions
-        # self.graph_topologies.append(
-        #     simplify_graph(ig.Graph(directed=True,
-        #                             edges=[[0, 4],
-        #                                    [1, 3],
-        #                                    [2, 3],
-        #                                    [3, 4],
-        #                                    [4, 5]])))"""
-
-        # self.cell_tracks_topology[n]=[i1,i2,...] => self.cell_track[n] is isomorphic to self.graph_topologies[i1] and  self.graph_topologies[i2] and ...
-        self.cell_tracks_topology = None
-
-        self.evaluate_cell_tracks_properties(first_run=True)
-        self.selected_cell_tracks = self.cell_tracks
+        self.cell_tracks_filtering = CellTracksFiltering(self.mask, self.graph)
 
         layout = QVBoxLayout()
 
@@ -309,15 +699,15 @@ class GraphFilteringWidget(QWidget):
         layout2.addWidget(help_label, 0, 0, 1, 2)
         self.all_cells_min_area = QSpinBox()
         self.all_cells_min_area.setMinimum(0)
-        self.all_cells_min_area.setMaximum( max([x['max_area'] for x in self.cell_tracks]))
-        self.all_cells_min_area.setValue(min([x['min_area'] for x in self.cell_tracks]))
+        self.all_cells_min_area.setMaximum(max(self.cell_tracks_filtering.get_max_area()))
+        self.all_cells_min_area.setValue(min(self.cell_tracks_filtering.get_min_area()))
         self.all_cells_min_area.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Min area (pixel)"), 1, 0)
         layout2.addWidget(self.all_cells_min_area, 1, 1)
         self.all_cells_max_area = QSpinBox()
         self.all_cells_max_area.setMinimum(0)
-        self.all_cells_max_area.setMaximum( max([x['max_area'] for x in self.cell_tracks]))
-        self.all_cells_max_area.setValue(max([x['max_area'] for x in self.cell_tracks]))
+        self.all_cells_max_area.setMaximum( max(self.cell_tracks_filtering.get_max_area()))
+        self.all_cells_max_area.setValue(max(self.cell_tracks_filtering.get_max_area()))
         self.all_cells_max_area.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Max area (pixel)"), 2, 0)
         layout2.addWidget(self.all_cells_max_area, 2, 1)
@@ -336,15 +726,15 @@ class GraphFilteringWidget(QWidget):
         layout2.addWidget(help_label, 0, 0, 1, 2)
         self.one_cell_min_area = QSpinBox()
         self.one_cell_min_area.setMinimum(0)
-        self.one_cell_min_area.setMaximum( max([x['max_area'] for x in self.cell_tracks]))
-        self.one_cell_min_area.setValue(min([x['min_area'] for x in self.cell_tracks]))
+        self.one_cell_min_area.setMaximum( max(self.cell_tracks_filtering.get_max_area()))
+        self.one_cell_min_area.setValue(min(self.cell_tracks_filtering.get_min_area()))
         self.one_cell_min_area.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Min area (pixel)"), 1, 0)
         layout2.addWidget(self.one_cell_min_area, 1, 1)
         self.one_cell_max_area = QSpinBox()
         self.one_cell_max_area.setMinimum(0)
-        self.one_cell_max_area.setMaximum( max([x['max_area'] for x in self.cell_tracks]))
-        self.one_cell_max_area.setValue(max([x['max_area'] for x in self.cell_tracks]))
+        self.one_cell_max_area.setMaximum( max(self.cell_tracks_filtering.get_max_area()))
+        self.one_cell_max_area.setValue(max(self.cell_tracks_filtering.get_max_area()))
         self.one_cell_max_area.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Max area (pixel)"), 2, 0)
         layout2.addWidget(self.one_cell_max_area, 2, 1)
@@ -383,8 +773,8 @@ class GraphFilteringWidget(QWidget):
         layout2.addWidget(help_label, 0, 0, 1, 2)
         self.nmissing = QSpinBox()
         self.nmissing.setMinimum(0)
-        self.nmissing.setMaximum(max([x['n_missing'] for x in self.cell_tracks]))
-        self.nmissing.setValue(max([x['n_missing'] for x in self.cell_tracks]))
+        self.nmissing.setMaximum(max(self.cell_tracks_filtering.get_n_missing()))
+        self.nmissing.setValue(max(self.cell_tracks_filtering.get_n_missing()))
         self.nmissing.valueChanged.connect(self.filters_changed)
         self.filter_nmissing.setLayout(layout2)
         layout2.addWidget(QLabel("Max missing cells"), 1, 0)
@@ -403,15 +793,15 @@ class GraphFilteringWidget(QWidget):
         layout2.addWidget(help_label, 0, 0, 1, 2)
         self.min_ndivisions = QSpinBox()
         self.min_ndivisions.setMinimum(0)
-        self.min_ndivisions.setMaximum( max([x['n_divisions'] for x in self.cell_tracks]))
-        self.min_ndivisions.setValue(min([x['n_divisions'] for x in self.cell_tracks]))
+        self.min_ndivisions.setMaximum( max(self.cell_tracks_filtering.get_n_divisions()))
+        self.min_ndivisions.setValue(min(self.cell_tracks_filtering.get_n_divisions()))
         self.min_ndivisions.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Min divisions"), 1, 0)
         layout2.addWidget(self.min_ndivisions, 1, 1)
         self.max_ndivisions = QSpinBox()
         self.max_ndivisions.setMinimum(0)
-        self.max_ndivisions.setMaximum( max([x['n_divisions'] for x in self.cell_tracks]))
-        self.max_ndivisions.setValue(max([x['n_divisions'] for x in self.cell_tracks]))
+        self.max_ndivisions.setMaximum( max(self.cell_tracks_filtering.get_n_divisions()))
+        self.max_ndivisions.setValue(max(self.cell_tracks_filtering.get_n_divisions()))
         self.max_ndivisions.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Max divisions"), 2, 0)
         layout2.addWidget(self.max_ndivisions, 2, 1)
@@ -437,15 +827,15 @@ class GraphFilteringWidget(QWidget):
         layout2.addWidget(help_label, 0, 0, 1, 2)
         self.min_nfusions = QSpinBox()
         self.min_nfusions.setMinimum(0)
-        self.min_nfusions.setMaximum( max([x['n_fusions'] for x in self.cell_tracks]))
-        self.min_nfusions.setValue(min([x['n_fusions'] for x in self.cell_tracks]))
+        self.min_nfusions.setMaximum( max(self.cell_tracks_filtering.get_n_fusions()))
+        self.min_nfusions.setValue(min(self.cell_tracks_filtering.get_n_fusions()))
         self.min_nfusions.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Min fusions"), 1, 0)
         layout2.addWidget(self.min_nfusions, 1, 1)
         self.max_nfusions = QSpinBox()
         self.max_nfusions.setMinimum(0)
-        self.max_nfusions.setMaximum( max([x['n_fusions'] for x in self.cell_tracks]))
-        self.max_nfusions.setValue(max([x['n_fusions'] for x in self.cell_tracks]))
+        self.max_nfusions.setMaximum( max(self.cell_tracks_filtering.get_n_fusions()))
+        self.max_nfusions.setValue(max(self.cell_tracks_filtering.get_n_fusions()))
         self.max_nfusions.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Max fusions"), 2, 0)
         layout2.addWidget(self.max_nfusions, 2, 1)
@@ -470,7 +860,7 @@ class GraphFilteringWidget(QWidget):
         help_label.setMinimumWidth(10)
         layout2.addWidget(help_label)
         self.topology_yn = []
-        for i, g in enumerate(self.graph_topologies):
+        for g in self.cell_tracks_filtering.graph_topologies:
             layout3 = QHBoxLayout()
             self.topology_yn.append(QCheckBox())
             self.topology_yn[-1].setChecked(False)
@@ -514,7 +904,7 @@ class GraphFilteringWidget(QWidget):
             self.save_button.setText("Filter && Save")
 
         # To allow saving image & mask before closing (__del__ is called too late)
-        ## TODO: replace by proper napari close event once implemented (https://forum.image.sc/t/handle-of-close-event-in-napari/61039)
+        # TODO: replace by proper napari close event once implemented (https://forum.image.sc/t/handle-of-close-event-in-napari/61039)
         self.viewer_images.window._qt_window.destroyed.connect(self.on_viewer_images_close)
 
         # Add a handler to output messages to napari status bar
@@ -524,74 +914,6 @@ class GraphFilteringWidget(QWidget):
         self.logger.addHandler(handler)
 
         self.logger.debug("Ready")
-
-    def evaluate_cell_tracks_properties(self, first_run=False):
-
-        if first_run:
-            stable_nfusions = 0
-            stable_ndivisions = 0
-        else:
-            stable_nfusions = self.stable_nfusions.value()
-            stable_ndivisions = self.stable_ndivisions.value()
-        # Number of border pixels. Must be >= 1
-        border_width = 2
-        # Flag edges with overlap_fraction_source<stable_overlap_fraction or overlap_fraction_target<stable_overlap_fraction as unstable
-        stable_overlap_fraction = 0
-
-        # Search for stable portions of the graph (vertices connected only to vertices in consecutive frames with same mask_id)
-        # Flag edges as stable if source vertex has a unique outgoing edge and target vertex has a unique incoming edge
-        self.graph.es['stable'] = False
-        self.graph.es.select(lambda edge: abs(edge['frame_source']-edge['frame_target']) == 1 and edge['mask_id_source'] == edge['mask_id_target'] and self.graph.outdegree(edge.source) == 1 and self.graph.indegree(edge.target) == 1)['stable']=True
-        # Flag edge with low overlap as unstable
-        self.graph.es.select(overlap_fraction_source_lt=stable_overlap_fraction)['stable'] = False
-        self.graph.es.select(overlap_fraction_target_lt=stable_overlap_fraction)['stable'] = False
-
-        # Evaluate length of "stable edges" regions (size of connected components in the subgraph of "stable edges") and store it as vertex attribute
-        g2 = self.graph.subgraph_edges(self.graph.es.select(stable=True),
-                                       delete_vertices=False)
-        components = g2.connected_components(mode='weak')
-        for i, n in enumerate(components.sizes()):
-            self.graph.vs[components[i]]['stable_component_size'] = n
-
-        # Eval cell tracks (i.e. connected components of the cell tracking graph)
-        self.logger.debug("finding connected components")
-        components = self.graph.connected_components(mode='weak')
-
-        # Topology
-        if self.cell_tracks_topology is None:
-            self.cell_tracks_topology = []
-            for cmp in components:
-               # self.cell_tracks_topology[n]=[i1,i2,...] => self.cell_track[n] is isomorphic to self.graph_topologies[i1] and  self.graph_topologies[i2] and ...
-                g2 = simplify_graph(self.graph.subgraph(cmp))
-                self.cell_tracks_topology.append([i for i, g3 in enumerate(self.graph_topologies) if g2.isomorphic(g3)])
-
-        self.logger.debug("building table of cell tracks properties")
-        self.cell_tracks = []
-        for i, cmp in enumerate(components):
-            g2 = self.graph.subgraph(cmp)
-            mask_ids = np.unique(g2.vs['mask_id'])
-            frame_min = np.min(g2.vs['frame'])
-            frame_max = np.max(g2.vs['frame'])
-            # Number of missing mask regions (edges spanning more than 1 frame)
-            n_missing = np.sum([ e['frame_target'] - e['frame_source'] - 1 for e in g2.es])
-            # Number fusion events with stable neighborhood
-            n_fusions = np.sum([1 if v.indegree() > 1 and min([v2['stable_component_size'] for v2 in v.neighbors()]) >= stable_nfusions+1 else 0 for v in g2.vs])
-            # Number division events with stable neighborhood
-            n_divisions = np.sum([1 if v.outdegree() > 1 and min([v2['stable_component_size'] for v2 in v.neighbors()]) >= stable_ndivisions+1 else 0 for v in g2.vs])
-            min_area = np.min(g2.vs['area'])
-            max_area = np.max(g2.vs['area'])
-            # Topology
-            g2_simplified = simplify_graph(g2)
-            self.cell_tracks.append({'graph_vertices': cmp,
-                                     'mask_ids': mask_ids,
-                                     'frame_min': frame_min,
-                                     'frame_max': frame_max,
-                                     'n_missing': n_missing,
-                                     'n_fusions': n_fusions,
-                                     'n_divisions': n_divisions,
-                                     'min_area': min_area,
-                                     'max_area': max_area,
-                                     'graph_topology': self.cell_tracks_topology[i]})
 
     def filters_changed(self):
         self.mask_need_filtering = True
@@ -604,75 +926,47 @@ class GraphFilteringWidget(QWidget):
         napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
         napari.qt.get_app().processEvents()
 
-        self.evaluate_cell_tracks_properties()
-
-        self.selected_cell_tracks = self.cell_tracks
+        self.cell_tracks_filtering.reset_filters()
 
         # No cells touching the border
         if self.filter_border.isChecked():
-            # Find mask_id touching the border (assuming mask T,Y,X axes)
-            self.logger.debug("finding mask ids touching border")
-            border_mask_ids = np.unique(
-                np.concatenate([
-                    np.unique(self.mask[:, :self.border_width.value(), :]),
-                    np.unique(self.mask[:, -self.border_width.value():, :]),
-                    np.unique(self.mask[:, :, :self.border_width.value()]),
-                    np.unique(self.mask[:, :, -self.border_width.value():])]))
-            border_mask_ids = border_mask_ids[border_mask_ids > 0]
-            self.logger.debug("filtering cell touching border")
-            self.selected_cell_tracks = [x for x in self.selected_cell_tracks if np.isin(x['mask_ids'], border_mask_ids).any() == False]
+            self.cell_tracks_filtering.filter_border(self.border_width.value())
 
         # All cells area within range value
         if self.filter_all_cells_area_range.isChecked():
-            self.logger.debug("filtering cell area (all cells) in range: [%s,%s]", self.all_cells_min_area.value(), self.all_cells_max_area.value())
-            self.selected_cell_tracks = [x for x in self.selected_cell_tracks if x['min_area'] >= self.all_cells_min_area.value() and x['max_area'] <= self.all_cells_max_area.value()]
+            self.cell_tracks_filtering.filter_cell_area_all(self.all_cells_min_area.value(), self.all_cells_max_area.value())
 
         # At least one cell area within range value
         if self.filter_one_cell_area_range.isChecked():
-            self.logger.debug("filtering cell area (at least one cell) in range: [%s,%s]", self.one_cell_min_area.value(), self.one_cell_max_area.value())
-            self.selected_cell_tracks = [x for x in self.selected_cell_tracks if x['min_area'] >= self.one_cell_min_area.value() and x['max_area'] <= self.one_cell_max_area.value()]
+            self.cell_tracks_filtering.filter_cell_area_one(self.one_cell_min_area.value(), self.one_cell_max_area.value())
 
         # Cell track length
         if self.filter_nframes.isChecked():
-            self.logger.debug("filtering cell track length: %s", self.nframes.value())
-            self.selected_cell_tracks = [x for x in self.selected_cell_tracks if x['frame_max']-x['frame_min']+1 >= self.nframes.value()]
+            self.cell_tracks_filtering.filter_track_length(self.nframes.value())
 
         # n_missing
         if self.filter_nmissing.isChecked():
-            self.logger.debug("filtering number of missing cells: %s", self.nframes.value())
-            self.selected_cell_tracks = [x for x in self.selected_cell_tracks if x['n_missing'] <= self.nmissing.value()]
+            self.cell_tracks_filtering.filter_n_missing_cells(self.nmissing.value())
 
         # n_divisions
         if self.filter_ndivisions.isChecked():
-            self.logger.debug("filtering number of divisions in range: [%s,%s]", self.min_ndivisions.value(), self.max_ndivisions.value())
-            self.selected_cell_tracks = [x for x in self.selected_cell_tracks if x['n_divisions'] >= self.min_ndivisions.value() and x['n_divisions'] <= self.max_ndivisions.value()]
+            stable_overlap_fraction = 0
+            self.cell_tracks_filtering.filter_n_divisions(self.min_ndivisions.value(), self.max_ndivisions.value(), self.stable_ndivisions.value(), stable_overlap_fraction)
 
         # n_fusions
         if self.filter_nfusions.isChecked():
-            self.logger.debug("filtering number of fusions in range: [%s,%s]", self.min_nfusions.value(), self.max_nfusions.value())
-            self.selected_cell_tracks = [x for x in self.selected_cell_tracks if x['n_fusions'] >= self.min_nfusions.value() and x['n_fusions'] <= self.max_nfusions.value()]
+            stable_overlap_fraction = 0
+            self.cell_tracks_filtering.filter_n_fusions(self.min_nfusions.value(), self.max_nfusions.value(), self.stable_nfusions.value(), stable_overlap_fraction)
 
         # Topology
         if self.filter_topology.isChecked():
-            selected_topologies = [i for i, checkbox in enumerate(self.topology_yn) if checkbox.isChecked()]
-            self.logger.debug("filtering topology: %s",  ", ".join([str(i) for i in selected_topologies]))
-            self.selected_cell_tracks = [x for x in self.selected_cell_tracks if np.isin(x['graph_topology'], selected_topologies).any()]
+            self.cell_tracks_filtering.filter_topology([i for i, checkbox in enumerate(self.topology_yn) if checkbox.isChecked()])
 
-        self.logger.debug("Selected cell tracks: %s/%s", len(self.selected_cell_tracks), len(self.cell_tracks))
         if not closing:
-            self.logger.debug("selecting mask_ids")
-            if len(self.selected_cell_tracks) > 0:
-                selected_mask_ids = np.unique(np.concatenate(([x['mask_ids'] for x in self.selected_cell_tracks])))
-            else:
-                selected_mask_ids = np.array([], dtype=self.mask.dtype)
-            self.logger.debug("copying mask")
-            selected_mask = self.mask.copy()
-            if len(self.selected_cell_tracks) != len(self.cell_tracks):
-                self.logger.debug("filtering mask")
-                selected_mask[np.logical_not(np.isin(selected_mask, selected_mask_ids))] = 0
-
+            selected_mask = self.cell_tracks_filtering.get_mask()
             self.logger.debug("adding to viewer_images")
             self.viewer_images.layers['Selected cell mask'].data = selected_mask
+            self.viewer_images.layers['Selected cell mask'].editable = False
             self.logger.debug("refreshing viewer_images")
             self.viewer_images.layers['Selected cell mask'].refresh()
 
@@ -684,68 +978,6 @@ class GraphFilteringWidget(QWidget):
         self.logger.info("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
-
-    def save_per_track(self, closing=False, relabel_mask_ids=True):
-        """
-        Save one mask and one graph file for each selected tracks
-        """
-        # Set cursor to BusyCursor
-        napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
-        napari.qt.get_app().processEvents()
-        self.logger.info("Done")
-
-        if self.mask_need_filtering:
-            self.filter(closing)
-
-        output_files = []
-        for n, cell_track in enumerate(self.selected_cell_tracks):
-            self.logger.debug("preparing cell track %s/%s", n,len(self.selected_cell_tracks))
-            self.logger.debug("filtering graph")
-            g2 = self.graph.subgraph(cell_track['graph_vertices'])
-            self.logger.debug("filtering mask")
-            selected_mask = self.mask.copy()
-            selected_mask[np.logical_not(np.isin(selected_mask, cell_track['mask_ids']))] = 0
-
-            # Relabel mask ids to consecutive integer starting from 1 (keeping 0 for background)
-            if relabel_mask_ids:
-                self.logger.debug("relabelling filtered mask and graph")
-                # Create mapping table
-                map_id = np.repeat(0, np.max(np.unique(selected_mask))+1).astype(selected_mask.dtype)
-                map_id[0] = 0
-                n_ids = 1
-                for mask_id in cell_track['mask_ids']:
-                    map_id[mask_id] = n_ids
-                    n_ids += 1
-                selected_mask = map_id[selected_mask]
-                g2.vs['mask_id'] = map_id[g2.vs['mask_id']].astype(selected_mask.dtype)
-                g2.es['mask_id_source'] = map_id[g2.es['mask_id_source']].astype(selected_mask.dtype)
-                g2.es['mask_id_target'] = map_id[g2.es['mask_id_target']].astype(selected_mask.dtype)
-
-            ## TODO: adapt metadata to more generic input files (other axes)
-            output_file1 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_celltrack"+str(n)+"_mask.tif")
-            self.logger.info("Cell track %s/%s: saving segmentation mask to %s", n, len(self.selected_cell_tracks), output_file1)
-            selected_mask = selected_mask[:, np.newaxis, : ,:]
-            tifffile.imwrite(output_file1, selected_mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
-            output_files.append(output_file1)
-
-            output_file3 = os.path.join(self.output_path, os.path.splitext(os.path.basename(self.image_path))[0]+"_celltrack"+str(n)+"_graph.graphmlz")
-            self.logger.info("Cell track %s/%s: saving cell tracking graph to %s", n, len(self.selected_cell_tracks), output_file3)
-            g2.write_graphmlz(output_file3)
-            output_files.append(output_file3)
-
-        if not closing:
-            self.mask_modified = False
-            self.save_button.setStyleSheet("")
-
-        # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
-
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle('Files saved')
-        msg.setText('Mask and graph saved')
-        msg.setDetailedText("\n".join(output_files))
-        msg.exec()
 
     def save(self, closing=False, relabel_mask_ids=True):
         """
@@ -759,43 +991,8 @@ class GraphFilteringWidget(QWidget):
         if self.mask_need_filtering:
             self.filter(closing)
 
-        if len(self.selected_cell_tracks) > 0:
-            selected_graph_vertices = np.unique(np.concatenate(([x['graph_vertices'] for x in self.selected_cell_tracks])))
-            selected_mask_ids = np.unique(np.concatenate(([x['mask_ids'] for x in self.selected_cell_tracks])))
-        else:
-            selected_mask_ids = np.array([], dtype=self.mask.dtype)
-            selected_graph_vertices = np.array([],dtype='int')
-
-        self.logger.debug("filtering graph")
-        g2 = self.graph.subgraph(selected_graph_vertices)
-        self.logger.debug("filtering mask")
-        selected_mask = self.mask.copy()
-        selected_mask[np.logical_not(np.isin(selected_mask, selected_mask_ids))] = 0
-
-        # relabel mask ids to consecutive integer starting from 1 (keeping 0 for background)
-        if relabel_mask_ids:
-            self.logger.debug("relabelling filtered mask and graph")
-            # create mapping table
-            map_id = np.repeat(0, np.max(np.unique(selected_mask))+1).astype(selected_mask.dtype)
-            map_id[0] = 0
-            n_ids = 1
-            for mask_id in selected_mask_ids:
-                map_id[mask_id] = n_ids
-                n_ids += 1
-            selected_mask = map_id[selected_mask]
-            g2.vs['mask_id'] = map_id[g2.vs['mask_id']].astype(selected_mask.dtype)
-            g2.es['mask_id_source'] = map_id[g2.es['mask_id_source']].astype(selected_mask.dtype)
-            g2.es['mask_id_target'] = map_id[g2.es['mask_id_target']].astype(selected_mask.dtype)
-
-        ## TODO: adapt metadata to more generic input files (other axes)
-        output_file1 = os.path.join(self.output_path, os.path.splitext( os.path.basename(self.image_path))[0]+"_mask.tif")
-        self.logger.info("Saving segmentation mask to %s", output_file1)
-        selected_mask = selected_mask[:, np.newaxis, : ,:]
-        tifffile.imwrite(output_file1, selected_mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
-
-        output_file3 = os.path.join(self.output_path, os.path.splitext( os.path.basename(self.image_path))[0]+"_graph.graphmlz")
-        self.logger.info("Saving cell tracking graph to %s", output_file3)
-        g2.write_graphmlz(output_file3)
+        output_basename = os.path.splitext( os.path.basename(self.image_path))[0]
+        self.cell_tracks_filtering.save(self.output_path, output_basename, relabel_mask_ids)
 
         if not closing:
             self.mask_modified = False
@@ -804,7 +1001,7 @@ class GraphFilteringWidget(QWidget):
         # restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
-        QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + output_file1 + "\n" + output_file3)
+        QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + os.path.join(self.output_path, output_basename+"_mask.tif") + "\n" + os.path.join(self.output_path, output_basename+"_graph.graphmlz"))
 
     def quit(self):
         self.viewer_images.close()
@@ -885,7 +1082,7 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
         image = gf.Image(image_path)
         image.imread()
     except Exception as e:
-        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
+        logging.getLogger(__name__).error('Error loading image %s. %s', image_path, str(e))
 
     # Load mask
     logger.debug("loading %s", mask_path)
@@ -893,7 +1090,7 @@ def main(image_path, mask_path, graph_path, output_path, display_results=True):
         mask = gf.Image(mask_path)
         mask.imread()
     except Exception as e:
-        logging.getLogger(__name__).error('Error loading mask '+mask_path+'\n'+str(e))
+        logging.getLogger(__name__).error('Error loading mask %s. %s', mask_path, str(e))
 
     # Load graph
     logger.debug("loading %s", graph_path)
