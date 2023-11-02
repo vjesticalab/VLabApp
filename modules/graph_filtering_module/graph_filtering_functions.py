@@ -421,7 +421,7 @@ class CellTracksFiltering:
         border_mask_ids = border_mask_ids[border_mask_ids > 0]
         self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if np.isin(self.cell_tracks[i]['mask_ids'], border_mask_ids).any() == False]
 
-    def filter_cell_area_all(self, min_area, max_area):
+    def filter_all_cells_area(self, min_area, max_area):
         """
         Keep only cell tracks with all cell area within the interval [`min_area`,`max_area`].
 
@@ -435,7 +435,7 @@ class CellTracksFiltering:
         self.logger.info("filtering cell area (keep cell tracks with all cells area in [%s,%s])", min_area, max_area)
         self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if self.cell_tracks[i]['min_area'] >= min_area and self.cell_tracks[i]['max_area'] <= max_area]
 
-    def filter_cell_area_one(self, min_area, max_area):
+    def filter_one_cell_area(self, min_area, max_area):
         """
         Keep only cell tracks with at least one cell with area < `max_area` and at least one cell with area > `min_area` (not necessarily the same cell).
 
@@ -668,11 +668,11 @@ class GraphFilteringWidget(QWidget):
         layout = QVBoxLayout()
 
         # No cells touching the border
-        self.filter_border = QGroupBox("Border")
-        self.filter_border.setCheckable(True)
-        self.filter_border.setChecked(False)
-        self.filter_border.toggled.connect(self.filters_changed)
-        self.filter_border.setToolTip('Keep only cell tracks with no cell touching the border.')
+        self.filter_border_yn = QGroupBox("Border")
+        self.filter_border_yn.setCheckable(True)
+        self.filter_border_yn.setChecked(False)
+        self.filter_border_yn.toggled.connect(self.filters_changed)
+        self.filter_border_yn.setToolTip('Keep only cell tracks with no cell touching the border.')
         layout2 = QGridLayout()
         help_label = QLabel("Remove cell tracks with at least one cell touching the border.")
         help_label.setWordWrap(True)
@@ -685,14 +685,14 @@ class GraphFilteringWidget(QWidget):
         self.border_width.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Border width (pixel)"), 1, 0)
         layout2.addWidget(self.border_width, 1, 1)
-        self.filter_border.setLayout(layout2)
-        layout.addWidget(self.filter_border)
+        self.filter_border_yn.setLayout(layout2)
+        layout.addWidget(self.filter_border_yn)
 
         # All cells area within range value
-        self.filter_all_cells_area_range = QGroupBox("Cell area (all cells)")
-        self.filter_all_cells_area_range.setCheckable(True)
-        self.filter_all_cells_area_range.setChecked(False)
-        self.filter_all_cells_area_range.toggled.connect(self.filters_changed)
+        self.filter_all_cells_area_yn = QGroupBox("Cell area (all cells)")
+        self.filter_all_cells_area_yn.setCheckable(True)
+        self.filter_all_cells_area_yn.setChecked(False)
+        self.filter_all_cells_area_yn.toggled.connect(self.filters_changed)
         layout2 = QGridLayout()
         help_label = QLabel("Keep only cell tracks with all cell area within [min,max] range.")
         help_label.setWordWrap(True)
@@ -712,14 +712,14 @@ class GraphFilteringWidget(QWidget):
         self.all_cells_max_area.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Max area (pixel)"), 2, 0)
         layout2.addWidget(self.all_cells_max_area, 2, 1)
-        self.filter_all_cells_area_range.setLayout(layout2)
-        layout.addWidget(self.filter_all_cells_area_range)
+        self.filter_all_cells_area_yn.setLayout(layout2)
+        layout.addWidget(self.filter_all_cells_area_yn)
 
         # At least one cell area within range value
-        self.filter_one_cell_area_range = QGroupBox("Cell area (at least one cell)")
-        self.filter_one_cell_area_range.setCheckable(True)
-        self.filter_one_cell_area_range.setChecked(False)
-        self.filter_one_cell_area_range.toggled.connect(self.filters_changed)
+        self.filter_one_cell_area_yn = QGroupBox("Cell area (at least one cell)")
+        self.filter_one_cell_area_yn.setCheckable(True)
+        self.filter_one_cell_area_yn.setChecked(False)
+        self.filter_one_cell_area_yn.toggled.connect(self.filters_changed)
         layout2 = QGridLayout()
         help_label = QLabel("Keep only cell tracks with at least one cell area within [min,max] range.")
         help_label.setWordWrap(True)
@@ -739,14 +739,14 @@ class GraphFilteringWidget(QWidget):
         self.one_cell_max_area.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Max area (pixel)"), 2, 0)
         layout2.addWidget(self.one_cell_max_area, 2, 1)
-        self.filter_one_cell_area_range.setLayout(layout2)
-        layout.addWidget(self.filter_one_cell_area_range)
+        self.filter_one_cell_area_yn.setLayout(layout2)
+        layout.addWidget(self.filter_one_cell_area_yn)
 
         # cell track length
-        self.filter_nframes = QGroupBox("Cell track length")
-        self.filter_nframes.setCheckable(True)
-        self.filter_nframes.setChecked(False)
-        self.filter_nframes.toggled.connect(self.filters_changed)
+        self.filter_track_length_yn = QGroupBox("Cell track length")
+        self.filter_track_length_yn.setCheckable(True)
+        self.filter_track_length_yn.setChecked(False)
+        self.filter_track_length_yn.toggled.connect(self.filters_changed)
         layout2 = QGridLayout()
         help_label = QLabel("Keep only cell tracks spanning at least the select number of frames.")
         help_label.setWordWrap(True)
@@ -757,16 +757,16 @@ class GraphFilteringWidget(QWidget):
         self.nframes.setMaximum(mask.sizes['T'])
         self.nframes.setValue(0)
         self.nframes.valueChanged.connect(self.filters_changed)
-        self.filter_nframes.setLayout(layout2)
+        self.filter_track_length_yn.setLayout(layout2)
         layout2.addWidget(QLabel("Min track length (frames)"), 1, 0)
         layout2.addWidget(self.nframes, 1, 1)
-        layout.addWidget(self.filter_nframes)
+        layout.addWidget(self.filter_track_length_yn)
 
         # n_missing
-        self.filter_nmissing = QGroupBox("Missing cells")
-        self.filter_nmissing.setCheckable(True)
-        self.filter_nmissing.setChecked(False)
-        self.filter_nmissing.toggled.connect(self.filters_changed)
+        self.filter_n_missing_yn = QGroupBox("Missing cells")
+        self.filter_n_missing_yn.setCheckable(True)
+        self.filter_n_missing_yn.setChecked(False)
+        self.filter_n_missing_yn.toggled.connect(self.filters_changed)
         layout2 = QGridLayout()
         help_label = QLabel("Keep only cell tracks with at most the selected number of missing cell mask.")
         help_label.setWordWrap(True)
@@ -777,16 +777,16 @@ class GraphFilteringWidget(QWidget):
         self.nmissing.setMaximum(max(self.cell_tracks_filtering.get_n_missing()))
         self.nmissing.setValue(max(self.cell_tracks_filtering.get_n_missing()))
         self.nmissing.valueChanged.connect(self.filters_changed)
-        self.filter_nmissing.setLayout(layout2)
+        self.filter_n_missing_yn.setLayout(layout2)
         layout2.addWidget(QLabel("Max missing cells"), 1, 0)
         layout2.addWidget(self.nmissing, 1, 1)
-        layout.addWidget(self.filter_nmissing)
+        layout.addWidget(self.filter_n_missing_yn)
 
         # n_divisions
-        self.filter_ndivisions = QGroupBox("Cell divisions")
-        self.filter_ndivisions.setCheckable(True)
-        self.filter_ndivisions.setChecked(False)
-        self.filter_ndivisions.toggled.connect(self.filters_changed)
+        self.filter_n_divisions_yn = QGroupBox("Cell divisions")
+        self.filter_n_divisions_yn.setCheckable(True)
+        self.filter_n_divisions_yn.setChecked(False)
+        self.filter_n_divisions_yn.toggled.connect(self.filters_changed)
         layout2 = QGridLayout()
         help_label = QLabel("Keep only cell tracks with a number of divisions events within [min,max] range. Each division event must be surrounded by the specified number of stable frames.")
         help_label.setWordWrap(True)
@@ -806,21 +806,21 @@ class GraphFilteringWidget(QWidget):
         self.max_ndivisions.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Max divisions"), 2, 0)
         layout2.addWidget(self.max_ndivisions, 2, 1)
-        self.stable_ndivisions = QSpinBox()
-        self.stable_ndivisions.setMinimum(0)
-        self.stable_ndivisions.setMaximum(mask.sizes['T'])
-        self.stable_ndivisions.setValue(1)
-        self.stable_ndivisions.valueChanged.connect(self.filters_changed)
+        self.nframes_stable_division = QSpinBox()
+        self.nframes_stable_division.setMinimum(0)
+        self.nframes_stable_division.setMaximum(mask.sizes['T'])
+        self.nframes_stable_division.setValue(1)
+        self.nframes_stable_division.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Min stable size (frames):"), 3, 0)
-        layout2.addWidget(self.stable_ndivisions, 3, 1)
-        self.filter_ndivisions.setLayout(layout2)
-        layout.addWidget(self.filter_ndivisions)
+        layout2.addWidget(self.nframes_stable_division, 3, 1)
+        self.filter_n_divisions_yn.setLayout(layout2)
+        layout.addWidget(self.filter_n_divisions_yn)
 
         # n_fusions
-        self.filter_nfusions = QGroupBox("Cell fusions")
-        self.filter_nfusions.setCheckable(True)
-        self.filter_nfusions.setChecked(False)
-        self.filter_nfusions.toggled.connect(self.filters_changed)
+        self.filter_n_fusions_yn = QGroupBox("Cell fusions")
+        self.filter_n_fusions_yn.setCheckable(True)
+        self.filter_n_fusions_yn.setChecked(False)
+        self.filter_n_fusions_yn.toggled.connect(self.filters_changed)
         layout2 = QGridLayout()
         help_label = QLabel("Keep only cell tracks with a number of fusions events within [min,max] range. Each division event must be surrounded by the specified number of stable frames.")
         help_label.setWordWrap(True)
@@ -840,21 +840,21 @@ class GraphFilteringWidget(QWidget):
         self.max_nfusions.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Max fusions"), 2, 0)
         layout2.addWidget(self.max_nfusions, 2, 1)
-        self.stable_nfusions = QSpinBox()
-        self.stable_nfusions.setMinimum(0)
-        self.stable_nfusions.setMaximum(mask.sizes['T'])
-        self.stable_nfusions.setValue(1)
-        self.stable_nfusions.valueChanged.connect(self.filters_changed)
+        self.nframes_stable_fusion = QSpinBox()
+        self.nframes_stable_fusion.setMinimum(0)
+        self.nframes_stable_fusion.setMaximum(mask.sizes['T'])
+        self.nframes_stable_fusion.setValue(1)
+        self.nframes_stable_fusion.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Min stable size (frames):"), 3, 0)
-        layout2.addWidget(self.stable_nfusions, 3, 1)
-        self.filter_nfusions.setLayout(layout2)
-        layout.addWidget(self.filter_nfusions)
+        layout2.addWidget(self.nframes_stable_fusion, 3, 1)
+        self.filter_n_fusions_yn.setLayout(layout2)
+        layout.addWidget(self.filter_n_fusions_yn)
 
         # Topologies
-        self.filter_topology = QGroupBox("Graph topology")
-        self.filter_topology.setCheckable(True)
-        self.filter_topology.setChecked(False)
-        self.filter_topology.toggled.connect(self.filters_changed)
+        self.filter_topology_yn = QGroupBox("Graph topology")
+        self.filter_topology_yn.setCheckable(True)
+        self.filter_topology_yn.setChecked(False)
+        self.filter_topology_yn.toggled.connect(self.filters_changed)
         layout2 = QVBoxLayout()
         help_label = QLabel("Keep only cell tracks with selected topologies.")
         help_label.setWordWrap(True)
@@ -873,8 +873,8 @@ class GraphFilteringWidget(QWidget):
             # label.setScaledContents(True)
             layout3.addWidget(label)
             layout2.addLayout(layout3)
-        self.filter_topology.setLayout(layout2)
-        layout.addWidget(self.filter_topology)
+        self.filter_topology_yn.setLayout(layout2)
+        layout.addWidget(self.filter_topology_yn)
 
         # Filter button
         layout2 = QHBoxLayout()
@@ -930,37 +930,37 @@ class GraphFilteringWidget(QWidget):
         self.cell_tracks_filtering.reset_filters()
 
         # No cells touching the border
-        if self.filter_border.isChecked():
+        if self.filter_border_yn.isChecked():
             self.cell_tracks_filtering.filter_border(self.border_width.value())
 
         # All cells area within range value
-        if self.filter_all_cells_area_range.isChecked():
-            self.cell_tracks_filtering.filter_cell_area_all(self.all_cells_min_area.value(), self.all_cells_max_area.value())
+        if self.filter_all_cells_area_yn.isChecked():
+            self.cell_tracks_filtering.filter_all_cells_area(self.all_cells_min_area.value(), self.all_cells_max_area.value())
 
         # At least one cell area within range value
-        if self.filter_one_cell_area_range.isChecked():
-            self.cell_tracks_filtering.filter_cell_area_one(self.one_cell_min_area.value(), self.one_cell_max_area.value())
+        if self.filter_one_cell_area_yn.isChecked():
+            self.cell_tracks_filtering.filter_one_cell_area(self.one_cell_min_area.value(), self.one_cell_max_area.value())
 
         # Cell track length
-        if self.filter_nframes.isChecked():
+        if self.filter_track_length_yn.isChecked():
             self.cell_tracks_filtering.filter_track_length(self.nframes.value())
 
         # n_missing
-        if self.filter_nmissing.isChecked():
+        if self.filter_n_missing_yn.isChecked():
             self.cell_tracks_filtering.filter_n_missing(self.nmissing.value())
 
         # n_divisions
-        if self.filter_ndivisions.isChecked():
+        if self.filter_n_divisions_yn.isChecked():
             stable_overlap_fraction = 0
-            self.cell_tracks_filtering.filter_n_divisions(self.min_ndivisions.value(), self.max_ndivisions.value(), self.stable_ndivisions.value(), stable_overlap_fraction)
+            self.cell_tracks_filtering.filter_n_divisions(self.min_ndivisions.value(), self.max_ndivisions.value(), self.nframes_stable_division.value(), stable_overlap_fraction)
 
         # n_fusions
-        if self.filter_nfusions.isChecked():
+        if self.filter_n_fusions_yn.isChecked():
             stable_overlap_fraction = 0
-            self.cell_tracks_filtering.filter_n_fusions(self.min_nfusions.value(), self.max_nfusions.value(), self.stable_nfusions.value(), stable_overlap_fraction)
+            self.cell_tracks_filtering.filter_n_fusions(self.min_nfusions.value(), self.max_nfusions.value(), self.nframes_stable_fusion.value(), stable_overlap_fraction)
 
         # Topology
-        if self.filter_topology.isChecked():
+        if self.filter_topology_yn.isChecked():
             topology_ids=[i for i, checkbox in enumerate(self.topology_yn) if checkbox.isChecked()]
             self.cell_tracks_filtering.filter_topology(topology_ids)
 
@@ -1049,14 +1049,14 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
     filters: list of tuple
         list of filters to apply. Each filter is defined by a tuple with filter name (str) as first element, following by filter parameters.
         Possible filters are (see CellTrackingFiltering for more information):
-            ('border',border_width)
-            ('cell_area_all', min_area, max_area)
-            ('cell_area_one', min_area, max_area)
-            ('track_length', track_length)
-            ('n_missing', n)
-            ('n_divisions', min_n, max_n, nframes_stable, stable_overlap_fraction)
-            ('n_fusions', min_n, max_n, nframes_stable, stable_overlap_fraction)
-            ('topology', selected_topologies)
+            ('filter_border',border_width)
+            ('filter_all_cells_area', min_area, max_area)
+            ('filter_one_cell_area', min_area, max_area)
+            ('filter_track_length', track_length)
+            ('filter_n_missing', n)
+            ('filter_n_divisions', min_n, max_n, nframes_stable, stable_overlap_fraction)
+            ('filter_n_fusions', min_n, max_n, nframes_stable, stable_overlap_fraction)
+            ('filter_topology', selected_topologies)
     display_results: bool
         display image, mask and results in napari.
     graph_topologies: list of igraph.Graph
@@ -1147,35 +1147,35 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
         viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
         if len(filters) > 0:
             for filter_name, *filter_params in filters:
-                if filter_name == 'border':
-                    graph_filtering_widget.filter_border.setChecked(True)
+                if filter_name == 'filter_border':
+                    graph_filtering_widget.filter_border_yn.setChecked(True)
                     graph_filtering_widget.border_width.setValue(filter_params[0])
-                elif filter_name == 'cell_area_all':
-                    graph_filtering_widget.filter_all_cells_area_range.setChecked(True)
+                elif filter_name == 'filter_all_cells_area':
+                    graph_filtering_widget.filter_all_cells_area_yn.setChecked(True)
                     graph_filtering_widget.all_cells_min_area.setValue(filter_params[0])
                     graph_filtering_widget.all_cells_max_area.setValue(filter_params[1])
-                elif filter_name == 'cell_area_one':
-                    graph_filtering_widget.filter_one_cell_area_range.setChecked(True)
+                elif filter_name == 'filter_one_cell_area':
+                    graph_filtering_widget.filter_one_cell_area_yn.setChecked(True)
                     graph_filtering_widget.one_cell_min_area.setValue(filter_params[0])
                     graph_filtering_widget.one_cell_max_area.setValue(filter_params[1])
-                elif filter_name == 'track_length':
-                    graph_filtering_widget.filter_nframes.setChecked(True)
+                elif filter_name == 'filter_track_length':
+                    graph_filtering_widget.filter_track_length_yn.setChecked(True)
                     graph_filtering_widget.nframes.setValue(filter_params[0])
-                elif filter_name == 'n_missing':
-                    graph_filtering_widget.filter_nmissing.setChecked(True)
+                elif filter_name == 'filter_n_missing':
+                    graph_filtering_widget.filter_n_missing_yn.setChecked(True)
                     graph_filtering_widget.nmissing.setValue(filter_params[0])
-                elif filter_name == 'n_divisions':
-                    graph_filtering_widget.filter_ndivisions.setChecked(True)
+                elif filter_name == 'filter_n_divisions':
+                    graph_filtering_widget.filter_n_divisions_yn.setChecked(True)
                     graph_filtering_widget.min_ndivisions.setValue(filter_params[0])
                     graph_filtering_widget.max_ndivisions.setValue(filter_params[1])
-                    graph_filtering_widget.stable_ndivisions.setValue(filter_params[2])
-                elif filter_name == 'n_fusions':
-                    graph_filtering_widget.filter_nfusions.setChecked(True)
+                    graph_filtering_widget.nframes_stable_division.setValue(filter_params[2])
+                elif filter_name == 'filter_n_fusions':
+                    graph_filtering_widget.filter_n_fusions_yn.setChecked(True)
                     graph_filtering_widget.min_nfusions.setValue(filter_params[0])
                     graph_filtering_widget.max_nfusions.setValue(filter_params[1])
-                    graph_filtering_widget.stable_nfusions.setValue(filter_params[2])
-                elif filter_name == 'topology':
-                    graph_filtering_widget.filter_topology.setChecked(True)
+                    graph_filtering_widget.nframes_stable_fusion.setValue(filter_params[2])
+                elif filter_name == 'filter_topology':
+                    graph_filtering_widget.filter_topology_yn.setChecked(True)
                     for i in filter_params[0]:
                         graph_filtering_widget.topology_yn[i].setChecked(True)
                 else:
@@ -1185,21 +1185,21 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
         cell_tracks_filtering = CellTracksFiltering(mask.get_TYXarray(), graph, graph_topologies=graph_topologies)
         if len(filters) > 0:
             for filter_name, *filter_params in filters:
-                if filter_name == 'border':
+                if filter_name == 'filter_border':
                     cell_tracks_filtering.filter_border(filter_params[0])
-                elif filter_name == 'cell_area_all':
-                    cell_tracks_filtering.filter_cell_area_all(filter_params[0], filter_params[1])
-                elif filter_name == 'cell_area_one':
-                    cell_tracks_filtering.filter_cell_area_one(filter_params[0], filter_params[1])
-                elif filter_name == 'track_length':
+                elif filter_name == 'filter_all_cells_area':
+                    cell_tracks_filtering.filter_all_cells_area(filter_params[0], filter_params[1])
+                elif filter_name == 'filter_one_cell_area':
+                    cell_tracks_filtering.filter_one_cell_area(filter_params[0], filter_params[1])
+                elif filter_name == 'filter_track_length':
                     cell_tracks_filtering.filter_track_length(filter_params[0])
-                elif filter_name == 'n_missing':
+                elif filter_name == 'filter_n_missing':
                     cell_tracks_filtering.filter_n_missing(filter_params[0])
-                elif filter_name == 'n_divisions':
+                elif filter_name == 'filter_n_divisions':
                     cell_tracks_filtering.filter_n_divisions(filter_params[0], filter_params[1], filter_params[2], filter_params[3])
-                elif filter_name == 'n_fusions':
+                elif filter_name == 'filter_n_fusions':
                     cell_tracks_filtering.filter_n_fusions(filter_params[0], filter_params[1], filter_params[2], filter_params[3])
-                elif filter_name == 'topology':
+                elif filter_name == 'filter_topology':
                     cell_tracks_filtering.filter_topology(filter_params[0])
                 else:
                     logger.error("ignoring unknown filter %s.",filter_name)

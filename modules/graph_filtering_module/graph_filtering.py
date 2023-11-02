@@ -67,10 +67,10 @@ class GraphFiltering(QWidget):
         groupbox = QGroupBox("Options")
         layout2 = QVBoxLayout()
         # filter border cells
-        self.filter_border = QGroupBox("Border")
-        self.filter_border.setCheckable(True)
-        self.filter_border.setChecked(False)
-        self.filter_border.setToolTip('Keep only cell tracks with no cell touching the border.')
+        self.filter_border_yn = QGroupBox("Border")
+        self.filter_border_yn.setCheckable(True)
+        self.filter_border_yn.setChecked(False)
+        self.filter_border_yn.setToolTip('Keep only cell tracks with no cell touching the border.')
         layout3 = QFormLayout()
         help_label = QLabel("Remove cell tracks with at least one cell touching the border.")
         help_label.setWordWrap(True)
@@ -81,12 +81,12 @@ class GraphFiltering(QWidget):
         self.border_width.setMaximum(100)
         self.border_width.setValue(2)
         layout3.addRow("Border width (pixel):",self.border_width)
-        self.filter_border.setLayout(layout3)
-        layout2.addWidget(self.filter_border)
+        self.filter_border_yn.setLayout(layout3)
+        layout2.addWidget(self.filter_border_yn)
         # filter cell area (all cells)
-        self.filter_all_cells_area_range = QGroupBox("Cell area (all cells)")
-        self.filter_all_cells_area_range.setCheckable(True)
-        self.filter_all_cells_area_range.setChecked(False)
+        self.filter_all_cells_area_yn = QGroupBox("Cell area (all cells)")
+        self.filter_all_cells_area_yn.setCheckable(True)
+        self.filter_all_cells_area_yn.setChecked(False)
         layout3 = QFormLayout()
         help_label = QLabel("Keep only cell tracks with all cell area within [min,max] range.")
         help_label.setWordWrap(True)
@@ -102,12 +102,12 @@ class GraphFiltering(QWidget):
         self.all_cells_max_area.setMaximum(100000)
         self.all_cells_max_area.setValue(100000)
         layout3.addRow("Max area (pixel):", self.all_cells_max_area)
-        self.filter_all_cells_area_range.setLayout(layout3)
-        layout2.addWidget(self.filter_all_cells_area_range)
+        self.filter_all_cells_area_yn.setLayout(layout3)
+        layout2.addWidget(self.filter_all_cells_area_yn)
         # filter cell area (at least one cell)
-        self.filter_one_cell_area_range = QGroupBox("Cell area (at least one cell)")
-        self.filter_one_cell_area_range.setCheckable(True)
-        self.filter_one_cell_area_range.setChecked(False)
+        self.filter_one_cell_area_yn = QGroupBox("Cell area (at least one cell)")
+        self.filter_one_cell_area_yn.setCheckable(True)
+        self.filter_one_cell_area_yn.setChecked(False)
         layout3 = QFormLayout()
         help_label = QLabel("Keep only cell tracks with at least one cell area within [min,max] range.")
         help_label.setWordWrap(True)
@@ -123,12 +123,12 @@ class GraphFiltering(QWidget):
         self.one_cell_max_area.setMaximum(100000)
         self.one_cell_max_area.setValue(100000)
         layout3.addRow("Max area (pixel):", self.one_cell_max_area)
-        self.filter_one_cell_area_range.setLayout(layout3)
-        layout2.addWidget(self.filter_one_cell_area_range)
+        self.filter_one_cell_area_yn.setLayout(layout3)
+        layout2.addWidget(self.filter_one_cell_area_yn)
         # filter cell track length
-        self.filter_nframes = QGroupBox("Cell track length")
-        self.filter_nframes.setCheckable(True)
-        self.filter_nframes.setChecked(False)
+        self.filter_track_length_yn = QGroupBox("Cell track length")
+        self.filter_track_length_yn.setCheckable(True)
+        self.filter_track_length_yn.setChecked(False)
         layout3 = QFormLayout()
         help_label = QLabel("Keep only cell tracks spanning at least the select number of frames.")
         help_label.setWordWrap(True)
@@ -138,13 +138,13 @@ class GraphFiltering(QWidget):
         self.nframes.setMinimum(0)
         self.nframes.setMaximum(100000)
         self.nframes.setValue(0)
-        self.filter_nframes.setLayout(layout3)
+        self.filter_track_length_yn.setLayout(layout3)
         layout3.addRow("Min track length (frames):", self.nframes)
-        layout2.addWidget(self.filter_nframes)
+        layout2.addWidget(self.filter_track_length_yn)
         # filter number of missing cells
-        self.filter_nmissing = QGroupBox("Missing cells")
-        self.filter_nmissing.setCheckable(True)
-        self.filter_nmissing.setChecked(False)
+        self.filter_n_missing_yn = QGroupBox("Missing cells")
+        self.filter_n_missing_yn.setCheckable(True)
+        self.filter_n_missing_yn.setChecked(False)
         layout3 = QFormLayout()
         help_label = QLabel("Keep only cell tracks with at most the selected number of missing cell mask.")
         help_label.setWordWrap(True)
@@ -154,13 +154,13 @@ class GraphFiltering(QWidget):
         self.nmissing.setMinimum(0)
         self.nmissing.setMaximum(100000)
         self.nmissing.setValue(100000)
-        self.filter_nmissing.setLayout(layout3)
+        self.filter_n_missing_yn.setLayout(layout3)
         layout3.addRow("Max missing cells:", self.nmissing)
-        layout2.addWidget(self.filter_nmissing)
+        layout2.addWidget(self.filter_n_missing_yn)
         # filter n_divisions
-        self.filter_ndivisions = QGroupBox("Cell divisions")
-        self.filter_ndivisions.setCheckable(True)
-        self.filter_ndivisions.setChecked(False)
+        self.filter_n_divisions_yn = QGroupBox("Cell divisions")
+        self.filter_n_divisions_yn.setCheckable(True)
+        self.filter_n_divisions_yn.setChecked(False)
         layout3 = QFormLayout()
         help_label = QLabel("Keep only cell tracks with a number of divisions events within [min,max] range. Each division event must be surrounded by the specified number of stable frames.")
         help_label.setWordWrap(True)
@@ -176,17 +176,17 @@ class GraphFiltering(QWidget):
         self.max_ndivisions.setMaximum(100000)
         self.max_ndivisions.setValue(100000)
         layout3.addRow("Max divisions:", self.max_ndivisions)
-        self.stable_ndivisions = QSpinBox()
-        self.stable_ndivisions.setMinimum(0)
-        self.stable_ndivisions.setMaximum(100000)
-        self.stable_ndivisions.setValue(1)
-        layout3.addRow("Min stable size (frames):", self.stable_ndivisions)
-        self.filter_ndivisions.setLayout(layout3)
-        layout2.addWidget(self.filter_ndivisions)
+        self.nframes_stable_division = QSpinBox()
+        self.nframes_stable_division.setMinimum(0)
+        self.nframes_stable_division.setMaximum(100000)
+        self.nframes_stable_division.setValue(1)
+        layout3.addRow("Min stable size (frames):", self.nframes_stable_division)
+        self.filter_n_divisions_yn.setLayout(layout3)
+        layout2.addWidget(self.filter_n_divisions_yn)
         # filter n_fusions
-        self.filter_nfusions = QGroupBox("Cell fusions")
-        self.filter_nfusions.setCheckable(True)
-        self.filter_nfusions.setChecked(False)
+        self.filter_n_fusions_yn = QGroupBox("Cell fusions")
+        self.filter_n_fusions_yn.setCheckable(True)
+        self.filter_n_fusions_yn.setChecked(False)
         layout3 = QFormLayout()
         help_label = QLabel("Keep only cell tracks with a number of fusions events within [min,max] range. Each division event must be surrounded by the specified number of stable frames.")
         help_label.setWordWrap(True)
@@ -202,13 +202,13 @@ class GraphFiltering(QWidget):
         self.max_nfusions.setMaximum(100000)
         self.max_nfusions.setValue(100000)
         layout3.addRow("Max fusions:", self.max_nfusions)
-        self.stable_nfusions = QSpinBox()
-        self.stable_nfusions.setMinimum(0)
-        self.stable_nfusions.setMaximum(100000)
-        self.stable_nfusions.setValue(1)
-        layout3.addRow("Min stable size (frames):", self.stable_nfusions)
-        self.filter_nfusions.setLayout(layout3)
-        layout2.addWidget(self.filter_nfusions)
+        self.nframes_stable_fusion = QSpinBox()
+        self.nframes_stable_fusion.setMinimum(0)
+        self.nframes_stable_fusion.setMaximum(100000)
+        self.nframes_stable_fusion.setValue(1)
+        layout3.addRow("Min stable size (frames):", self.nframes_stable_fusion)
+        self.filter_n_fusions_yn.setLayout(layout3)
+        layout2.addWidget(self.filter_n_fusions_yn)
         # filter topologies
         self.graph_topologies = []
         # 0 division, 0 fusion
@@ -266,9 +266,9 @@ class GraphFiltering(QWidget):
                                            [2, 3],
                                            [3, 4],
                                            [4, 5]])))
-        self.filter_topology = QGroupBox("Graph topology")
-        self.filter_topology.setCheckable(True)
-        self.filter_topology.setChecked(False)
+        self.filter_topology_yn = QGroupBox("Graph topology")
+        self.filter_topology_yn.setCheckable(True)
+        self.filter_topology_yn.setChecked(False)
         layout3 = QVBoxLayout()
         help_label = QLabel("Keep only cell tracks with selected topologies.")
         help_label.setWordWrap(True)
@@ -286,8 +286,8 @@ class GraphFiltering(QWidget):
             # label.setScaledContents(True)
             layout4.addWidget(label)
             layout3.addLayout(layout4)
-        self.filter_topology.setLayout(layout3)
-        layout2.addWidget(self.filter_topology)
+        self.filter_topology_yn.setLayout(layout3)
+        layout2.addWidget(self.filter_topology_yn)
 
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -339,26 +339,26 @@ class GraphFiltering(QWidget):
 
         filters = []
         graph_topologies = None
-        if self.filter_border.isChecked():
-            filters.append(('border',self.border_width.value()))
-        if self.filter_all_cells_area_range.isChecked():
-            filters.append(('cell_area_all', self.all_cells_min_area.value(), self.all_cells_max_area.value()))
-        if self.filter_one_cell_area_range.isChecked():
-            filters.append(('cell_area_one', self.one_cell_min_area.value(), self.one_cell_max_area.value()))
-        if self.filter_nframes.isChecked():
-            filters.append(('track_length', self.nframes.value()))
-        if self.filter_nmissing.isChecked():
-            filters.append(('n_missing', self.nmissing.value()))
-        if self.filter_ndivisions.isChecked():
+        if self.filter_border_yn.isChecked():
+            filters.append(('filter_border',self.border_width.value()))
+        if self.filter_all_cells_area_yn.isChecked():
+            filters.append(('filter_all_cells_area', self.all_cells_min_area.value(), self.all_cells_max_area.value()))
+        if self.filter_one_cell_area_yn.isChecked():
+            filters.append(('filter_one_cell_area', self.one_cell_min_area.value(), self.one_cell_max_area.value()))
+        if self.filter_track_length_yn.isChecked():
+            filters.append(('filter_track_length', self.nframes.value()))
+        if self.filter_n_missing_yn.isChecked():
+            filters.append(('filter_n_missing', self.nmissing.value()))
+        if self.filter_n_divisions_yn.isChecked():
             stable_overlap_fraction=0
-            filters.append(('n_divisions', self.min_ndivisions.value(), self.max_ndivisions.value(), self.stable_ndivisions.value(), stable_overlap_fraction))
-        if self.filter_nfusions.isChecked():
+            filters.append(('filter_n_divisions', self.min_ndivisions.value(), self.max_ndivisions.value(), self.nframes_stable_division.value(), stable_overlap_fraction))
+        if self.filter_n_fusions_yn.isChecked():
             stable_overlap_fraction=0
-            filters.append(('n_fusions', self.min_nfusions.value(), self.max_nfusions.value(), self.stable_nfusions.value(), stable_overlap_fraction))
-        if self.filter_topology.isChecked():
+            filters.append(('filter_n_fusions', self.min_nfusions.value(), self.max_nfusions.value(), self.nframes_stable_fusion.value(), stable_overlap_fraction))
+        if self.filter_topology_yn.isChecked():
             graph_topologies = self.graph_topologies
             topology_ids=[i for i, checkbox in enumerate(self.topology_yn) if checkbox.isChecked()]
-            filters.append(('topology', topology_ids))
+            filters.append(('filter_topology', topology_ids))
 
         # check input
         if image_path != '' and not os.path.isfile(image_path):
