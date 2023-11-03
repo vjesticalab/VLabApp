@@ -130,8 +130,8 @@ class CellTracking(QWidget):
         layout3.addLayout(layout4)
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
-
         layout.addWidget(groupbox)
+
         groupbox = QGroupBox("Output folder")
         layout2 = QVBoxLayout()
         layout2.addWidget(self.use_input_folder)
@@ -180,7 +180,6 @@ class CellTracking(QWidget):
 
     def mask_filter_type_changed(self):
         self.mask_list.filetypes = self.mask_filter_type.text().split()
-        self.input_image.filetypes = self.mask_filter_type.text().split()
 
     def mask_list_changed(self):
         if self.mask_list.count() > 1:

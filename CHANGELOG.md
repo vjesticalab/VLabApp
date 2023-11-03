@@ -2,7 +2,8 @@
 
 ### Added
 
-* Add 'OPTIONS' menu into Graph filtering module
+* Add batch processing to Graph filtering module.
+* Add 'OPTIONS' menu into Graph filtering module.
 * Add batch processing to Cell tracking module.
 * Add optional registration method "phase correlation" to Registration module.
 * Add parallelization into Registration module (lib: multiprocessing).

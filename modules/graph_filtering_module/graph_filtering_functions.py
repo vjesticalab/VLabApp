@@ -630,6 +630,7 @@ class CellTracksFiltering:
             logger.debug("creating: %s", output_path)
             os.makedirs(output_path)
 
+        self.logger.info("Selected cell tracks: %s/%s", len(self.selected_cell_track_ids), len(self.cell_tracks))
         output_file = os.path.join(output_path, output_basename+"_mask.tif")
         self.logger.info("Saving segmentation mask to %s", output_file)
         selected_mask = self.get_mask(relabel_mask_ids)
@@ -1160,7 +1161,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
                     graph_filtering_widget.one_cell_max_area.setValue(filter_params[1])
                 elif filter_name == 'filter_track_length':
                     graph_filtering_widget.filter_track_length_yn.setChecked(True)
-                    graph_filtering_widget.nframes.setValue(filter_params[0])
+                    graph_filtering_widget.nframes.setValue(min(mask.sizes['T'], filter_params[0]))
                 elif filter_name == 'filter_n_missing':
                     graph_filtering_widget.filter_n_missing_yn.setChecked(True)
                     graph_filtering_widget.nmissing.setValue(filter_params[0])
@@ -1192,7 +1193,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
                 elif filter_name == 'filter_one_cell_area':
                     cell_tracks_filtering.filter_one_cell_area(filter_params[0], filter_params[1])
                 elif filter_name == 'filter_track_length':
-                    cell_tracks_filtering.filter_track_length(filter_params[0])
+                    cell_tracks_filtering.filter_track_length(min(mask.sizes['T'], filter_params[0]))
                 elif filter_name == 'filter_n_missing':
                     cell_tracks_filtering.filter_n_missing(filter_params[0])
                 elif filter_name == 'filter_n_divisions':
@@ -1207,4 +1208,3 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
         cell_tracks_filtering.save(output_path, output_basename, relabel_mask_ids=True)
         # stop using logfile
         logger.removeHandler(logfile_handler)
-

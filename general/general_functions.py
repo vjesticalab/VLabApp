@@ -2,10 +2,10 @@ import numpy as np
 import os
 import tifffile
 import nd2
-
+import re
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PyQt5.QtGui import QIcon, QPalette
-from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox
+from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem
 
 import logging
 import igraph as ig
@@ -45,7 +45,7 @@ class QMessageBoxErrorHandler(logging.Handler):
     --------
     handler= QMessageBoxErrorHandler(self)
     handler.setLevel(logging.ERROR)
-    logging.getLogger().addHandler(handler)    
+    logging.getLogger().addHandler(handler)
     """
 
     def __init__(self, parent):
@@ -55,6 +55,99 @@ class QMessageBoxErrorHandler(logging.Handler):
     def emit(self, record):
         msg = self.format(record)
         QMessageBox.critical(self.parent, 'Error', msg)
+
+
+class DropFilesTableWidget2(QTableWidget):
+    """
+    A QTableWidget with drop support for files and folders with 2 columns. If a folder is dropped, all files contained in the folder are added.
+    """
+
+    def __init__(self, parent=None, header=None,filenames_suffix_1=None,filenames_suffix_2=None):
+        super().__init__(parent)
+        self.setColumnCount(2)
+        if not header is None:
+            self.setHorizontalHeaderLabels(header)
+        else:
+            self.horizontalHeader().hide()
+        self.verticalHeader().hide()
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.setAcceptDrops(True)
+        self.setTextElideMode(Qt.ElideLeft)
+        self.setWordWrap(False)
+        self.filenames_suffix_1 = filenames_suffix_1
+        self.filenames_suffix_2 = filenames_suffix_2
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls:
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            if url.isLocalFile():
+                if os.path.isfile(url.toLocalFile()):
+                    filename = url.toLocalFile()
+                    mask_path = None
+                    graph_path = None
+                    re_pattern = self.filenames_suffix_1 + '$'
+                    if re.search(re_pattern,filename):
+                        basename = re.sub(re_pattern, '', filename)
+                        mask_path = filename
+                        if os.path.isfile(basename + self.filenames_suffix_2):
+                            graph_path = basename + self.filenames_suffix_2
+                    re_pattern = self.filenames_suffix_2 + '$'
+                    if re.search(re_pattern,filename):
+                        basename=re.sub(re_pattern, '', filename)
+                        graph_path = filename
+                        if os.path.isfile(basename + self.filenames_suffix_1):
+                            mask_path = basename + self.filenames_suffix_1
+                    if not mask_path is None and not graph_path is None:
+                        if len(self.findItems(graph_path, Qt.MatchExactly)) == 0 and len(self.findItems(mask_path, Qt.MatchExactly)) == 0 :
+                            self.insertRow(self.rowCount())
+                            item = QTableWidgetItem(mask_path)
+                            item.setToolTip(mask_path)
+                            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                            self.setItem(self.rowCount()-1, 0, item)
+                            item = QTableWidgetItem(graph_path)
+                            item.setToolTip(graph_path)
+                            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                            self.setItem(self.rowCount()-1, 1, item)
+                if os.path.isdir(url.toLocalFile()):
+                    d = url.toLocalFile()
+                    # keep only files (not folders)
+                    for filename in [os.path.join(d, f) for f in os.listdir(d)]:
+                        mask_path = None
+                        graph_path = None
+                        re_pattern = self.filenames_suffix_1 + '$'
+                        if re.search(re_pattern,filename):
+                            basename = re.sub(re_pattern, '', filename)
+                            mask_path = filename
+                            if os.path.isfile(basename + self.filenames_suffix_2):
+                                graph_path = basename + self.filenames_suffix_2
+                        re_pattern = self.filenames_suffix_2 + '$'
+                        if re.search(re_pattern,filename):
+                            basename=re.sub(re_pattern, '', filename)
+                            graph_path = filename
+                            if os.path.isfile(basename + self.filenames_suffix_1):
+                                mask_path = basename + self.filenames_suffix_1
+                        if not mask_path is None and not graph_path is None:
+                            if len(self.findItems(graph_path, Qt.MatchExactly)) == 0 and len(self.findItems(mask_path, Qt.MatchExactly)) == 0 :
+                                self.insertRow(self.rowCount())
+                                item = QTableWidgetItem(mask_path)
+                                item.setToolTip(mask_path)
+                                item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                                self.setItem(self.rowCount()-1, 0, item)
+                                item = QTableWidgetItem(graph_path)
+                                item.setToolTip(graph_path)
+                                item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                                self.setItem(self.rowCount()-1, 1, item)
 
 
 class DropFilesListWidget(QListWidget):
