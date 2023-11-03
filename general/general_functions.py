@@ -13,6 +13,7 @@ from matplotlib import cm
 from scipy.optimize import curve_fit
 import cv2 as cv
 
+
 class QLineEditHandler(logging.Handler):
     """
     logging handler to send message to QLineEdit.
@@ -62,7 +63,7 @@ class DropFilesTableWidget2(QTableWidget):
     A QTableWidget with drop support for files and folders with 2 columns. If a folder is dropped, all files contained in the folder are added.
     """
 
-    def __init__(self, parent=None, header=None,filenames_suffix_1=None,filenames_suffix_2=None):
+    def __init__(self, parent=None, header=None, filenames_suffix_1=None, filenames_suffix_2=None):
         super().__init__(parent)
         self.setColumnCount(2)
         if not header is None:
@@ -97,19 +98,19 @@ class DropFilesTableWidget2(QTableWidget):
                     mask_path = None
                     graph_path = None
                     re_pattern = self.filenames_suffix_1 + '$'
-                    if re.search(re_pattern,filename):
+                    if re.search(re_pattern, filename):
                         basename = re.sub(re_pattern, '', filename)
                         mask_path = filename
                         if os.path.isfile(basename + self.filenames_suffix_2):
                             graph_path = basename + self.filenames_suffix_2
                     re_pattern = self.filenames_suffix_2 + '$'
-                    if re.search(re_pattern,filename):
-                        basename=re.sub(re_pattern, '', filename)
+                    if re.search(re_pattern, filename):
+                        basename = re.sub(re_pattern, '', filename)
                         graph_path = filename
                         if os.path.isfile(basename + self.filenames_suffix_1):
                             mask_path = basename + self.filenames_suffix_1
                     if not mask_path is None and not graph_path is None:
-                        if len(self.findItems(graph_path, Qt.MatchExactly)) == 0 and len(self.findItems(mask_path, Qt.MatchExactly)) == 0 :
+                        if len(self.findItems(graph_path, Qt.MatchExactly)) == 0 and len(self.findItems(mask_path, Qt.MatchExactly)) == 0:
                             self.insertRow(self.rowCount())
                             item = QTableWidgetItem(mask_path)
                             item.setToolTip(mask_path)
@@ -126,19 +127,19 @@ class DropFilesTableWidget2(QTableWidget):
                         mask_path = None
                         graph_path = None
                         re_pattern = self.filenames_suffix_1 + '$'
-                        if re.search(re_pattern,filename):
+                        if re.search(re_pattern, filename):
                             basename = re.sub(re_pattern, '', filename)
                             mask_path = filename
                             if os.path.isfile(basename + self.filenames_suffix_2):
                                 graph_path = basename + self.filenames_suffix_2
                         re_pattern = self.filenames_suffix_2 + '$'
-                        if re.search(re_pattern,filename):
-                            basename=re.sub(re_pattern, '', filename)
+                        if re.search(re_pattern, filename):
+                            basename = re.sub(re_pattern, '', filename)
                             graph_path = filename
                             if os.path.isfile(basename + self.filenames_suffix_1):
                                 mask_path = basename + self.filenames_suffix_1
                         if not mask_path is None and not graph_path is None:
-                            if len(self.findItems(graph_path, Qt.MatchExactly)) == 0 and len(self.findItems(mask_path, Qt.MatchExactly)) == 0 :
+                            if len(self.findItems(graph_path, Qt.MatchExactly)) == 0 and len(self.findItems(mask_path, Qt.MatchExactly)) == 0:
                                 self.insertRow(self.rowCount())
                                 item = QTableWidgetItem(mask_path)
                                 item.setToolTip(mask_path)
@@ -155,7 +156,7 @@ class DropFilesListWidget(QListWidget):
     A QListWidget with drop support for files and folders. If a folder is dropped, all files contained in the folder are added.
     """
 
-    def __init__(self, parent=None, filetypes=None,filenames_filter=None):
+    def __init__(self, parent=None, filetypes=None, filenames_filter=None):
         super().__init__(parent)
         self.setAcceptDrops(True)
         self.filetypes = filetypes
@@ -271,11 +272,11 @@ class TabWizard(QTabWidget):
             raise TypeError(f"{page} must be Page object")
         self.addTab(page, title)
         page.completeChanged.connect(self.nextPage)
-    
+
     def addHomePage(self, page):
         tab_index = self.addTab(page, '')
         self.setTabIcon(tab_index, QIcon('support_files/home.svg'))
-        self.setIconSize(QSize(12,12))
+        self.setIconSize(QSize(12, 12))
         page.completeChanged.connect(self.nextPage)
 
     def nextPage(self):
@@ -286,6 +287,7 @@ class TabWizard(QTabWidget):
 
 class Page(QWidget):
     completeChanged = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.container = QWidget()
@@ -337,6 +339,7 @@ class Image:
         If zrange is None, use all Z values. If zrange is an integer, use z values in [z_best-zrange,z_best+zrange],
         where z_best is the Z corresponding to best focus. If zrange is a tuple of lenght 2 (zmin,zmax), use z values in [zmin,zmax].
     """
+
     def __init__(self, im_path):
         self.path = im_path
         self.basename = os.path.basename(self.path)
@@ -599,30 +602,30 @@ def plot_graph(viewer, graph_path):
     for i, c in enumerate(cm.hsv(np.linspace(0, 1, max(mask_ids)+1))):
         colors.append(c.tolist())
     colors = np.asarray(colors)
-    
-    layout_per_component=True
+
+    layout_per_component = True
     if layout_per_component:
         # Layout_sugiyama doesn't always properly split connectected components.
         # This is an attempt to overcome this problem.
         # A better option would probably be to use the algorithm used by graphviz (dot) or graphviz.
         components = graph.connected_components(mode='weak')
-        layout = [[0.0,0.0] for v in graph.vs]
+        layout = [[0.0, 0.0] for v in graph.vs]
         lastx = 0
         for cmp in components:
             g2 = graph.subgraph(cmp)
             layout_tmp = g2.layout_sugiyama(
-                layers = [f+min(graph.vs['frame']) for f in g2.vs['frame']], maxiter=1000)
+                layers=[f+min(graph.vs['frame']) for f in g2.vs['frame']], maxiter=1000)
             # Shift x coord by lastx
-            minx = min([x for x,y in layout_tmp.coords])
-            maxx = max([x for x,y in layout_tmp.coords])
-            for i, j in  enumerate(cmp):
-                x,y = layout_tmp[i]
-                layout[j] = [x-minx+lastx,y]
-            lastx = lastx-minx+maxx+1 #max([x+lastx for x,y in layout_tmp.coords])+1
+            minx = min([x for x, y in layout_tmp.coords])
+            maxx = max([x for x, y in layout_tmp.coords])
+            for i, j in enumerate(cmp):
+                x, y = layout_tmp[i]
+                layout[j] = [x-minx+lastx, y]
+            lastx = lastx-minx+maxx+1  # max([x+lastx for x,y in layout_tmp.coords])+1
     else:
         # Simple layout_sugiyama
         layout = graph.layout_sugiyama(
-            layers = [f+min(graph.vs['frame']) for f in graph.vs['frame']], maxiter=1000)
+            layers=[f+min(graph.vs['frame']) for f in graph.vs['frame']], maxiter=1000)
 
     vertex_size = 0.4
     edge_w_min = 0.01

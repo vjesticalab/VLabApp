@@ -12,19 +12,19 @@ class CellTracking(QWidget):
     def __init__(self):
         super().__init__()
 
-        label_documentation=QLabel()
+        label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
-        label_documentation.setText('<a href="file://'+os.path.join(os.path.dirname(__file__),"doc","METHODS.html")+'">Methods</a>')
+        label_documentation.setText('<a href="file://'+os.path.join(os.path.dirname(__file__), "doc", "METHODS.html")+'">Methods</a>')
 
         self.imagetypes = ['.nd2', '.tif', '.tiff']
 
-        self.mask_filter_name = QLineEdit('_mask',placeholderText='e.g.: _mask')
+        self.mask_filter_name = QLineEdit('_mask', placeholderText='e.g.: _mask')
         self.mask_filter_name.setToolTip('Accept only filenames containing this text')
         self.mask_filter_name.textChanged.connect(self.mask_filter_name_changed)
-        self.mask_filter_type = QLineEdit(' '.join(self.imagetypes),placeholderText='e.g.: .nd2 .tif .tiff')
+        self.mask_filter_type = QLineEdit(' '.join(self.imagetypes), placeholderText='e.g.: .nd2 .tif .tiff')
         self.mask_filter_type.setToolTip('Space separated list of accepted file extensions.')
         self.mask_filter_type.textChanged.connect(self.mask_filter_type_changed)
-        self.mask_list = gf.DropFilesListWidget(filetypes=self.mask_filter_type.text().split(),filenames_filter=self.mask_filter_name.text())
+        self.mask_list = gf.DropFilesListWidget(filetypes=self.mask_filter_type.text().split(), filenames_filter=self.mask_filter_name.text())
         self.mask_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.mask_list.model().rowsInserted.connect(self.mask_list_changed)
         self.mask_list.model().rowsRemoved.connect(self.mask_list_changed)
@@ -121,12 +121,11 @@ class CellTracking(QWidget):
         layout3.addWidget(self.remove_button)
         layout2.addLayout(layout3)
         layout3 = QHBoxLayout()
-        #layout3.addWidget(QLabel("Filters: "))
         layout4 = QFormLayout()
-        layout4.addRow("Filter file names:",self.mask_filter_name)
+        layout4.addRow("Filter file names:", self.mask_filter_name)
         layout3.addLayout(layout4)
         layout4 = QFormLayout()
-        layout4.addRow("file types:",self.mask_filter_type)
+        layout4.addRow("file types:", self.mask_filter_type)
         layout3.addLayout(layout4)
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
@@ -209,7 +208,6 @@ class CellTracking(QWidget):
         for item in self.mask_list.selectedItems():
             self.mask_list.takeItem(self.mask_list.row(item))
 
-
     def browse_output(self):
         # Browse folders in order to choose the output one
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
@@ -284,8 +282,8 @@ class CellTracking(QWidget):
             QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
             QApplication.processEvents()
 
-            mask_basename, mask_extension=os.path.splitext(os.path.basename(mask_path))
-            output_basename=re.sub("_masks{0,1}$","",mask_basename)
+            mask_basename, mask_extension = os.path.splitext(os.path.basename(mask_path))
+            output_basename = re.sub("_masks{0,1}$", "", mask_basename)
             try:
                 f.main(image_path, mask_path, output_path=output_path,
                        output_basename=output_basename,

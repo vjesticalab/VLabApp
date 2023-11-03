@@ -18,13 +18,13 @@ class GraphFiltering(QWidget):
         self.imagetypes = ['.nd2', '.tif', '.tiff']
         self.graphtypes = ['.graphmlz']
 
-        self.mask_filter_name = QLineEdit('_mask.tif',placeholderText='e.g.: _mask.tif')
+        self.mask_filter_name = QLineEdit('_mask.tif', placeholderText='e.g.: _mask.tif')
         self.mask_filter_name.setToolTip('Accept only filenames ending with this text.')
         self.mask_filter_name.textChanged.connect(self.mask_filter_name_changed)
-        self.graph_filter_name = QLineEdit('_graph.graphmlz',placeholderText='e.g.: _graph.graphmlz')
+        self.graph_filter_name = QLineEdit('_graph.graphmlz', placeholderText='e.g.: _graph.graphmlz')
         self.graph_filter_name.setToolTip('Accept only filenames ending with this text')
         self.graph_filter_name.textChanged.connect(self.graph_filter_name_changed)
-        self.mask_graph_table = gf.DropFilesTableWidget2(header=["Mask","Graph"], filenames_suffix_1=self.mask_filter_name.text(), filenames_suffix_2=self.graph_filter_name.text())
+        self.mask_graph_table = gf.DropFilesTableWidget2(header=["Mask", "Graph"], filenames_suffix_1=self.mask_filter_name.text(), filenames_suffix_2=self.graph_filter_name.text())
         self.mask_graph_table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.mask_graph_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.mask_graph_table.model().rowsInserted.connect(self.mask_graph_table_changed)
@@ -45,10 +45,10 @@ class GraphFiltering(QWidget):
         layout2.addLayout(layout3)
         layout3 = QHBoxLayout()
         layout4 = QFormLayout()
-        layout4.addRow("Mask suffix:",self.mask_filter_name)
+        layout4.addRow("Mask suffix:", self.mask_filter_name)
         layout3.addLayout(layout4)
         layout4 = QFormLayout()
-        layout4.addRow("Graph suffix:",self.graph_filter_name)
+        layout4.addRow("Graph suffix:", self.graph_filter_name)
         layout3.addLayout(layout4)
         layout2.addLayout(layout3)
         help_label = QLabel("Corresponding mask and graph files must be in the same directory. Their filenames must share the same basename and end with the specified suffix (by default <basename>"+self.mask_filter_name.text()+" and <basename>"+self.graph_filter_name.text()+")")
@@ -95,7 +95,7 @@ class GraphFiltering(QWidget):
         self.border_width.setMinimum(1)
         self.border_width.setMaximum(100)
         self.border_width.setValue(2)
-        layout3.addRow("Border width (pixel):",self.border_width)
+        layout3.addRow("Border width (pixel):", self.border_width)
         self.filter_border_yn.setLayout(layout3)
         layout2.addWidget(self.filter_border_yn)
         # filter cell area (all cells)
@@ -229,58 +229,58 @@ class GraphFiltering(QWidget):
         # 0 division, 0 fusion
         self.graph_topologies.append(
             f.simplify_graph(ig.Graph(directed=True,
-                                    edges=[[0, 1]])))
+                                      edges=[[0, 1]])))
         # 1 division, 0 fusion
         self.graph_topologies.append(
             f.simplify_graph(ig.Graph(directed=True,
-                                    edges=[[0, 1],
-                                           [1, 2],
-                                           [1, 3]])))
+                                      edges=[[0, 1],
+                                             [1, 2],
+                                             [1, 3]])))
         # 0 division, 1 fusion
         self.graph_topologies.append(
             f.simplify_graph(ig.Graph(directed=True,
-                                    edges=[[0, 2],
-                                           [1, 2],
-                                           [2, 3]])))
+                                      edges=[[0, 2],
+                                             [1, 2],
+                                             [2, 3]])))
         # 1 division, 1 fusion
         self.graph_topologies.append(
             f.simplify_graph(ig.Graph(directed=True,
-                                    edges=[[0, 1],
-                                           [1, 2],
-                                           [1, 2],
-                                           [2, 3]])))
+                                      edges=[[0, 1],
+                                             [1, 2],
+                                             [1, 2],
+                                             [2, 3]])))
         # 1 division, 1 fusion
         self.graph_topologies.append(
             f.simplify_graph(ig.Graph(directed=True,
-                                    edges=[[0, 2],
-                                           [1, 2],
-                                           [2, 3],
-                                           [3, 4],
-                                           [3, 5]])))
+                                      edges=[[0, 2],
+                                             [1, 2],
+                                             [2, 3],
+                                             [3, 4],
+                                             [3, 5]])))
         # 1 division, 1 fusion
         self.graph_topologies.append(
             f.simplify_graph(ig.Graph(directed=True,
-                                    edges=[[0, 2],
-                                           [1, 3],
-                                           [2, 4],
-                                           [2, 3],
-                                           [3, 5]])))
+                                      edges=[[0, 2],
+                                             [1, 3],
+                                             [2, 4],
+                                             [2, 3],
+                                             [3, 5]])))
         # 2 divisions
         self.graph_topologies.append(
             f.simplify_graph(ig.Graph(directed=True,
-                                    edges=[[0, 1],
-                                           [1, 2],
-                                           [1, 3],
-                                           [3, 4],
-                                           [3, 5]])))
+                                      edges=[[0, 1],
+                                             [1, 2],
+                                             [1, 3],
+                                             [3, 4],
+                                             [3, 5]])))
         # 2 fusions
         self.graph_topologies.append(
             f.simplify_graph(ig.Graph(directed=True,
-                                    edges=[[0, 4],
-                                           [1, 3],
-                                           [2, 3],
-                                           [3, 4],
-                                           [4, 5]])))
+                                      edges=[[0, 4],
+                                             [1, 3],
+                                             [2, 3],
+                                             [3, 4],
+                                             [4, 5]])))
         self.filter_topology_yn = QGroupBox("Graph topology")
         self.filter_topology_yn.setCheckable(True)
         self.filter_topology_yn.setChecked(False)
@@ -306,7 +306,6 @@ class GraphFiltering(QWidget):
 
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-
 
         self.display_results = QGroupBox("Show (and edit) results in napari")
         self.display_results.setCheckable(True)
@@ -348,19 +347,19 @@ class GraphFiltering(QWidget):
             mask_path = None
             graph_path = None
             re_pattern = self.mask_filter_name.text() + '$'
-            if re.search(re_pattern,file_path):
+            if re.search(re_pattern, file_path):
                 basename = re.sub(re_pattern, '', file_path)
                 mask_path = file_path
                 if os.path.isfile(basename + self.graph_filter_name.text()):
                     graph_path = basename + self.graph_filter_name.text()
             re_pattern = self.graph_filter_name.text() + '$'
-            if re.search(re_pattern,file_path):
-                basename=re.sub(re_pattern, '', file_path)
+            if re.search(re_pattern, file_path):
+                basename = re.sub(re_pattern, '', file_path)
                 graph_path = file_path
                 if os.path.isfile(basename + self.mask_filter_name.text()):
                     mask_path = basename + self.mask_filter_name.text()
             if not mask_path is None and not graph_path is None:
-                if len(self.mask_graph_table.findItems(graph_path, Qt.MatchExactly)) == 0 and len(self.mask_graph_table.findItems(mask_path, Qt.MatchExactly)) == 0 :
+                if len(self.mask_graph_table.findItems(graph_path, Qt.MatchExactly)) == 0 and len(self.mask_graph_table.findItems(mask_path, Qt.MatchExactly)) == 0:
                     self.mask_graph_table.insertRow(self.mask_graph_table.rowCount())
                     item = QTableWidgetItem(mask_path)
                     item.setToolTip(mask_path)
@@ -379,19 +378,19 @@ class GraphFiltering(QWidget):
                 mask_path = None
                 graph_path = None
                 re_pattern = self.mask_filter_name.text() + '$'
-                if re.search(re_pattern,file_path):
+                if re.search(re_pattern, file_path):
                     basename = re.sub(re_pattern, '', file_path)
                     mask_path = file_path
                     if os.path.isfile(basename + self.graph_filter_name.text()):
                         graph_path = basename + self.graph_filter_name.text()
                 re_pattern = self.graph_filter_name.text() + '$'
-                if re.search(re_pattern,file_path):
-                    basename=re.sub(re_pattern, '', file_path)
+                if re.search(re_pattern, file_path):
+                    basename = re.sub(re_pattern, '', file_path)
                     graph_path = file_path
                     if os.path.isfile(basename + self.mask_filter_name.text()):
                         mask_path = basename + self.mask_filter_name.text()
                 if not mask_path is None and not graph_path is None:
-                    if len(self.mask_graph_table.findItems(graph_path, Qt.MatchExactly)) == 0 and len(self.mask_graph_table.findItems(mask_path, Qt.MatchExactly)) == 0 :
+                    if len(self.mask_graph_table.findItems(graph_path, Qt.MatchExactly)) == 0 and len(self.mask_graph_table.findItems(mask_path, Qt.MatchExactly)) == 0:
                         self.mask_graph_table.insertRow(self.mask_graph_table.rowCount())
                         item = QTableWidgetItem(mask_path)
                         item.setToolTip(mask_path)
@@ -427,7 +426,7 @@ class GraphFiltering(QWidget):
         filters = []
         graph_topologies = None
         if self.filter_border_yn.isChecked():
-            filters.append(('filter_border',self.border_width.value()))
+            filters.append(('filter_border', self.border_width.value()))
         if self.filter_all_cells_area_yn.isChecked():
             filters.append(('filter_all_cells_area', self.all_cells_min_area.value(), self.all_cells_max_area.value()))
         if self.filter_one_cell_area_yn.isChecked():
@@ -437,14 +436,14 @@ class GraphFiltering(QWidget):
         if self.filter_n_missing_yn.isChecked():
             filters.append(('filter_n_missing', self.nmissing.value()))
         if self.filter_n_divisions_yn.isChecked():
-            stable_overlap_fraction=0
+            stable_overlap_fraction = 0
             filters.append(('filter_n_divisions', self.min_ndivisions.value(), self.max_ndivisions.value(), self.nframes_stable_division.value(), stable_overlap_fraction))
         if self.filter_n_fusions_yn.isChecked():
-            stable_overlap_fraction=0
+            stable_overlap_fraction = 0
             filters.append(('filter_n_fusions', self.min_nfusions.value(), self.max_nfusions.value(), self.nframes_stable_fusion.value(), stable_overlap_fraction))
         if self.filter_topology_yn.isChecked():
             graph_topologies = self.graph_topologies
-            topology_ids=[i for i, checkbox in enumerate(self.topology_yn) if checkbox.isChecked()]
+            topology_ids = [i for i, checkbox in enumerate(self.topology_yn) if checkbox.isChecked()]
             filters.append(('filter_topology', topology_ids))
 
         # check input
@@ -483,10 +482,10 @@ class GraphFiltering(QWidget):
 
             QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
             QApplication.processEvents()
-            mask_basename, mask_extension=os.path.splitext(os.path.basename(mask_path))
-            output_basename=re.sub("_masks{0,1}$","",mask_basename)
+            mask_basename, mask_extension = os.path.splitext(os.path.basename(mask_path))
+            output_basename = re.sub("_masks{0,1}$", "", mask_basename)
             try:
-                f.main(image_path, mask_path, graph_path, output_path, output_basename, filters, display_results=self.display_results.isChecked(),graph_topologies=graph_topologies)
+                f.main(image_path, mask_path, graph_path, output_path, output_basename, filters, display_results=self.display_results.isChecked(), graph_topologies=graph_topologies)
             except Exception as e:
                 QApplication.restoreOverrideCursor()
                 self.logger.error(str(e))

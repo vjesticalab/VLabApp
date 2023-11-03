@@ -212,8 +212,8 @@ class CellTracksFiltering:
                     nothers = len(g.vs.select(lambda v: v.indegree() > 2 or v.outdegree() > 2))
                     nfusions = len(g.vs.select(_indegree=2))
                     ndivisions = len(g.vs.select(_outdegree=2))
-                    #nvertices, ignoring intermediate nodes with indegree == outdegree == 1
-                    nvertices = len(g.vs.select(lambda v: not ( v.indegree() == 1 and v.outdegree() == 1)))
+                    # nvertices, ignoring intermediate nodes with indegree == outdegree == 1
+                    nvertices = len(g.vs.select(lambda v: not (v.indegree() == 1 and v.outdegree() == 1)))
                     if nfusions+ndivisions <= max_fusion_divisions and nothers <= max_others and nvertices >= min_vertices:
                         self.graph_topologies.append(g)
                         graph_topologies_sortkey.append((nfusions+ndivisions, nfusions, ndivisions, nothers, nvertices))
@@ -709,7 +709,7 @@ class GraphFilteringWidget(QWidget):
         layout2.addWidget(self.all_cells_min_area, 1, 1)
         self.all_cells_max_area = QSpinBox()
         self.all_cells_max_area.setMinimum(0)
-        self.all_cells_max_area.setMaximum( max(self.cell_tracks_filtering.get_max_area()))
+        self.all_cells_max_area.setMaximum(max(self.cell_tracks_filtering.get_max_area()))
         self.all_cells_max_area.setValue(max(self.cell_tracks_filtering.get_max_area()))
         self.all_cells_max_area.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Max area (pixel)"), 2, 0)
@@ -729,14 +729,14 @@ class GraphFilteringWidget(QWidget):
         layout2.addWidget(help_label, 0, 0, 1, 2)
         self.one_cell_min_area = QSpinBox()
         self.one_cell_min_area.setMinimum(0)
-        self.one_cell_min_area.setMaximum( max(self.cell_tracks_filtering.get_max_area()))
+        self.one_cell_min_area.setMaximum(max(self.cell_tracks_filtering.get_max_area()))
         self.one_cell_min_area.setValue(min(self.cell_tracks_filtering.get_min_area()))
         self.one_cell_min_area.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Min area (pixel)"), 1, 0)
         layout2.addWidget(self.one_cell_min_area, 1, 1)
         self.one_cell_max_area = QSpinBox()
         self.one_cell_max_area.setMinimum(0)
-        self.one_cell_max_area.setMaximum( max(self.cell_tracks_filtering.get_max_area()))
+        self.one_cell_max_area.setMaximum(max(self.cell_tracks_filtering.get_max_area()))
         self.one_cell_max_area.setValue(max(self.cell_tracks_filtering.get_max_area()))
         self.one_cell_max_area.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Max area (pixel)"), 2, 0)
@@ -796,14 +796,14 @@ class GraphFilteringWidget(QWidget):
         layout2.addWidget(help_label, 0, 0, 1, 2)
         self.min_ndivisions = QSpinBox()
         self.min_ndivisions.setMinimum(0)
-        self.min_ndivisions.setMaximum( max(self.cell_tracks_filtering.get_n_divisions()))
+        self.min_ndivisions.setMaximum(max(self.cell_tracks_filtering.get_n_divisions()))
         self.min_ndivisions.setValue(min(self.cell_tracks_filtering.get_n_divisions()))
         self.min_ndivisions.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Min divisions"), 1, 0)
         layout2.addWidget(self.min_ndivisions, 1, 1)
         self.max_ndivisions = QSpinBox()
         self.max_ndivisions.setMinimum(0)
-        self.max_ndivisions.setMaximum( max(self.cell_tracks_filtering.get_n_divisions()))
+        self.max_ndivisions.setMaximum(max(self.cell_tracks_filtering.get_n_divisions()))
         self.max_ndivisions.setValue(max(self.cell_tracks_filtering.get_n_divisions()))
         self.max_ndivisions.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Max divisions"), 2, 0)
@@ -830,14 +830,14 @@ class GraphFilteringWidget(QWidget):
         layout2.addWidget(help_label, 0, 0, 1, 2)
         self.min_nfusions = QSpinBox()
         self.min_nfusions.setMinimum(0)
-        self.min_nfusions.setMaximum( max(self.cell_tracks_filtering.get_n_fusions()))
+        self.min_nfusions.setMaximum(max(self.cell_tracks_filtering.get_n_fusions()))
         self.min_nfusions.setValue(min(self.cell_tracks_filtering.get_n_fusions()))
         self.min_nfusions.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Min fusions"), 1, 0)
         layout2.addWidget(self.min_nfusions, 1, 1)
         self.max_nfusions = QSpinBox()
         self.max_nfusions.setMinimum(0)
-        self.max_nfusions.setMaximum( max(self.cell_tracks_filtering.get_n_fusions()))
+        self.max_nfusions.setMaximum(max(self.cell_tracks_filtering.get_n_fusions()))
         self.max_nfusions.setValue(max(self.cell_tracks_filtering.get_n_fusions()))
         self.max_nfusions.valueChanged.connect(self.filters_changed)
         layout2.addWidget(QLabel("Max fusions"), 2, 0)
@@ -963,7 +963,7 @@ class GraphFilteringWidget(QWidget):
 
         # Topology
         if self.filter_topology_yn.isChecked():
-            topology_ids=[i for i, checkbox in enumerate(self.topology_yn) if checkbox.isChecked()]
+            topology_ids = [i for i, checkbox in enumerate(self.topology_yn) if checkbox.isChecked()]
             self.cell_tracks_filtering.filter_topology(topology_ids)
 
         if not closing:
@@ -1185,7 +1185,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
                     for i in filter_params[0]:
                         graph_filtering_widget.topology_yn[i].setChecked(True)
                 else:
-                    logger.error("ignoring unknown filter %s.",filter_name)
+                    logger.error("ignoring unknown filter %s.", filter_name)
             graph_filtering_widget.filter()
     else:
         cell_tracks_filtering = CellTracksFiltering(mask.get_TYXarray(), graph, graph_topologies=graph_topologies)
@@ -1208,7 +1208,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
                 elif filter_name == 'filter_topology':
                     cell_tracks_filtering.filter_topology(filter_params[0])
                 else:
-                    logger.error("ignoring unknown filter %s.",filter_name)
+                    logger.error("ignoring unknown filter %s.", filter_name)
 
         cell_tracks_filtering.save(output_path, output_basename, relabel_mask_ids=True)
         # stop using logfile
