@@ -572,6 +572,7 @@ class CellTracksFiltering:
                 n_ids += 1
             selected_mask = map_id[selected_mask]
 
+        self.logger.debug("Done")
         return selected_mask
 
     def get_graph(self, relabel_mask_ids=False):
@@ -611,6 +612,7 @@ class CellTracksFiltering:
             g2.es['mask_id_source'] = map_id[g2.es['mask_id_source']].astype(self.mask.dtype)
             g2.es['mask_id_target'] = map_id[g2.es['mask_id_target']].astype(self.mask.dtype)
 
+        self.logger.debug("Done")
         return g2
 
     def save(self, output_path, output_basename, relabel_mask_ids=True):
@@ -651,7 +653,6 @@ class GraphFilteringWidget(QWidget):
     def __init__(self, mask, graph, viewer_images, image_path, output_path, output_basename, graph_topologies=None):
         super().__init__()
         self.logger = logging.getLogger(__name__)
-
         self.mask = mask.get_TYXarray()
         self.graph = graph
         self.viewer_images = viewer_images
@@ -978,7 +979,7 @@ class GraphFilteringWidget(QWidget):
         self.mask_need_filtering = False
         self.filter_button.setStyleSheet("")
         self.save_button.setText("Save")
-        self.logger.info("Done")
+        self.logger.debug("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
@@ -989,7 +990,7 @@ class GraphFilteringWidget(QWidget):
         # Set cursor to BusyCursor
         napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
         napari.qt.get_app().processEvents()
-        self.logger.info("Done")
+        self.logger.debug("Done")
 
         if self.mask_need_filtering:
             self.filter(closing)
@@ -1021,6 +1022,10 @@ class GraphFilteringWidget(QWidget):
                 save = QMessageBox.question(self, 'Save changes', "Filter and save changes before closing?", QMessageBox.Yes | QMessageBox.No)
                 if save == QMessageBox.Yes:
                     self.save(closing=True)
+        # Remove all handlers for this module
+        while len(self.logger.handlers) > 0:
+            self.logger.removeHandler(self.logger.handlers[0])
+        self.logger.info("Done")
 
     def __del__(self):
         # Remove all handlers for this module
