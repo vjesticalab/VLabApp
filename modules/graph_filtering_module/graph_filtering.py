@@ -2,7 +2,7 @@ import os
 import logging
 import re
 import igraph as ig
-from PyQt5.QtWidgets import QFileDialog, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QLabel, QFormLayout, QSpinBox, QCheckBox, QSizePolicy, QLineEdit, QAbstractItemView, QTableWidgetItem
+from PyQt5.QtWidgets import QFileDialog, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QLabel, QFormLayout, QSpinBox, QCheckBox, QSizePolicy
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.graph_filtering_module import graph_filtering_functions as f
@@ -16,44 +16,12 @@ class GraphFiltering(QWidget):
         layout = QVBoxLayout()
 
         self.imagetypes = ['.nd2', '.tif', '.tiff']
-        self.graphtypes = ['.graphmlz']
 
-        self.mask_filter_name = QLineEdit('_mask.tif', placeholderText='e.g.: _mask.tif')
-        self.mask_filter_name.setToolTip('Accept only filenames ending with this text.')
-        self.mask_filter_name.textChanged.connect(self.mask_filter_name_changed)
-        self.graph_filter_name = QLineEdit('_graph.graphmlz', placeholderText='e.g.: _graph.graphmlz')
-        self.graph_filter_name.setToolTip('Accept only filenames ending with this text')
-        self.graph_filter_name.textChanged.connect(self.graph_filter_name_changed)
-        self.mask_graph_table = gf.DropFilesTableWidget2(header=["Mask", "Graph"], filenames_suffix_1=self.mask_filter_name.text(), filenames_suffix_2=self.graph_filter_name.text())
-        self.mask_graph_table.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.mask_graph_table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.mask_graph_table.model().rowsInserted.connect(self.mask_graph_table_changed)
-        self.mask_graph_table.model().rowsRemoved.connect(self.mask_graph_table_changed)
-        self.add_mask_graph_button = QPushButton("Add files", self)
-        self.add_mask_graph_button.clicked.connect(self.add_mask_graph)
-        self.add_folder_button = QPushButton("Add folder", self)
-        self.add_folder_button.clicked.connect(self.add_folder)
-        self.remove_button = QPushButton("Remove selected", self)
-        self.remove_button.clicked.connect(self.remove)
+        self.mask_graph_table = gf.FileTableWidget2(header_1="Mask", header_2="Graph", filenames_suffix_1='_mask.tif', filenames_suffix_2='_graph.graphmlz')
+        self.mask_graph_table.file_table_changed.connect(self.mask_graph_table_changed)
         groupbox = QGroupBox('Segmentation masks and cell tracking graphs to process')
         layout2 = QVBoxLayout()
         layout2.addWidget(self.mask_graph_table)
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.add_mask_graph_button)
-        layout3.addWidget(self.add_folder_button)
-        layout3.addWidget(self.remove_button)
-        layout2.addLayout(layout3)
-        layout3 = QHBoxLayout()
-        layout4 = QFormLayout()
-        layout4.addRow("Mask suffix:", self.mask_filter_name)
-        layout3.addLayout(layout4)
-        layout4 = QFormLayout()
-        layout4.addRow("Graph suffix:", self.graph_filter_name)
-        layout3.addLayout(layout4)
-        layout2.addLayout(layout3)
-        help_label = QLabel("Corresponding mask and graph files must be in the same directory. Their filenames must share the same basename and end with the specified suffix (by default <basename>"+self.mask_filter_name.text()+" and <basename>"+self.graph_filter_name.text()+")")
-        help_label.setWordWrap(True)
-        layout2.addWidget(help_label)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
@@ -330,83 +298,10 @@ class GraphFiltering(QWidget):
 
         self.logger = logging.getLogger(__name__)
 
-    def mask_filter_name_changed(self):
-        self.mask_graph_table.filenames_suffix_1 = self.mask_filter_name.text()
-
-    def graph_filter_name_changed(self):
-        self.mask_graph_table.filenames_suffix_2 = self.graph_filter_name.text()
-
     def mask_graph_table_changed(self):
         if self.mask_graph_table.rowCount() > 1:
             self.display_results.setChecked(False)
         self.display_results.setEnabled(self.mask_graph_table.rowCount() <= 1)
-
-    def add_mask_graph(self):
-        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Images ('+'*'+self.mask_filter_name.text()+' '+'*'+self.graph_filter_name.text()+')')
-        for file_path in file_paths:
-            mask_path = None
-            graph_path = None
-            re_pattern = self.mask_filter_name.text() + '$'
-            if re.search(re_pattern, file_path):
-                basename = re.sub(re_pattern, '', file_path)
-                mask_path = file_path
-                if os.path.isfile(basename + self.graph_filter_name.text()):
-                    graph_path = basename + self.graph_filter_name.text()
-            re_pattern = self.graph_filter_name.text() + '$'
-            if re.search(re_pattern, file_path):
-                basename = re.sub(re_pattern, '', file_path)
-                graph_path = file_path
-                if os.path.isfile(basename + self.mask_filter_name.text()):
-                    mask_path = basename + self.mask_filter_name.text()
-            if not mask_path is None and not graph_path is None:
-                if len(self.mask_graph_table.findItems(graph_path, Qt.MatchExactly)) == 0 and len(self.mask_graph_table.findItems(mask_path, Qt.MatchExactly)) == 0:
-                    self.mask_graph_table.insertRow(self.mask_graph_table.rowCount())
-                    item = QTableWidgetItem(mask_path)
-                    item.setToolTip(mask_path)
-                    item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-                    self.mask_graph_table.setItem(self.mask_graph_table.rowCount()-1, 0, item)
-                    item = QTableWidgetItem(graph_path)
-                    item.setToolTip(graph_path)
-                    item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-                    self.mask_graph_table.setItem(self.mask_graph_table.rowCount()-1, 1, item)
-
-    def add_folder(self):
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path:
-            for fname in os.listdir(folder_path):
-                file_path = os.path.join(folder_path, fname)
-                mask_path = None
-                graph_path = None
-                re_pattern = self.mask_filter_name.text() + '$'
-                if re.search(re_pattern, file_path):
-                    basename = re.sub(re_pattern, '', file_path)
-                    mask_path = file_path
-                    if os.path.isfile(basename + self.graph_filter_name.text()):
-                        graph_path = basename + self.graph_filter_name.text()
-                re_pattern = self.graph_filter_name.text() + '$'
-                if re.search(re_pattern, file_path):
-                    basename = re.sub(re_pattern, '', file_path)
-                    graph_path = file_path
-                    if os.path.isfile(basename + self.mask_filter_name.text()):
-                        mask_path = basename + self.mask_filter_name.text()
-                if not mask_path is None and not graph_path is None:
-                    if len(self.mask_graph_table.findItems(graph_path, Qt.MatchExactly)) == 0 and len(self.mask_graph_table.findItems(mask_path, Qt.MatchExactly)) == 0:
-                        self.mask_graph_table.insertRow(self.mask_graph_table.rowCount())
-                        item = QTableWidgetItem(mask_path)
-                        item.setToolTip(mask_path)
-                        item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-                        self.mask_graph_table.setItem(self.mask_graph_table.rowCount()-1, 0, item)
-                        item = QTableWidgetItem(graph_path)
-                        item.setToolTip(graph_path)
-                        item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-                        self.mask_graph_table.setItem(self.mask_graph_table.rowCount()-1, 1, item)
-
-    def remove(self):
-        rows = set()
-        for index in self.mask_graph_table.selectedIndexes():
-            rows.add(index.row())
-        for row in sorted(rows, reverse=True):
-            self.mask_graph_table.removeRow(row)
 
     def browse_image(self):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
@@ -421,8 +316,8 @@ class GraphFiltering(QWidget):
             image_path = self.input_image.text()
         else:
             image_path = ""
-        mask_paths = [self.mask_graph_table.item(row, 0).text() for row in range(self.mask_graph_table.rowCount())]
-        graph_paths = [self.mask_graph_table.item(row, 1).text() for row in range(self.mask_graph_table.rowCount())]
+
+        mask_graph_paths = self.mask_graph_table.get_file_table()
         filters = []
         graph_topologies = None
         if self.filter_border_yn.isChecked():
@@ -451,29 +346,23 @@ class GraphFiltering(QWidget):
             self.logger.error('Image: not a valid file')
             self.input_image.setFocus()
             return
-        if len(mask_paths) == 0:
-            self.logger.error('Segmentation mask missing')
-            self.add_mask_graph_button.setFocus()
-            return False
-        for path in mask_paths:
-            if not os.path.isfile(path):
-                self.logger.error('Segmentation mask not found: %s', path)
-                self.add_mask_graph_button.setFocus()
-                return False
-        for path in graph_paths:
-            if not os.path.isfile(path):
-                self.logger.error('Cell tracking graph not found: %s', path)
-                self.add_mask_graph_button.setFocus()
-                return False
+        if len(mask_graph_paths) == 0:
+            self.logger.error('Segmentation mask and cell tracking graph missing')
+            return
+        for mask_path, graph_path in mask_graph_paths:
+            if not os.path.isfile(mask_path):
+                self.logger.error('Segmentation mask not found: %s', mask_path)
+                return
+            if not os.path.isfile(graph_path):
+                self.logger.error('Cell tracking graph not found: %s', graph_path)
+                return
 
         if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
             self.logger.error('Output folder missing')
             self.output_folder.setFocus()
             return
 
-        for i in range(len(mask_paths)):
-            mask_path = mask_paths[i]
-            graph_path = graph_paths[i]
+        for mask_path, graph_path in mask_graph_paths:
             if self.use_input_folder.isChecked():
                 output_path = os.path.join(os.path.dirname(mask_path), 'graph_filtering')
             else:
