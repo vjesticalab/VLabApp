@@ -5,7 +5,7 @@ import nd2
 import re
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PyQt5.QtGui import QIcon, QPalette
-from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem
+from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog
 
 import logging
 import igraph as ig
@@ -201,6 +201,101 @@ class DropFilesListWidget(QListWidget):
                     filenames = [f for f in filenames
                                  if len(self.findItems(f, Qt.MatchExactly)) == 0]
                     self.addItems(filenames)
+
+class FileListWidget(QWidget):
+    """
+    A list of files with filters, button to add files and folder and drag and drop support.
+    """
+    file_list_changed = pyqtSignal()
+
+    def __init__(self, parent=None, filetypes=[], filenames_filter=''):
+        """
+        Parameters
+        ----------
+        filetypes: list of str
+            list of allowed file extensions, including the '.'. E.g. ['.tif','.nd2'].
+            If empty: allow all extensions.
+        filenames_filter: str
+            filenames not containing this text will be ignored.
+        """
+        super().__init__(parent)
+
+        self.filter_name = QLineEdit(filenames_filter, placeholderText='e.g.: _BF')
+        self.filter_name.setToolTip('Accept only filenames containing this text')
+        self.filter_name.textChanged.connect(self.filter_name_changed)
+        self.filetypes = QLineEdit(' '.join(filetypes), placeholderText='e.g.: .nd2 .tif .tiff')
+        self.filetypes.setToolTip('Space separated list of accepted file extensions.')
+        self.filetypes.textChanged.connect(self.filetypes_changed)
+        self.file_list = DropFilesListWidget(filetypes=self.filetypes.text().split(), filenames_filter=self.filter_name.text())
+        self.file_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.file_list.model().rowsInserted.connect(self.file_list_rows_inserted)
+        self.file_list.model().rowsRemoved.connect(self.file_list_rows_removed)
+        self.add_file_button = QPushButton("Add files", self)
+        self.add_file_button.clicked.connect(self.add_file)
+        self.add_folder_button = QPushButton("Add folder", self)
+        self.add_folder_button.clicked.connect(self.add_folder)
+        self.remove_file_button = QPushButton("Remove selected", self)
+        self.remove_file_button.clicked.connect(self.remove_file)
+
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.file_list)
+        layout2 = QHBoxLayout()
+        layout2.addWidget(self.add_file_button)
+        layout2.addWidget(self.add_folder_button)
+        layout2.addWidget(self.remove_file_button)
+        layout.addLayout(layout2)
+        layout2 = QHBoxLayout()
+        layout3 = QFormLayout()
+        layout3.addRow("Filter file names:", self.filter_name)
+        layout2.addLayout(layout3)
+        layout3 = QFormLayout()
+        layout3.addRow("file types:", self.filetypes)
+        layout2.addLayout(layout3)
+        layout.addLayout(layout2)
+        layout.setContentsMargins(0,0,0,0)
+        self.setLayout(layout)
+
+    def file_list_rows_inserted(self):
+        self.file_list_changed.emit()
+
+    def file_list_rows_removed(self):
+        self.file_list_changed.emit()
+
+    def filter_name_changed(self):
+        self.file_list.filenames_filter = self.filter_name.text()
+
+    def filetypes_changed(self):
+        self.file_list.filetypes = self.filetypes.text().split()
+
+    def add_file(self):
+        type_list = ['*'+x for x in self.filetypes.text().split()]
+        if len(type_list) == 0:
+            type_list = ['*']
+        if self.filter_name.text() != '':
+            type_list = ['*'+self.filter_name.text()+x for x in type_list]
+
+        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Images ('+' '.join(type_list)+')')
+        for file_path in file_paths:
+            if self.filter_name.text() in os.path.basename(file_path):
+                if file_path and len(self.file_list.findItems(file_path, Qt.MatchExactly)) == 0:
+                    self.file_list.addItem(file_path)
+
+    def add_folder(self):
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
+        if folder_path:
+            files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if os.path.splitext(f)[1] in self.filetypes.text().split() and self.filter_name.text() in f]
+            self.file_list.addItems([f for f in files if len(self.file_list.findItems(f, Qt.MatchExactly)) == 0])
+
+    def remove_file(self):
+        for item in self.file_list.selectedItems():
+            self.file_list.takeItem(self.file_list.row(item))
+
+    def count(self):
+        return self.file_list.count()
+
+    def get_file_list(self):
+        return [self.file_list.item(x).text() for x in range(self.file_list.count())]
 
 
 class DropFileLineEdit(QLineEdit):
