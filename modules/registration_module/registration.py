@@ -19,17 +19,8 @@ class Perform(gf.Page):
         super().__init__()
         ####### Section Registration #######
         self.imagetypes = ['.nd2', '.tif', '.tiff']
-        self.image_listA = gf.DropFilesListWidget(filetypes=self.imagetypes)
-        self.image_listA.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.add_image_buttonA = QPushButton("Add images", self)
-        self.add_image_buttonA.clicked.connect(partial(self.add_file, self.image_listA, self.imagetypes))
-        self.add_folder_buttonA = QPushButton("Add folder", self)
-        self.add_folder_buttonA.clicked.connect(partial(self.add_folder, self.image_listA, self.imagetypes))
-        self.remove_buttonA = QPushButton("Remove selected", self)
-        self.remove_buttonA.clicked.connect(partial(self.remove, self.image_listA))
 
-        self.channel_name = QLineEdit(placeholderText='eg. BF (default) / WL508 / ...')
-        self.channel_name.setMinimumWidth(200)
+        self.image_listA = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_BF')
         self.channel_position = QLineEdit(placeholderText='eg. 0 (default) / 1 / ...')
         self.channel_position.setMinimumWidth(200)
         self.channel_position.setValidator(QIntValidator())
@@ -87,19 +78,16 @@ class Perform(gf.Page):
 
         # Layout
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Images to process"))
-        layout.addWidget(self.image_listA)
-        layout2 = QHBoxLayout()
-        layout2.addWidget(self.add_image_buttonA)
-        layout2.addWidget(self.add_folder_buttonA)
-        layout2.addWidget(self.remove_buttonA)
-        layout.addLayout(layout2)
+        groupbox = QGroupBox('Images to process')
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.image_listA)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
 
         groupbox = QGroupBox("Options")
         layout3 = QFormLayout()
         layout3.setLabelAlignment(Qt.AlignLeft)
         layout3.setFormAlignment(Qt.AlignLeft)
-        layout3.addRow("Channel name:",self.channel_name)
         layout3.addRow("C-stack channel position:",self.channel_position)
         groupbox2 = QGroupBox("Z-stack:")
         layout4 = QFormLayout()
@@ -169,10 +157,9 @@ class Perform(gf.Page):
                     return False
             return True
 
-        image_paths = [self.image_listA.item(x).text() for x in range(self.image_listA.count())]
+        image_paths = self.image_listA.get_file_list()
 
         # Arianna 26/07/23: added the three options channel_name, channel_position, projection_type
-        channel_name = self.channel_name.text()
         channel_position = self.channel_position.text()
         projection_type = self.projection_type.currentText()
         if self.projection_mode_bestZ.isChecked():
@@ -186,8 +173,6 @@ class Perform(gf.Page):
         registration_method = self.registration_method.currentText()
         coalignment = self.coalignment_yn_A.isChecked()
         skip_crop_decision = self.skip_cropping_yn_A.isChecked()
-
-        if channel_name == '': channel_name = 'BF'
 
         if channel_position == '': channel_position = 0
         else: channel_position = int(channel_position)
@@ -203,21 +188,20 @@ class Perform(gf.Page):
         os.makedirs(os.path.join(output_path, 'transf_matrices'), exist_ok=True)
         for image_path in image_paths:
             if os.path.isfile(image_path):
-                if '_'+channel_name in image_path or channel_name in image_path:
-                    # Set log and cursor info
-                    self.logger.info("Image %s", image_path)
+                # Set log and cursor info
+                self.logger.info("Image %s", image_path)
 
-                    coalignment_images_list = []
+                coalignment_images_list = []
 
-                    if coalignment:
-                        unique_identifier = os.path.basename(image_path).split('_')[0]
-                        for im in os.listdir(os.path.dirname(image_path)):
-                            if unique_identifier in im and im != image_path:
-                                coalignment_images_list.append(os.path.join(os.path.dirname(image_path),im))
+                if coalignment:
+                    unique_identifier = os.path.basename(image_path).split('_')[0]
+                    for im in os.listdir(os.path.dirname(image_path)):
+                        if unique_identifier in im and im != image_path:
+                            coalignment_images_list.append(os.path.join(os.path.dirname(image_path),im))
 
 
-                    # collect arguments
-                    arguments.append((image_path, output_path, channel_position, projection_type, projection_zrange, skip_crop_decision, coalignment_images_list,registration_method))
+                # collect arguments
+                arguments.append((image_path, output_path, channel_position, projection_type, projection_zrange, skip_crop_decision, coalignment_images_list,registration_method))
 
             else:
                 self.logger.error("Unable to locate file %s", image_path)
@@ -250,25 +234,6 @@ class Perform(gf.Page):
         QApplication.restoreOverrideCursor()
         self.logger.info("Done")
 
-    def add_file(self, filelist, filetypes):
-        # Add the selected file to the input file list
-        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Files ('+' '.join(['*'+x for x in filetypes])+')')
-        for file_path in file_paths:
-            if file_path and len(filelist.findItems(file_path, Qt.MatchExactly)) == 0:
-                filelist.addItem(file_path)
-
-    def add_folder(self, filelist, filetypes):
-        # Add all the images in the selected folder to the input file list
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path:
-            images = [os.path.join(folder_path, i) for i in os.listdir(folder_path) if os.path.splitext(i)[1] in filetypes]
-            filelist.addItems([i for i in images if len(filelist.findItems(i, Qt.MatchExactly)) == 0])
-
-    def remove(self, filelist):
-        # Remove the selected file from the file list
-        for item in filelist.selectedItems():
-            filelist.takeItem(filelist.row(item))
-
     def projection_mode_fixed_zmin_changed(self, value):
         if self.projection_mode_fixed_zmax.value() < value:
             self.projection_mode_fixed_zmax.setValue(value)
@@ -288,14 +253,7 @@ class Align(gf.Page):
         font.setItalic(True)
         label2.setFont(font)
         self.imagetypes = ['.nd2', '.tif', '.tiff']
-        self.image_listB = gf.DropFilesListWidget(filetypes=self.imagetypes)
-        self.image_listB.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.add_image_buttonB = QPushButton("Add images", self)
-        self.add_image_buttonB.clicked.connect(partial(self.add_file, self.image_listB, self.imagetypes))
-        self.add_folder_buttonB = QPushButton("Add folder", self)
-        self.add_folder_buttonB.clicked.connect(partial(self.add_folder, self.image_listB, self.imagetypes))
-        self.remove_buttonB = QPushButton("Remove selected", self)
-        self.remove_buttonB.clicked.connect(partial(self.remove, self.image_listB))
+        self.image_listB = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='')
         self.skip_cropping_yn_B = QCheckBox("Do NOT crop aligned image")
         self.buttonB = QPushButton("Align")
         self.buttonB.clicked.connect(self.align)
@@ -304,12 +262,11 @@ class Align(gf.Page):
         layout = QVBoxLayout()
         layout.addWidget(label)
         layout.addWidget(label2)
-        layout.addWidget(self.image_listB)
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.add_image_buttonB)
-        layout3.addWidget(self.add_folder_buttonB)
-        layout3.addWidget(self.remove_buttonB)
-        layout.addLayout(layout3)
+        groupbox = QGroupBox('')
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.image_listB)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
         layout.addWidget(self.skip_cropping_yn_B)
         layout.addWidget(self.buttonB, alignment=Qt.AlignCenter)
 
@@ -336,7 +293,7 @@ class Align(gf.Page):
                     return False
             return True
 
-        image_paths = [self.image_listB.item(x).text() for x in range(self.image_listB.count())]
+        image_paths = self.image_listB.get_file_list()
         skip_crop_decision = self.skip_cropping_yn_B.isChecked()
         if not check_inputs(image_paths):
             return
@@ -358,26 +315,6 @@ class Align(gf.Page):
                 self.logger.error("Unable to locate file %s", image_path)
 
 
-    def add_file(self, filelist, filetypes):
-        # Add the selected file to the input file list
-        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Files ('+' '.join(['*'+x for x in filetypes])+')')
-        for file_path in file_paths:
-            if file_path and len(filelist.findItems(file_path, Qt.MatchExactly)) == 0:
-                filelist.addItem(file_path)
-
-    def add_folder(self, filelist, filetypes):
-        # Add all the images in the selected folder to the input file list
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path:
-            images = [os.path.join(folder_path, i) for i in os.listdir(folder_path) if os.path.splitext(i)[1] in filetypes]
-            filelist.addItems([i for i in images if len(filelist.findItems(i, Qt.MatchExactly)) == 0])
-
-    def remove(self, filelist):
-        # Remove the selected file from the file list
-        for item in filelist.selectedItems():
-            filelist.takeItem(filelist.row(item))
-
-
 class Edit(gf.Page):
     def __init__(self):
         super().__init__()
@@ -388,15 +325,8 @@ class Edit(gf.Page):
         font.setItalic(True)
         label2.setFont(font)
         self.matricestypes = ['.txt']
-        self.matrices_list = gf.DropFilesListWidget(filetypes=self.matricestypes)
-        self.matrices_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.add_file_buttonC = QPushButton("Add matrix", self)
-        self.add_file_buttonC.clicked.connect(partial(self.add_file, self.matrices_list, self.matricestypes))
-        self.add_folder_buttonC = QPushButton("Add folder", self)
-        self.add_folder_buttonC.clicked.connect(partial(self.add_folder, self.matrices_list, self.matricestypes))
-        self.remove_buttonC = QPushButton("Remove selected", self)
-        self.remove_buttonC.clicked.connect(partial(self.remove, self.matrices_list))
-        self.matrices_list.itemDoubleClicked.connect(self.display_matrix)
+        self.matrices_list = gf.FileListWidget(filetypes=self.matricestypes, filenames_filter='')
+        self.matrices_list.file_list_double_clicked.connect(self.display_matrix)
         #self.update_label = QLabel('After double-clicking the matrix, you can update its range', self)
         self.start_timepoint_label = QLabel('New start point:', self)
         self.start_timepoint_edit = QLineEdit(self)
@@ -409,12 +339,11 @@ class Edit(gf.Page):
         layout = QVBoxLayout()
         layout.addWidget(label)
         layout.addWidget(label2)
-        layout.addWidget(self.matrices_list)
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.add_file_buttonC)
-        layout3.addWidget(self.add_folder_buttonC)
-        layout3.addWidget(self.remove_buttonC)
-        layout.addLayout(layout3)
+        groupbox = QGroupBox('')
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.matrices_list)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
         layout3 = QGridLayout()
         layout3.addWidget(self.start_timepoint_label, 0, 0)
         layout3.addWidget(self.start_timepoint_edit, 0, 1)
@@ -453,7 +382,7 @@ class Edit(gf.Page):
                 return False
             return True
 
-        transfmat_paths = [self.matrices_list.item(x).text() for x in range(self.matrices_list.count())]
+        transfmat_paths = self.matrices_listB.get_file_list()
         start_timepoint = self.start_timepoint_edit.text()
         end_timepoint = self.end_timepoint_edit.text()
 
@@ -477,25 +406,6 @@ class Edit(gf.Page):
         self.display_graph.setWindowTitle(os.path.splitext(os.path.basename(self.transfmat_path))[0])
         self.display_graph.move(700,0)
         self.display_graph.show()
-
-    def add_file(self, filelist, filetypes):
-        # Add the selected file to the input file list
-        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Files ('+' '.join(['*'+x for x in filetypes])+')')
-        for file_path in file_paths:
-            if file_path and len(filelist.findItems(file_path, Qt.MatchExactly)) == 0:
-                filelist.addItem(file_path)
-
-    def add_folder(self, filelist, filetypes):
-        # Add all the images in the selected folder to the input file list
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path:
-            images = [os.path.join(folder_path, i) for i in os.listdir(folder_path) if os.path.splitext(i)[1] in filetypes]
-            filelist.addItems([i for i in images if len(filelist.findItems(i, Qt.MatchExactly)) == 0])
-
-    def remove(self, filelist):
-        # Remove the selected file from the file list
-        for item in filelist.selectedItems():
-            filelist.takeItem(filelist.row(item))
 
 
 class Registration(QWidget):

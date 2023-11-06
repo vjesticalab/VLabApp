@@ -5,7 +5,7 @@ import nd2
 import re
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PyQt5.QtGui import QIcon, QPalette
-from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog
+from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem
 
 import logging
 import igraph as ig
@@ -207,6 +207,7 @@ class FileListWidget(QWidget):
     A list of files with filters, button to add files and folder and drag and drop support.
     """
     file_list_changed = pyqtSignal()
+    file_list_double_clicked = pyqtSignal(QListWidgetItem)
 
     def __init__(self, parent=None, filetypes=[], filenames_filter=''):
         """
@@ -230,6 +231,7 @@ class FileListWidget(QWidget):
         self.file_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.file_list.model().rowsInserted.connect(self.file_list_rows_inserted)
         self.file_list.model().rowsRemoved.connect(self.file_list_rows_removed)
+        self.file_list.itemDoubleClicked.connect(self.file_list_double_clicked)
         self.add_file_button = QPushButton("Add files", self)
         self.add_file_button.clicked.connect(self.add_file)
         self.add_folder_button = QPushButton("Add folder", self)
