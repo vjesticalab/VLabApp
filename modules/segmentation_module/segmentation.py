@@ -96,12 +96,10 @@ class Segmentation(QWidget):
         def check_inputs(image_paths, model_path):
             if len(image_paths) == 0:
                 self.logger.error('Image missing')
-                self.add_image_button.setFocus()
                 return False
             for path in image_paths:
                 if not os.path.isfile(path):
                     self.logger.error('Image not found: %s', path)
-                    self.add_image_button.setFocus()
                     return False
             if model_path == '':
                 self.logger.error('Model missing')

@@ -195,12 +195,10 @@ class CellTracking(QWidget):
                 return False
             if len(mask_paths) == 0:
                 self.logger.error('Segmentation mask missing')
-                self.add_mask_button.setFocus()
                 return False
             for path in mask_paths:
                 if not os.path.isfile(path):
                     self.logger.error('Segmentation mask not found: %s', path)
-                    self.add_mask_button.setFocus()
                     return False
             if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
                 self.logger.error('Output folder missing')

@@ -148,12 +148,10 @@ class Perform(gf.Page):
             """
             if len(image_paths) == 0:
                 self.logger.error('Image missing')
-                self.add_image_buttonA.setFocus()
                 return False
             for path in image_paths:
                 if not os.path.isfile(path):
                     self.logger.error('Image not found\n' + path)
-                    self.add_image_buttonA.setFocus()
                     return False
             return True
 
@@ -284,12 +282,10 @@ class Align(gf.Page):
             """
             if len(image_paths) == 0:
                 self.logger.error('Image missing')
-                self.add_image_buttonB.setFocus()
                 return False
             for path in image_paths:
                 if not os.path.isfile(path):
                     self.logger.error('Image not found\n' + path)
-                    self.add_image_buttonB.setFocus()
                     return False
             return True
 
@@ -365,12 +361,10 @@ class Edit(gf.Page):
             """
             if len(transfmat_paths) == 0:
                 self.logger.error('Matrix missing')
-                self.add_file_buttonC.setFocus()
                 return False
             for path in transfmat_paths:
                 if not os.path.isfile(path):
                     self.logger.error('Matrix not found\n' + path)
-                    self.add_file_buttonC.setFocus()
                     return False
             if len(start_timepoint) == 0:
                 self.logger.error('Start timepoint missing')

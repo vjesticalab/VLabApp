@@ -182,12 +182,10 @@ class zProjection(QWidget):
             """
             if len(image_paths) == 0:
                 self.logger.error('Image missing')
-                self.add_image_button.setFocus()
                 return False
             for path in image_paths:
                 if not os.path.isfile(path):
                     self.logger.error('Image not found\n' + path)
-                    self.add_image_button.setFocus()
                     return False
             if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
                 self.logger.error('Output folder missing')
