@@ -2,6 +2,18 @@
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+
+
+## [v1.1.0] 2023-11-06
+
+### Added
+
 * Add batch processing to Graph filtering module.
 * Add 'OPTIONS' menu into Graph filtering module.
 * Add batch processing to Cell tracking module.
@@ -19,7 +31,6 @@
 * Cell tracking module: save to input mask folder instead of input image folder by default.
 * Z-projection method improved with option to project a user-specified range of Z sections (all, fixed range, only best focus or window around best focus).
 
-### Removed
 
 ### Fixed
 
@@ -27,9 +38,6 @@
 * Bux fix in graph filtering module: filtering cell area for at least one cell was filtering on all cells instead of at least one cell.
 * Small bugs in Registration module
 * Bug into Aligment: with edited transformation matrices we weren't cropping the selected timepoints  
-
-
-
 
 
 
