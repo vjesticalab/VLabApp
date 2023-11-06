@@ -1,5 +1,5 @@
 import os
-from PyQt5.QtWidgets import QVBoxLayout, QRadioButton, QGroupBox, QHBoxLayout, QFileDialog, QAbstractItemView, QPushButton, QWidget
+from PyQt5.QtWidgets import QVBoxLayout, QRadioButton, QGroupBox, QHBoxLayout, QFileDialog, QPushButton, QWidget
 from PyQt5.QtCore import Qt
 from modules.groundtruth_generator_module import generator_functions as f
 from general import general_functions as gf
@@ -73,7 +73,7 @@ class Generator(QWidget):
                 return False
             for path in image_paths:
                 if not os.path.isfile(path):
-                    self.logger.error('Image not found\n' + path)
+                    self.logger.error('Image not found %s', path)
                     return False
             if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
                 self.logger.error('Output folder missing')
@@ -101,7 +101,7 @@ class Generator(QWidget):
                 try:
                     f.main(image_path, output_path)
                 except Exception as e:
-                    self.logger.error("Generation failed.\n" + str(e))
+                    self.logger.error("Generation failed.\n%s", str(e))
             else:
                 self.logger.error("Unable to locate file %s", image_path)
 

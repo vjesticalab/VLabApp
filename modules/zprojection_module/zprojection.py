@@ -1,6 +1,6 @@
 import logging
 import os
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QAbstractItemView, QGroupBox, QRadioButton, QApplication, QFileDialog, QComboBox, QSpinBox, QLabel, QFormLayout
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QFileDialog, QComboBox, QSpinBox, QLabel, QFormLayout
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.zprojection_module import zprojection_functions as f
@@ -185,7 +185,7 @@ class zProjection(QWidget):
                 return False
             for path in image_paths:
                 if not os.path.isfile(path):
-                    self.logger.error('Image not found\n' + path)
+                    self.logger.error('Image not found: %s', path)
                     return False
             if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
                 self.logger.error('Output folder missing')
@@ -226,7 +226,7 @@ class zProjection(QWidget):
                 try:
                     f.main(image_path, output_path, projection_type, projection_zrange)
                 except Exception as e:
-                    self.logger.error("Projection failed.\n" + str(e))
+                    self.logger.error("Projection failed.\n%s", str(e))
                 # Restore cursor
                 QApplication.restoreOverrideCursor()
             else:

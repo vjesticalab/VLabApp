@@ -1,7 +1,6 @@
 import logging
 import os
-import logging
-from PyQt5.QtWidgets import QFileDialog, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QAbstractItemView, QGroupBox, QRadioButton, QApplication
+from PyQt5.QtWidgets import QFileDialog, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.segmentation_module import segmentation_functions as f
@@ -134,7 +133,7 @@ class Segmentation(QWidget):
                 try:
                     f.main(image_path, model_path, output_path, self.display_results.isChecked(), self.use_gpu.isChecked())
                 except Exception as e:
-                    self.logger.error("Segmentation failed.\n" + str(e))
+                    self.logger.error("Segmentation failed.\n%s", str(e))
 
                 QApplication.restoreOverrideCursor()
             else:
