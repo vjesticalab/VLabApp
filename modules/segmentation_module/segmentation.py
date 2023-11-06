@@ -15,7 +15,6 @@ class Segmentation(QWidget):
         self.imagetypes = ['.nd2', '.tif', '.tiff']
         self.image_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_BF')
         self.image_list.file_list_changed.connect(self.image_list_changed)
-        self.image_list.file_list_changed.connect(self.image_list_changed)
 
         self.selected_model = gf.DropFileLineEdit()
         default_model_path = '/Volumes/D2c/Lab_VjesticaLabApps/Cellpose_v2/20230704_CellposeModels/models/cellpose_projection_best_nepochs_5000'
