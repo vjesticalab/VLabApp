@@ -107,10 +107,14 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
     for z in range(0, image.sizes['Z']):
         for c in range(0, image.sizes['C']):
             for timepoint in range(0, image.sizes['T']):
-                xyShift = (tmat_int[timepoint, 1]*-1, tmat_int[timepoint, 2]*-1)
-                registered_image[0, timepoint, c, z, :, :] = np.roll(image6D[0, timepoint, c, z, :, :], xyShift, axis=(1,0))
-
+                if tmat_int[timepoint, 3] == 1:
+                    xyShift = (tmat_int[timepoint, 1]*-1, tmat_int[timepoint, 2]*-1)
+                    registered_image[0, timepoint, c, z, :, :] = np.roll(image6D[0, timepoint, c, z, :, :], xyShift, axis=(1,0))
+    
     if skip_crop:
+        t_start = min([d[0] for d in tmat_int if d[3] == 1])
+        t_end = max([d[0] for d in tmat_int if d[3] == 1])
+        registered_image = registered_image[:, t_start:t_end, :, :, :, :]
         # Save the registered and un-cropped image
         if image.sizes['C'] == 1:
             try:
@@ -118,16 +122,20 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
             except:
                 tifffile.imwrite(registeredFilepath, data=registered_image[0,:,0,:,:,:], metadata={'axes': 'TZYX'}, compression='zlib')
         else:
-            tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,:,:,:], metadata={'axes': 'TCZYX'}, compression='zlib')
+            tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,:,:,:], metadata={'axes': 'TCZYX'}, compression='zlib') #XYCZT
 
     else:
         # Crop to desired area
-        y_start = 0 - min(tmat_int[:,2])
-        y_end = image.sizes['Y'] - max(tmat_int[:,2])
-        x_start = 0 - min(tmat_int[:,1])
-        x_end = image.sizes['X'] - max(tmat_int[:,1])
+        y_start = 0 - min([d[2] for d in tmat_int if d[3] == 1]) 
+        y_end = image.sizes['Y'] - max([d[2] for d in tmat_int if d[3] == 1])
+        x_start = 0 - min([d[1] for d in tmat_int if d[3] == 1]) 
+        x_end = image.sizes['X'] - max([d[1] for d in tmat_int if d[3] == 1])
+        t_start = min([d[0] for d in tmat_int if d[3] == 1])
+        t_end = max([d[0] for d in tmat_int if d[3] == 1])
+
+        print(y_start, y_end, x_start, x_end, t_start, t_end)
         # Crop along the y-axis
-        image_cropped = registered_image[:, :, :, :, y_start:y_end, x_start:x_end]
+        image_cropped = registered_image[:, t_start:t_end, :, :, y_start:y_end, x_start:x_end]
 
         # Save the registered and cropped image
         if image.sizes['C'] == 1:
@@ -314,6 +322,7 @@ def registration_main(image_path, output_path, channel_position, projection_type
     return image_path
 
 ################################################################
+
 
 def alignment_main(image_path, skip_crop_decision):
     # Load image and matrix

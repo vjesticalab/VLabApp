@@ -12,6 +12,7 @@
 * Add a description of the methods in cell_tracking_module.
 * Add a description of the methods in zprojection_module.
 
+
 ### Changed
 
 * Graph filtering module: save to input mask folder instead of input image folder by default.
@@ -25,6 +26,7 @@
 * Fix a crash in graph filtering module when not removing logging handlers.
 * Bux fix in graph filtering module: filtering cell area for at least one cell was filtering on all cells instead of at least one cell.
 * Small bugs in Registration module
+* Bug into Aligment: with edited transformation matrices we weren't cropping the selected timepoints  
 
 
 
