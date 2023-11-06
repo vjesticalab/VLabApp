@@ -18,14 +18,7 @@ class zProjection(QWidget):
 
         # Input images
         self.imagetypes = ['.nd2', '.tif', '.tiff']
-        self.image_list = gf.DropFilesListWidget(filetypes=self.imagetypes)
-        self.image_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.add_image_button = QPushButton("Add images", self)
-        self.add_image_button.clicked.connect(self.add_image)
-        self.add_folder_button = QPushButton("Add folder", self)
-        self.add_folder_button.clicked.connect(self.add_folder)
-        self.remove_button = QPushButton("Remove selected", self)
-        self.remove_button.clicked.connect(self.remove)
+        self.image_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='')
 
         # Output folders
         self.use_input_folder = QRadioButton("Use input image folder (zprojection sub-folder)")
@@ -97,14 +90,9 @@ class zProjection(QWidget):
         layout.addWidget(groupbox)
 
         # Input images
-        groupbox = QGroupBox("Images to process")
+        groupbox = QGroupBox('Images to process')
         layout2 = QVBoxLayout()
         layout2.addWidget(self.image_list)
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.add_image_button)
-        layout3.addWidget(self.add_folder_button)
-        layout3.addWidget(self.remove_button)
-        layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
@@ -167,25 +155,6 @@ class zProjection(QWidget):
 
         self.logger = logging.getLogger(__name__)
 
-    def add_image(self):
-        # Add the selected image to the input file list
-        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
-        for file_path in file_paths:
-            if file_path and len(self.image_list.findItems(file_path, Qt.MatchExactly)) == 0:
-                self.image_list.addItem(file_path)
-
-    def add_folder(self):
-        # Add all the images in the selected folder to the input file list
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path:
-            images = [os.path.join(folder_path, i) for i in os.listdir(folder_path) if os.path.splitext(i)[1] in self.imagetypes]
-            self.image_list.addItems([i for i in images if len(self.image_list.findItems(i, Qt.MatchExactly)) == 0])
-
-    def remove(self):
-        # Remove the selected file from the file list
-        for item in self.image_list.selectedItems():
-            self.image_list.takeItem(self.image_list.row(item))
-
     def browse_output(self):
         # Browse folders in order to choose the output one
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
@@ -226,7 +195,7 @@ class zProjection(QWidget):
                 return False
             return True
 
-        image_paths = [self.image_list.item(x).text() for x in range(self.image_list.count())]
+        image_paths = self.image_list.get_file_list()
         if not check_inputs(image_paths):
             return
 
