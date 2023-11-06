@@ -266,6 +266,7 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         transformation_matrices[:, 3] = 1
         transformation_matrices[:, 6] = image.sizes['X']
         transformation_matrices[:, 7] = image.sizes['Y']
+    
     elif registration_method == "phase correlation":
         logging.getLogger(__name__).info('Registration with phase correlation')
         shifts=register_stack_phase_correlation(image3D,blur=5)
@@ -278,7 +279,7 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         transformation_matrices[:, 6] = image.sizes['X']
         transformation_matrices[:, 7] = image.sizes['Y']
     else:
-        logging.getLogger(__name__).error('Error unknown registration method '+method+'\n')
+        logging.getLogger(__name__).error('Error unknown registration method '+registration_method+'\n')
 
     # Save the txt file with the translation matrix
     txt_name = os.path.join(output_path,'transf_matrices', image.name.split('_')[0] +'_transformationMatrix.txt')
