@@ -20,7 +20,6 @@ class CellTracking(QWidget):
 
         self.mask_list =  gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_mask')
         self.mask_list.file_list_changed.connect(self.mask_list_changed)
-        self.mask_list.file_list_changed.connect(self.mask_list_changed)
 
         self.use_input_folder = QRadioButton("Use input mask folder (cell_tracking sub-folder)")
         self.use_input_folder.setChecked(True)
