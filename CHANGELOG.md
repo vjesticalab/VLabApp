@@ -6,6 +6,8 @@
 
 ### Removed
 
+* Segmentation module: remove option to use GPU (always try to use GPU).
+
 ### Fixed
 
 * Fix a crash in segmentation module when dropping a file to the cellpose model text box.

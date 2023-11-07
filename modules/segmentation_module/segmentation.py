@@ -33,9 +33,6 @@ class Segmentation(QWidget):
         self.use_custom_folder.toggled.connect(self.output_folder.setEnabled)
         self.use_custom_folder.toggled.connect(self.browse_button2.setEnabled)
 
-        self.use_gpu = QCheckBox("Use GPU")
-        self.use_gpu.setChecked(False)
-
         self.display_results = QCheckBox("Show results in napari")
         self.display_results.setChecked(False)
 
@@ -67,7 +64,6 @@ class Segmentation(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        layout.addWidget(self.use_gpu)
         layout.addWidget(self.display_results)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
@@ -131,7 +127,7 @@ class Segmentation(QWidget):
                 QApplication.processEvents()
 
                 try:
-                    f.main(image_path, model_path, output_path, self.display_results.isChecked(), self.use_gpu.isChecked())
+                    f.main(image_path, model_path, output_path, self.display_results.isChecked())
                 except Exception as e:
                     self.logger.error("Segmentation failed.\n%s", str(e))
 

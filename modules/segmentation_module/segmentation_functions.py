@@ -8,7 +8,7 @@ from cellpose import version_str as cellpose_version
 from general import general_functions as gf
 
 
-def main(image_path, model_path, output_path, display_results=True, use_gpu=False):
+def main(image_path, model_path, output_path, display_results=True, use_gpu=True):
     """
     Load image, segment with cellpose and save the resulting mask 
     into `output_path` directory using filename <image basename>_mask.tif
