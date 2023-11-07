@@ -188,7 +188,7 @@ class CellTracking(QWidget):
         Retrieve the input parameters
         Process the image in f.main()
         """
-        def check_inputs(image_path, mask_paths):
+        def check_inputs(image_path, mask_paths, output_paths, output_basenames):
             if image_path != '' and not os.path.isfile(image_path):
                 self.logger.error('Image: not a valid file')
                 self.input_image.setFocus()
@@ -204,6 +204,11 @@ class CellTracking(QWidget):
                 self.logger.error('Output folder missing')
                 self.output_folder.setFocus()
                 return False
+            output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]
+            duplicates = [x for x, y in zip(mask_paths, output_files) if output_files.count(y) > 1]
+            if len(duplicates) > 0:
+                self.logger.error('More than one input file will output to the same file.\nTo avoid overwriting output files, either use input mask folder as output folder or do not process mask from different input folders with same name.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
+                return False
             return True
 
         if self.input_image.isEnabled():
@@ -211,21 +216,20 @@ class CellTracking(QWidget):
         else:
             image_path = ""
         mask_paths = self.mask_list.get_file_list()
+        output_basenames = [re.sub("_masks{0,1}$", "",os.path.splitext(os.path.basename(path))[0]) for path in mask_paths]
+        if self.use_input_folder.isChecked():
+            output_paths = [os.path.join(os.path.dirname(path), 'cell_tracking') for path in mask_paths]
+        else:
+            output_paths = [self.output_folder.text() for path in mask_paths]
 
-        if not check_inputs(image_path, mask_paths):
+        if not check_inputs(image_path, mask_paths, output_paths, output_basenames):
             return
 
-        for mask_path in mask_paths:
-            if self.use_input_folder.isChecked():
-                output_path = os.path.join(os.path.dirname(mask_path), 'cell_tracking')
-            else:
-                output_path = self.output_folder.text()
+        for mask_path, output_path, output_basename in zip(mask_paths, output_paths, output_basenames):
             self.logger.info("Cell tracking (image %s, mask %s)", image_path, mask_path)
             QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
             QApplication.processEvents()
 
-            mask_basename, mask_extension = os.path.splitext(os.path.basename(mask_path))
-            output_basename = re.sub("_masks{0,1}$", "", mask_basename)
             try:
                 f.main(image_path, mask_path, output_path=output_path,
                        output_basename=output_basename,
