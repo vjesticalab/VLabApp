@@ -78,10 +78,8 @@ class zProjection(QWidget):
         self.submit_button = QPushButton("Submit", self)
         self.submit_button.clicked.connect(self.submit)
 
-
         # Layout
         layout = QVBoxLayout()
-
         # Documentation
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
@@ -175,7 +173,7 @@ class zProjection(QWidget):
         Retrieve the input parameters
         Iterate over the image paths given performing projection with f.main() function
         """
-        def check_inputs(image_paths,output_paths,output_basenames):
+        def check_inputs(image_paths, output_paths, output_basenames):
             """
             Check if the inputs are valid
             Return: True if valid, False otherwise
@@ -191,11 +189,10 @@ class zProjection(QWidget):
                 self.logger.error('Output folder missing')
                 self.output_folder.setFocus()
                 return False
-            #check output
-            output_files = [os.path.join(d, f) for d, f in zip(output_paths,output_basenames)]
-            duplicates=[x for x, y in zip(image_paths,output_files) if output_files.count(y)>1]
-            if len(duplicates)>0:
-                self.logger.error('More than one input file will output to the same file.\nTo avoid overwriting output files, either use input image folder as output folder or do not process images from different input directories with same name.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates)>4 else [])))
+            output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]
+            duplicates = [x for x, y in zip(image_paths, output_files) if output_files.count(y) > 1]
+            if len(duplicates) > 0:
+                self.logger.error('More than one input file will output to the same file.\nTo avoid overwriting output files, either use input image folder as output folder or do not process images from different input directories with same name.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
                 return False
             return True
 
@@ -206,7 +203,7 @@ class zProjection(QWidget):
         else:
             output_paths = [self.output_folder.text() for path in image_paths]
 
-        if not check_inputs(image_paths,output_paths,output_basenames):
+        if not check_inputs(image_paths, output_paths, output_basenames):
             return
 
         projection_type = self.projection_type.currentText()
@@ -219,7 +216,7 @@ class zProjection(QWidget):
         elif self.projection_mode_all.isChecked():
             projection_zrange = None
 
-        for image_path,output_path,output_basename in zip(image_paths,output_paths,output_basenames):
+        for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
             if os.path.isfile(image_path):
                 # Set output directory for each image path
                 if not output_path.endswith('/'):
