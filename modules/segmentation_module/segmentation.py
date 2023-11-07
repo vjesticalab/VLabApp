@@ -111,7 +111,7 @@ class Segmentation(QWidget):
             output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]
             duplicates = [x for x, y in zip(image_paths, output_files) if output_files.count(y) > 1]
             if len(duplicates) > 0:
-                self.logger.error('More than one input file will output to the same file.\nTo avoid overwriting output files, either use input image folder as output folder or do not process images from different input folders with same name.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
+                self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input image folder as output folder or avoid processing images from different input folders.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
                 return False
             return True
 

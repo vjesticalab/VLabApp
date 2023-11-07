@@ -372,7 +372,7 @@ class GraphFiltering(QWidget):
         output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]
         duplicates = [x for x, y in zip(mask_paths, output_files) if output_files.count(y) > 1]
         if len(duplicates) > 0:
-            self.logger.error('More than one input file will output to the same file.\nTo avoid overwriting output files, either use input mask and graph folder as output folder or do not process mask and graph from different input folders with same basename name.\nProblematic input files (masks):\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
+            self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input mask and graph folder as output folder or avoid processing masks and graphs from different input folders.\nProblematic input files (masks):\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
             return
 
         for mask_path, graph_path, output_path, output_basename in zip(mask_paths, graph_paths, output_paths, output_basenames):
