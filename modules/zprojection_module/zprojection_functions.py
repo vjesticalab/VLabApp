@@ -4,7 +4,7 @@ import tifffile
 from general import general_functions as gf
 
 
-def main(image_path, output_path, projection_type, projection_zrange):
+def main(image_path, output_path, output_basename, projection_type, projection_zrange):
     """
     Perform z projection of the image given
 
@@ -14,6 +14,8 @@ def main(image_path, output_path, projection_type, projection_zrange):
         input image path
     output_path: str
         output directory
+    output_basename: str
+        output basename. Output file will be saved as `output_path`/`output_basename`_<projection>.tif and `output_path`/`output_basename`.log.
     projection_type: str
         type of the projection to perfrom
     projection_zrange:  int or (int,int) or None
@@ -25,7 +27,7 @@ def main(image_path, output_path, projection_type, projection_zrange):
 
     Saves
     ---------------------
-    image: ndarry
+    image: ndarray
         z-projection image, in output directory
 
     """
@@ -38,7 +40,7 @@ def main(image_path, output_path, projection_type, projection_zrange):
         os.makedirs(output_path)
 
     # Log to file
-    logfile = os.path.join(output_path, os.path.splitext(os.path.basename(image_path))[0]+".log")
+    logfile = os.path.join(output_path, output_basename+".log")
     logger.setLevel(logging.DEBUG)
     logger.debug("writing log output to: %s", logfile)
     logfile_handler = logging.FileHandler(logfile, mode='w')
@@ -81,7 +83,7 @@ def main(image_path, output_path, projection_type, projection_zrange):
         filename_suffix = projection_type+str(projection_zrange)
     elif isinstance(projection_zrange, tuple) and len(projection_zrange) == 2 and projection_zrange[0] <= projection_zrange[1]:
         filename_suffix = projection_type + str(projection_zrange[0]) + "-" + str(projection_zrange[1])
-    output_file_name = os.path.join(output_path, image.name+"_"+filename_suffix+".tif")
+    output_file_name = os.path.join(output_path, output_basename+"_"+filename_suffix+".tif")
     # TODO: properly deal with 'F' axis, i.e. the first 0 in projected_image[0,:,:,0,:,:] is problematic if there are more than one FOV.
     tifffile.imwrite(output_file_name, projected_image[0,:,:,0,:,:].astype('uint16'), metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
     logger.info("Projection performed and saved (%s)", output_file_name)

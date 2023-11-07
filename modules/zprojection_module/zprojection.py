@@ -175,7 +175,7 @@ class zProjection(QWidget):
         Retrieve the input parameters
         Iterate over the image paths given performing projection with f.main() function
         """
-        def check_inputs(image_paths):
+        def check_inputs(image_paths,output_paths,output_basenames):
             """
             Check if the inputs are valid
             Return: True if valid, False otherwise
@@ -191,10 +191,22 @@ class zProjection(QWidget):
                 self.logger.error('Output folder missing')
                 self.output_folder.setFocus()
                 return False
+            #check output
+            output_files = [os.path.join(d, f) for d, f in zip(output_paths,output_basenames)]
+            duplicates=[x for x, y in zip(image_paths,output_files) if output_files.count(y)>1]
+            if len(duplicates)>0:
+                self.logger.error('More than one input file will output to the same file.\nTo avoid overwriting output files, either use input image folder as output folder or do not process images from different input directories with same name.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates)>4 else [])))
+                return False
             return True
 
         image_paths = self.image_list.get_file_list()
-        if not check_inputs(image_paths):
+        output_basenames = [os.path.splitext(os.path.basename(path))[0] for path in image_paths]
+        if self.use_input_folder.isChecked():
+            output_paths = [os.path.join(os.path.dirname(path), 'zprojection') for path in image_paths]
+        else:
+            output_paths = [self.output_folder.text() for path in image_paths]
+
+        if not check_inputs(image_paths,output_paths,output_basenames):
             return
 
         projection_type = self.projection_type.currentText()
@@ -207,13 +219,9 @@ class zProjection(QWidget):
         elif self.projection_mode_all.isChecked():
             projection_zrange = None
 
-        for image_path in image_paths:
+        for image_path,output_path,output_basename in zip(image_paths,output_paths,output_basenames):
             if os.path.isfile(image_path):
                 # Set output directory for each image path
-                if self.use_input_folder.isChecked():
-                    output_path = os.path.join(os.path.dirname(image_path), 'zprojection')
-                else:
-                    output_path = self.output_folder.text()
                 if not output_path.endswith('/'):
                     output_path += '/'
                 if not os.path.exists(output_path):
@@ -224,7 +232,7 @@ class zProjection(QWidget):
                 QApplication.processEvents()
                 # Perform projection
                 try:
-                    f.main(image_path, output_path, projection_type, projection_zrange)
+                    f.main(image_path, output_path, output_basename, projection_type, projection_zrange)
                 except Exception as e:
                     self.logger.error("Projection failed.\n%s", str(e))
                 # Restore cursor

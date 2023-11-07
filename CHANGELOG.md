@@ -2,6 +2,8 @@
 
 ### Added
 
+* Z-projection module: check that output filenames are unique (i.e. to avoid two input files with same output filename).
+
 ### Changed
 
 ### Removed
