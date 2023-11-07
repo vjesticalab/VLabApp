@@ -354,7 +354,7 @@ class CellTracksFiltering:
         if self.cell_tracks_topology is None:
             self.cell_tracks_topology = []
             for cmp in components:
-               # self.cell_tracks_topology[n]=[i1,i2,...] => self.cell_track[n] is isomorphic to self.graph_topologies[i1] and  self.graph_topologies[i2] and ...
+                # self.cell_tracks_topology[n]=[i1,i2,...] => self.cell_track[n] is isomorphic to self.graph_topologies[i1] and  self.graph_topologies[i2] and ...
                 g2 = simplify_graph(self.graph.subgraph(cmp))
                 self.cell_tracks_topology.append([i for i, g3 in enumerate(self.graph_topologies) if g2.isomorphic(g3)])
 
@@ -629,7 +629,7 @@ class CellTracksFiltering:
             relabel mask ids to consecutive integer starting from 1 (keeping 0 for background).
         """
         if not os.path.isdir(output_path):
-            logger.debug("creating: %s", output_path)
+            self.logger.debug("creating: %s", output_path)
             os.makedirs(output_path)
 
         self.logger.info("Selected cell tracks: %s/%s", len(self.selected_cell_track_ids), len(self.cell_tracks))

@@ -25,7 +25,7 @@ class GraphFiltering(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        self.use_input_folder = QRadioButton("Use input image folder (graph_filtering sub-folder)")
+        self.use_input_folder = QRadioButton("Use input mask and graph folder (graph_filtering sub-folder)")
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)
@@ -318,6 +318,14 @@ class GraphFiltering(QWidget):
             image_path = ""
 
         mask_graph_paths = self.mask_graph_table.get_file_table()
+        mask_paths = [mask_path for mask_path, graph_path in mask_graph_paths]
+        graph_paths = [graph_path for mask_path, graph_path in mask_graph_paths]
+        output_basenames = [re.sub("_masks{0,1}$", "", os.path.splitext(os.path.basename(mask_path))[0]) for mask_path in mask_paths]
+        if self.use_input_folder.isChecked():
+            output_paths = [os.path.join(os.path.dirname(mask_path), 'graph_filtering') for mask_path in mask_paths]
+        else:
+            output_paths = [self.output_folder.text() for path in mask_paths]
+
         filters = []
         graph_topologies = None
         if self.filter_border_yn.isChecked():
@@ -349,30 +357,29 @@ class GraphFiltering(QWidget):
         if len(mask_graph_paths) == 0:
             self.logger.error('Segmentation mask and cell tracking graph missing')
             return
-        for mask_path, graph_path in mask_graph_paths:
+        for mask_path in mask_paths:
             if not os.path.isfile(mask_path):
                 self.logger.error('Segmentation mask not found: %s', mask_path)
                 return
+        for graph_path in graph_paths:
             if not os.path.isfile(graph_path):
                 self.logger.error('Cell tracking graph not found: %s', graph_path)
                 return
-
         if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
             self.logger.error('Output folder missing')
             self.output_folder.setFocus()
             return
+        output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]
+        duplicates = [x for x, y in zip(mask_paths, output_files) if output_files.count(y) > 1]
+        if len(duplicates) > 0:
+            self.logger.error('More than one input file will output to the same file.\nTo avoid overwriting output files, either use input mask and graph folder as output folder or do not process mask and graph from different input folders with same basename name.\nProblematic input files (masks):\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
+            return
 
-        for mask_path, graph_path in mask_graph_paths:
-            if self.use_input_folder.isChecked():
-                output_path = os.path.join(os.path.dirname(mask_path), 'graph_filtering')
-            else:
-                output_path = self.output_folder.text()
+        for mask_path, graph_path, output_path, output_basename in zip(mask_paths, graph_paths, output_paths, output_basenames):
             self.logger.info("Graph filtering (image %s, mask %s, graph %s)", image_path, mask_path, graph_path)
 
             QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
             QApplication.processEvents()
-            mask_basename, mask_extension = os.path.splitext(os.path.basename(mask_path))
-            output_basename = re.sub("_masks{0,1}$", "", mask_basename)
             try:
                 f.main(image_path, mask_path, graph_path, output_path, output_basename, filters, display_results=self.display_results.isChecked(), graph_topologies=graph_topologies)
             except Exception as e:
