@@ -8,6 +8,10 @@
 
 ### Fixed
 
+* Fix a crash in segmentation module when dropping a file to the cellpose model text box.
+
+
+
 
 
 ## [v1.1.0] 2023-11-06
@@ -37,7 +41,7 @@
 * Fix a crash in graph filtering module when not removing logging handlers.
 * Bux fix in graph filtering module: filtering cell area for at least one cell was filtering on all cells instead of at least one cell.
 * Small bugs in Registration module
-* Bug into Aligment: with edited transformation matrices we weren't cropping the selected timepoints  
+* Bug into Aligment: with edited transformation matrices we weren't cropping the selected timepoints
 
 
 

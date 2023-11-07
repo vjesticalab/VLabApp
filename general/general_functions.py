@@ -475,7 +475,7 @@ class DropFileLineEdit(QLineEdit):
             if url.isLocalFile():
                 if os.path.isfile(url.toLocalFile()):
                     filename = url.toLocalFile()
-                    if len(self.filetypes) == 0 or self.filetypes is None or os.path.splitext(filename)[1] in self.filetypes:
+                    if self.filetypes is None or len(self.filetypes) == 0 or os.path.splitext(filename)[1] in self.filetypes:
                         self.setText(filename)
 
 
