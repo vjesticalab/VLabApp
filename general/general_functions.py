@@ -4,8 +4,8 @@ import tifffile
 import nd2
 import re
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
-from PyQt5.QtGui import QIcon, QPalette
-from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem
+from PyQt5.QtGui import QIcon, QPalette, QBrush
+from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem, QDialog
 
 import logging
 import igraph as ig
@@ -38,6 +38,53 @@ class QLineEditHandler(logging.Handler):
         self.label.repaint()
 
 
+class StatusTableDialog(QDialog):
+    """
+    a dialog to report job status.
+
+    Examples
+    --------
+    msg=StatusTableDialog('Warning',['Success','Success','Failed'],[None,None,'invalid file'],['image1.tif','image2.tif','image3.tif'])
+    msg.exec_()
+    """
+
+    def __init__(self, title, status, error_messages, input_files):
+        super().__init__()
+        self.setSizeGripEnabled(True)
+        self.setWindowTitle(title)
+        layout = QVBoxLayout()
+        table = QTableWidget()
+        table.setColumnCount(3)
+        table.setHorizontalHeaderLabels(['Status', 'Error message', 'Input file'])
+        table.verticalHeader().hide()
+        table.setTextElideMode(Qt.ElideLeft)
+        table.setWordWrap(False)
+        table.setSelectionMode(QAbstractItemView.NoSelection)
+        table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        for s, m, f in zip(status, error_messages, input_files):
+            table.insertRow(table.rowCount())
+            item = QTableWidgetItem(s)
+            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+            if s != 'Success':
+                item.setBackground(QBrush(Qt.red))
+            table.setItem(table.rowCount()-1, 0, item)
+            item = QTableWidgetItem(m)
+            item.setToolTip(m)
+            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+            table.setItem(table.rowCount()-1, 1, item)
+            item = QTableWidgetItem(f)
+            item.setToolTip(f)
+            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+            table.setItem(table.rowCount()-1, 2, item)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        table.horizontalHeader().setStretchLastSection(True)
+        layout.addWidget(table)
+        button = QPushButton("OK")
+        button.clicked.connect(self.done)
+        layout.addWidget(button, alignment=Qt.AlignCenter)
+        self.setLayout(layout)
+
+
 class QMessageBoxErrorHandler(logging.Handler):
     """
     Logging handler to send message to QMessageBox.critical
@@ -66,7 +113,7 @@ class DropFilesTableWidget2(QTableWidget):
     def __init__(self, parent=None, header_1=None, header_2=None, filenames_suffix_1=None, filenames_suffix_2=None):
         super().__init__(parent)
         self.setColumnCount(2)
-        self.setHorizontalHeaderLabels([header_1,header_2])
+        self.setHorizontalHeaderLabels([header_1, header_2])
         self.verticalHeader().hide()
         self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.setAcceptDrops(True)

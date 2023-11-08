@@ -375,6 +375,16 @@ class GraphFiltering(QWidget):
             self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input mask and graph folder as output folder or avoid processing masks and graphs from different input folders.\nProblematic input files (masks):\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
             return
 
+        # disable messagebox error handler
+        messagebox_error_handler = None
+        for h in logging.getLogger().handlers:
+            if h.get_name() == 'messagebox_error_handler':
+                messagebox_error_handler = h
+                logging.getLogger().removeHandler(messagebox_error_handler)
+                break
+
+        status = []
+        error_messages = []
         for mask_path, graph_path, output_path, output_basename in zip(mask_paths, graph_paths, output_paths, output_basenames):
             self.logger.info("Graph filtering (image %s, mask %s, graph %s)", image_path, mask_path, graph_path)
 
@@ -382,9 +392,20 @@ class GraphFiltering(QWidget):
             QApplication.processEvents()
             try:
                 f.main(image_path, mask_path, graph_path, output_path, output_basename, filters, display_results=self.display_results.isChecked(), graph_topologies=graph_topologies)
-            except:
-                QApplication.restoreOverrideCursor()
+                status.append("Success")
+                error_messages.append(None)
+            except Exception as e:
+                status.append("Failed")
+                error_messages.append(str(e))
                 self.logger.exception('Filtering failed')
             QApplication.restoreOverrideCursor()
+
+        if any(s != 'Success' for s in status):
+            msg = gf.StatusTableDialog('Warning', status, error_messages, mask_paths)
+            msg.exec_()
+
+        # re-enable messagebox error handler
+        if messagebox_error_handler is not None:
+            logging.getLogger().addHandler(messagebox_error_handler)
 
         self.logger.info("Done")

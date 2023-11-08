@@ -149,6 +149,7 @@ class MainWindow(QWidget):
         self.qmessagebox_handler = gf.QMessageBoxErrorHandler(self)
         self.qmessagebox_handler.setFormatter(logging.Formatter('%(message)s'))
         self.qmessagebox_handler.setLevel(logging.ERROR)
+        self.qmessagebox_handler.name = 'messagebox_error_handler'
         logging.getLogger().addHandler(self.qmessagebox_handler)
 
     def __del__(self):

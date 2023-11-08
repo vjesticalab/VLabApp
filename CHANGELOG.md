@@ -2,12 +2,11 @@
 
 ### Added
 
-* Z-projection module: check that output filenames are unique (i.e. to avoid two input files with same output filename).
-* Segmentation module: check that output filenames are unique (i.e. to avoid two input files with same output filename).
-* Cell tracking module: check that output filenames are unique (i.e. to avoid two input files with same output filename).
-* Graph filtering module: check that output filenames are unique (i.e. to avoid two input files with same output filename).
+* Z-projection, Segmentation, Cell tracking and Graph filtering module: check that output filenames are unique (i.e. to avoid two input files with same output filename).
 
 ### Changed
+
+* Z-projection, Segmentation, Cell tracking and Graph filtering module: to avoid interruptions during batch processing, errors are collected during the run and reported only at the end using a new dialog with a status summary table.
 
 ### Removed
 

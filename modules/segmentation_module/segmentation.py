@@ -126,15 +126,36 @@ class Segmentation(QWidget):
         if not check_inputs(image_paths, model_path, output_paths, output_basenames):
             return
 
+        # disable messagebox error handler
+        messagebox_error_handler = None
+        for h in logging.getLogger().handlers:
+            if h.get_name() == 'messagebox_error_handler':
+                messagebox_error_handler = h
+                logging.getLogger().removeHandler(messagebox_error_handler)
+                break
+
+        status = []
+        error_messages = []
         for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
             self.logger.info("Segmenting image %s", image_path)
             QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
             QApplication.processEvents()
             try:
                 f.main(image_path, model_path, output_path, output_basename, self.display_results.isChecked())
-            except:
-                QApplication.restoreOverrideCursor()
+                status.append("Success")
+                error_messages.append(None)
+            except Exception as e:
+                status.append("Failed")
+                error_messages.append(str(e))
                 self.logger.exception("Segmentation failed")
             QApplication.restoreOverrideCursor()
+
+        if any(s != 'Success' for s in status):
+            msg = gf.StatusTableDialog('Warning', status, error_messages, image_paths)
+            msg.exec_()
+
+        # re-enable messagebox error handler
+        if messagebox_error_handler is not None:
+            logging.getLogger().addHandler(messagebox_error_handler)
 
         self.logger.info("Done")

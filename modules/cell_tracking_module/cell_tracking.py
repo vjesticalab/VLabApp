@@ -18,7 +18,7 @@ class CellTracking(QWidget):
 
         self.imagetypes = ['.nd2', '.tif', '.tiff']
 
-        self.mask_list =  gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_mask')
+        self.mask_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_mask')
         self.mask_list.file_list_changed.connect(self.mask_list_changed)
 
         self.use_input_folder = QRadioButton("Use input mask folder (cell_tracking sub-folder)")
@@ -216,7 +216,7 @@ class CellTracking(QWidget):
         else:
             image_path = ""
         mask_paths = self.mask_list.get_file_list()
-        output_basenames = [re.sub("_masks{0,1}$", "",os.path.splitext(os.path.basename(path))[0]) for path in mask_paths]
+        output_basenames = [re.sub("_masks{0,1}$", "", os.path.splitext(os.path.basename(path))[0]) for path in mask_paths]
         if self.use_input_folder.isChecked():
             output_paths = [os.path.join(os.path.dirname(path), 'cell_tracking') for path in mask_paths]
         else:
@@ -225,6 +225,16 @@ class CellTracking(QWidget):
         if not check_inputs(image_path, mask_paths, output_paths, output_basenames):
             return
 
+        # disable messagebox error handler
+        messagebox_error_handler = None
+        for h in logging.getLogger().handlers:
+            if h.get_name() == 'messagebox_error_handler':
+                messagebox_error_handler = h
+                logging.getLogger().removeHandler(messagebox_error_handler)
+                break
+
+        status = []
+        error_messages = []
         for mask_path, output_path, output_basename in zip(mask_paths, output_paths, output_basenames):
             self.logger.info("Cell tracking (image %s, mask %s)", image_path, mask_path)
             QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
@@ -241,9 +251,20 @@ class CellTracking(QWidget):
                        nframes_stable=self.nframes_stable.value(),
                        stable_overlap_fraction=self.stable_overlap_fraction.value()/100.0,
                        display_results=self.display_results.isChecked())
-            except:
-                QApplication.restoreOverrideCursor()
+                status.append("Success")
+                error_messages.append(None)
+            except Exception as e:
+                status.append("Failed")
+                error_messages.append(str(e))
                 self.logger.exception('Tracking failed')
             QApplication.restoreOverrideCursor()
+
+        if any(s != 'Success' for s in status):
+            msg = gf.StatusTableDialog('Warning', status, error_messages, mask_paths)
+            msg.exec_()
+
+        # re-enable messagebox error handler
+        if messagebox_error_handler is not None:
+            logging.getLogger().addHandler(messagebox_error_handler)
 
         self.logger.info("Done")
