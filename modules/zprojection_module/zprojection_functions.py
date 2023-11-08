@@ -57,21 +57,30 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
     try:
         image = gf.Image(image_path)
         image.imread()
-    except Exception as e:
-        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
-        return
+    except:
+        logging.getLogger(__name__).exception('Error loading image %s', image_path)
+        # Close logfile
+        logger.removeHandler(logfile_handler)
+        logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        raise
 
     # Check z existance in the image
     if image.sizes['Z'] == 0:
-        logger.error('Image '+str(image_path)+' has no z dimension')
-        return
+        logger.error('Image %s has no z dimension', str(image_path))
+        # Close logfile
+        logger.removeHandler(logfile_handler)
+        logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        raise TypeError(f"Image {image_path} has no z dimension")
 
     # Perform projection
     try:
         projected_image = image.zProjection(projection_type, projection_zrange)
-    except Exception as e:
-        logging.getLogger(__name__).error('Error projecting image '+image_path+'\n'+str(e))
-        return
+    except:
+        logging.getLogger(__name__).exception('Error projecting image %s', image_path)
+        # Close logfile
+        logger.removeHandler(logfile_handler)
+        logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        raise
 
     # Save the projection
     filename_suffix = None

@@ -229,7 +229,6 @@ class CellTracking(QWidget):
             self.logger.info("Cell tracking (image %s, mask %s)", image_path, mask_path)
             QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
             QApplication.processEvents()
-
             try:
                 f.main(image_path, mask_path, output_path=output_path,
                        output_basename=output_basename,
@@ -242,9 +241,9 @@ class CellTracking(QWidget):
                        nframes_stable=self.nframes_stable.value(),
                        stable_overlap_fraction=self.stable_overlap_fraction.value()/100.0,
                        display_results=self.display_results.isChecked())
-            except Exception as e:
-                self.logger.error('Tracking failed. %s', str(e))
-
+            except:
+                QApplication.restoreOverrideCursor()
+                self.logger.exception('Tracking failed')
             QApplication.restoreOverrideCursor()
 
         self.logger.info("Done")

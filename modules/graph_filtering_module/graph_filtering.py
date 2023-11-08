@@ -382,10 +382,9 @@ class GraphFiltering(QWidget):
             QApplication.processEvents()
             try:
                 f.main(image_path, mask_path, graph_path, output_path, output_basename, filters, display_results=self.display_results.isChecked(), graph_topologies=graph_topologies)
-            except Exception as e:
+            except:
                 QApplication.restoreOverrideCursor()
-                self.logger.error(str(e))
-                raise e
+                self.logger.exception('Filtering failed')
             QApplication.restoreOverrideCursor()
 
         self.logger.info("Done")

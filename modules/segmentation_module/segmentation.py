@@ -127,18 +127,14 @@ class Segmentation(QWidget):
             return
 
         for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
-            if os.path.isfile(image_path):
-                self.logger.info("Segmenting image %s", image_path)
-                QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
-                QApplication.processEvents()
-
-                try:
-                    f.main(image_path, model_path, output_path, output_basename, self.display_results.isChecked())
-                except Exception as e:
-                    self.logger.error("Segmentation failed.\n%s", str(e))
-
+            self.logger.info("Segmenting image %s", image_path)
+            QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+            QApplication.processEvents()
+            try:
+                f.main(image_path, model_path, output_path, output_basename, self.display_results.isChecked())
+            except:
                 QApplication.restoreOverrideCursor()
-            else:
-                self.logger.error("Image %s not found", image_path)
+                self.logger.exception("Segmentation failed")
+            QApplication.restoreOverrideCursor()
 
         self.logger.info("Done")

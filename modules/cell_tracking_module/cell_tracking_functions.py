@@ -1572,8 +1572,11 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         try:
             image = gf.Image(image_path)
             image.imread()
-        except Exception as e:
-            logging.getLogger(__name__).error('Error loading image %s. %s', image_path, str(e))
+        except:
+            logging.getLogger(__name__).exception('Error loading image %s', image_path)
+            # stop using logfile
+            logger.removeHandler(logfile_handler)
+            raise
 
     # Load mask
     logger.debug("loading %s", mask_path)
@@ -1581,8 +1584,11 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         mask_image = gf.Image(mask_path)
         mask_image.imread()
         mask = mask_image.get_TYXarray()
-    except Exception as e:
-        logging.getLogger(__name__).error('Error loading mask %s. %s', mask_path, str(e))
+    except:
+        logging.getLogger(__name__).exception('Error loading mask %s', mask_path)
+        # stop using logfile
+        logger.removeHandler(logfile_handler)
+        raise
 
     ###########################
     # Cell tracking

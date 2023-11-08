@@ -1105,16 +1105,22 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
         try:
             image = gf.Image(image_path)
             image.imread()
-        except Exception as e:
-            logger.error('Error loading image %s. %s', image_path, str(e))
+        except:
+            logger.exception('Error loading image %s', image_path)
+            # stop using logfile
+            logger.removeHandler(logfile_handler)
+            raise
 
     # Load mask
     logger.debug("loading %s", mask_path)
     try:
         mask = gf.Image(mask_path)
         mask.imread()
-    except Exception as e:
-        logger.error('Error loading mask %s. %s', mask_path, str(e))
+    except:
+        logger.exception('Error loading mask %s', mask_path)
+        # stop using logfile
+        logger.removeHandler(logfile_handler)
+        raise
 
     # Load graph
     logger.debug("loading %s", graph_path)

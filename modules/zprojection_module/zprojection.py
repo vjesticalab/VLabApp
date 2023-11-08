@@ -217,24 +217,22 @@ class zProjection(QWidget):
             projection_zrange = None
 
         for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
-            if os.path.isfile(image_path):
-                # Set output directory for each image path
-                if not output_path.endswith('/'):
-                    output_path += '/'
-                if not os.path.exists(output_path):
-                    os.makedirs(output_path)
-                # Set log and cursor info
-                self.logger.info("Image %s", image_path)
-                QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
-                QApplication.processEvents()
-                # Perform projection
-                try:
-                    f.main(image_path, output_path, output_basename, projection_type, projection_zrange)
-                except Exception as e:
-                    self.logger.error("Projection failed.\n%s", str(e))
-                # Restore cursor
+            # Set output directory for each image path
+            if not output_path.endswith('/'):
+                output_path += '/'
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+            # Set log and cursor info
+            self.logger.info("Image %s", image_path)
+            QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+            QApplication.processEvents()
+            # Perform projection
+            try:
+                f.main(image_path, output_path, output_basename, projection_type, projection_zrange)
+            except:
                 QApplication.restoreOverrideCursor()
-            else:
-                self.logger.error("Unable to locate file %s", image_path)
+                self.logger.exception("Projection failed")
+            # Restore cursor
+            QApplication.restoreOverrideCursor()
 
         self.logger.info("Done")

@@ -62,8 +62,11 @@ def main(image_path, model_path, output_path, output_basename, display_results=T
     try:
         image = gf.Image(image_path)
         image.imread()
-    except Exception as e:
-        logging.getLogger(__name__).error('Error loading image %s\n%s', image_path, str(e))
+    except:
+        logging.getLogger(__name__).exception('Error loading image %s', image_path)
+        # stop using logfile
+        logger.removeHandler(logfile_handler)
+        raise
 
     # Create cellpose model
     logger.debug("loading cellpose model %s", model_path)
