@@ -41,7 +41,6 @@ def register_stack_phase_correlation(image,blur=5):
 
     h = image.shape[1]
     w = image.shape[2]
-    hanningWindow = cv.createHanningWindow((w,h), cv.CV_32F)
     shifts = [(0, 0)]
     if blur>1:
         prev = cv.GaussianBlur(cv.normalize(image[0], None, 0, 1, cv.NORM_MINMAX, dtype=cv.CV_32F), (blur, blur), 0)
