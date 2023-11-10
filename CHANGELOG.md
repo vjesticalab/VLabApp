@@ -2,6 +2,23 @@
 
 ### Added
 
+
+### Changed
+
+
+### Removed
+
+
+### Fixed
+
+
+
+
+
+## [v1.2.0] 2023-11-10
+
+### Added
+
 * Z-projection, Segmentation, Cell tracking and Graph filtering module: check that output filenames are unique (i.e. to avoid two input files with same output filename).
 
 ### Changed
@@ -15,7 +32,6 @@
 ### Fixed
 
 * Fix a crash in segmentation module when dropping a file to the cellpose model text box.
-
 
 
 
