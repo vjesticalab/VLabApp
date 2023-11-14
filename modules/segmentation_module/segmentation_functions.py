@@ -10,6 +10,16 @@ from PyQt5.QtGui import QCursor
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox
 from aicsimageio.writers import OmeTiffWriter
+from concurrent.futures import ProcessPoolExecutor
+import concurrent
+
+
+def call_evaluate(index, model, image_2D, diameter, channels):
+    """
+    Wrapper function to track image index passed to Cellpose
+
+    """
+    return tuple([index]) + model.eval(image_2D, diameter=diameter, channels=channels)
 
 
 def main(image_path, model_path, output_path, output_basename, display_results=True, use_gpu=True):
@@ -97,19 +107,26 @@ def main(image_path, model_path, output_path, output_basename, display_results=T
 
     iteration = 0
     multiple_fov = True if image.sizes['F'] > 1 else False
-
     for f in range(image.sizes['F']):
         mask = np.zeros((image.sizes['T'], image.sizes['Y'], image.sizes['X']), dtype='uint16')
-        for t in range(image.sizes['T']):
-            # Always assuming BF in channel=0 and only one Z channel
-            iteration += 1
-            image_2D = image.image[f, t, 0, 0, :, :]
-            if display_results:
-                # Logging into napari window
-                pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
-                pbr.update(1)
-            logger.info("cellpose segmentation %s/%s", iteration, tot_iterations)
-            mask[t, :, :], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
+        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+            future_reg = {
+                executor.submit(
+                    call_evaluate,
+                    t,
+                    model,
+                    image.image[f, t, 0, 0, :, :],
+                    model.diam_labels, [0, 0]
+                ): t for t in range(image.sizes['T'])
+            }
+            for future in concurrent.futures.as_completed(future_reg):
+                try:
+                    index, mask[index, :, :], _, _ = future.result()
+                except Exception:
+                    logger.exception("An exception occurred")
+                else:
+                    logger.info("cellpose segmentation %s/%s", index, tot_iterations)
+
 
         # Save image for each FoV
         if multiple_fov:
