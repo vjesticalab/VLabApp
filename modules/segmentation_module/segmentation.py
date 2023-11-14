@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.segmentation_module import segmentation_functions as f
 from general import general_functions as gf
-
+import concurrent
 
 class Segmentation(QWidget):
     def __init__(self):
@@ -136,19 +136,41 @@ class Segmentation(QWidget):
 
         status = []
         error_messages = []
+        fine_grain_parallelism = False
+        arguments = []
+        QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
             self.logger.info("Segmenting image %s", image_path)
-            QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+
             QApplication.processEvents()
-            try:
-                f.main(image_path, model_path, output_path, output_basename, self.display_results.isChecked())
-                status.append("Success")
-                error_messages.append(None)
-            except Exception as e:
-                status.append("Failed")
-                error_messages.append(str(e))
-                self.logger.exception("Segmentation failed")
-            QApplication.restoreOverrideCursor()
+            arguments.append((image_path, model_path, output_path, output_basename, self.display_results.isChecked(), True))
+
+        if not arguments:
+            return
+
+        # Perform segmentation
+        if len(arguments) == 1 or fine_grain_parallelism:
+            for args in arguments:
+                f.main(*args, run_parallel=True)
+
+        elif not fine_grain_parallelism:
+            # we launch a process per video
+            with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+                future_reg = {
+                    executor.submit(f.main, *args, run_parallel=False): args for args in arguments
+                }
+                for future in concurrent.futures.as_completed(future_reg):
+                    try:
+
+                        future.result()
+                        status.append("Success")
+                    except Exception as e:
+                        status.append("Failed")
+                        error_messages.append(str(e))
+                        self.logger.exception("Segmentation failed")
+
+
+        QApplication.restoreOverrideCursor()
 
         if any(s != 'Success' for s in status):
             msg = gf.StatusTableDialog('Warning', status, error_messages, image_paths)
