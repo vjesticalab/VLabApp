@@ -17,12 +17,37 @@ import concurrent
 def call_evaluate(index, model, image_2D, diameter, channels):
     """
     Wrapper function to track image index passed to Cellpose
-
     """
     return tuple([index]) + model.eval(image_2D, diameter=diameter, channels=channels)
 
 
-def main(image_path, model_path, output_path, output_basename, display_results=True, use_gpu=True):
+def par_run_eval(image, mask, model, f, logger, tot_iterations):
+    """
+    Run model evaluation in parallel
+    """
+
+    with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+        future_reg = {
+            executor.submit(
+                call_evaluate,
+                t,
+                model,
+                image.image[f, t, 0, 0, :, :],
+                model.diam_labels, [0, 0]
+            ): t for t in range(image.sizes['T'])
+        }
+        for future in concurrent.futures.as_completed(future_reg):
+            try:
+                index, mask[index, :, :], _, _ = future.result()
+            except Exception:
+                logger.exception("An exception occurred")
+            else:
+                logger.info("cellpose segmentation %s/%s", index, tot_iterations)
+
+    return mask
+
+
+def main(image_path, model_path, output_path, output_basename, display_results=True, use_gpu=True, run_parallel=True):
     """
     Load image, segment with cellpose and save the resulting mask
     into `output_path` directory using filename <image basename>_mask.tif
@@ -42,6 +67,8 @@ def main(image_path, model_path, output_path, output_basename, display_results=T
         display input image and segmentation mask in napari
     use_gpu: bool, default False
         use GPU for cellpose segmentation
+    run_parallel: bool
+        activate fine grain parallelism
     """
 
     # Setup logging to file in output_path
@@ -109,23 +136,20 @@ def main(image_path, model_path, output_path, output_basename, display_results=T
     multiple_fov = True if image.sizes['F'] > 1 else False
     for f in range(image.sizes['F']):
         mask = np.zeros((image.sizes['T'], image.sizes['Y'], image.sizes['X']), dtype='uint16')
-        with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-            future_reg = {
-                executor.submit(
-                    call_evaluate,
-                    t,
-                    model,
-                    image.image[f, t, 0, 0, :, :],
-                    model.diam_labels, [0, 0]
-                ): t for t in range(image.sizes['T'])
-            }
-            for future in concurrent.futures.as_completed(future_reg):
-                try:
-                    index, mask[index, :, :], _, _ = future.result()
-                except Exception:
-                    logger.exception("An exception occurred")
-                else:
-                    logger.info("cellpose segmentation %s/%s", index, tot_iterations)
+        if run_parallel:
+            mask = par_run_eval(image, mask, model, f, logger, tot_iterations)
+        else:
+            for t in range(image.sizes['T']):
+                # Always assuming BF in channel=0 and only one Z channel
+                iteration += 1
+                image_2D = image.image[f, t, 0, 0, :, :]
+                if display_results:
+                    # Logging into napari window
+                    pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
+                    pbr.update(1)
+                logger.info("cellpose segmentation %s/%s", iteration, tot_iterations)
+                mask[t, :, :], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
+
 
 
         # Save image for each FoV
