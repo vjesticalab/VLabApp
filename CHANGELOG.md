@@ -11,6 +11,8 @@
 
 ### Fixed
 
+* Fix a typo in registration module (error "Edit object has no attribute matrices_listB")
+
 
 
 

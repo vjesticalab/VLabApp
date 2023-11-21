@@ -376,7 +376,7 @@ class Edit(gf.Page):
                 return False
             return True
 
-        transfmat_paths = self.matrices_listB.get_file_list()
+        transfmat_paths = self.matrices_list.get_file_list()
         start_timepoint = self.start_timepoint_edit.text()
         end_timepoint = self.end_timepoint_edit.text()
 
