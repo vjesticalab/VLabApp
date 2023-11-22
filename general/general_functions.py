@@ -10,7 +10,6 @@ from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout, QFormLayou
 import logging
 import igraph as ig
 from matplotlib import cm
-from scipy.optimize import curve_fit
 import cv2 as cv
 
 
@@ -625,11 +624,12 @@ class Image:
     get_TYXarray()
         Return the 3D image with the dimensions T, Y and X.
         When used the other dimensions F,C,Z MUST be empty (with size = 1)
-    zProjection(projection_type, zrange)
+    zProjection(projection_type, zrange,focus_method)
         Return the z-projection of the image using the selected projection type over the range of z values defined by zrange.
         Possible projection types: max, min, std, avg (or mean), median.
         If zrange is None, use all Z values. If zrange is an integer, use z values in [z_best-zrange,z_best+zrange],
         where z_best is the Z corresponding to best focus. If zrange is a tuple of lenght 2 (zmin,zmax), use z values in [zmin,zmax].
+        Possible focus_methods: tenengrad_var, laplacian_var, std.
     """
 
     def __init__(self, im_path):
@@ -698,7 +698,7 @@ class Image:
             logging.getLogger(__name__).error('Image format not supported. Please upload an image with only TYX dimesions.')
         return self.image[0,:,0,0,:,:]
 
-    def zProjection(self, projection_type, zrange):
+    def zProjection(self, projection_type, zrange, focus_method="tenengrad_var"):
         """
         Return the z-projection of the image using the selected projection type over the range of z values defined by zrange.
 
@@ -712,26 +712,31 @@ class Image:
             If zrange is an integer, use all z sections in the interval [z_best-zrange,z_best+zrange]
             where z_best is the Z corresponding to best focus.
             If zrange is tuple (zmin,zmax), use all z sections in the interval [zmin,zmax].
-
+        focus_method: str
+            the method used to estimate the Z corresponding to best focus (tenengrad_var, laplacian_var, std)
+             tenengrad_var: estimate the sharpness using the variance of sqrt(Gx^2+Gy^2), where Gx and Gy are the gradients in the x and y direction computed using Sobel operators.
+             laplacian_var: estimate the sharpness using the variance of the laplacian.
+             std: estimate the sharpness using the standard deviation of the image.
         Returns
         -------
         ndarray
             a 6D array with original image size, except for Z axis which has size 1.
         """
+        if focus_method not in ['tenengrad_var', 'laplacian_var', 'std']:
+            raise TypeError(f"Invalid focus_method {focus_method}")
+
         if zrange is None:
             logging.getLogger(__name__).info('Z-Projection: projection type=%s, zrange=%s (All Z sections)', projection_type, zrange)
         elif isinstance(zrange, int) and zrange == 0:
-            logging.getLogger(__name__).info('Z-Projection: projection type=%s, zrange=%s (Z section with best focus)', projection_type, zrange)
+            logging.getLogger(__name__).info('Z-Projection: projection type=%s, zrange=%s (Z section with best focus), focus method=%s', projection_type, zrange, focus_method)
         elif isinstance(zrange, int):
-            logging.getLogger(__name__).info('Z-Projection: projection type=%s, zrange=%s (Range %s around Z section with best focus)', projection_type, zrange, zrange)
+            logging.getLogger(__name__).info('Z-Projection: projection type=%s, zrange=%s (Range %s around Z section with best focus), focus method=%s', projection_type, zrange, zrange, focus_method)
         elif isinstance(zrange, tuple) and len(zrange) == 2 and zrange[0] <= zrange[1]:
             logging.getLogger(__name__).info('Z-Projection: projection type=%s, zrange=%s (Fixed range from %s to %s)', projection_type, zrange, zrange[0], zrange[1])
         else:
             logging.getLogger(__name__).info('Z-Projection: invalid zrange')
         projected_image = np.zeros((self.sizes['F'], self.sizes['T'], self.sizes['C'], 1, self.sizes['Y'], self.sizes['X']), dtype=self.image.dtype)
         sharpness = np.zeros(self.sizes['Z'])
-        def gaus(x, a, x0, sigma, b):
-            return a*np.exp(-(x-x0)**2/(2*sigma**2))+b
         for f in range(self.sizes['F']):
             for t in range(self.sizes['T']):
                 for c in range(self.sizes['C']):
@@ -742,26 +747,39 @@ class Image:
                         logging.getLogger(__name__).info('Z-Projection (F: %s, T: %s, C: %s): %s over z in %s (all)', f, t, c, projection_type, z_values)
                     elif isinstance(zrange, int):
                         # use zrange around Z with best focus
-                        for z in range(self.sizes['Z']):
-                            sharpness[z] = cv.Laplacian(self.image[f, t, c, z, :, :].astype("float64"), cv.CV_64F, ksize=11).var()
+                        # estimate sharpness
+                        if focus_method == 'tenengrad_var':
+                            for z in range(self.sizes['Z']):
+                                sharpness[z] = cv.magnitude(cv.Sobel(self.image[f, t, c, z, :, :].astype("float64"), cv.CV_64F, 0, 1, ksize=3),
+                                                            cv.Sobel(self.image[f, t, c, z, :, :].astype("float64"), cv.CV_64F, 1, 0, ksize=3)).var()
+                        elif focus_method == 'laplacian_var':
+                            for z in range(self.sizes['Z']):
+                                sharpness[z] = cv.Laplacian(self.image[f, t, c, z, :, :].astype("float64"), cv.CV_64F, ksize=11).var()
+                        elif focus_method == 'std':
+                            sharpness = self.image[f, t, c, :, :, :].std(axis=(1, 2))
 
-                        # fit a gaussian and extract position of the max
-                        try:
-                            popt, pcov = curve_fit(gaus, np.arange(sharpness.shape[0]), sharpness/max(sharpness), p0=[1, 5, 2, 0.1])
-                            z_best = round(popt[1])
-                            fit_error = False
-                        except:
-                            z_best = int((self.sizes['Z']-1)/2)
-                            fit_error = True
+                        # estimate z_best
+                        if focus_method == 'std':
+                            # choose z_best as z with maximum sharpness
+                            z_best = sharpness.argmax()
+                        elif focus_method in ['tenengrad_var', 'laplacian_var']:
+                            # smooth sharpness with running mean and choose z_best as z with maximum smoothed sharpness
+                            smooth_window = 1
+                            sharpness_smoothed = sharpness/max(sharpness)
+                            # smooth with running mean:
+                            sharpness_smoothed = np.hstack((np.full(smooth_window, sharpness_smoothed[0]),
+                                                            sharpness_smoothed,
+                                                            np.full(smooth_window, sharpness_smoothed[-1])))
+                            sharpness_smoothed = np.convolve(sharpness_smoothed,
+                                                             np.ones(2*smooth_window+1)/(2*smooth_window+1),
+                                                             mode='valid')
+                            z_best = sharpness_smoothed.argmax()
 
                         # if z_best is too close to min or maz 'Z' => shift best_z so as to keep (2*zrange+1) z values (z_values).
                         z_best_tmp = min(max(z_best, zrange), self.sizes['Z']-zrange-1)
-                        z_values = [z for z in range(z_best_tmp-zrange, z_best_tmp+zrange+1) if z < self.sizes['Z'] and z >= 0 ]
+                        z_values = [z for z in range(z_best_tmp-zrange, z_best_tmp+zrange+1) if z < self.sizes['Z'] and z >= 0]
 
-                        if fit_error:
-                            logging.getLogger(__name__).info('Z-Projection (F: %s, T: %s, C: %s): %s over z in %s (Best z estimation failed, using default value %s)', f, t, c, projection_type, z_values, z_best)
-                        else:
-                            logging.getLogger(__name__).info('Z-Projection (F: %s, T: %s, C: %s): %s over z in %s (Best z=%s)', f, t, c, projection_type, z_values, z_best)
+                        logging.getLogger(__name__).info('Z-Projection (F: %s, T: %s, C: %s): %s over z in %s (Best z=%s)', f, t, c, projection_type, z_values, z_best)
                     elif isinstance(zrange, tuple) and len(zrange) == 2 and zrange[0] <= zrange[1]:
                         # use fixed range
                         z_values = [z for z in range(zrange[0], zrange[1]+1) if z < self.sizes['Z'] and z >= 0]

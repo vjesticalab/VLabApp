@@ -5,6 +5,7 @@
 
 ### Changed
 
+* Use a more robust Z-projection method (tenengrad variance).
 
 ### Removed
 
