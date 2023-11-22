@@ -262,7 +262,7 @@ def main(mask_path, graph_path, event, tp_before, tp_after, output_path):
         mask = gf.Image(mask_path)
         mask.imread()
     except Exception as e:
-        logging.getLogger(__name__).error('Error loading masl '+mask_path+'\n'+str(e))
+        logging.getLogger(__name__).error('Error loading mask '+mask_path+'\n'+str(e))
     
     # Load graph
     logger.debug("loading %s", graph_path)

@@ -395,6 +395,7 @@ class DropFilesListWidget(QListWidget):
                                  if len(self.findItems(f, Qt.MatchExactly)) == 0]
                     self.addItems(filenames)
 
+
 class FileListWidget(QWidget):
     """
     A list of files with filters, button to add files and folder and drag and drop support.
