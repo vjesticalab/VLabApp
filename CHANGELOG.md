@@ -6,6 +6,7 @@
 ### Changed
 
 * Use a more robust Z-projection method (tenengrad variance).
+* The tiff saving format has been changed to the ome tiff format, mainly because it is more easily readable by imagej.
 
 ### Removed
 
