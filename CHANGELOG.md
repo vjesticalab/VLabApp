@@ -8,6 +8,9 @@
 
 ### Fixed
 
+* Fix logging level.
+
+
 
 
 ## [v1.2.1] 2023-11-23

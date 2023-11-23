@@ -138,7 +138,7 @@ class MainWindow(QWidget):
         window.addLayout(layout)
 
         # Setup logging
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s", handlers=[logging.StreamHandler(sys.stdout)])
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s", handlers=[logging.StreamHandler(sys.stdout)],force=True)
 
         # Add a handler to output messages to self.status_line
         self.qlabel_handler = gf.QLineEditHandler(self.status_line)
