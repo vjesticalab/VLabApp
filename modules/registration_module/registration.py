@@ -88,7 +88,11 @@ class Perform(gf.Page):
         layout3 = QFormLayout()
         layout3.setLabelAlignment(Qt.AlignLeft)
         layout3.setFormAlignment(Qt.AlignLeft)
-        layout3.addRow("C-stack channel position:",self.channel_position)
+        groupbox2 = QGroupBox("C-stack:")
+        layout4 = QFormLayout()
+        layout4.addRow("Channel position:",self.channel_position)
+        groupbox2.setLayout(layout4)
+        layout3.addRow(groupbox2)
         groupbox2 = QGroupBox("Z-stack:")
         layout4 = QFormLayout()
         # Z-Projection range

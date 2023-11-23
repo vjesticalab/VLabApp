@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QWidget, QPus
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from general import general_functions as gf
+from aicsimageio.writers import OmeTiffWriter
 
 
 def split_regions(mask):
@@ -1453,7 +1454,7 @@ class CellTrackingWidget(QWidget):
         output_file1 = os.path.join(self.output_path, self.output_basename+"_mask.tif")
         self.logger.info("Saving segmentation mask to %s", output_file1)
         self.mask = self.mask[:, np.newaxis, :, :]
-        tifffile.imwrite(output_file1, self.mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
+        OmeTiffWriter.save(self.mask, output_file1, dim_order="TCYX")
 
         # output_file2 = os.path.join(self.output_path, self.output_basename+"_graph.dot")
         # self.logger.info("Saving cell tracking graph to %s", output_file2)
@@ -1665,7 +1666,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         output_file = os.path.join(output_path, output_basename+"_mask.tif")
         logger.info("Saving segmentation mask to %s", output_file)
         mask = mask[:, np.newaxis, :, :]
-        tifffile.imwrite(output_file, mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
+        OmeTiffWriter.save(mask, output_file, dim_order="TCYX")
 
         # output_file = os.path.join(output_path, output_basename+"_graph.dot")
         # logger.info("Saving cell tracking graph to %s", output_file)

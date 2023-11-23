@@ -5,6 +5,7 @@ import tifffile
 import igraph as ig
 import csv
 from general import general_functions as gf
+from aicsimageio.writers import OmeTiffWriter
 
 
 def evaluate_graph_properties(graph):
@@ -194,7 +195,7 @@ def event_filter(mask, graph, event, tp_before, tp_after, output_path):
     output_path += '_'+event # output_path = chosen_path/imagename_eventname
     events_mask = events_mask.astype(mask.dtype)
     events_mask = events_mask[:, np.newaxis, : ,:]
-    tifffile.imwrite(output_path+'s_mask.tif', events_mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
+    OmeTiffWriter.save(events_mask, output_path+'s_mask.tif', dim_order="TCYX")
     events_graph.write_graphmlz(output_path+'s_graph.graphmlz')
 
     ## TODO: There is a problem with the mask ids not included in the event but included in the subgraph in consideration

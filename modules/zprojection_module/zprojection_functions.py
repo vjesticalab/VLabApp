@@ -2,6 +2,7 @@ import os
 import logging
 import tifffile
 from general import general_functions as gf
+from aicsimageio.writers import OmeTiffWriter
 
 
 def main(image_path, output_path, output_basename, projection_type, projection_zrange):
@@ -94,7 +95,7 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
         filename_suffix = projection_type + str(projection_zrange[0]) + "-" + str(projection_zrange[1])
     output_file_name = os.path.join(output_path, output_basename+"_"+filename_suffix+".tif")
     # TODO: properly deal with 'F' axis, i.e. the first 0 in projected_image[0, :, :, 0, :, :] is problematic if there are more than one FOV.
-    tifffile.imwrite(output_file_name, projected_image[0, :, :, 0, :, :].astype('uint16'), metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
+    OmeTiffWriter.save(projected_image[0, :, :, 0, :, :].astype('uint16'), output_file_name, dim_order="TCYX")
     logger.info("Projection performed and saved (%s)", output_file_name)
 
     print('Projection performed and saved '+output_file_name)

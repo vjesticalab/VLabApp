@@ -9,6 +9,7 @@ from general import general_functions as gf
 from PyQt5.QtGui import QCursor
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox
+from aicsimageio.writers import OmeTiffWriter
 
 
 def main(image_path, model_path, output_path, output_basename, display_results=True, use_gpu=True):
@@ -115,13 +116,14 @@ def main(image_path, model_path, output_path, output_basename, display_results=T
             output_name_originalimage = os.path.join(output_path, output_basename+"_FoV"+str(f+1)+".tif")
             fov_image = image.get_TYXarray()
             fov_image = fov_image[:, np.newaxis, :, :]
-            tifffile.imwrite(output_name_originalimage, fov_image, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
+            OmeTiffWriter.save(fov_image, output_name_originalimage, dim_order="TCYX")
+    
             output_name = os.path.join(output_path, output_basename+"_FoV"+str(f+1)+"_mask.tif")
         else:
             output_name = os.path.join(output_path, output_basename+"_mask.tif")
         # Save the mask
         mask = mask[:, np.newaxis, :, :]
-        tifffile.imwrite(output_name, mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
+        OmeTiffWriter.save(mask, output_name, dim_order="TCYX")
 
         logger.info("Saving segmentation masks to %s", output_name)
 

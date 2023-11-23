@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QWidget, QPus
 from PyQt5.QtCore import Qt, QPointF
 from PyQt5.QtGui import QCursor, QPixmap, QPainter, QPen, QPolygonF
 from general import general_functions as gf
+from aicsimageio.writers import OmeTiffWriter
 
 
 class NapariStatusBarHandler(logging.Handler):
@@ -637,7 +638,7 @@ class CellTracksFiltering:
         self.logger.info("Saving segmentation mask to %s", output_file)
         selected_mask = self.get_mask(relabel_mask_ids)
         selected_mask = selected_mask[:, np.newaxis, :, :]
-        tifffile.imwrite(output_file, selected_mask, metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
+        OmeTiffWriter.save(selected_mask, output_file, dim_order="TCYX")
 
         output_file = os.path.join(output_path, output_basename+"_graph.graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file)

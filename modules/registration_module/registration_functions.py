@@ -6,6 +6,7 @@ import tifffile
 import time
 from pystackreg import StackReg
 import cv2 as cv
+from aicsimageio.writers import OmeTiffWriter
 
 
 def read_transfMat(tmat_path):
@@ -115,14 +116,8 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
         t_end = max([d[0] for d in tmat_int if d[3] == 1])
         registered_image = registered_image[:, t_start:t_end, :, :, :, :]
         # Save the registered and un-cropped image
-        if image.sizes['C'] == 1:
-            try:
-                tifffile.imwrite(registeredFilepath, data=registered_image[0,:,0,:,:,:], metadata={'axes': 'TZYX'}, imagej=True, compression='zlib')
-            except:
-                tifffile.imwrite(registeredFilepath, data=registered_image[0,:,0,:,:,:], metadata={'axes': 'TZYX'}, compression='zlib')
-        else:
-            tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,:,:,:], metadata={'axes': 'TCZYX'}, compression='zlib') #XYCZT
 
+        OmeTiffWriter.save(registered_image[0,:,:,:,:,:], registeredFilepath, dim_order="TCZYX")
     else:
         # Crop to desired area
         y_start = 0 - min([d[2] for d in tmat_int if d[3] == 1]) 
@@ -132,19 +127,11 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
         t_start = min([d[0] for d in tmat_int if d[3] == 1])
         t_end = max([d[0] for d in tmat_int if d[3] == 1])
 
-        print(y_start, y_end, x_start, x_end, t_start, t_end)
         # Crop along the y-axis
         image_cropped = registered_image[:, t_start:t_end, :, :, y_start:y_end, x_start:x_end]
 
         # Save the registered and cropped image
-        if image.sizes['C'] == 1:
-            try:
-                tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,0,:,:,:], metadata={'axes': 'TZYX'}, compression='zlib')
-            except:
-                tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,0,:,:,:], metadata={'axes': 'TZYX'}, compression='zlib')
-        else:
-            tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,:,:,:], metadata={'axes': 'TCZYX'}, compression='zlib')
-
+        OmeTiffWriter.save(image_cropped[0,:,:,:,:,:], registeredFilepath, dim_order="TCZYX")
 
 def registration_projection_with_tmat(tmat_int, image, projection_type, projection_zrange, skip_crop, output_path):
     """
@@ -171,11 +158,7 @@ def registration_projection_with_tmat(tmat_int, image, projection_type, projecti
 
     if skip_crop:
         # Save the registered and un-cropped image
-        try:
-            tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
-        except:
-            tifffile.imwrite(registeredFilepath, data=registered_image[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, compression='zlib')
-
+        OmeTiffWriter.save(registered_image[0,:,:,0,:,:], registeredFilepath, dim_order="TCYX")
     else:
         # Crop to desired area
         y_start = 0 - min(tmat_int[:,2])
@@ -186,11 +169,7 @@ def registration_projection_with_tmat(tmat_int, image, projection_type, projecti
         image_cropped = registered_image[:, :, :, :, y_start:y_end, x_start:x_end]
 
         # Save the registered and cropped image
-        try:
-            tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, imagej=True, compression='zlib')
-        except:
-            tifffile.imwrite(registeredFilepath, data=image_cropped[0,:,:,0,:,:], metadata={'axes': 'TCYX'}, compression='zlib')
-
+        OmeTiffWriter.save(image_cropped[0,:,:,0,:,:], registeredFilepath, dim_order="TCYX")
 
 def registration_values(image, projection_type, projection_zrange, channel_position, output_path, registration_method):
     """
@@ -344,6 +323,7 @@ def alignment_main(image_path, skip_crop_decision):
         logging.getLogger(__name__).error('Alignment failed for image '+image_path+' - '+str(e))
 
 ################################################################
+
 
 def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end):
     # Load the transformation matrix
