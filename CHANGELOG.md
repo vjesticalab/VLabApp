@@ -2,20 +2,24 @@
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+
+
+## [v1.2.1] 2023-11-23
 
 ### Changed
 
 * Use a more robust Z-projection method (tenengrad variance).
 * The tiff saving format has been changed to the ome tiff format, mainly because it is more easily readable by imagej.
 
-### Removed
-
-
 ### Fixed
 
 * Fix a typo in registration module (error "Edit object has no attribute matrices_listB")
-
-
 
 
 
