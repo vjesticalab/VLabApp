@@ -21,12 +21,15 @@ def call_evaluate(index, model, image_2D, diameter, channels):
     return tuple([index]) + model.eval(image_2D, diameter=diameter, channels=channels)
 
 
-def par_run_eval(image, mask, model, f, logger, tot_iterations):
+def par_run_eval(image, mask, model, f, logger, tot_iterations, half_capacity):
     """
     Run model evaluation in parallel
     """
+    n_count = os.cpu_count()
+    if half_capacity:
+        n_count = os.cpu_count() // 2
 
-    with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+    with ProcessPoolExecutor(max_workers=n_count) as executor:
         future_reg = {
             executor.submit(
                 call_evaluate,
@@ -47,7 +50,7 @@ def par_run_eval(image, mask, model, f, logger, tot_iterations):
     return mask
 
 
-def main(image_path, model_path, output_path, output_basename, display_results=True, use_gpu=True, run_parallel=True):
+def main(image_path, model_path, output_path, output_basename, display_results=True, use_gpu=True, run_parallel=True, half_capacity=False):
     """
     Load image, segment with cellpose and save the resulting mask
     into `output_path` directory using filename <image basename>_mask.tif
@@ -137,7 +140,7 @@ def main(image_path, model_path, output_path, output_basename, display_results=T
     for f in range(image.sizes['F']):
         mask = np.zeros((image.sizes['T'], image.sizes['Y'], image.sizes['X']), dtype='uint16')
         if run_parallel:
-            mask = par_run_eval(image, mask, model, f, logger, tot_iterations)
+            mask = par_run_eval(image, mask, model, f, logger, tot_iterations, half_capacity)
         else:
             for t in range(image.sizes['T']):
                 # Always assuming BF in channel=0 and only one Z channel
