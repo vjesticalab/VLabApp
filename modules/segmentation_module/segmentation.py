@@ -141,12 +141,16 @@ class Segmentation(QWidget):
         error_messages = []
         fine_grain_parallelism = False
         arguments = []
+        half_capacity = self.halfcapacity.isChecked()
+        n_count = os.cpu_count()
+        if half_capacity:
+            n_count = os.cpu_count() // 2
         QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
             self.logger.info("Segmenting image %s", image_path)
 
             QApplication.processEvents()
-            arguments.append((image_path, model_path, output_path, output_basename, self.display_results.isChecked(), True, self.halfcapacity.isChecked()))
+            arguments.append((image_path, model_path, output_path, output_basename, self.display_results.isChecked(), True, half_capacity))
 
         if not arguments:
             return
@@ -158,7 +162,7 @@ class Segmentation(QWidget):
 
         elif not fine_grain_parallelism:
             # we launch a process per video
-            with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+            with concurrent.futures.ProcessPoolExecutor(n_count) as executor:
                 future_reg = {
                     executor.submit(f.main, *args, run_parallel=False): args for args in arguments
                 }
