@@ -35,6 +35,8 @@ class Segmentation(QWidget):
 
         self.display_results = QCheckBox("Show results in napari")
         self.display_results.setChecked(False)
+        self.halfcapacity = QCheckBox("Use half capacity instead of all")
+        self.halfcapacity.setChecked(False)
 
         self.submit_button = QPushButton("Submit", self)
         self.submit_button.clicked.connect(self.submit)
@@ -65,6 +67,7 @@ class Segmentation(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         layout.addWidget(self.display_results)
+        layout.addWidget(self.halfcapacity)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
 
@@ -143,7 +146,7 @@ class Segmentation(QWidget):
             self.logger.info("Segmenting image %s", image_path)
 
             QApplication.processEvents()
-            arguments.append((image_path, model_path, output_path, output_basename, self.display_results.isChecked(), True))
+            arguments.append((image_path, model_path, output_path, output_basename, self.display_results.isChecked(), True, self.halfcapacity.isChecked()))
 
         if not arguments:
             return
