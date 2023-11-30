@@ -75,6 +75,8 @@ class Perform(gf.Page):
         self.skip_cropping_yn_A = QCheckBox("Do NOT crop aligned image")
         self.buttonA = QPushButton("Register")
         self.buttonA.clicked.connect(self.register)
+        self.halfcapacity = QCheckBox("Use half capacity instead of all")
+        self.halfcapacity.setChecked(False)
 
         # Layout
         layout = QVBoxLayout()
@@ -133,6 +135,7 @@ class Perform(gf.Page):
         layout3.addRow(self.skip_cropping_yn_A)
         groupbox.setLayout(layout3)
         layout.addWidget(groupbox)
+        layout.addWidget(self.halfcapacity)
         layout.addWidget(self.buttonA, alignment=Qt.AlignCenter)
 
         self.window = QVBoxLayout(self.container)
@@ -208,9 +211,11 @@ class Perform(gf.Page):
             else:
                 self.logger.error("Unable to locate file %s", image_path)
 
-        # we use as many cores as images on the list but not more than half of the cores available
-        nprocs = min(len(arguments), os.cpu_count()//2)
-        self.logger.info(f"Using: {nprocs} cores to perform registration")
+        n_count = min(len(arguments), os.cpu_count())
+        if self.halfcapacity.isChecked():
+            n_count = min(len(arguments), os.cpu_count() // 2)
+
+        self.logger.info(f"Using: {n_count} cores to perform registration")
         if not arguments:
             return
         # Perform projection
@@ -218,7 +223,7 @@ class Perform(gf.Page):
             f.registration_main(*arguments[0])
         else:
             # we go parallel
-            with concurrent.futures.ProcessPoolExecutor(max_workers=nprocs) as executor:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=n_count) as executor:
                 future_reg = {
                     executor.submit(f.registration_main, *args): args for args in arguments
                 }
