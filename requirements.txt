@@ -5,8 +5,7 @@ napari==0.4.17
 nd2==0.5.3
 numpy==1.23.5
 opencv_python_headless==4.7.0.72
-PyQt5==5.15.10
-PyQt5_sip==12.11.0
+pyqt5==5.15.10 --config-settings --confirm-license=
 pystackreg==0.2.7
 python_igraph==0.11.3
 QtPy==2.3.1
