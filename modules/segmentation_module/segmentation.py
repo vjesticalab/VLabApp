@@ -39,6 +39,8 @@ class Segmentation(QWidget):
         self.halfcapacity.setChecked(False)
         self.coarse_grain = QCheckBox("Activate coarse grain parallelisation")
         self.coarse_grain.setChecked(False)
+        self.use_gpu = QCheckBox("Activate GPU")
+        self.use_gpu.setChecked(False)
         self.submit_button = QPushButton("Submit", self)
         self.submit_button.clicked.connect(self.submit)
 
@@ -70,6 +72,7 @@ class Segmentation(QWidget):
         layout.addWidget(self.display_results)
         layout.addWidget(self.halfcapacity)
         layout.addWidget(self.coarse_grain)
+        layout.addWidget(self.use_gpu)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
 
@@ -147,23 +150,38 @@ class Segmentation(QWidget):
         if self.halfcapacity.isChecked():
             n_count = os.cpu_count() // 2
 
+        run_parallel = True
+        if self.use_gpu.isChecked():
+            n_count = 1
+            run_parallel = False
+
         QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
             self.logger.info("Segmenting image %s", image_path)
 
             QApplication.processEvents()
-            arguments.append((image_path, model_path, output_path, output_basename, n_count, self.display_results.isChecked(), True))
+            arguments.append(
+                (image_path,
+                 model_path,
+                 output_path,
+                 output_basename,
+                 n_count,
+                 self.display_results.isChecked(),
+                 self.use_gpu.isChecked()
+                 )
+            )
 
         if not arguments:
             return
 
         # Perform segmentation
-        if len(arguments) == 1 or not coarse_grain_parallelism:
+        if len(arguments) == 1 or not coarse_grain_parallelism or self.use_gpu.isChecked():
             for args in arguments:
-                f.main(*args, run_parallel=True)
+                f.main(*args, run_parallel=run_parallel)
 
         elif coarse_grain_parallelism:
             # we launch a process per video
+            self.logger.info(f"NCOUNT {n_count}")
             with concurrent.futures.ProcessPoolExecutor(n_count) as executor:
                 future_reg = {
                     executor.submit(f.main, *args, run_parallel=False): args for args in arguments
