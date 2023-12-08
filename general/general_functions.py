@@ -690,6 +690,7 @@ class Image:
             return self.image
         else:
             logging.getLogger(__name__).error('Image format not supported. Please upload a tiff or nd2 image file.')
+            raise TypeError('Image format not supported. Please upload a tiff or nd2 image file.')
 
     def save(self):
         pass
