@@ -297,6 +297,17 @@ class Align(gf.Page):
         skip_crop_decision = self.skip_cropping_yn_B.isChecked()
         if not check_inputs(image_paths):
             return
+
+        # disable messagebox error handler
+        messagebox_error_handler = None
+        for h in logging.getLogger().handlers:
+            if h.get_name() == 'messagebox_error_handler':
+                messagebox_error_handler = h
+                logging.getLogger().removeHandler(messagebox_error_handler)
+                break
+
+        status = []
+        error_messages = []
         for image_path in image_paths:
             if os.path.isfile(image_path):
                 # Set log and cursor info
@@ -306,13 +317,25 @@ class Align(gf.Page):
                 # Perform projection
                 try:
                     f.alignment_main(image_path, skip_crop_decision)
+                    status.append("Success")
+                    error_messages.append(None)
                 except Exception as e:
-                    self.logger.error("Alignment failed.\n" + str(e))
+                    status.append("Failed")
+                    error_messages.append(str(e))
+                    self.logger.exception("Alignment failed")
                 # Restore cursor
                 QApplication.restoreOverrideCursor()
                 self.logger.info("Done")
             else:
                 self.logger.error("Unable to locate file %s", image_path)
+
+        if any(s != 'Success' for s in status):
+            msg = gf.StatusTableDialog('Warning', status, error_messages, image_paths)
+            msg.exec_()
+
+        # re-enable messagebox error handler
+        if messagebox_error_handler is not None:
+            logging.getLogger().addHandler(messagebox_error_handler)
 
 
 class Edit(gf.Page):

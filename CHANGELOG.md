@@ -4,6 +4,8 @@
 
 ### Changed
 
+* Registration module: to avoid interruptions during batch processing, errors are collected during the run and reported only at the end using a new dialog with a status summary table.
+
 ### Removed
 
 ### Fixed
