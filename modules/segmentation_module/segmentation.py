@@ -186,11 +186,12 @@ class Segmentation(QWidget):
                 future_reg = {
                     executor.submit(f.main, *args, run_parallel=False): args for args in arguments
                 }
-                for future in concurrent.futures.as_completed(future_reg):
+                for future in future_reg:
                     try:
 
                         future.result()
                         status.append("Success")
+                        error_messages.append("")
                     except Exception as e:
                         status.append("Failed")
                         error_messages.append(str(e))
