@@ -198,8 +198,14 @@ class Segmentation(QWidget):
         # Perform segmentation
         if len(arguments) == 1 or not coarse_grain_parallelism or self.use_gpu.isChecked():
             for args in arguments:
-                f.main(*args, run_parallel=run_parallel)
-
+                try:
+                    f.main(*args, run_parallel=run_parallel)
+                    status.append("Success")
+                    error_messages.append("")
+                except Exception as e:
+                    status.append("Failed")
+                    error_messages.append(str(e))
+                    self.logger.exception("Segmentation failed")
         elif coarse_grain_parallelism:
             # we launch a process per video
             self.logger.info(f"NCOUNT {n_count}")
