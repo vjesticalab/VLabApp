@@ -1,10 +1,11 @@
 import logging
 import os
-from PyQt5.QtWidgets import QFileDialog, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication
+from PyQt5.QtWidgets import QFileDialog, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QLabel
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.segmentation_module import segmentation_functions as f
 from general import general_functions as gf
+import torch
 import concurrent
 
 class Segmentation(QWidget):
@@ -33,14 +34,22 @@ class Segmentation(QWidget):
         self.use_custom_folder.toggled.connect(self.output_folder.setEnabled)
         self.use_custom_folder.toggled.connect(self.browse_button2.setEnabled)
 
-        self.display_results = QCheckBox("Show results in napari")
-        self.display_results.setChecked(False)
-        self.halfcapacity = QCheckBox("Use half capacity instead of all")
-        self.halfcapacity.setChecked(False)
-        self.coarse_grain = QCheckBox("Activate coarse grain parallelisation")
-        self.coarse_grain.setChecked(False)
         self.use_gpu = QCheckBox("Activate GPU")
         self.use_gpu.setChecked(False)
+        self.coarse_grain = QCheckBox("Activate coarse grain parallelisation")
+        self.coarse_grain.setChecked(False)
+        self.n_count = QSpinBox()
+        self.n_count.setMinimum(1)
+        self.n_count.setMaximum(os.cpu_count())
+        self.n_count.setValue(1)
+        n_count_label=QLabel("Number of processes:")
+        self.use_gpu.toggled.connect(n_count_label.setDisabled)
+        self.use_gpu.toggled.connect(self.update_coarse_grain_status)
+        self.use_gpu.toggled.connect(self.n_count.setDisabled)
+        self.use_gpu.setChecked(torch.cuda.is_available())
+
+        self.display_results = QCheckBox("Show results in napari")
+        self.display_results.setChecked(False)
         self.submit_button = QPushButton("Submit", self)
         self.submit_button.clicked.connect(self.submit)
 
@@ -69,10 +78,16 @@ class Segmentation(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
+        groupbox = QGroupBox("Multi-processing")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.use_gpu)
+        layout2.addWidget(self.coarse_grain)
+        layout3 = QFormLayout()
+        layout3.addRow(n_count_label,self.n_count)
+        layout2.addLayout(layout3)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
         layout.addWidget(self.display_results)
-        layout.addWidget(self.halfcapacity)
-        layout.addWidget(self.coarse_grain)
-        layout.addWidget(self.use_gpu)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
 
@@ -82,6 +97,14 @@ class Segmentation(QWidget):
         if self.image_list.count() > 1:
             self.display_results.setChecked(False)
         self.display_results.setEnabled(self.image_list.count() <= 1)
+        self.update_coarse_grain_status()
+
+    def update_coarse_grain_status(self):
+        if self.image_list.count() == 1:
+            self.coarse_grain.setChecked(False)
+        if self.use_gpu.isChecked():
+            self.coarse_grain.setChecked(False)
+        self.coarse_grain.setEnabled(self.image_list.count() > 1 and not self.use_gpu.isChecked())
 
     def browse_model(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Select File")
@@ -146,9 +169,7 @@ class Segmentation(QWidget):
         error_messages = []
         coarse_grain_parallelism = self.coarse_grain.isChecked()
         arguments = []
-        n_count = os.cpu_count()
-        if self.halfcapacity.isChecked():
-            n_count = os.cpu_count() // 2
+        n_count = self.n_count.value()
 
         run_parallel = True
         if self.use_gpu.isChecked():
