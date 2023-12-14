@@ -2,7 +2,12 @@
 
 ### Added
 
+* Registration module: Add option to specify number of processes.
+* Add parallelization to Segmentation module.
+
 ### Changed
+
+* Registration module: add error collection and reporting to Registration tab.
 
 ### Removed
 
