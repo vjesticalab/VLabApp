@@ -13,9 +13,9 @@ def read_transfMat(tmat_path):
     try:
         tmat_string = np.loadtxt(tmat_path, delimiter=",", dtype=str)
 
-    except Warning as e:
-        logging.getLogger(__name__).error('Load transformation matrix', str(e))
-        return
+    except:
+        logging.getLogger(__name__).exception('Load transformation matrix failed')
+        raise
 
     else:
         tmat_float = tmat_string.astype(float)
@@ -210,19 +210,22 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         try:
             projection = image.zProjection(projection_type, projection_zrange)
             logging.getLogger(__name__).info('Made z-projection ('+projection_type+', zrange '+str(projection_zrange)+') for image '+image.basename)
-        except Exception:
-            logging.getLogger(__name__).error('Z-projection failed for image '+image.basename)
+        except:
+            logging.getLogger(__name__).exception('Z-projection failed for image %s',image.basename)
+            raise
         if image.sizes['C'] > channel_position:
             image3D = projection[0,:,channel_position,0,:,:]
         else:
-            logging.getLogger(__name__).error('Position of the channel given ('+channel_position+') is out of range for image '+image.basename)
+            logging.getLogger(__name__).error('Position of the channel given (%s) is out of range for image %s', channel_position, image.basename)
+            raise TypeError(f"Position of the channel given ({channel_position}) is out of range for image {image.basename}")
     # Otherwise read the 3D image
     else:
         if image.sizes['C'] > 1:
             if image.sizes['C'] > channel_position:
                 image3D = image.image[0,:,channel_position,0,:,:]
             else:
-                logging.getLogger(__name__).error('Position of the channel given ('+channel_position+') is out of range for image '+image.basename)
+                logging.getLogger(__name__).error('Position of the channel given (%s) is out of range for image %s', channel_position, image.basename)
+                raise TypeError(f"Position of the channel given ({channel_position}) is out of range for image {image.basename}")
         else:
             image3D = image.get_TYXarray()
 
@@ -257,7 +260,8 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         transformation_matrices[:, 6] = image.sizes['X']
         transformation_matrices[:, 7] = image.sizes['Y']
     else:
-        logging.getLogger(__name__).error('Error unknown registration method '+registration_method+'\n')
+        logging.getLogger(__name__).error('Error unknown registration method %s', registration_method)
+        raise ValueError(f"Error unknown registration method {registration_method}")
 
     # Save the txt file with the translation matrix
     txt_name = os.path.join(output_path,'transf_matrices', image.name.split('_')[0] +'_transformationMatrix.txt')
@@ -274,8 +278,9 @@ def registration_main(image_path, output_path, channel_position, projection_type
     try:
         image = gf.Image(image_path)
         image.imread()
-    except Exception as e:
-        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
+    except:
+        logging.getLogger(__name__).exception('Error loading image %s', image_path)
+        raise
 
     # Calculate transformation matrix
     tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, registration_method)
@@ -291,12 +296,14 @@ def registration_main(image_path, output_path, channel_position, projection_type
         try:
             image_coal = gf.Image(im_coal_path)
             image_coal.imread()
-        except Exception as e:
-            logging.getLogger(__name__).error('Error loading image '+im_coal_path+'\n'+str(e))
+        except:
+            logging.getLogger(__name__).exception('Error loading image %s', im_coal_path)
+            raise
         try:
             registration_with_tmat(tmat, image_coal, skip_crop_decision, output_path)
-        except Exception as e:
-            logging.getLogger(__name__).error('Alignment failed for image '+im_coal_path+' - '+str(e))
+        except:
+            logging.getLogger(__name__).exception('Alignment failed for image %s', im_coal_path)
+            raise
 
     return image_path
 
@@ -309,18 +316,21 @@ def alignment_main(image_path, skip_crop_decision):
     try:
         image = gf.Image(image_path)
         image.imread()
-    except Exception as e:
-        logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
+    except:
+        logging.getLogger(__name__).exception('Error loading image %s', image_path)
+        raise
     try:
         tmat_path = os.path.join(output_path, 'transf_matrices', image.name.split('_')[0] + '_transformationMatrix.txt')
         tmat_int = read_transfMat(tmat_path)
-    except Exception as e:
-        logging.getLogger(__name__).error('Error loading transformation matrix for image '+image_path+' - '+str(e))
+    except:
+        logging.getLogger(__name__).exception('Error loading transformation matrix for image %s', image_path)
+        raise
     # Align and save - registration works with multidimensional files, as long as the TYX axes are specified
     try:
         registration_with_tmat(tmat_int, image, skip_crop_decision, output_path)
-    except Exception as e:
-        logging.getLogger(__name__).error('Alignment failed for image '+image_path+' - '+str(e))
+    except:
+        logging.getLogger(__name__).exception('Alignment failed for image %s', image_path)
+        raise
 
 ################################################################
 

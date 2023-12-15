@@ -2,9 +2,25 @@
 
 ### Added
 
+* Registration module: Add option to specify number of processes.
+* Add parallelization to Segmentation module.
+
 ### Changed
 
+* Registration module: add error collection and reporting to Registration tab.
+
 ### Removed
+
+### Fixed
+
+
+
+
+## [v.1.2.2] 2023-12-11
+
+### Changed
+
+* Registration module: to avoid interruptions during batch processing, errors are collected during the run and reported only at the end using a new dialog with a status summary table.
 
 ### Fixed
 
