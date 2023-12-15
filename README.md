@@ -105,9 +105,6 @@ Now you have the VLabApp folder into the chosen directory (eg. Desktop/VLabApp)
   `conda install qt`
   `pip install -r requirements.txt`
  
-  (If you have troubles with pyqt, try to install this and then the requirements.txt again:
-  `pip install pyqt5 --config-settings --confirm-license= --verbose`)
- 
 Now you have everything you need to use the Application!
 
 5. To open the application, run:
@@ -115,28 +112,17 @@ Now you have everything you need to use the Application!
   `python3 master.py`
 
 
-### Prerequisites
+### On Linux
 
-List of things you need to use the software and how to install them.
-* PyQt5==5.15.9
-* PyQt5_sip==12.12.1
-* cellpose==2.2
-* matplotlib==3.7.1
-* napari==0.4.17
-* nd2==0.5.3
-* numpy==1.23.5
-* opencv_python_headless==4.7.0.72
-* pystackreg==0.2.7
-* python_igraph==0.10.5
-* QtPy==2.3.1
-* roifile==2023.5.12
-* scikit_image==0.19.3
-* scipy==1.9.1
-* tifffile==2023.4.12
+Be careful on the limit of files that you are allowed to open. The parallelisation of some modules could open up to 1000 files per process. 
+Therefore, the limit could be as follows:
 
+  ```
+  ulimit -n 10000
+  python3 master.py
+  ```
 
-
-
+This would be enough for a 10 CPU machine.
 
 <p align="right"><a href="#readme-top">back to top</a></p>
 

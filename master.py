@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 from PyQt5.QtCore import Qt
@@ -159,6 +160,9 @@ class MainWindow(QWidget):
 
 
 if __name__ == "__main__":
+    # set up some environmental variables
+    os.environ['OMP_NUM_THREADS'] = '1'
+    os.environ['MKL_NUM_THREADS'] = '1'
     try:
         mp.set_start_method('spawn', force=True)
     except RuntimeError:

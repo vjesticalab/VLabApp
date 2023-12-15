@@ -75,6 +75,11 @@ class Perform(gf.Page):
         self.skip_cropping_yn_A = QCheckBox("Do NOT crop aligned image")
         self.buttonA = QPushButton("Register")
         self.buttonA.clicked.connect(self.register)
+        self.n_count = QSpinBox()
+        self.n_count.setMinimum(1)
+        self.n_count.setMaximum(os.cpu_count())
+        self.n_count.setValue(1)
+        n_count_label=QLabel("Number of processes:")
 
         # Layout
         layout = QVBoxLayout()
@@ -133,6 +138,11 @@ class Perform(gf.Page):
         layout3.addRow(self.skip_cropping_yn_A)
         groupbox.setLayout(layout3)
         layout.addWidget(groupbox)
+        groupbox = QGroupBox("Multi-processing")
+        layout2 = QFormLayout()
+        layout2.addRow(n_count_label,self.n_count)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
         layout.addWidget(self.buttonA, alignment=Qt.AlignCenter)
 
         self.window = QVBoxLayout(self.container)
@@ -182,9 +192,19 @@ class Perform(gf.Page):
         if not check_inputs(image_paths):
             return
 
+        # disable messagebox error handler
+        messagebox_error_handler = None
+        for h in logging.getLogger().handlers:
+            if h.get_name() == 'messagebox_error_handler':
+                messagebox_error_handler = h
+                logging.getLogger().removeHandler(messagebox_error_handler)
+                break
+
         QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         QApplication.processEvents()
 
+        status = []
+        error_messages = []
         arguments = []
         output_path = os.path.join(os.path.dirname(image_paths[0]), 'registration')
         os.makedirs(os.path.join(output_path, 'transf_matrices'), exist_ok=True)
@@ -208,25 +228,35 @@ class Perform(gf.Page):
             else:
                 self.logger.error("Unable to locate file %s", image_path)
 
-        # we use as many cores as images on the list but not more than half of the cores available
-        nprocs = min(len(arguments), os.cpu_count()//2)
-        self.logger.info(f"Using: {nprocs} cores to perform registration")
+        n_count = min(len(arguments), self.n_count.value())
+
+        self.logger.info(f"Using: {n_count} cores to perform registration")
         if not arguments:
             return
         # Perform projection
         if len(arguments) == 1:
-            f.registration_main(*arguments[0])
+            try:
+                f.registration_main(*arguments[0])
+                status.append("Success")
+                error_messages.append("")
+            except Exception as e:
+                status.append("Failed")
+                error_messages.append(str(e))
+                self.logger.exception("Registration failed")
         else:
             # we go parallel
-            with concurrent.futures.ProcessPoolExecutor(max_workers=nprocs) as executor:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=n_count) as executor:
                 future_reg = {
                     executor.submit(f.registration_main, *args): args for args in arguments
                 }
-                for future in concurrent.futures.as_completed(future_reg):
+                for future in future_reg:
                     try:
-
                         image_path = future.result()
-                    except Exception:
+                        status.append("Success")
+                        error_messages.append("")
+                    except Exception as e:
+                        status.append("Failed")
+                        error_messages.append(str(e))
                         self.logger.exception("An exception occurred")
                     else:
                         self.logger.info(f" Image: {image_path} Done")
@@ -234,6 +264,15 @@ class Perform(gf.Page):
 
         # Restore cursor
         QApplication.restoreOverrideCursor()
+
+        if any(s != 'Success' for s in status):
+            msg = gf.StatusTableDialog('Warning', status, error_messages, image_paths)
+            msg.exec_()
+
+        # re-enable messagebox error handler
+        if messagebox_error_handler is not None:
+            logging.getLogger().addHandler(messagebox_error_handler)
+
         self.logger.info("Done")
 
     def projection_mode_fixed_zmin_changed(self, value):

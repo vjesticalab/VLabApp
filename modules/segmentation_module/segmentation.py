@@ -1,11 +1,12 @@
 import logging
 import os
-from PyQt5.QtWidgets import QFileDialog, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication
+from PyQt5.QtWidgets import QFileDialog, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QLabel
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.segmentation_module import segmentation_functions as f
 from general import general_functions as gf
-
+import torch
+import concurrent
 
 class Segmentation(QWidget):
     def __init__(self):
@@ -33,9 +34,22 @@ class Segmentation(QWidget):
         self.use_custom_folder.toggled.connect(self.output_folder.setEnabled)
         self.use_custom_folder.toggled.connect(self.browse_button2.setEnabled)
 
+        self.use_gpu = QCheckBox("Activate GPU")
+        self.use_gpu.setChecked(False)
+        self.coarse_grain = QCheckBox("Activate coarse grain parallelisation")
+        self.coarse_grain.setChecked(False)
+        self.n_count = QSpinBox()
+        self.n_count.setMinimum(1)
+        self.n_count.setMaximum(os.cpu_count())
+        self.n_count.setValue(1)
+        n_count_label=QLabel("Number of processes:")
+        self.use_gpu.toggled.connect(n_count_label.setDisabled)
+        self.use_gpu.toggled.connect(self.update_coarse_grain_status)
+        self.use_gpu.toggled.connect(self.n_count.setDisabled)
+        self.use_gpu.setChecked(torch.cuda.is_available())
+
         self.display_results = QCheckBox("Show results in napari")
         self.display_results.setChecked(False)
-
         self.submit_button = QPushButton("Submit", self)
         self.submit_button.clicked.connect(self.submit)
 
@@ -64,6 +78,15 @@ class Segmentation(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
+        groupbox = QGroupBox("Multi-processing")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.use_gpu)
+        layout2.addWidget(self.coarse_grain)
+        layout3 = QFormLayout()
+        layout3.addRow(n_count_label,self.n_count)
+        layout2.addLayout(layout3)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
         layout.addWidget(self.display_results)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
@@ -74,6 +97,14 @@ class Segmentation(QWidget):
         if self.image_list.count() > 1:
             self.display_results.setChecked(False)
         self.display_results.setEnabled(self.image_list.count() <= 1)
+        self.update_coarse_grain_status()
+
+    def update_coarse_grain_status(self):
+        if self.image_list.count() == 1:
+            self.coarse_grain.setChecked(False)
+        if self.use_gpu.isChecked():
+            self.coarse_grain.setChecked(False)
+        self.coarse_grain.setEnabled(self.image_list.count() > 1 and not self.use_gpu.isChecked())
 
     def browse_model(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Select File")
@@ -136,19 +167,65 @@ class Segmentation(QWidget):
 
         status = []
         error_messages = []
+        coarse_grain_parallelism = self.coarse_grain.isChecked()
+        arguments = []
+        n_count = self.n_count.value()
+
+        run_parallel = True
+        if self.use_gpu.isChecked():
+            n_count = 1
+            run_parallel = False
+
+        QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
             self.logger.info("Segmenting image %s", image_path)
-            QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+
             QApplication.processEvents()
-            try:
-                f.main(image_path, model_path, output_path, output_basename, self.display_results.isChecked())
-                status.append("Success")
-                error_messages.append(None)
-            except Exception as e:
-                status.append("Failed")
-                error_messages.append(str(e))
-                self.logger.exception("Segmentation failed")
-            QApplication.restoreOverrideCursor()
+            arguments.append(
+                (image_path,
+                 model_path,
+                 output_path,
+                 output_basename,
+                 n_count,
+                 self.display_results.isChecked(),
+                 self.use_gpu.isChecked()
+                 )
+            )
+
+        if not arguments:
+            return
+
+        # Perform segmentation
+        if len(arguments) == 1 or not coarse_grain_parallelism or self.use_gpu.isChecked():
+            for args in arguments:
+                try:
+                    f.main(*args, run_parallel=run_parallel)
+                    status.append("Success")
+                    error_messages.append("")
+                except Exception as e:
+                    status.append("Failed")
+                    error_messages.append(str(e))
+                    self.logger.exception("Segmentation failed")
+        elif coarse_grain_parallelism:
+            # we launch a process per video
+            self.logger.info(f"NCOUNT {n_count}")
+            with concurrent.futures.ProcessPoolExecutor(n_count) as executor:
+                future_reg = {
+                    executor.submit(f.main, *args, run_parallel=False): args for args in arguments
+                }
+                for future in future_reg:
+                    try:
+
+                        future.result()
+                        status.append("Success")
+                        error_messages.append("")
+                    except Exception as e:
+                        status.append("Failed")
+                        error_messages.append(str(e))
+                        self.logger.exception("Segmentation failed")
+
+
+        QApplication.restoreOverrideCursor()
 
         if any(s != 'Success' for s in status):
             msg = gf.StatusTableDialog('Warning', status, error_messages, image_paths)
