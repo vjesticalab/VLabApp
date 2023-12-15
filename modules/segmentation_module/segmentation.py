@@ -88,8 +88,6 @@ class Segmentation(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         layout.addWidget(self.display_results)
-        layout.addWidget(self.halfcapacity)
-        layout.addWidget(self.coarse_grain)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
 

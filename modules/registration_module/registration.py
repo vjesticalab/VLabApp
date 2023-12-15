@@ -143,12 +143,6 @@ class Perform(gf.Page):
         layout2.addRow(n_count_label,self.n_count)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        groupbox = QGroupBox("Multi-processing")
-        layout2 = QFormLayout()
-        layout2.addRow(n_count_label,self.n_count)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
-        layout.addWidget(self.halfcapacity)
         layout.addWidget(self.buttonA, alignment=Qt.AlignCenter)
 
         self.window = QVBoxLayout(self.container)
