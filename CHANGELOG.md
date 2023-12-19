@@ -8,6 +8,8 @@
 
 ### Fixed
 
+* Fix a bug with image cropping in image registrsation
+
 
 
 

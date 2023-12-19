@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout, QFormLayou
 import logging
 import igraph as ig
 from matplotlib import cm
-import cv2 as cv
+import cv2
 
 
 class QLineEditHandler(logging.Handler):
@@ -752,11 +752,11 @@ class Image:
                         # estimate sharpness
                         if focus_method == 'tenengrad_var':
                             for z in range(self.sizes['Z']):
-                                sharpness[z] = cv.magnitude(cv.Sobel(self.image[f, t, c, z, :, :].astype("float64"), cv.CV_64F, 0, 1, ksize=3),
-                                                            cv.Sobel(self.image[f, t, c, z, :, :].astype("float64"), cv.CV_64F, 1, 0, ksize=3)).var()
+                                sharpness[z] = cv2.magnitude(cv2.Sobel(self.image[f, t, c, z, :, :].astype("float64"), cv2.CV_64F, 0, 1, ksize=3),
+                                                            cv2.Sobel(self.image[f, t, c, z, :, :].astype("float64"), cv2.CV_64F, 1, 0, ksize=3)).var()
                         elif focus_method == 'laplacian_var':
                             for z in range(self.sizes['Z']):
-                                sharpness[z] = cv.Laplacian(self.image[f, t, c, z, :, :].astype("float64"), cv.CV_64F, ksize=11).var()
+                                sharpness[z] = cv2.Laplacian(self.image[f, t, c, z, :, :].astype("float64"), cv2.CV_64F, ksize=11).var()
                         elif focus_method == 'std':
                             sharpness = self.image[f, t, c, :, :, :].std(axis=(1, 2))
 
