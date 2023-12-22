@@ -12,6 +12,7 @@ from modules.segmentation_module import segmentation
 from modules.cell_tracking_module import cell_tracking
 from modules.graph_filtering_module import graph_filtering
 from modules.graph_event_filter_module import graph_event_filter
+from modules.fusion_correction_module import fusion_correction
 from modules.viewer_module import viewer
 from general import general_functions as gf
 import multiprocessing as mp
@@ -87,6 +88,13 @@ class GraphEventFilter(gf.Page):
         self.window.addWidget(graph_event_filter.GraphEventFilter())
         self.window.addStretch()
 
+class FusionCorrection(gf.Page):
+    def __init__(self):
+        super().__init__()
+        self.window = QVBoxLayout(self.container)
+        self.window.addWidget(fusion_correction.FusionCorrection())
+        self.window.addStretch()
+
 
 class Viewer(gf.Page):
     def __init__(self):
@@ -122,6 +130,7 @@ class MainWindow(QWidget):
         tabwizard.addPage(CellTracking(), "Cell tracking")
         tabwizard.addPage(GraphFiltering(), "Graph filtering")
         tabwizard.addPage(GraphEventFilter(), "Graph event filter")
+        tabwizard.addPage(FusionCorrection(), "Fusion correction")
 
         layout = QHBoxLayout()
         self.status_line = QLineEdit()
