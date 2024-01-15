@@ -511,6 +511,8 @@ def fusion_correction(mask, magn_image, graph, tp_before, tp_after, output_path)
     n_valid_event = 0
     events_mask = np.zeros(mask.shape)
     events_vertices = []
+    ids_before = None
+    id_after = None
 
     # Select masks with at least 1 fusion detected
     selected_cell_tracks = [x for x in selected_cell_tracks if x['n_fusions'] > 0]
@@ -526,62 +528,63 @@ def fusion_correction(mask, magn_image, graph, tp_before, tp_after, output_path)
                     if vertex['frame'] < initial_event_tp and vertex['mask_id'] not in ids_before:
                         ids_before.append(vertex['mask_id'])
                     if vertex['frame'] > initial_event_tp:
-                        id_after = vertex['mask_id']        
-            # Recalculate fusion timepoint based on the magnified image
-            magn_image = magn_image.astype('uint8')
-            stds = []
-            for t in range(mask.shape[0]):
-                # Create the static mask for the time point t :
-                # if before fusion, use the first mask after fusion, otherwise the real one
-                static_mask = np.zeros([mask.shape[1], mask.shape[2]], dtype='uint8')
-                for cellid in set(ids_before + [id_after]):
-                    if t > initial_event_tp:
-                        static_mask[mask[t,:,:] == cellid] = cellid
-                    else:
-                        static_mask[mask[initial_event_tp+1,:,:] == cellid] = cellid
-                # Calculate std
-                px = magn_image[t, static_mask==id_after]
-                stds.append(np.std(px))
-            # Calculate difference in between stds (row - previous row)
-            fusion_data = {'Timepoint': np.arange(mask.shape[0]), 'Stdev':stds}
-            fusion_data_df= pd.DataFrame(fusion_data)
-            fusion_data_df['std_diff']=fusion_data_df['Stdev'].diff()
-            # Get the time point of the minimum difference
-            real_event_tp = fusion_data_df.at [fusion_data_df['std_diff'].idxmin(), 'Timepoint']
-            if real_event_tp == initial_event_tp: tp_is_changed = 0 
-            elif real_event_tp > initial_event_tp:  tp_is_changed = 1
-            else: tp_is_changed = 2
+                        id_after = vertex['mask_id']
             
-            # Range of selected time points
-            tp_to_check = np.arange(real_event_tp - tp_before, real_event_tp + tp_after)
-            
-            if min(tp_to_check) >= 0 and max(tp_to_check) <= mask.shape[0]: # valid if event timepoint ± selected timepoints are in a feasible range
-                valid = True
-                for t in cell_track['fusions_frames']: # valid if there aren't other events in these timepoints
-                    valid = False if t != initial_event_tp and t in tp_to_check else True
-                if valid:
-                    n_valid_event += 1
-                    # If event is valid -> update events_mask
-                    for t in tp_to_check:
-                        tmask = np.zeros([mask.shape[1], mask.shape[2]])
-                        for cellid in set(ids_before + [id_after]):
-                            # If fusion timepoint changed, change the mask if in the gap timepoints
-                            if tp_is_changed == 1 and t >= initial_event_tp  and t < real_event_tp:
-                                ref_tp = initial_event_tp-1
-                            elif tp_is_changed == 2 and t >= initial_event_tp  and t < real_event_tp:
-                                ref_tp = real_event_tp
-                            else:
-                                ref_tp = t
-                            tmask[mask[ref_tp,:,:] == cellid] = cellid
-                        events_mask[t, :, :] += tmask
-                    # If event is valid -> list the events' vertices
-                    for vertex in subgraph.vs:
-                        if vertex['frame'] in tp_to_check:
-                            events_vertices.append(vertex)
-                    # If event is valid -> add the event in the csv file
-                    with open(output_path+'_fusions_dictionary.csv', 'a') as file:
-                        writer = csv.writer(file)
-                        writer.writerow([min(tp_to_check), real_event_tp, max(tp_to_check), ids_before, id_after])
+            if ids_before and id_after:# Recalculate fusion timepoint based on the magnified image
+                magn_image = magn_image.astype('uint8')
+                stds = []
+                for t in range(mask.shape[0]):
+                    # Create the static mask for the time point t :
+                    # if before fusion, use the first mask after fusion, otherwise the real one
+                    static_mask = np.zeros([mask.shape[1], mask.shape[2]], dtype='uint8')
+                    for cellid in set(ids_before + [id_after]):
+                        if t > initial_event_tp:
+                            static_mask[mask[t,:,:] == cellid] = cellid
+                        else:
+                            static_mask[mask[initial_event_tp+1,:,:] == cellid] = cellid
+                    # Calculate std
+                    px = magn_image[t, static_mask==id_after]
+                    stds.append(np.std(px))
+                # Calculate difference in between stds (row - previous row)
+                fusion_data = {'Timepoint': np.arange(mask.shape[0]), 'Stdev':stds}
+                fusion_data_df= pd.DataFrame(fusion_data)
+                fusion_data_df['std_diff']=fusion_data_df['Stdev'].diff()
+                # Get the time point of the minimum difference
+                real_event_tp = fusion_data_df.at [fusion_data_df['std_diff'].idxmin(), 'Timepoint']
+                if real_event_tp == initial_event_tp: tp_is_changed = 0 
+                elif real_event_tp > initial_event_tp:  tp_is_changed = 1
+                else: tp_is_changed = 2
+                
+                # Range of selected time points
+                tp_to_check = np.arange(real_event_tp - tp_before, real_event_tp + tp_after)
+                
+                if min(tp_to_check) >= 0 and max(tp_to_check) <= mask.shape[0]: # valid if event timepoint ± selected timepoints are in a feasible range
+                    valid = True
+                    for t in cell_track['fusions_frames']: # valid if there aren't other events in these timepoints
+                        valid = False if t != initial_event_tp and t in tp_to_check else True
+                    if valid:
+                        n_valid_event += 1
+                        # If event is valid -> update events_mask
+                        for t in tp_to_check:
+                            tmask = np.zeros([mask.shape[1], mask.shape[2]])
+                            for cellid in set(ids_before + [id_after]):
+                                # If fusion timepoint changed, change the mask if in the gap timepoints
+                                if tp_is_changed == 1 and t >= initial_event_tp  and t < real_event_tp:
+                                    ref_tp = initial_event_tp-1
+                                elif tp_is_changed == 2 and t >= initial_event_tp  and t < real_event_tp:
+                                    ref_tp = real_event_tp
+                                else:
+                                    ref_tp = t
+                                tmask[mask[ref_tp,:,:] == cellid] = cellid
+                            events_mask[t, :, :] += tmask
+                        # If event is valid -> list the events' vertices
+                        for vertex in subgraph.vs:
+                            if vertex['frame'] in tp_to_check:
+                                events_vertices.append(vertex)
+                        # If event is valid -> add the event in the csv file
+                        with open(output_path+'_fusions_dictionary.csv', 'a') as file:
+                            writer = csv.writer(file)
+                            writer.writerow([min(tp_to_check), real_event_tp, max(tp_to_check), ids_before, id_after])
 
     # Take the subgraph with the listed vertex
     """subgraph_vs = (graph.vs(id=v['id'])[0].index for v in events_vertices)
@@ -697,17 +700,11 @@ def main(mask_path, graph_path, magn_image_path, tp_before, tp_after, output_pat
 # To test  
 if __name__ == '__main__':
     
-    mask_paths = ['/Users/aravera/Documents/CIG_Aleks/tests/test_newmodule/graph_filtering/smp09_BF_mask.tif',
-                  '/Users/aravera/Documents/CIG_Aleks/tests/test_newmodule/graph_filtering/smp10_BF_mask.tif']
-    graph_paths = ['/Users/aravera/Documents/CIG_Aleks/tests/test_newmodule/graph_filtering/smp09_BF_graph.graphmlz',
-                   '/Users/aravera/Documents/CIG_Aleks/tests/test_newmodule/graph_filtering/smp10_BF_graph.graphmlz']
-    magn_image_paths = ['/Users/aravera/Documents/CIG_Aleks/tests/test_newmodule/smp09_WL614_registered.tif',
-                        '/Users/aravera/Documents/CIG_Aleks/tests/test_newmodule/smp10_WL614_registered.tif']
-    tp_before = 10
-    tp_after = 10
-    output_path = '/Users/aravera/Documents/CIG_Aleks/tests/test_newmodule/results/'
+    mask_paths = ['/Users/aravera/Documents/CIG_Aleks/tests/test_newmodule/graph_filtering/smp10_BF_mask.tif']
+    graph_paths = ['/Users/aravera/Documents/CIG_Aleks/tests/test_newmodule/graph_filtering/smp10_BF_graph.graphmlz']
+    magn_image_paths = ['/Users/aravera/Documents/CIG_Aleks/tests/test_newmodule/smp10_WL614_registered.tif']
+    tp_before = 5
+    tp_after = 5
+    output_path = '/Users/aravera/Documents/CIG_Aleks/tests/test_newmodule/fusion_correction/'
     for i in range(len(mask_paths)):
         main(mask_paths[i], graph_paths[i], magn_image_paths[i], tp_before, tp_after, output_path)
-
-
-# %%
