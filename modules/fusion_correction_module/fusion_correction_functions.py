@@ -483,9 +483,9 @@ def fusion_correction(mask, magn_image, graph, tp_before, tp_after, output_path)
         igraph.Graph with the corrected graph
     """
     # Reduce mask Image obj to normal 3D nparray (TXY)
-    #%% FIND FUSION - same code of "evnt filter" module
+    #%% FIND FUSION - same code of "event filter" module
 
-     # Initialize the cvs file with results
+    # Initialize the cvs file with results
     with open(output_path+'_fusions_dictionary.csv', "w") as file:
         writer = csv.writer(file)
         writer.writerow(['TP start', 'TP event', 'TP end', 'id(s) before event', 'id(s) after event'])
@@ -638,11 +638,12 @@ def main(mask_path, graph_path, magn_image_path, tp_before, tp_after, output_pat
     # Setup logging
     ###########################
 
+    if not os.path.isdir(output_path):
+        os.makedirs(output_path)
+        
     """logger = logging.getLogger(__name__)
     logger.info("FUSION CORRECTION MODULE")
-    if not os.path.isdir(output_path):
-        logger.debug("creating: %s", output_path)
-        os.makedirs(output_path)
+    
     
     logfile = os.path.join(output_path, os.path.splitext(os.path.basename(graph_path))[0]+".log")
     logger.setLevel(logging.DEBUG)

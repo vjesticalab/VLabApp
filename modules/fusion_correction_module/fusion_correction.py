@@ -39,7 +39,7 @@ class FusionCorrection(QWidget):
         self.spinBox_after.setValue(5)
         
         # Output directory
-        self.use_input_folder = QRadioButton("Use input image folder (graph_event_filter sub-folder)")
+        self.use_input_folder = QRadioButton("Use input image folder (fusion_correction sub-folder)")
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)
