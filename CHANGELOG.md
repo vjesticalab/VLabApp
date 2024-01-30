@@ -1,8 +1,11 @@
 ## [Unreleased]
 
 ### Added
+* Fusion timepoint correction events_filter module
+* Savecrop options for saving single fusion cropped events in events_filter module
 
 ### Changed
+* name of graph_event_filter in events_filter
 
 ### Removed
 

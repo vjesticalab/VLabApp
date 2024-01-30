@@ -1,9 +1,9 @@
 import os
 import logging
-from PyQt5.QtWidgets import QGridLayout, QLabel, QSpinBox, QFileDialog, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication
+from PyQt5.QtWidgets import QGridLayout, QCheckBox, QLabel, QSpinBox, QFileDialog, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
-from modules.graph_event_filter_module import graph_event_filter_functions as f
+from modules.events_filter_module import events_filter_functions as f
 from general import general_functions as gf
 
 
@@ -27,6 +27,39 @@ class GraphEventFilter(QWidget):
         self.button_fusion = QRadioButton("Fusion")
         self.button_fusion.setChecked(True)
         self.button_division = QRadioButton("Division")
+
+        # Event time correction
+        self.time_correction = QCheckBox("Correct fusion time")
+        self.time_correction.setEnabled(self.button_fusion.isChecked())
+        self.button_fusion.toggled.connect(self.time_correction.setEnabled)
+        # Browse channel image
+        self.input_chimage = gf.DropFileLineEdit(filetypes=self.imagetypes)
+        browse_button3 = QPushButton("Browse", self)
+        browse_button3.clicked.connect(self.add_chimage)
+        self.input_chimage.setEnabled(self.time_correction.isChecked())
+        browse_button3.setEnabled(self.time_correction.isChecked())
+        self.time_correction.toggled.connect(self.input_chimage.setEnabled)
+        self.time_correction.toggled.connect(browse_button3.setEnabled)
+
+        # Save single crops
+        self.cropsave = QCheckBox("Save")
+        self.cropsave.setEnabled(self.button_fusion.isChecked())
+        self.button_fusion.toggled.connect(self.cropsave.setEnabled)
+        # Browse channel image to crop and BF, not mandatories
+        self.input_chcropimage = gf.DropFileLineEdit(filetypes=self.imagetypes)
+        browse_button4 = QPushButton("Browse", self)
+        browse_button4.clicked.connect(self.add_chimage)
+        self.input_chcropimage.setEnabled(self.cropsave.isChecked())
+        browse_button4.setEnabled(self.cropsave.isChecked())
+        self.cropsave.toggled.connect(self.input_chcropimage.setEnabled)
+        self.cropsave.toggled.connect(browse_button4.setEnabled)
+        self.input_BFimage = gf.DropFileLineEdit(filetypes=self.imagetypes)
+        browse_button5 = QPushButton("Browse", self)
+        browse_button5.clicked.connect(self.add_chimage)
+        self.input_BFimage.setEnabled(self.cropsave.isChecked())
+        browse_button5.setEnabled(self.cropsave.isChecked())
+        self.cropsave.toggled.connect(self.input_BFimage.setEnabled)
+        self.cropsave.toggled.connect(browse_button5.setEnabled)
         
         # Number timepoints before and after event
         label_before = QLabel("Number of timepoints before event")
@@ -39,7 +72,7 @@ class GraphEventFilter(QWidget):
         self.spinBox_after.setValue(5)
         
         # Output directory
-        self.use_input_folder = QRadioButton("Use input image folder (graph_event_filter sub-folder)")
+        self.use_input_folder = QRadioButton("Use input image folder (events_filter sub-folder)")
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)
@@ -74,6 +107,18 @@ class GraphEventFilter(QWidget):
         layout2.addWidget(self.button_division, 0, 1)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
+
+        groupbox = QGroupBox("Fusion time correction")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.time_correction)
+        layout3 = QHBoxLayout()
+        layout3.addWidget(QLabel("Fusion marker image :"))
+        layout3.addWidget(self.input_chimage)
+        layout3.addWidget(browse_button3, alignment=Qt.AlignCenter)
+        layout2.addLayout(layout3)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
         groupbox = QGroupBox("Timepoints")
         layout2 = QGridLayout()
         layout2.addWidget(label_before, 0, 0, 1, 2)
@@ -82,6 +127,21 @@ class GraphEventFilter(QWidget):
         layout2.addWidget(self.spinBox_after, 1, 2, 1, 1)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
+
+        groupbox = QGroupBox("Save single-cropped fusion images")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.cropsave)
+        layout3 = QHBoxLayout()
+        layout3.addWidget(QLabel("Channel to crop :"))
+        layout3.addWidget(self.input_chcropimage)
+        layout3.addWidget(browse_button4, alignment=Qt.AlignCenter)
+        layout3.addWidget(QLabel("BF :"))
+        layout3.addWidget(self.input_BFimage)
+        layout3.addWidget(browse_button5, alignment=Qt.AlignCenter)
+        layout2.addLayout(layout3)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
         groupbox = QGroupBox("Output folder")
         layout2 = QVBoxLayout()
         layout2.addWidget(self.use_input_folder)
@@ -106,6 +166,11 @@ class GraphEventFilter(QWidget):
         # Add the selected graph as input
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Cell tracking graphs ('+' '.join(['*'+x for x in self.graphtypes])+')')
         self.input_graph.setText(file_path)
+    
+    def add_chimage(self):
+        # Add the selected mask as input
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        self.input_chimage.setText(file_path)
 
     def browse_output(self):
         # Browse folders in order to choose the output one
@@ -118,6 +183,10 @@ class GraphEventFilter(QWidget):
         """
         mask_path = self.input_mask.text()
         graph_path = self.input_graph.text()
+        if self.time_correction.isChecked():
+            chimage_path = self.input_chimage.text()
+        else:
+            chimage_path = None
         tp_before = int(self.spinBox_before.text())
         tp_after = int(self.spinBox_after.text())
 
@@ -138,7 +207,15 @@ class GraphEventFilter(QWidget):
             self.logger.error('Cell tracking graph: not a valid file')
             self.input_graph.setFocus()
             return
-
+        if self.time_correction.isChecked():
+            if chimage_path == '':
+                self.logger.error('Magnified image missing')
+                self.input_mask.setFocus()
+                return
+            if not os.path.isfile(chimage_path):
+                self.logger.error('Magnified image: not a valid file')
+                self.input_mask.setFocus()
+                return
         if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
             self.logger.error('Output folder missing')
             self.output_folder.setFocus()
@@ -146,7 +223,7 @@ class GraphEventFilter(QWidget):
 
         # Set output_path
         if self.use_input_folder.isChecked():
-            output_path = os.path.join(os.path.dirname(mask_path), 'graph_event_filter')
+            output_path = os.path.join(os.path.dirname(mask_path), 'events_filter')
         else:
             output_path = self.output_folder.text()
         self.logger.info("Event filtering (mask %s, graph %s)", mask_path, graph_path)
@@ -156,11 +233,12 @@ class GraphEventFilter(QWidget):
             event = 'fusion'
         elif self.button_division.isChecked():
             event = 'division'
+            
 
         QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         QApplication.processEvents()
         try:
-            f.main(mask_path, graph_path, event, tp_before, tp_after, output_path)
+            f.main(mask_path, graph_path, event, self.time_correction.isChecked(), chimage_path, tp_before, tp_after, self.cropsave.isChecked(), self.input_chcropimage.text(), self.input_BFimage.text(), output_path)
         except Exception as e:
             QApplication.restoreOverrideCursor()
             self.logger.error(str(e))
