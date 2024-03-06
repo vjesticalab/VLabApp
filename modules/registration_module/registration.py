@@ -32,7 +32,7 @@ class Perform(gf.Page):
         self.projection_mode_bestZ.setToolTip('Keep only Z section with best focus.')
         # around bestZ
         self.projection_mode_around_bestZ = QRadioButton("Range around Z section with best focus")
-        self.projection_mode_around_bestZ.setChecked(True)
+        self.projection_mode_around_bestZ.setChecked(False)
         self.projection_mode_around_bestZ.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
         self.projection_mode_around_bestZ_zrange = QSpinBox()
         self.projection_mode_around_bestZ_zrange.setMinimum(0)
@@ -54,7 +54,7 @@ class Perform(gf.Page):
         self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
         # all
         self.projection_mode_all = QRadioButton("All Z sections")
-        self.projection_mode_all.setChecked(False)
+        self.projection_mode_all.setChecked(True)
         self.projection_mode_all.setToolTip('Project all Z sections.')
         # Z-Projection type
         self.projection_type = QComboBox(self)
@@ -81,6 +81,22 @@ class Perform(gf.Page):
         self.n_count.setValue(1)
         n_count_label=QLabel("Number of processes:")
 
+        # T-range
+        # all
+        self.time_mode_all = QRadioButton("All timepoints")
+        self.time_mode_all.setChecked(True)
+        # fixed range
+        self.time_mode_fixed = QRadioButton("Timepoint range")
+        self.time_mode_fixed.setChecked(False)
+        self.time_mode_fixed_tmin = QSpinBox()
+        self.time_mode_fixed_tmin.setMinimum(0)
+        self.time_mode_fixed_tmin.valueChanged.connect(self.time_mode_fixed_tmin_changed)
+        self.time_mode_fixed_tmax = QSpinBox()
+        self.time_mode_fixed_tmax.setMinimum(0)
+        self.time_mode_fixed_tmax.valueChanged.connect(self.time_mode_fixed_tmax_changed)
+        
+
+
         # Layout
         layout = QVBoxLayout()
         groupbox = QGroupBox('Images to process')
@@ -89,16 +105,17 @@ class Perform(gf.Page):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        groupbox = QGroupBox("Options")
+        groupbox = QGroupBox("Options for multidimensional files:")
         layout3 = QFormLayout()
         layout3.setLabelAlignment(Qt.AlignLeft)
         layout3.setFormAlignment(Qt.AlignLeft)
-        groupbox2 = QGroupBox("C-stack:")
+        groupbox2 = QGroupBox("If multiple channels:")
         layout4 = QFormLayout()
         layout4.addRow("Channel position:",self.channel_position)
         groupbox2.setLayout(layout4)
         layout3.addRow(groupbox2)
-        groupbox2 = QGroupBox("Z-stack:")
+
+        groupbox2 = QGroupBox("If multiple z:")
         layout4 = QFormLayout()
         # Z-Projection range
         widget = QWidget()
@@ -133,10 +150,31 @@ class Perform(gf.Page):
         layout4.addRow("Projection type:",self.projection_type)
         groupbox2.setLayout(layout4)
         layout3.addRow(groupbox2)
+
+        groupbox2 = QGroupBox("If multiple time points:")
+        layout8 = QVBoxLayout()
+        layout8.addWidget(self.time_mode_all)
+        groupbox2.setLayout(layout8)
+        layout8.addWidget(self.time_mode_fixed)
+        groupboxt1 = QGroupBox()
+        groupboxt1.setVisible(self.time_mode_fixed.isChecked())
+        self.time_mode_fixed.toggled.connect(groupboxt1.setVisible)
+        layout9 = QHBoxLayout()
+        layout10 = QFormLayout()
+        layout10.addRow("From:",self.time_mode_fixed_tmin)
+        layout9.addLayout(layout10)
+        layout10 = QFormLayout()
+        layout10.addRow("To:",self.time_mode_fixed_tmax)
+        layout9.addLayout(layout10)
+        groupboxt1.setLayout(layout9)
+        layout8.addWidget(groupboxt1)
+        layout3.addRow(groupbox2)
+
         layout3.addRow("Registration method:",self.registration_method)
         layout3.addRow(self.coalignment_yn_A)
         layout3.addRow(self.skip_cropping_yn_A)
         groupbox.setLayout(layout3)
+
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Multi-processing")
         layout2 = QFormLayout()
@@ -172,6 +210,7 @@ class Perform(gf.Page):
         image_paths = self.image_listA.get_file_list()
 
         # Arianna 26/07/23: added the three options channel_name, channel_position, projection_type
+        # Arianna 06/03/24: added the time points option
         channel_position = self.channel_position.text()
         projection_type = self.projection_type.currentText()
         if self.projection_mode_bestZ.isChecked():
@@ -182,6 +221,12 @@ class Perform(gf.Page):
             projection_zrange = (self.projection_mode_fixed_zmin.value(), self.projection_mode_fixed_zmax.value())
         elif self.projection_mode_all.isChecked():
             projection_zrange = None
+        
+        if self.time_mode_fixed.isChecked():
+            timepoint_range = (self.time_mode_fixed_tmin.value(), self.time_mode_fixed_tmax.value())
+        else:
+            timepoint_range = None
+        
         registration_method = self.registration_method.currentText()
         coalignment = self.coalignment_yn_A.isChecked()
         skip_crop_decision = self.skip_cropping_yn_A.isChecked()
@@ -223,7 +268,7 @@ class Perform(gf.Page):
 
 
                 # collect arguments
-                arguments.append((image_path, output_path, channel_position, projection_type, projection_zrange, skip_crop_decision, coalignment_images_list,registration_method))
+                arguments.append((image_path, output_path, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, coalignment_images_list,registration_method))
 
             else:
                 self.logger.error("Unable to locate file %s", image_path)
@@ -282,13 +327,21 @@ class Perform(gf.Page):
     def projection_mode_fixed_zmax_changed(self, value):
         if self.projection_mode_fixed_zmin.value() > value:
             self.projection_mode_fixed_zmin.setValue(value)
+    
+    def time_mode_fixed_tmin_changed(self, value):
+        if self.time_mode_fixed_tmax.value() < value:
+            self.time_mode_fixed_tmax.setValue(value)
+
+    def time_mode_fixed_tmax_changed(self, value):
+        if self.time_mode_fixed_tmin.value() > value:
+            self.time_mode_fixed_tmin.setValue(value)
 
 
 class Align(gf.Page):
     def __init__(self):
         super().__init__()
         ####### Section Alignment #######
-        label = QLabel("Images to align")
+        label = QLabel("Input files to align using pre-existing registration matrices:")
         label2 = QLabel('(the corresponding matrices have to be in "image_path/registration/transf_matrices/" folder)')
         font = label2.font()
         font.setItalic(True)

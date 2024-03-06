@@ -18,12 +18,12 @@ class Viewer(QWidget):
         
         # Layout
         layout = QVBoxLayout()
-        groupbox = QGroupBox("Open napari to visualize mask(s) or image(s)")
+        groupbox = QGroupBox("View image and/or masks (napari)")
         layout2 = QVBoxLayout()
         layout2.addWidget(self.button1, alignment=Qt.AlignCenter)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        groupbox = QGroupBox("Open napari to visualize a graph")
+        groupbox = QGroupBox("View cell-tracking graph (igraph in napari)")
         layout2 = QVBoxLayout()
         layout.addWidget(groupbox)
         layout2.addWidget(QLabel("Select the graph:"))

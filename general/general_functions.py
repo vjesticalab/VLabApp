@@ -436,20 +436,24 @@ class FileListWidget(QWidget):
 
 
         layout = QVBoxLayout()
+
+        layout2 = QHBoxLayout()
+        layout2.addWidget(QLabel('Filter files to process:'))
+        layout3 = QFormLayout()
+        layout3.addRow("Filename must include:", self.filter_name)
+        layout2.addLayout(layout3)
+        layout3 = QFormLayout()
+        layout3.addRow("File types:", self.filetypes)
+        layout2.addLayout(layout3)
+        layout.addLayout(layout2)
+
         layout.addWidget(self.file_list)
         layout2 = QHBoxLayout()
         layout2.addWidget(self.add_file_button)
         layout2.addWidget(self.add_folder_button)
         layout2.addWidget(self.remove_file_button)
         layout.addLayout(layout2)
-        layout2 = QHBoxLayout()
-        layout3 = QFormLayout()
-        layout3.addRow("Filter file names:", self.filter_name)
-        layout2.addLayout(layout3)
-        layout3 = QFormLayout()
-        layout3.addRow("file types:", self.filetypes)
-        layout2.addLayout(layout3)
-        layout.addLayout(layout2)
+        
         layout.setContentsMargins(0,0,0,0)
         self.setLayout(layout)
 

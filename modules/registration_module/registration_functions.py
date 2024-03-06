@@ -275,10 +275,112 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
 
     return transformation_matrices
 
+def registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, registration_method):
+    """
+    This function calculates the transformation matrices from brightfield images
+    Note: aligned images are NOT saved since pixels are recalculated by StackReg method
+
+    Parameters
+    ---------------------
+    image : Image object
+    timepoint_range : array
+        (tp_start, tp_end)
+    projection_type : str
+        type of projection to perform if it is a z-stack
+    projection_zrange: int or (int,int) or None
+        the range of z sections to use for projection.
+        If zrange is None, use all z sections.
+        If zrange is an integer, use all z sections in the interval [z_best-zrange,z_best+zrange]
+        where z_best is the Z corresponding to best focus.
+        If zrange is tuple (zmin,zmax), use all z sections in the interval [zmin,zmax].
+    channel_position : int
+        posizion of the channel to register if it is a c-stack
+    output_path : str
+        parent image path + /registration/
+    registration_method : str
+        method to use for registration. Can be "stackreg" or "phase correlation"
+
+    Returns
+    ---------------------
+    tmats :
+        integer pixel values transformation matrix
+
+    Saves
+    ---------------------
+    txt_res :
+        file which contains the values t_x and t_y (x and y pixel shifts) as columns for each time point (rows)
+    """
+    # Assuming empty dimensions F and C defined in channel_position
+    # if Z not empty then make z-projection (projection_type,projection_zrange)
+    if image.sizes['Z'] > 1:
+        try:
+            projection = image.zProjection(projection_type, projection_zrange)
+            logging.getLogger(__name__).info('Made z-projection ('+projection_type+', zrange '+str(projection_zrange)+') for image '+image.basename)
+        except:
+            logging.getLogger(__name__).exception('Z-projection failed for image %s',image.basename)
+            raise
+        if image.sizes['C'] > channel_position:
+            image3D = projection[0,:,channel_position,0,:,:]
+        else:
+            image3D = projection[0,:,0,0,:,:]
+            logging.getLogger(__name__).info('Position of the channel given (%s) is out of range for image %s, using the only channel available', channel_position, image.basename)
+    # Otherwise read the 3D image
+    else:
+        if image.sizes['C'] > 1:
+            if image.sizes['C'] > channel_position:
+                image3D = image.image[0,:,channel_position,0,:,:]
+            else:
+                image3D = projection[0,:,0,0,:,:]
+                logging.getLogger(__name__).info('Position of the channel given (%s) is out of range for image %s, using the only channel available', channel_position, image.basename)
+        else:
+            image3D = image.get_TYXarray()
+    
+    image3D = image3D[int(timepoint_range[0]):int(timepoint_range[1]), :, :]
+
+    if registration_method == "stackreg":
+        logging.getLogger(__name__).info('Registration with stackreg')
+
+        # Translation = only movements on x and y axis
+        sr = StackReg(StackReg.TRANSLATION)
+        # Align each frame at the previous one
+        tmats_float = sr.register_stack(image3D, reference='previous')
+        # Convert tmats_float into integers
+
+        # Transformation matrix has 6 columns:
+        # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
+        transformation_matrices = np.zeros((tmats_float.shape[0], 8), dtype=np.int)
+        transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = tmats_float[:, 0:2, 2].astype(int)
+    
+    elif registration_method == "phase correlation":
+        logging.getLogger(__name__).info('Registration with phase correlation')
+        shifts=register_stack_phase_correlation(image3D,blur=5)
+        # Transformation matrix has 6 columns:
+        # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
+        transformation_matrices = np.zeros((len(shifts), 8), dtype=int)
+        transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = np.round(np.array(shifts)).astype(int)
+    else:
+        logging.getLogger(__name__).error('Error unknown registration method %s', registration_method)
+        raise ValueError(f"Error unknown registration method {registration_method}")
+
+    # Save the txt file with the translation matrix
+    txt_name = os.path.join(output_path,'transf_matrices', image.name.split('_')[0] +'_transformationMatrix.txt')
+
+    transformation_matrices_complete = np.zeros([image.sizes['T'], 8], dtype=np.int)
+    transformation_matrices_complete[timepoint_range[0]-1:timepoint_range[1]-1] = transformation_matrices.astype(int)
+
+    transformation_matrices_complete[:, 0] = np.arange(1, image.sizes['T']+1)
+    transformation_matrices_complete[:, 3] = 1
+    transformation_matrices_complete[:, 6] = image.sizes['X']
+    transformation_matrices_complete[:, 7] = image.sizes['Y']
+
+    np.savetxt(txt_name, transformation_matrices_complete, fmt = '%d, %d, %d, %d, %d, %d, %d, %d', header = 'timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y, x, y', delimiter = '\t')
+
+    return transformation_matrices_complete
+
 ################################################################
 
 
-def registration_main(image_path, output_path, channel_position, projection_type, projection_zrange, skip_crop_decision, coalignment_images_list, registration_method):
+def registration_main(image_path, output_path, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, coalignment_images_list, registration_method):
     # Load image
     # Note: by default the image have to be ALWAYS 3D with TYX
     try:
@@ -287,10 +389,11 @@ def registration_main(image_path, output_path, channel_position, projection_type
     except:
         logging.getLogger(__name__).exception('Error loading image %s', image_path)
         raise
-
-    # Calculate transformation matrix
-    tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, registration_method)
-
+    if timepoint_range == None:
+        # Calculate transformation matrix
+        tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, registration_method)
+    else:
+        tmat = registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, registration_method)
     # Align and save
     registration_with_tmat(tmat, image, skip_crop_decision, output_path)
 
