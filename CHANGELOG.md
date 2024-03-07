@@ -1,19 +1,30 @@
 ## [Unreleased]
 
 ### Added
-* Fusion timepoint correction events_filter module
-* Savecrop options for saving single fusion cropped events in events_filter module
 
 ### Changed
-* name of graph_event_filter in events_filter
 
 ### Removed
 
 ### Fixed
 
-* Fix a bug with image cropping in image registrsation
 
+## [v1.3.1] 2023-03-07
 
+### Added
+* Fusion timepoint correction events_filter module
+* Savecrop options for saving single fusion cropped events in events_filter module
+* Registration for a fixed timepoint range
+
+### Changed
+* Name of graph_event_filter in events_filter
+* Minor changes in the labels as the group suggested
+
+### Removed
+
+### Fixed
+
+* Fix a bug with image cropping in image registration
 
 
 
