@@ -138,7 +138,16 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
         if run_parallel:
             mask = par_run_eval(image, mask, model, f, logger, tot_iterations, n_count)
         else:
-            mask, _, _ = model.eval(image.get_TYXarray(), diameter=model.diam_labels, channels=[0, 0])
+            for t in range(image.sizes['T']):
+                # Always assuming BF in channel=0 and only one Z channel
+                iteration += 1
+                image_2D = image.image[f, t, 0, 0, :, :]
+                if display_results:
+                    # Logging into napari window
+                    pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
+                    pbr.update(1)
+                logger.info("cellpose segmentation %s/%s", iteration, tot_iterations)
+                mask[t, :, :], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
 
 
 
