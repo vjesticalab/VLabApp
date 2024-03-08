@@ -18,6 +18,11 @@ class Perform(gf.Page):
     def __init__(self):
         super().__init__()
         ####### Section Registration #######
+        # Documentation
+        label_documentation = QLabel()
+        label_documentation.setOpenExternalLinks(True)
+        label_documentation.setText('<a href="file://' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
+
         self.imagetypes = ['.nd2', '.tif', '.tiff']
 
         self.image_listA = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_BF')
@@ -70,6 +75,10 @@ class Perform(gf.Page):
         self.registration_method = QComboBox(self)
         self.registration_method.addItem("stackreg")
         self.registration_method.addItem("phase correlation")
+        self.registration_method.addItem("feature matching (ORB)")
+        self.registration_method.addItem("feature matching (BRISK)")
+        self.registration_method.addItem("feature matching (AKAZE)")
+        self.registration_method.addItem("feature matching (SIFT)")
         self.registration_method.setCurrentText("stackreg")
         self.coalignment_yn_A = QCheckBox("Co-align files with the same unique identifier (eg. smp01 for smp01_BF.nd2)")
         self.skip_cropping_yn_A = QCheckBox("Do NOT crop aligned image")
@@ -99,6 +108,13 @@ class Perform(gf.Page):
 
         # Layout
         layout = QVBoxLayout()
+        # Documentation
+        groupbox = QGroupBox("Documentation")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(label_documentation)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
         groupbox = QGroupBox('Images to process')
         layout2 = QVBoxLayout()
         layout2.addWidget(self.image_listA)

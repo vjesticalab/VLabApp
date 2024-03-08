@@ -265,5 +265,5 @@ Notes:
 
 For the GUI:
 
-* Napari [4] ([https://napari.org](https://napari.org)).
+* Napari ([https://napari.org](https://napari.org)).
 * Qt ([https://www.qt.io/](https://www.qt.io/)).

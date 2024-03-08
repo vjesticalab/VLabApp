@@ -2,11 +2,107 @@ import logging
 from general import general_functions as gf
 import numpy as np
 import os
-import tifffile
 import time
 from pystackreg import StackReg
 import cv2 as cv
 from aicsimageio.writers import OmeTiffWriter
+from skimage.measure import ransac
+from skimage.transform import ProjectiveTransform
+
+
+## create a trivial MoveTransform (only translation) that inherits from skimage.transform.ProjectiveTransform
+## the code was adapted from skimage.transform.EuclideanTransform
+class MoveTransform(ProjectiveTransform):
+    """Move transformation.
+
+    Has the following form in 2D::
+
+        X =  x + a1
+
+        Y =  y + b1
+
+    where the homogeneous transformation matrix is:
+
+        [[1   0  a1]
+         [0   1  b1]
+         [0   0   1]]
+
+    The Move transformation is a rigid transformation with only
+    translation parameters.
+
+    In 2D and 3D, the transformation parameters may be provided either via
+    `matrix`, the homogeneous transformation matrix, above, or via the
+    implicit parameter `translation` (where `a1` is the
+    translation along `x`, `b1` along `y`, etc.).
+
+    Parameters
+    ----------
+    matrix : (D+1, D+1) array_like, optional
+        Homogeneous transformation matrix.
+    translation : (x, y[, z, ...]) sequence of float, length D, optional
+        Translation parameters for each axis.
+    dimensionality : int, optional
+        The dimensionality of the transform.
+
+    Attributes
+    ----------
+    params : (D+1, D+1) array
+        Homogeneous transformation matrix.
+
+    References
+    ----------
+    .. [1] https://en.wikipedia.org/wiki/Rotation_matrix#In_three_dimensions
+    """
+
+    def __init__(self, matrix=None, translation=None, *, dimensionality=2):
+        params_given = translation is not None
+
+        if params_given and matrix is not None:
+            raise ValueError("You cannot specify the transformation matrix and"
+                             " the implicit parameters at the same time.")
+        elif matrix is not None:
+            matrix = np.asarray(matrix)
+            if matrix.shape[0] != matrix.shape[1]:
+                raise ValueError("Invalid shape of transformation matrix.")
+            self.params = matrix
+        elif params_given:
+            dimensionality = len(translation)
+            self.params = np.eye(dimensionality + 1)
+            self.params[0:dimensionality, dimensionality] = translation
+        else:
+            # default to an identity transform
+            self.params = np.eye(dimensionality + 1)
+
+    def estimate(self, src, dst):
+        """Estimate the transformation from a set of corresponding points.
+
+        You can determine the over-, well- and under-determined parameters
+        with the total least-squares method.
+
+        Number of source and destination coordinates must match.
+
+        Parameters
+        ----------
+        src : (N, 2) array_like
+            Source coordinates.
+        dst : (N, 2) array_like
+            Destination coordinates.
+
+        Returns
+        -------
+        success : bool
+            True, if model estimation succeeds.
+
+        """
+        dim = src.shape[1]
+        self.params = np.eye(dim + 1)
+        self.params[0:dim, dim] = dst.mean(axis=0) - src.mean(axis=0)
+
+        return True
+
+    @property
+    def translation(self):
+        return self.params[0:self.dimensionality, self.dimensionality]
 
 
 def read_transfMat(tmat_path):
@@ -22,7 +118,7 @@ def read_transfMat(tmat_path):
         tmat_int = tmat_float.astype(int)
         return tmat_int
 
-def register_stack_phase_correlation(image,blur=5):
+def register_stack_phase_correlation(image, blur=5):
     """
     Register an image using phase correlation algorithm implemented in opencv
 
@@ -39,11 +135,14 @@ def register_stack_phase_correlation(image,blur=5):
         list with one (x,y) tuple per time frame.
         Each (x,y) tuple corresponds to the shift between images at the corresponding time frame and previous time frame.
     """
+    # make sure blur is odd
+    if blur != 0:
+        blur = blur // 2 * 2 + 1
 
     h = image.shape[1]
     w = image.shape[2]
     shifts = [(0, 0)]
-    if blur>1:
+    if blur > 1:
         prev = cv.GaussianBlur(cv.normalize(image[0], None, 0, 1, cv.NORM_MINMAX, dtype=cv.CV_32F), (blur, blur), 0)
     else:
         prev = cv.normalize(image[0], None, 0, 1, cv.NORM_MINMAX, dtype=cv.CV_32F)
@@ -55,12 +154,12 @@ def register_stack_phase_correlation(image,blur=5):
             curr = cv.normalize(image[i], None, 0, 1, cv.NORM_MINMAX, dtype=cv.CV_32F)
 
         lastshift = (round(shifts[-1][0]), round(shifts[-1][1]))
-        #crop window prev (shifted)
+        # crop window prev (shifted)
         xmin1 = max(lastshift[0], 0)
         xmax1 = min(w+lastshift[0], w)
         ymin1 = max(lastshift[1], 0)
         ymax1 = min(h+lastshift[1], h)
-        #crop window curr
+        # crop window curr
         xmin2 = max(-lastshift[0], 0)
         xmax2 = min(w-lastshift[0], w)
         ymin2 = max(-lastshift[1], 0)
@@ -77,7 +176,121 @@ def register_stack_phase_correlation(image,blur=5):
         prev = cv.warpAffine(curr, M=np.float32([[1, 0, shifts[-1][0]], [0, 1, shifts[-1][1]]]), dsize=(w, h), borderMode=cv.BORDER_CONSTANT, borderValue=curr.max()/2)
         #i = i+1
 
-    return [(-x,-y) for x, y in shifts]
+    return [(-x, -y) for x, y in shifts]
+
+
+def register_stack_feature_matching(image, feature_type="ORB", blur=0):
+    """
+    Register an image using feature matching implemented in opencv followed by parameter estimatimtion with RANSAC.
+
+    Parameters
+    ----------
+    image: ndarray
+        a 3D (TYX) 16bit unsigned integer (uint16) numpy array.
+    feature_type: str
+        the algorithm use for feature detection.
+        Possible feature types: AKAZE, BRISK, KAZE, ORB and SIFT.
+    blur: int
+        kernel size for gaussian blue
+
+    Returns
+    -------
+    list of tuples
+        list with one (x,y) tuple per time frame.
+        Each (x,y) tuple corresponds to the shift between images at the corresponding time frame and previous time frame.
+    """
+
+    # make sure blur is odd
+    if blur != 0:
+        blur = blur // 2 * 2 + 1
+
+    h = image.shape[1]
+    w = image.shape[2]
+
+    if feature_type == "SIFT":
+        feature = cv.SIFT_create()
+    elif feature_type == "ORB":
+        feature = cv.ORB_create()
+    elif feature_type == "AKAZE":
+        feature = cv.AKAZE_create()
+    elif feature_type == "KAZE":
+        feature = cv.KAZE_create()
+    elif feature_type == "BRISK":
+        feature = cv.BRISK_create()
+    else:
+        logging.getLogger(__name__).error('Error unknown feature type %s', feature_type)
+        raise ValueError(f"Error unknown feature type {feature_type}")
+
+    # taken from https://docs.opencv.org/4.x/dc/dc3/tutorial_py_matcher.html
+    if feature_type in ["SIFT","KAZE"]:
+        ##for sift, kase
+        FLANN_INDEX_KDTREE = 1
+        index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+    else:
+        ##for ORB, brisk, akaze
+        FLANN_INDEX_LSH = 6
+        index_params = dict(algorithm = FLANN_INDEX_LSH,
+                            table_number = 6,
+                            key_size = 12,
+                            multi_probe_level = 1)
+    search_params = dict(checks=50)
+    flann = cv.FlannBasedMatcher(index_params, search_params)
+
+    shifts = [(0, 0)]
+    if blur > 1:
+        prev = cv.GaussianBlur(cv.normalize(image[0], None, 0, np.iinfo('uint8').max, cv.NORM_MINMAX, dtype=cv.CV_8U), (blur, blur), 0)
+    else:
+        prev = cv.normalize(image[0], None, 0, np.iinfo('uint8').max, cv.NORM_MINMAX, dtype=cv.CV_8U)
+
+    for i in range(1, image.shape[0]):
+        if blur > 1:
+            curr = cv.GaussianBlur(cv.normalize(image[i], None, 0,  np.iinfo('uint8').max, cv.NORM_MINMAX, dtype=cv.CV_8U), (blur, blur), 0)
+        else:
+            curr = cv.normalize(image[i], None, 0,  np.iinfo('uint8').max, cv.NORM_MINMAX, dtype=cv.CV_8U)
+
+        lastshift = (round(shifts[-1][0]), round(shifts[-1][1]))
+        # crop window prev (shifted)
+        xmin1 = max(lastshift[0], 0)
+        xmax1 = min(w+lastshift[0], w)
+        ymin1 = max(lastshift[1], 0)
+        ymax1 = min(h+lastshift[1], h)
+        # crop window curr
+        xmin2 = max(-lastshift[0], 0)
+        xmax2 = min(w-lastshift[0], w)
+        ymin2 = max(-lastshift[1], 0)
+        ymax2 = min(h-lastshift[1], h)
+
+        kp1, des1 = feature.detectAndCompute(prev[ymin1:ymax1, xmin1:xmax1], None)
+        kp2, des2 = feature.detectAndCompute(curr[ymin2:ymax2, xmin2:xmax2], None)
+
+        matches = flann.knnMatch(des1, des2, k=2)
+
+        ## Filter out poor matches (ratio test as per Lowe's paper)
+        good_matches = []
+        for m in matches:
+            if len(m) >= 2 and  m[0].distance < 0.75*m[1].distance:
+                good_matches.append(m[0])
+
+        matches = good_matches
+
+        points1 = np.float32([kp1[m.queryIdx].pt for m in matches])
+        points2 = np.float32([kp2[m.trainIdx].pt for m in matches])
+
+        # ransac
+        shift = (0, 0)
+        if len(matches) > 3:
+            model_robust, inliers = ransac((points1, points2), MoveTransform, min_samples=3,
+                                           residual_threshold=2, max_trials=100)
+            if model_robust is not None:
+                shift = -model_robust.translation
+
+
+        shifts.append((lastshift[0]+shift[0], lastshift[1]+shift[1]))
+        ## store shifted image as previous image
+        prev = cv.warpAffine(curr, M=np.float32([[1, 0, shifts[-1][0]], [0, 1, shifts[-1][1]]]), dsize=(w, h), borderMode=cv.BORDER_CONSTANT, borderValue=curr.max()/2)
+
+    return [(-x, -y) for x, y in shifts]
+
 
 def registration_with_tmat(tmat_int, image, skip_crop, output_path):
     """
@@ -198,7 +411,9 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
     output_path : str
         parent image path + /registration/
     registration_method : str
-        method to use for registration. Can be "stackreg" or "phase correlation"
+        method to use for registration. Can be "stackreg", "phase correlation",
+        "feature matching (ORB)", "feature matching (BRISK)", "feature matching (AKAZE)"
+        or "feature matching (SIFT)".
 
     Returns
     ---------------------
@@ -253,10 +468,33 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         transformation_matrices[:, 3] = 1
         transformation_matrices[:, 6] = image.sizes['X']
         transformation_matrices[:, 7] = image.sizes['Y']
-    
     elif registration_method == "phase correlation":
         logging.getLogger(__name__).info('Registration with phase correlation')
         shifts=register_stack_phase_correlation(image3D,blur=5)
+        # Transformation matrix has 6 columns:
+        # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
+        transformation_matrices = np.zeros((len(shifts), 8), dtype=int)
+        transformation_matrices[:, 0] = np.arange(1, len(shifts)+1)
+        transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = np.round(np.array(shifts)).astype(int)
+        transformation_matrices[:, 3] = 1
+        transformation_matrices[:, 6] = image.sizes['X']
+        transformation_matrices[:, 7] = image.sizes['Y']
+    elif registration_method.startswith("feature matching"):
+        if registration_method == "feature matching (ORB)":
+            logging.getLogger(__name__).info('Registration with feature matching (ORB)')
+            shifts=register_stack_feature_matching(image3D, feature_type="ORB")
+        elif registration_method == "feature matching (BRISK)":
+            logging.getLogger(__name__).info('Registration with feature matching (BRISK)')
+            shifts=register_stack_feature_matching(image3D, feature_type="BRISK")
+        elif registration_method == "feature matching (AKAZE)":
+            logging.getLogger(__name__).info('Registration with feature matching (AKAZE)')
+            shifts=register_stack_feature_matching(image3D, feature_type="AKAZE")
+        elif registration_method == "feature matching (SIFT)":
+            logging.getLogger(__name__).info('Registration with feature matching (SIFT)')
+            shifts=register_stack_feature_matching(image3D, feature_type="SIFT")
+        else:
+            logging.getLogger(__name__).error('Error unknown registration method %s', registration_method)
+            raise ValueError(f"Error unknown registration method {registration_method}")
         # Transformation matrix has 6 columns:
         # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
         transformation_matrices = np.zeros((len(shifts), 8), dtype=int)
@@ -298,7 +536,9 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
     output_path : str
         parent image path + /registration/
     registration_method : str
-        method to use for registration. Can be "stackreg" or "phase correlation"
+        method to use for registration. Can be "stackreg", "phase correlation",
+        "feature matching (ORB)", "feature matching (BRISK)", "feature matching (AKAZE)"
+        or "feature matching (SIFT)".
 
     Returns
     ---------------------
@@ -350,10 +590,29 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
         # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
         transformation_matrices = np.zeros((tmats_float.shape[0], 8), dtype=np.int)
         transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = tmats_float[:, 0:2, 2].astype(int)
-    
     elif registration_method == "phase correlation":
         logging.getLogger(__name__).info('Registration with phase correlation')
         shifts=register_stack_phase_correlation(image3D,blur=5)
+        # Transformation matrix has 6 columns:
+        # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
+        transformation_matrices = np.zeros((len(shifts), 8), dtype=int)
+        transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = np.round(np.array(shifts)).astype(int)
+    elif registration_method.startswith("feature matching"):
+        if registration_method == "feature matching (ORB)":
+            logging.getLogger(__name__).info('Registration with feature matching (ORB)')
+            shifts=register_stack_feature_matching(image3D, feature_type="ORB")
+        elif registration_method == "feature matching (BRISK)":
+            logging.getLogger(__name__).info('Registration with feature matching (BRISK)')
+            shifts=register_stack_feature_matching(image3D, feature_type="BRISK")
+        elif registration_method == "feature matching (AKAZE)":
+            logging.getLogger(__name__).info('Registration with feature matching (AKAZE)')
+            shifts=register_stack_feature_matching(image3D, feature_type="AKAZE")
+        elif registration_method == "feature matching (SIFT)":
+            logging.getLogger(__name__).info('Registration with feature matching (SIFT)')
+            shifts=register_stack_feature_matching(image3D, feature_type="SIFT")
+        else:
+            logging.getLogger(__name__).error('Error unknown registration method %s', registration_method)
+            raise ValueError(f"Error unknown registration method {registration_method}")
         # Transformation matrix has 6 columns:
         # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
         transformation_matrices = np.zeros((len(shifts), 8), dtype=int)
