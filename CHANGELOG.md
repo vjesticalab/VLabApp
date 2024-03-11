@@ -2,13 +2,23 @@
 
 ### Added
 
-* Add optional registration methods "feature matching" (with ORB, BRISK, AKAZE or SIFT algorithm) to Registration module.
-
 ### Changed
 
 ### Removed
 
 ### Fixed
+
+
+
+
+
+## [v1.4.0] 2023-03-11
+
+### Added
+
+* Add optional registration methods "feature matching" (with ORB, BRISK, AKAZE or SIFT algorithm) to Registration module.
+
+
 
 
 ## [v1.3.1] 2023-03-07
