@@ -2,13 +2,16 @@
 
 ### Added
 
+* Add a "Delete" shortcut to list of input files (DropFilesListWidget).
+* Add "filename must NOT include" filter to list of input files (FileListWidget).
+
 ### Changed
 
 ### Removed
 
 ### Fixed
 
-
+* bugfix: In list of input files (FileListWidget) do not reject all files when "file types" filter is empty.
 
 
 
