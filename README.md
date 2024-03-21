@@ -88,11 +88,11 @@ The use of Anaconda is supposed.
  
 1. Create a virtual environment for your code, in the terminal: 
 
-  `conda create --name venv_VLabApp`
+  `conda create --name venv_VLabApp  python=3.10`
  
 2. Once the venv is created, activate it: 
  
-  `conda activate name_of_venv`
+  `conda activate venv_VLabApp`
 
 3. Clone this git repository. Open the terminal where you want to put the App code (eg. Desktop): 
 
@@ -102,7 +102,6 @@ Now you have the VLabApp folder into the chosen directory (eg. Desktop/VLabApp)
  
 4. Open the terminal within the VLabApp, activate your venv and install the libraries running:
 
-  `conda install qt`
   `pip install -r requirements.txt`
  
 Now you have everything you need to use the Application!

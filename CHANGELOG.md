@@ -6,6 +6,8 @@
 
 ### Changed
 
+* Update installation instructions
+
 ### Removed
 
 ### Fixed
