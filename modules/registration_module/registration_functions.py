@@ -749,7 +749,7 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
 
         # Transformation matrix has 6 columns:
         # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
-        transformation_matrices = np.zeros((tmats_float.shape[0], 8), dtype=np.int)
+        transformation_matrices = np.zeros((tmats_float.shape[0], 8), dtype=np.int64)
         transformation_matrices[:, 0] = np.arange(1, tmats_float.shape[0]+1)
         transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = tmats_float[:, 0:2, 2].astype(int)
         transformation_matrices[:, 3] = 1
@@ -875,7 +875,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
 
         # Transformation matrix has 6 columns:
         # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
-        transformation_matrices = np.zeros((tmats_float.shape[0], 8), dtype=np.int)
+        transformation_matrices = np.zeros((tmats_float.shape[0], 8), dtype=np.int64)
         transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = tmats_float[:, 0:2, 2].astype(int)
     elif registration_method == "phase correlation":
         logging.getLogger(__name__).info('Registration with phase correlation')
@@ -911,7 +911,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
     # Save the txt file with the translation matrix
     txt_name = os.path.join(output_path,'transf_matrices', image.name.split('_')[0] +'_transformationMatrix.txt')
 
-    transformation_matrices_complete = np.zeros([image.sizes['T'], 8], dtype=np.int)
+    transformation_matrices_complete = np.zeros([image.sizes['T'], 8], dtype=np.int64)
     transformation_matrices_complete[timepoint_range[0]-1:timepoint_range[1]-1] = transformation_matrices.astype(int)
 
     transformation_matrices_complete[:, 0] = np.arange(1, image.sizes['T']+1)
