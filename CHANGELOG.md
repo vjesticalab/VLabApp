@@ -8,6 +8,8 @@
 
 ### Fixed
 
+* Fix the "AttributeError: module 'numpy' has no attribute 'int'" due to removal of numpy.int in numpy 1.24.
+
 
 
 
