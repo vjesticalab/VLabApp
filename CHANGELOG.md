@@ -2,13 +2,26 @@
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+
+
+
+
+
+## [v1.5.0] 2024-03-21
+
+### Added
+
 * Manual correction of registration matrix with napari (registration module).
 
 ### Changed
 
 * Update installation instructions
-
-### Removed
 
 ### Fixed
 
@@ -17,8 +30,7 @@
 
 
 
-
-## [v1.4.1] 2023-03-12
+## [v1.4.1] 2024-03-12
 
 ### Added
 
@@ -32,7 +44,7 @@
 
 
 
-## [v1.4.0] 2023-03-11
+## [v1.4.0] 2024-03-11
 
 ### Added
 
@@ -41,7 +53,7 @@
 
 
 
-## [v1.3.1] 2023-03-07
+## [v1.3.1] 2024-03-07
 
 ### Added
 * Fusion timepoint correction events_filter module
