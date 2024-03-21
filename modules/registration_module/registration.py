@@ -1,6 +1,6 @@
 import os
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QCheckBox, QComboBox, QFormLayout, QPushButton, QVBoxLayout, QWidget, QGridLayout, QLabel, QLineEdit, QHBoxLayout, QApplication, QSpinBox, QRadioButton, QGroupBox
+from PyQt5.QtWidgets import QCheckBox, QComboBox, QFormLayout, QPushButton, QVBoxLayout, QWidget, QGridLayout, QLabel, QLineEdit, QHBoxLayout, QApplication, QSpinBox, QRadioButton, QGroupBox, QFileDialog
 from PyQt5.QtGui import QCursor, QIntValidator
 from functools import partial
 import numpy as np
@@ -537,6 +537,92 @@ class Edit(gf.Page):
         self.display_graph.show()
 
 
+class ManualEdit(gf.Page):
+    def __init__(self):
+        super().__init__()
+
+        self.imagetypes = ['.nd2', '.tif', '.tiff']
+        self.matricestypes = ['.txt']
+
+        ####### Section Manual Editing #######
+        self.input_image = gf.DropFileLineEdit(filetypes=self.imagetypes)
+        browse_image_button = QPushButton("Browse", self)
+        browse_image_button.clicked.connect(self.browse_image)
+        self.input_matrix = gf.DropFileLineEdit(filetypes=self.matricestypes)
+        browse_matrix_button = QPushButton("Browse", self)
+        browse_matrix_button.clicked.connect(self.browse_matrix)
+        self.button_edit = QPushButton('Edit')
+        self.button_edit.clicked.connect(self.edit)
+
+        # Layout
+        layout = QVBoxLayout()
+        groupbox = QGroupBox("Input image (before registration)")
+        layout2 = QHBoxLayout()
+        layout2.addWidget(self.input_image)
+        layout2.addWidget(browse_image_button, alignment=Qt.AlignCenter)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        groupbox = QGroupBox("Matrix to edit")
+        layout2 = QHBoxLayout()
+        layout2.addWidget(self.input_matrix)
+        layout2.addWidget(browse_matrix_button, alignment=Qt.AlignCenter)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        layout.addWidget(self.button_edit, alignment=Qt.AlignCenter)
+        self.window = QVBoxLayout(self.container)
+        self.window.addLayout(layout)
+        self.window.addStretch()
+
+        self.logger = logging.getLogger(__name__)
+
+    def browse_image(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images (' + ' '.join(['*' + x for x in self.imagetypes]) + ')')
+        if file_path != '':
+            self.input_image.setText(file_path)
+
+    def browse_matrix(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Transformation matrices (' + ' '.join(['*' + x for x in self.matricestypes]) + ')')
+        if file_path != '':
+            self.input_matrix.setText(file_path)
+
+    def edit(self):
+        def check_inputs(image_path, matrix_path):
+            """
+            Check if the inputs are valid
+            Return: True if valid, False otherwise
+            """
+            if image_path == '':
+                self.logger.error('Image missing')
+                self.input_image.setFocus()
+                return False
+            if not os.path.isfile(image_path):
+                self.logger.error('Image not found %s', image_path)
+                self.input_image.setFocus()
+                return False
+            if matrix_path == '':
+                self.logger.error('Matrix missing')
+                self.input_matrix.setFocus()
+                return False
+            if not os.path.isfile(matrix_path):
+                self.logger.error('Matrix not found %s', matrix_path)
+                self.input_matrix.setFocus()
+                return False
+            return True
+
+        image_path = self.input_image.text()
+        matrix_path = self.input_matrix.text()
+
+        if not check_inputs(image_path, matrix_path):
+            return
+        self.logger.info('Manually editing %s (image: %s', matrix_path, image_path)
+        try:
+            f.manual_edit_main(image_path, matrix_path)
+        except Exception as e:
+            self.logger.exception('Manual editing failed')
+
+        self.logger.info("Done")
+
+
 class Registration(QWidget):
     def __init__(self):
         super().__init__()
@@ -546,7 +632,8 @@ class Registration(QWidget):
 
         tabwizard.addPage(Perform(), "Registration")
         tabwizard.addPage(Align(), "Alignment")
-        tabwizard.addPage(Edit(), "Editing")
+        tabwizard.addPage(Edit(), "Editing (batch)")
+        tabwizard.addPage(ManualEdit(), "Editing (manual)")
 
         window.addWidget(tabwizard)
 

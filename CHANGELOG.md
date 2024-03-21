@@ -2,6 +2,8 @@
 
 ### Added
 
+* Manual correction of registration matrix with napari (registration module).
+
 ### Changed
 
 ### Removed

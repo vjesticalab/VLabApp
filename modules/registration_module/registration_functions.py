@@ -8,6 +8,293 @@ import cv2 as cv
 from aicsimageio.writers import OmeTiffWriter
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform
+from PyQt5.QtWidgets import QVBoxLayout, QWidget, QPushButton, QLabel, QScrollArea, QFileDialog, QRadioButton, QGroupBox, QFormLayout, QSpinBox, QMessageBox, QApplication, QCheckBox
+from PyQt5.QtCore import Qt, pyqtSignal
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvas
+import napari
+
+
+class EditTransformationMatrix(QWidget):
+    """
+    A widget to use inside napari
+    """
+
+    tmat_changed = pyqtSignal(np.ndarray)
+
+    def __init__(self, viewer, input_filename):
+        """
+        Parameters
+        ----------
+        viewer: napari.Viewer
+            the napari viewer that contains the image. viewer.dims.axis_labels must contain the actual axis labels (must contain at least 'T', 'Y' and 'X']).
+        input_filename: str
+            transformation matrix filename
+        """
+        super().__init__()
+
+        self.point_color_active = [0, 1, 0, 1]
+        self.point_color_inactive = [1, 1, 1, 1]
+
+        self.viewer = viewer
+        self.input_filename = input_filename
+        self.tmat = read_transfMat(input_filename)
+        self.tmat_saved_version = self.tmat.copy()
+        tmat_active_frames = np.nonzero(self.tmat[:, 3])[0]
+        if len(tmat_active_frames) > 0:
+            tmat_start = tmat_active_frames.min()
+            tmat_end = tmat_active_frames.max()
+        else:
+            tmat_start = 1
+            tmat_end = 0
+
+        self.T_axis_index = viewer.dims.axis_labels.index('T')
+        self.Y_axis_index = viewer.dims.axis_labels.index('Y')
+        self.X_axis_index = viewer.dims.axis_labels.index('X')
+        self.other_axis_indices = np.setdiff1d(range(viewer.dims.ndim), [self.T_axis_index, self.Y_axis_index, self.X_axis_index])
+
+        ## 3 columns: T, Y, X
+        points_TYX = self.tmat[:, (0, 5, 4)]
+        # from 1-based indexing to 0-based indexing
+        points_TYX[:, 0] = points_TYX[:, 0] - 1
+        cy = (points_TYX[:, 1].min() + points_TYX[:, 1].max()) / 2
+        cx = (points_TYX[:, 2].min() + points_TYX[:, 2].max()) / 2
+        # center
+        shifty = np.round((points_TYX[:, 1].min() + points_TYX[:, 1].max()) / 2 - self.tmat[:, 7].mean() / 2)
+        shiftx = np.round((points_TYX[:, 2].min() + points_TYX[:, 2].max()) / 2 - self.tmat[:, 6].mean() / 2)
+        points_TYX[:, 1] = points_TYX[:, 1] - shifty
+        points_TYX[:, 2] = points_TYX[:, 2] - shiftx
+
+        # add points to all dimensions (viewer.dims)
+        points = np.zeros((points_TYX.shape[0], viewer.dims.ndim), dtype=points_TYX.dtype)
+        points[:,viewer.dims.axis_labels.index('T')] = points_TYX[:,0]
+        points[:,viewer.dims.axis_labels.index('Y')] = points_TYX[:,1]
+        points[:,viewer.dims.axis_labels.index('X')] = points_TYX[:,2]
+        for i,d in enumerate(viewer.dims.axis_labels):
+            if not d in ['T','Y','X']:
+                range_min = np.round(viewer.dims.range[i][0])
+                range_max = np.round(viewer.dims.range[i][1])
+                values = np.arange(range_min, range_max, 1, dtype=points_TYX.dtype)
+                points_nrow = points.shape[0]
+                points = np.tile(points, (values.shape[0], 1))
+                points[:, i] = np.repeat(values, [points_nrow], axis=0)
+
+        edge_color = np.tile(self.point_color_inactive, (points.shape[0], 1))
+        edge_color[(tmat_start <= points[:, self.T_axis_index]) & (points[:, self.T_axis_index] <= tmat_end)] = self.point_color_active
+        self.layer_points = viewer.add_points(points, name='Alignment points', size=30, face_color="#00000000", edge_color=edge_color, edge_width=0.2)
+
+        layout = QVBoxLayout()
+
+        groupbox = QGroupBox("Modify:")
+        layout2 = QVBoxLayout()
+        help_label = QLabel("Use SHIFT + CLICK to define the position of the alignment point (for all frames), without modifying the transformation matrix.\nUse CTRL + CLICK to update the position of the alignment point. When modifying the position of the alignment point, apply the modification to the following frame range:")
+        help_label.setWordWrap(True)
+        help_label.setMinimumWidth(10)
+        layout2.addWidget(help_label)
+        self.modify_previous_frames = QRadioButton("from first to current frame")
+        self.modify_previous_frames.setChecked(False)
+        layout2.addWidget(self.modify_previous_frames)
+        self.modify_current_frame = QRadioButton("only current frame")
+        self.modify_current_frame.setChecked(True)
+        layout2.addWidget(self.modify_current_frame)
+        self.modify_subsequent_frames = QRadioButton("from current to last frame")
+        self.modify_subsequent_frames.setChecked(False)
+        layout2.addWidget(self.modify_subsequent_frames)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
+        groupbox = QGroupBox("Transformation range (frames)")
+        layout2 = QFormLayout()
+        self.start_frame = QSpinBox()
+        self.start_frame.setMinimum(0)
+        self.start_frame.setMaximum(points[:, self.T_axis_index].max() - 1)
+        self.start_frame.setValue(tmat_start)
+        self.start_frame.valueChanged.connect(self.time_range_changed)
+        layout2.addRow("Start:", self.start_frame)
+        self.end_frame = QSpinBox()
+        self.end_frame.setMinimum(0)
+        self.end_frame.setMaximum(points[:, self.T_axis_index].max())
+        self.end_frame.setValue(tmat_end)
+        self.end_frame.valueChanged.connect(self.time_range_changed)
+        layout2.addRow("End:", self.end_frame)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
+        groupbox = QGroupBox("View")
+        layout2 = QVBoxLayout()
+        self.shift_view = QCheckBox("Move view with aligmnent point")
+        self.shift_view.setChecked(False)
+        layout2.addWidget(self.shift_view)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self.save)
+        layout.addWidget(self.save_button, alignment=Qt.AlignCenter)
+
+        layout.addStretch()
+        self.setLayout(layout)
+
+        layer_points = self.layer_points
+
+        @layer_points.mouse_drag_callbacks.append
+        def click_drag(layer, event):
+            dragged = False
+            yield
+            # on move
+            while event.type == 'mouse_move':
+                dragged = True
+                yield
+            # on release
+            if not dragged:  # i.e. simple click
+                if event.button == 1:  # (left-click)
+                    if 'Control' in event.modifiers or 'Shift' in event.modifiers:
+                        current_frame = round(event.position[self.T_axis_index])
+                        sel=np.repeat(True,self.layer_points.data.shape[0])
+                        for i in self.other_axis_indices:
+                            sel = sel & (self.layer_points.data[:, i] == self.viewer.dims.current_step[i])
+                        sel = sel & (np.round(self.layer_points.data[:, self.T_axis_index]) == np.round(current_frame))
+                        # note that each frame contains only one point, i.e. sel contains a unique True element
+                        delta = np.round(event.position - self.layer_points.data[sel])
+                        if  'Shift' in event.modifiers:
+                            # move everything
+                            sel = np.repeat(True, self.layer_points.data.shape[0])
+                        elif self.modify_previous_frames.isChecked():
+                            sel = np.round(self.layer_points.data[:, self.T_axis_index]) <= np.round(current_frame)
+                        elif self.modify_current_frame.isChecked():
+                            sel = np.round(self.layer_points.data[:, self.T_axis_index]) == np.round(current_frame)
+                        elif self.modify_subsequent_frames.isChecked():
+                            sel = np.round(self.layer_points.data[:, self.T_axis_index]) >= np.round(current_frame)
+                        self.layer_points.data[sel,] = self.layer_points.data[sel,] + delta
+                        self.update_tmat()
+                        layer.refresh()
+
+        self.layer_points.editable = False
+        # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
+        # This is a quick and dirty hack to force the layer to stay non-editable.
+        self.layer_points.events.editable.connect(self.layer_points_editable)
+
+        # To allow saving transformation matrix before closing (__del__ is called too late)
+        # TODO: replace by proper napari close event once implemented (https://forum.image.sc/t/handle-of-close-event-in-napari/61039)
+        self.viewer.window._qt_window.destroyed.connect(self.on_close)
+
+        self.viewer.dims.events.current_step.connect(self.dims_current_step_changed)
+        self.dims_last_step=self.viewer.dims.current_step
+
+    def layer_points_editable(self):
+        self.layer_points.editable = False
+
+    def dims_current_step_changed(self,event):
+        try:
+            if self.dims_last_step[self.T_axis_index] != self.viewer.dims.current_step[self.T_axis_index]:
+                if self.shift_view.isChecked():
+                    last_frame = self.dims_last_step[self.T_axis_index]
+                    current_frame = self.viewer.dims.current_step[self.T_axis_index]
+                    dx = self.tmat[current_frame,4] - self.tmat[last_frame,4]
+                    dy = self.tmat[current_frame,5] - self.tmat[last_frame,5]
+                    self.viewer.camera.center = (0, self.viewer.camera.center[1]+dy, self.viewer.camera.center[2]+dx)
+                self.dims_last_step = self.viewer.dims.current_step
+        except IndexError:
+            pass
+
+    def update_tmat(self):
+        # self.layer_points are duplicated along all axes other than T, Y and X.
+        # here we keep only subset of data for one value (here the min) of each axis other than T, Y or X
+        column_mask = np.zeros(self.layer_points.data.shape[1], dtype=bool)
+        column_mask[self.other_axis_indices] = True
+        min_values = np.min(self.layer_points.data[:, column_mask], axis=0)
+        rows_to_keep = (self.layer_points.data[:, column_mask] == min_values).all(axis=1)
+        data_subset = self.layer_points.data[rows_to_keep]
+
+        self.tmat[:, 3] = 0
+        self.tmat[self.start_frame.value() : self.end_frame.value() + 1, 3] = 1
+        # raw transformation
+        self.tmat[:, 4] = data_subset[:, self.X_axis_index]
+        self.tmat[:, 5] = data_subset[:, self.Y_axis_index]
+        self.tmat[:, 4] = self.tmat[:, 4] - self.tmat[0, 4]
+        self.tmat[:, 5] = self.tmat[:, 5] - self.tmat[0, 5]
+        # final transformation
+        self.tmat[:, 1] = self.tmat[:, 4] - self.tmat[self.start_frame.value(), 4]
+        self.tmat[:, 2] = self.tmat[:, 5] - self.tmat[self.start_frame.value(), 5]
+        self.tmat_changed.emit(self.tmat)
+
+    def time_range_changed(self):
+        self.layer_points.edge_color = self.point_color_inactive
+        self.layer_points.edge_color[(self.start_frame.value() <= self.layer_points.data[:, self.T_axis_index]) & (self.layer_points.data[:, self.T_axis_index] <= self.end_frame.value())] = self.point_color_active
+        self.update_tmat()
+        self.layer_points.refresh()
+
+    def on_close(self):
+        if not np.array_equal(self.tmat, self.tmat_saved_version):
+            save = QMessageBox.question(self, 'Save changes', "Save transformation matrix before closing?", QMessageBox.Yes | QMessageBox.No)
+            if save == QMessageBox.Yes:
+                self.save()
+                self.tmat_saved_version = self.tmat.copy()
+
+    def save(self):
+        filename = QFileDialog.getSaveFileName(self, 'Save transformation matrix', self.input_filename)[0]
+        if filename != '':
+            logging.getLogger(__name__).info('Saving transformation matrix to %s', filename)
+            np.savetxt(filename, self.tmat, fmt='%d, %d, %d, %d, %d, %d, %d, %d', header='timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y, x, y', delimiter = '\t')
+            logging.getLogger(__name__).info('Done')
+
+
+class PlotTransformation(QWidget):
+    """
+    A widget to use inside napari
+    """
+
+    def __init__(self, viewer, tmat):
+        """
+        Parameters
+        ----------
+        viewer: napari.Viewer
+            the napari viewer that contains the image. viewer.dims.axis_labels must contain the actual axis labels (must contain at least 'T', 'Y' and 'X']).
+        input_filename: str
+            transformation matrix filename
+        """
+        super().__init__()
+
+        self.viewer = viewer
+        self.T_axis_index = self.viewer.dims.axis_labels.index('T')
+
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(111)
+        self.ax.set(xlabel='Frame', ylabel='Transformation (offset)')
+        x = np.arange(0, tmat.shape[0])
+        self.vline = self.ax.axvline(x=self.viewer.dims.current_step[self.T_axis_index], ymin=0, ymax=1, color="black", alpha=0.1)
+        (self.line_x_all,) = self.ax.plot(x, tmat[:, 4], color="#E41A1C", linestyle=":", label="x (all frames)", alpha=0.8)
+        (self.line_y_all,) = self.ax.plot(x, tmat[:, 5], color="#377EB8", linestyle=":", label="y (all frames)", alpha=0.8)
+        (self.line_x_active,) = self.ax.plot(x[tmat[:, 3] == 1], tmat[tmat[:, 3] == 1, 1], color="#E41A1C", linestyle="-", label="x (selected frames)")
+        (self.line_y_active,) = self.ax.plot(x[tmat[:, 3] == 1], tmat[tmat[:, 3] == 1, 2], color="#377EB8", linestyle="-", label="y (selected frames)")
+        self.ax.legend()
+
+        layout = QVBoxLayout()
+        layout.addWidget(FigureCanvas(self.fig))
+        self.setLayout(layout)
+
+        # connect a callback to update the vertical line (frame) on slider change
+        self.viewer.dims.events.current_step.connect(self.update_frame)
+
+    def update_frame(self,event):
+        try:
+            t = self.viewer.dims.current_step[self.T_axis_index]
+            self.vline.set_xdata([t, t])
+            self.fig.canvas.draw()
+        except IndexError:
+            pass
+
+    def update(self, tmat):
+        x = np.arange(0, tmat.shape[0])
+        self.line_x_all.set_ydata(tmat[:, 4])
+        self.line_y_all.set_ydata(tmat[:, 5])
+        self.line_x_active.set_xdata(x[tmat[:, 3] == 1])
+        self.line_x_active.set_ydata(tmat[tmat[:, 3] == 1, 1])
+        self.line_y_active.set_xdata(x[tmat[:, 3] == 1])
+        self.line_y_active.set_ydata(tmat[tmat[:, 3] == 1, 2])
+        self.ax.relim()
+        self.ax.autoscale_view(scalex=False, scaley=True)
+        self.fig.canvas.draw()
 
 
 ## create a trivial MoveTransform (only translation) that inherits from skimage.transform.ProjectiveTransform
@@ -720,3 +1007,34 @@ def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end
     headerText += time.strftime('Updated on %Y/%m/%d at %H:%M:%S .') + ' Timepoints range: ' + str(range_start) + ' - ' + str(range_end) + ' . Reference timepoint: ' + str(reference_timepoint)
     # Save the new matrix
     np.savetxt(reference_matrix_path, tmat_updated, fmt = '%d, %d, %d, %d, %d, %d, %d, %d', header=headerText, delimiter='\t')
+
+
+################################################################
+
+
+def manual_edit_main(image_path, matrix_path):
+    try:
+        image = gf.Image(image_path)
+        image.imread()
+    except:
+        logging.getLogger(__name__).exception('Error loading image %s', image_path)
+        raise
+
+    viewer = napari.Viewer()
+    # FTCZYX image:
+    viewer.add_image(image.image, name="image", channel_axis=2)
+    # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
+    viewer.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
+
+
+
+    scroll_area = QScrollArea()
+    scroll_area.setWidgetResizable(True)
+    edit_transformation_matrix = EditTransformationMatrix(viewer, matrix_path)
+    scroll_area.setWidget(edit_transformation_matrix)
+    viewer.window.add_dock_widget(scroll_area, area='right', name="Edit transformation matrix")
+
+    plot_transformation = PlotTransformation(viewer, edit_transformation_matrix.tmat)
+    viewer.window.add_dock_widget(plot_transformation, area="bottom")
+
+    edit_transformation_matrix.tmat_changed.connect(plot_transformation.update)
