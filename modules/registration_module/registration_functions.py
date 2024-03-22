@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QWidget, QPushButton, QLabel, QScrollAr
 from PyQt5.QtCore import Qt, pyqtSignal
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvas
+from matplotlib.backend_bases import MouseButton
 import napari
 
 
@@ -1035,6 +1036,8 @@ def manual_edit_main(image_path, matrix_path):
     viewer.window.add_dock_widget(scroll_area, area='right', name="Edit transformation matrix")
 
     plot_transformation = PlotTransformation(viewer, edit_transformation_matrix.tmat)
+    plot_transformation.fig.canvas.mpl_connect('button_press_event', lambda event: viewer.dims.set_point(1,round(event.xdata)) if event.button is event.button is MouseButton.LEFT and event.inaxes else None)
+    plot_transformation.fig.canvas.mpl_connect('motion_notify_event', lambda event: viewer.dims.set_point(1,round(event.xdata)) if event.button is MouseButton.LEFT and event.inaxes else None)
     viewer.window.add_dock_widget(plot_transformation, area="bottom")
 
     edit_transformation_matrix.tmat_changed.connect(plot_transformation.update)
