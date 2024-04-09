@@ -646,9 +646,11 @@ class Image:
 
     Methods
     -------
+    __init__()
+        Set the 'path' and populate attributes sizes and shape.
     imread()
-        Read the image from the already setted 'path'
-        Attributes image, sizes and shape are populated here
+        Read the image from the already setted 'path'.
+        Attribute image is populated here.
     save()
         Empty
     get_TYXarray()
@@ -669,31 +671,59 @@ class Image:
         self.sizes = None
         self.image = None
         self.shape = None
+        self._axes = 'FTCZYX'
+        self.read_attr()
+
+    def read_attr(self):
+        if self.extension == '.nd2':
+            reader = nd2.ND2File(self.path)
+            axes_order = str(''.join(list(reader.sizes.keys()))).upper() #eg. reader.sizes = {'T': 10, 'C': 2, 'Y': 2048, 'X': 2048}
+            shape = reader.shape
+            reader.close()
+        elif (self.extension == '.tiff' or self.extension == '.tif'):
+            reader = tifffile.TiffFile(self.path)
+            axes_order = str(reader.series[0].axes).upper()
+            shape = reader.series[0].shape
+            reader.close()
+        else:
+            logging.getLogger(__name__).error('Image format not supported. Please upload a tiff or nd2 image file.')
+            raise TypeError('Image format not supported. Please upload a tiff or nd2 image file.')
+
+        self.shape = []
+        self.sizes= dict()
+        for a in self._axes:
+            if a in axes_order:
+                self.shape.append(shape[axes_order.index(a)])
+                self.sizes[a] = shape[axes_order.index(a)]
+            else:
+                self.shape.append(1)
+                self.sizes[a] = 1
+        self.shape = tuple(self.shape)
 
     def imread(self):
         def set_6Dimage(image, axes):
             """
             Return a 6D ndarray of the input image
             """
-            dimensions = {'F': 0, 'T': 1, 'C': 2, 'Z': 3, 'Y': 4, 'X': 5}
+            dimensions = {k:v for v,k in enumerate(self._axes)}
             # Dictionary with image axes order
             axes_order = {}
             for i, char in enumerate(axes):
                 axes_order[char] = i
             # Mapping for the desired order of dimensions
-            mapping = [axes_order.get(d, None) for d in 'FTCZYX']
+            mapping = [axes_order.get(d, None) for d in self._axes]
             mapping = [i for i in mapping if i is not None]
             # Rearrange the image array based on the desired order
             image = np.transpose(image, axes=mapping)
             # Determine the missing dimensions and reshape the array filling the missing dimensions
             missing_dims = []
-            for c in 'FTCZYX':
+            for c in self._axes:
                 if c not in axes:
                     missing_dims.append(c)
             for dim in missing_dims:
                 position = dimensions[dim]
                 image = np.expand_dims(image, axis=position)
-            return image, image.shape
+            return image
 
         # axis default order: FTCZYX for 6D - F = FieldofView, T = time, C = channels
         if self.extension == '.nd2':
@@ -701,25 +731,18 @@ class Image:
             axes_order = str(''.join(list(reader.sizes.keys()))).upper() #eg. reader.sizes = {'T': 10, 'C': 2, 'Y': 2048, 'X': 2048}
             image = reader.asarray() #nd2.imread(self.path)
             reader.close()
-            self.sizes = {}
-            self.image, self.shape = set_6Dimage(image, axes_order)
-            for key, value in zip('FTCZYX', self.shape):
-                self.sizes[key] = value # eg. {'F': 1, 'T': 10, 'C': 2, 'Z': 1, 'Y': 2048, 'X': 2048}
-            return self.image
-
         elif (self.extension == '.tiff' or self.extension == '.tif'):
             reader = tifffile.TiffFile(self.path)
             axes_order = str(reader.series[0].axes).upper()
             image = reader.asarray()
             reader.close()
-            self.sizes = {}
-            self.image, self.shape = set_6Dimage(image, axes_order)
-            for key, value in zip('FTCZYX', self.shape):
-                self.sizes[key] = value
-            return self.image
         else:
             logging.getLogger(__name__).error('Image format not supported. Please upload a tiff or nd2 image file.')
             raise TypeError('Image format not supported. Please upload a tiff or nd2 image file.')
+
+        self.image = set_6Dimage(image, axes_order)
+        return self.image
+
 
     def save(self):
         pass

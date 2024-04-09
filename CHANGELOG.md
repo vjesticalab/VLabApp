@@ -4,6 +4,8 @@
 
 ### Changed
 
+* Image class: shape and sizes attributes are populated in the constructor.
+
 ### Removed
 
 ### Fixed
