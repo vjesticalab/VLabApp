@@ -21,9 +21,9 @@ class zProjection(QWidget):
         self.image_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='')
 
         # Output folders
-        self.use_input_folder = QRadioButton("Input file folder")
+        self.use_input_folder = QRadioButton("Use input file folder")
         self.use_input_folder.setChecked(True)
-        self.use_custom_folder = QRadioButton("Custom folder (same for all the input files):")
+        self.use_custom_folder = QRadioButton("Use custom folder (same for all the input files):")
         self.use_custom_folder.setChecked(False)
         self.output_folder = gf.DropFolderLineEdit()
         self.browse_button2 = QPushButton("Browse", self)
@@ -95,7 +95,7 @@ class zProjection(QWidget):
         layout.addWidget(groupbox)
 
         # Output folders
-        groupbox = QGroupBox("Output")
+        groupbox = QGroupBox('Output')
         layout2 = QVBoxLayout()
         layout2.addWidget(self.use_input_folder)
         layout2.addWidget(self.use_custom_folder)
