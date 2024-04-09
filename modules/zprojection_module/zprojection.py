@@ -21,7 +21,7 @@ class zProjection(QWidget):
         self.image_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='')
 
         # Output folders
-        self.use_input_folder = QRadioButton("Sub-folder 'zprojection' in the input file folder")
+        self.use_input_folder = QRadioButton("Input file folder")
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Custom folder (same for all the input files):")
         self.use_custom_folder.setChecked(False)
@@ -43,7 +43,7 @@ class zProjection(QWidget):
         self.projection_mode_around_bestZ.setChecked(True)
         self.projection_mode_around_bestZ.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
         self.projection_mode_around_bestZ_zrange = QSpinBox()
-        self.projection_mode_around_bestZ_zrange.setMinimum(0)
+        self.projection_mode_around_bestZ_zrange.setMinimum(1)
         self.projection_mode_around_bestZ_zrange.setMaximum(20)
         self.projection_mode_around_bestZ_zrange.setValue(3)
         # fixed range
@@ -95,7 +95,7 @@ class zProjection(QWidget):
         layout.addWidget(groupbox)
 
         # Output folders
-        groupbox = QGroupBox("Output folder")
+        groupbox = QGroupBox("Output")
         layout2 = QVBoxLayout()
         layout2.addWidget(self.use_input_folder)
         layout2.addWidget(self.use_custom_folder)
@@ -196,15 +196,30 @@ class zProjection(QWidget):
                 return False
             return True
 
-        image_paths = self.image_list.get_file_list()
-        output_basenames = [os.path.splitext(os.path.basename(path))[0] for path in image_paths]
-        if self.use_input_folder.isChecked():
-            output_paths = [os.path.join(os.path.dirname(path), 'zprojection') for path in image_paths]
-        else:
-            output_paths = [self.output_folder.text() for path in image_paths]
-
-        if not check_inputs(image_paths, output_paths, output_basenames):
-            return
+        def get_projection_suffix(image_path,projection_zrange,projection_type):
+            if projection_zrange is None:
+                im = gf.Image(image_path)
+                output_suffix_reference = 'f'
+                output_suffix_range = '0-'+str(im.sizes['Z'])
+                output_suffix_projection_type = projection_type
+            elif isinstance(projection_zrange, int):
+                output_suffix_reference = 'b'
+                output_suffix_range = str(projection_zrange)
+                if projection_zrange > 0:
+                    output_suffix_projection_type = projection_type
+                else:
+                    output_suffix_projection_type = 'none'
+            elif isinstance(projection_zrange, tuple) and len(projection_zrange):
+                output_suffix_reference = 'f'
+                output_suffix_range = str(min(projection_zrange)) + '-' + str(max(projection_zrange))
+                if max(projection_zrange) > min(projection_zrange):
+                    output_suffix_projection_type = projection_type
+                else:
+                    output_suffix_projection_type = 'none'
+            else:
+                self.logger.error('Invalid projection_zrange: %s', str(projection_zrange))
+                raise TypeError(f"Invalid projection_zrange: {projection_zrange}")
+            return output_suffix_reference + output_suffix_range + output_suffix_projection_type
 
         projection_type = self.projection_type.currentText()
         if self.projection_mode_bestZ.isChecked():
@@ -215,6 +230,18 @@ class zProjection(QWidget):
             projection_zrange = (self.projection_mode_fixed_zmin.value(), self.projection_mode_fixed_zmax.value())
         elif self.projection_mode_all.isChecked():
             projection_zrange = None
+
+        image_paths = self.image_list.get_file_list()
+        # prepare output suffix (incl. projection)
+        output_suffix = '_vPR'
+        output_basenames = [os.path.splitext(os.path.basename(path))[0] + output_suffix + get_projection_suffix(path, projection_zrange, projection_type) for path in image_paths]
+        if self.use_input_folder.isChecked():
+            output_paths = [os.path.dirname(path) for path in image_paths]
+        else:
+            output_paths = [self.output_folder.text() for path in image_paths]
+
+        if not check_inputs(image_paths, output_paths, output_basenames):
+            return
 
         # disable messagebox error handler
         messagebox_error_handler = None

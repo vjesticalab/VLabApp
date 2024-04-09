@@ -16,7 +16,7 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
     output_path: str
         output directory
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`_<projection>.tif and `output_path`/`output_basename`.log.
+        output basename. Output file will be saved as `output_path`/`output_basename`.tif and `output_path`/`output_basename`.log.
     projection_type: str
         type of the projection to perfrom
     projection_zrange:  int or (int,int) or None
@@ -65,7 +65,7 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
         logging.getLogger('general.general_functions').removeHandler(logfile_handler)
         raise
 
-    # Check z existance in the image
+    # Check z existence in the image
     if image.sizes['Z'] == 0:
         logger.error('Image %s has no z dimension', str(image_path))
         # Close logfile
@@ -84,18 +84,9 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
         raise
 
     # Save the projection
-    filename_suffix = None
-    if projection_zrange is None:
-        filename_suffix = projection_type
-    elif isinstance(projection_zrange, int) and projection_zrange == 0:
-        filename_suffix = "bestZ"
-    elif isinstance(projection_zrange, int):
-        filename_suffix = projection_type+str(projection_zrange)
-    elif isinstance(projection_zrange, tuple) and len(projection_zrange) == 2 and projection_zrange[0] <= projection_zrange[1]:
-        filename_suffix = projection_type + str(projection_zrange[0]) + "-" + str(projection_zrange[1])
-    output_file_name = os.path.join(output_path, output_basename+"_"+filename_suffix+".tif")
+    output_file_name = os.path.join(output_path, output_basename+".tif")
     # TODO: properly deal with 'F' axis, i.e. the first 0 in projected_image[0, :, :, 0, :, :] is problematic if there are more than one FOV.
-    OmeTiffWriter.save(projected_image[0, :, :, 0, :, :].astype('uint16'), output_file_name, dim_order="TCYX")
+    OmeTiffWriter.save(projected_image[0, :, :, 0, :, :], output_file_name, dim_order="TCYX")
     logger.info("Projection performed and saved (%s)", output_file_name)
 
     print('Projection performed and saved '+output_file_name)
