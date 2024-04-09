@@ -73,6 +73,14 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
         logging.getLogger('general.general_functions').removeHandler(logfile_handler)
         raise TypeError(f"Image {image_path} has no z dimension")
 
+    # Check 'F' axis has size 1
+    if image.sizes['F'] != 1:
+        logger.error('Image %s has a F axis with size > 1', str(image_path))
+        # Close logfile
+        logger.removeHandler(logfile_handler)
+        logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        raise TypeError(f"Image {image_path} has a F axis with size > 1")
+
     # Perform projection
     try:
         projected_image = image.zProjection(projection_type, projection_zrange)
@@ -85,7 +93,7 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
 
     # Save the projection
     output_file_name = os.path.join(output_path, output_basename+".tif")
-    # TODO: properly deal with 'F' axis, i.e. the first 0 in projected_image[0, :, :, 0, :, :] is problematic if there are more than one FOV.
+    # TODO: properly deal with 'F' axis.
     OmeTiffWriter.save(projected_image[0, :, :, 0, :, :], output_file_name, dim_order="TCYX")
     logger.info("Projection performed and saved (%s)", output_file_name)
 

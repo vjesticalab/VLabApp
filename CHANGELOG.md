@@ -11,6 +11,8 @@
 
 ### Fixed
 
+* Z-projection module: check that input image does not contain multiple fields of view (axis F).
+
 
 
 
