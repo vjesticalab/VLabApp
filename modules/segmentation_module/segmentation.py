@@ -17,8 +17,6 @@ class Segmentation(QWidget):
         self.image_list.file_list_changed.connect(self.image_list_changed)
 
         self.selected_model = gf.DropFileLineEdit()
-        default_model_path = '/Volumes/D2c/Lab_VjesticaLabApps/Cellpose_v2/20230704_CellposeModels/models/cellpose_projection_best_nepochs_5000'
-        self.selected_model.setText(default_model_path)
         self.browse_button = QPushButton("Browse", self)
         self.browse_button.clicked.connect(self.browse_model)
 

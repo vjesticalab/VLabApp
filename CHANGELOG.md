@@ -13,7 +13,7 @@
 ### Fixed
 
 * Z-projection module: check that input image does not contain multiple fields of view (axis F).
-
+* Segmentation module: remove default path for Cellpose model (it was pointing to a model trained on images with only Z section with best focus, which should not be used for images obtained with another Z-projection method). 
 
 
 
