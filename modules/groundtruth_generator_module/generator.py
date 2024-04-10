@@ -1,6 +1,7 @@
 import os
 from PyQt5.QtWidgets import QVBoxLayout, QRadioButton, QGroupBox, QHBoxLayout, QFileDialog, QPushButton, QWidget, QLineEdit, QLabel
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QRegExp
+from PyQt5.QtGui import QRegExpValidator
 from modules.groundtruth_generator_module import generator_functions as f
 from general import general_functions as gf
 import logging
@@ -30,6 +31,10 @@ class Generator(QWidget):
         self.browse_button2.setEnabled(self.use_custom_folder.isChecked())
         self.use_custom_folder.toggled.connect(self.output_folder.setEnabled)
         self.use_custom_folder.toggled.connect(self.browse_button2.setEnabled)
+        self.output_user_suffix = QLineEdit()
+        self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
+        self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
+        self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
         self.output_filename_label = QLineEdit()
         self.output_filename_label.setFrame(False)
         self.output_filename_label.setEnabled(False)
@@ -54,6 +59,10 @@ class Generator(QWidget):
         layout3.addWidget(self.output_folder)
         layout3.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
         layout2.addLayout(layout3)
+        layout3 = QHBoxLayout()
+        layout3.addWidget(QLabel("Suffix: "+self.output_suffix))
+        layout3.addWidget(self.output_user_suffix)
+        layout2.addLayout(layout3)
         layout2.addWidget(QLabel("Output filename:"))
         layout2.addWidget(self.output_filename_label)
         groupbox.setLayout(layout2)
@@ -76,7 +85,7 @@ class Generator(QWidget):
         else:
             output_path = self.output_folder.text().rstrip("/")
 
-        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix+".tif"))
+        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".tif"))
 
     def submit(self):
         """
@@ -115,7 +124,7 @@ class Generator(QWidget):
                     output_path = self.output_folder.text()
                 if not output_path.endswith('/'): output_path += '/'
                 if not os.path.exists(output_path): os.makedirs(output_path)
-                output_basename = os.path.splitext(os.path.basename(image_path))[0] + self.output_suffix
+                output_basename = os.path.splitext(os.path.basename(image_path))[0] + self.output_suffix + self.output_user_suffix.text()
                 # Set log and cursor info
                 self.logger.info("Image %s", image_path)
                 # Perform projection
