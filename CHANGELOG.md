@@ -6,6 +6,7 @@
 
 * Image class: shape and sizes attributes are populated in the constructor.
 * Z-projection module: change output file naming (do not create a zprojection/ sub-folder, add _vPR<projection> suffix, use same basename as projected file for log file).
+* GroundTruth module: change output file naming (do not create a ground_truth/ sub-folder, add _vGT suffix).
 
 ### Removed
 
