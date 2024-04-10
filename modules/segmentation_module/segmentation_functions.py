@@ -21,7 +21,7 @@ def call_evaluate(index, model, image_2D, diameter, channels):
     return tuple([index]) + model.eval(image_2D, diameter=diameter, channels=channels)
 
 
-def par_run_eval(image, mask, model, f, logger, tot_iterations, n_count):
+def par_run_eval(image, mask, model, logger, tot_iterations, n_count):
     """
     Run model evaluation in parallel
     """
@@ -31,7 +31,7 @@ def par_run_eval(image, mask, model, f, logger, tot_iterations, n_count):
                 call_evaluate,
                 t,
                 model,
-                image.image[f, t, 0, 0, :, :],
+                image.image[0, t, 0, 0, :, :],
                 model.diam_labels, [0, 0]
             ): t for t in range(image.sizes['T'])
         }
@@ -61,7 +61,7 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
     output_path: str
         output directory
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`_mask.tif and `output_path`/`output_basename`.log.
+        output basename. Output file will be saved as `output_path`/`output_basename`.tif and `output_path`/`output_basename`.log.
     display_results: bool, default True
         display input image and segmentation mask in napari
     use_gpu: bool, default False
@@ -105,11 +105,23 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
         logger.removeHandler(logfile_handler)
         raise
 
+    # Check 'F' axis has size 1
+    if image.sizes['F'] != 1:
+        logger.error('Image %s has a F axis with size > 1', str(image_path))
+        # Close logfile
+        logger.removeHandler(logfile_handler)
+        logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        raise TypeError(f"Image {image_path} has a F axis with size > 1")
+
+    # Check 'C' axis has size 1
+    if image.sizes['C'] != 1:
+        logger.warning('Image %s has a C axis with size > 1. Using first channel for segmentation.', str(image_path))
+
     # Create cellpose model
     logger.debug("loading cellpose model %s", model_path)
     model = models.CellposeModel(gpu=use_gpu, pretrained_model=model_path)
 
-    tot_iterations = image.sizes['Z']*image.sizes['T']*image.sizes['F']
+    tot_iterations = image.sizes['Z']*image.sizes['T']
 
     if display_results:
         # Open image in napari
@@ -132,43 +144,32 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
     logger.info("Cellpose segmentation (model diameter=%s)", model.diam_labels)
 
     iteration = 0
-    multiple_fov = True if image.sizes['F'] > 1 else False
-    for f in range(image.sizes['F']):
-        mask = np.zeros((image.sizes['T'], image.sizes['Y'], image.sizes['X']), dtype='uint16')
-        if run_parallel:
-            mask = par_run_eval(image, mask, model, f, logger, tot_iterations, n_count)
-        else:
-            for t in range(image.sizes['T']):
-                # Always assuming BF in channel=0 and only one Z channel
-                iteration += 1
-                image_2D = image.image[f, t, 0, 0, :, :]
-                if display_results:
-                    # Logging into napari window
-                    pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
-                    pbr.update(1)
-                logger.info("cellpose segmentation %s/%s", iteration, tot_iterations)
-                mask[t, :, :], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
+    mask = np.zeros((image.sizes['T'], image.sizes['Y'], image.sizes['X']), dtype='uint16')
+    if run_parallel:
+        mask = par_run_eval(image, mask, model, 0, logger, tot_iterations, n_count)
+    else:
+        for t in range(image.sizes['T']):
+            # Always assuming BF in channel=0 and only one Z channel
+            iteration += 1
+            image_2D = image.image[0, t, 0, 0, :, :]
+            if display_results:
+                # Logging into napari window
+                pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
+                pbr.update(1)
+            logger.info("cellpose segmentation %s/%s", iteration, tot_iterations)
+            mask[t, :, :], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
 
 
 
-        # Save image for each FoV
-        if multiple_fov:
-            output_name_originalimage = os.path.join(output_path, output_basename+"_FoV"+str(f+1)+".tif")
-            fov_image = image.get_TYXarray()
-            fov_image = fov_image[:, np.newaxis, :, :]
-            OmeTiffWriter.save(fov_image, output_name_originalimage, dim_order="TCYX")
-    
-            output_name = os.path.join(output_path, output_basename+"_FoV"+str(f+1)+"_mask.tif")
-        else:
-            output_name = os.path.join(output_path, output_basename+"_mask.tif")
-        # Save the mask
-        mask = mask[:, np.newaxis, :, :]
-        OmeTiffWriter.save(mask, output_name, dim_order="TCYX")
+    # Save the mask
+    output_name = os.path.join(output_path, output_basename+".tif")
+    mask = mask[:, np.newaxis, :, :]
+    OmeTiffWriter.save(mask, output_name, dim_order="TCYX")
 
-        logger.info("Saving segmentation masks to %s", output_name)
+    logger.info("Saving segmentation masks to %s", output_name)
 
-        if display_results:
-            QMessageBox.information(viewer_images.window._qt_window, 'File saved', 'Masks saved to\n' + output_name)
+    if display_results:
+        QMessageBox.information(viewer_images.window._qt_window, 'File saved', 'Masks saved to\n' + output_name)
 
     if display_results:
         # Stop logging into napari window & restore cursor

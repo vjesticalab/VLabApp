@@ -1,8 +1,8 @@
 import logging
 import os
-from PyQt5.QtWidgets import QFileDialog, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QLabel
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QCursor
+from PyQt5.QtWidgets import QFileDialog, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QLabel, QLineEdit
+from PyQt5.QtCore import Qt, QRegExp
+from PyQt5.QtGui import QCursor, QRegExpValidator
 from modules.segmentation_module import segmentation_functions as f
 from general import general_functions as gf
 import torch
@@ -12,6 +12,8 @@ class Segmentation(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.output_suffix = '_vSM'
+
         self.imagetypes = ['.nd2', '.tif', '.tiff']
         self.image_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_BF')
         self.image_list.file_list_changed.connect(self.image_list_changed)
@@ -20,17 +22,27 @@ class Segmentation(QWidget):
         self.browse_button = QPushButton("Browse", self)
         self.browse_button.clicked.connect(self.browse_model)
 
-        self.use_input_folder = QRadioButton("Use input image folder (segmentation_masks sub-folder)")
+        self.use_input_folder = QRadioButton("Use input image folder")
         self.use_input_folder.setChecked(True)
+        self.use_input_folder.toggled.connect(self.update_output_filename_label)
         self.use_custom_folder = QRadioButton("Use custom folder:")
         self.use_custom_folder.setChecked(False)
+        self.use_custom_folder.toggled.connect(self.update_output_filename_label)
         self.output_folder = gf.DropFolderLineEdit()
+        self.output_folder.textChanged.connect(self.update_output_filename_label)
         self.browse_button2 = QPushButton("Browse", self)
         self.browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setEnabled(self.use_custom_folder.isChecked())
         self.browse_button2.setEnabled(self.use_custom_folder.isChecked())
         self.use_custom_folder.toggled.connect(self.output_folder.setEnabled)
         self.use_custom_folder.toggled.connect(self.browse_button2.setEnabled)
+        self.output_user_suffix = QLineEdit()
+        self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
+        self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
+        self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
+        self.output_filename_label = QLineEdit()
+        self.output_filename_label.setFrame(False)
+        self.output_filename_label.setEnabled(False)
 
         self.use_gpu = QCheckBox("Activate GPU")
         self.use_gpu.setChecked(False)
@@ -66,7 +78,7 @@ class Segmentation(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        groupbox = QGroupBox("Output folder")
+        groupbox = QGroupBox("Output")
         layout2 = QVBoxLayout()
         layout2.addWidget(self.use_input_folder)
         layout2.addWidget(self.use_custom_folder)
@@ -74,6 +86,12 @@ class Segmentation(QWidget):
         layout3.addWidget(self.output_folder)
         layout3.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
         layout2.addLayout(layout3)
+        layout3 = QHBoxLayout()
+        layout3.addWidget(QLabel("Suffix: "+self.output_suffix))
+        layout3.addWidget(self.output_user_suffix)
+        layout2.addLayout(layout3)
+        layout2.addWidget(QLabel("Output filename:"))
+        layout2.addWidget(self.output_filename_label)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Multi-processing")
@@ -90,6 +108,8 @@ class Segmentation(QWidget):
         self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
+
+        self.update_output_filename_label()
 
     def image_list_changed(self):
         if self.image_list.count() > 1:
@@ -111,6 +131,14 @@ class Segmentation(QWidget):
     def browse_output(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         self.output_folder.setText(folder_path)
+
+    def update_output_filename_label(self):
+        if self.use_input_folder.isChecked():
+            output_path = "<input folder>"
+        else:
+            output_path = self.output_folder.text().rstrip("/")
+
+        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".tif"))
 
     def submit(self):
         """
@@ -146,9 +174,10 @@ class Segmentation(QWidget):
 
         image_paths = self.image_list.get_file_list()
         model_path = self.selected_model.text()
-        output_basenames = [os.path.splitext(os.path.basename(path))[0] for path in image_paths]
+        user_suffix = self.output_user_suffix.text()
+        output_basenames = [os.path.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
         if self.use_input_folder.isChecked():
-            output_paths = [os.path.join(os.path.dirname(path), 'segmentation_masks') for path in image_paths]
+            output_paths = [os.path.dirname(path) for path in image_paths]
         else:
             output_paths = [self.output_folder.text() for path in image_paths]
 

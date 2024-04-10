@@ -7,13 +7,16 @@
 * Image class: shape and sizes attributes are populated in the constructor.
 * Z-projection module: change output file naming (do not create a zprojection/ sub-folder, add _vPR<projection> suffix, use same basename as projected file for log file).
 * GroundTruth module: change output file naming (do not create a ground_truth/ sub-folder, add _vGT suffix).
+* Segmentation module: change output file naming (do not create a segmentation_masks/ sub-folder, add _vSM suffix).
+* Segmentation module: if input image contains multiple fields of view (F axis), raise an error instead of saving one image per field of view.
 
 ### Removed
 
 ### Fixed
 
 * Z-projection module: check that input image does not contain multiple fields of view (axis F).
-* Segmentation module: remove default path for Cellpose model (it was pointing to a model trained on images with only Z section with best focus, which should not be used for images obtained with another Z-projection method). 
+* Segmentation module: remove default path for Cellpose model (it was pointing to a model trained on images with only Z section with best focus, which should not be used for images obtained with another Z-projection method).
+* Segmentation module: warn that only the first channel is used for segmentation if input image contains more than one channel (axis C).
 
 
 
