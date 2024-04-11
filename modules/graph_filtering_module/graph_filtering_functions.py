@@ -618,7 +618,7 @@ class CellTracksFiltering:
 
     def save(self, output_path, output_basename, relabel_mask_ids=True):
         """
-        Save filtered cell tracking graph and cell mask as  `output_path`/`output_basename`_graph.graphmlz and `output_path`/`output_basename`_mask.tif.
+        Save filtered cell tracking graph and cell mask as  `output_path`/`output_basename`.graphmlz and `output_path`/`output_basename`.tif.
 
         Parameters
         ----------
@@ -634,13 +634,13 @@ class CellTracksFiltering:
             os.makedirs(output_path)
 
         self.logger.info("Selected cell tracks: %s/%s", len(self.selected_cell_track_ids), len(self.cell_tracks))
-        output_file = os.path.join(output_path, output_basename+"_mask.tif")
+        output_file = os.path.join(output_path, output_basename+".tif")
         self.logger.info("Saving segmentation mask to %s", output_file)
         selected_mask = self.get_mask(relabel_mask_ids)
         selected_mask = selected_mask[:, np.newaxis, :, :]
         OmeTiffWriter.save(selected_mask, output_file, dim_order="TCYX")
 
-        output_file = os.path.join(output_path, output_basename+"_graph.graphmlz")
+        output_file = os.path.join(output_path, output_basename+".graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file)
         g = self.get_graph(relabel_mask_ids)
         g.write_graphmlz(output_file)
@@ -1005,7 +1005,7 @@ class GraphFilteringWidget(QWidget):
         # restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
-        QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + os.path.join(self.output_path, self.output_basename+"_mask.tif") + "\n" + os.path.join(self.output_path, self.output_basename+"_graph.graphmlz"))
+        QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + os.path.join(self.output_path, self.output_basename+".tif") + "\n" + os.path.join(self.output_path, self.output_basename+".graphmlz"))
 
     def quit(self):
         self.viewer_images.close()
@@ -1052,7 +1052,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
     output_path: str
         output directory.
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`_mask.tif, `output_path`/`output_basename`_graph.graphmlz and `output_path`/`output_basename`.log.
+        output basename. Output file will be saved as `output_path`/`output_basename`.tif, `output_path`/`output_basename`.graphmlz and `output_path`/`output_basename`.log.
     filters: list of tuple
         list of filters to apply. Each filter is defined by a tuple with filter name (str) as first element, following by filter parameters.
         Possible filters are (see CellTrackingFiltering for more information):
