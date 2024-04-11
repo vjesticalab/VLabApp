@@ -11,6 +11,7 @@
 * Segmentation module: if input image contains multiple fields of view (F axis), raise an error instead of saving one image per field of view.
 * Cell tracking module: change output file naming (do not create a cell_tracking/ sub-folder, add _vTG suffix instead of _mask and _graph suffixes).
 * Graph filtering module: change output file naming (do not create a graph_filtering/ sub-folder, add _vGF suffix instead of _mask and _graph suffixes).
+* Registration module: the z-projected image (evaluated when the input image contains a Z-stack) is not saved anymore.
 
 ### Removed
 

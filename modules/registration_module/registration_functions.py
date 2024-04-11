@@ -640,44 +640,6 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
         # Save the registered and cropped image
         OmeTiffWriter.save(image_cropped[0,:,:,:,:,:], registeredFilepath, dim_order="TCZYX")
 
-def registration_projection_with_tmat(tmat_int, image, projection_type, projection_zrange, skip_crop, output_path):
-    """
-    As the previous one but made for the projected image of the z-stack 
-    """
-    filename_suffix=None
-    if projection_zrange is None:
-        filename_suffix=projection_type
-    elif isinstance(projection_zrange,int) and projection_zrange==0:
-        filename_suffix="bestZ"
-    elif isinstance(projection_zrange,int):
-        filename_suffix=projection_type+str(projection_zrange)
-    elif isinstance(projection_zrange,tuple) and len(projection_zrange) == 2 and projection_zrange[0]<=projection_zrange[1]:
-        filename_suffix=projection_type+str(projection_zrange[0])+"-"+str(projection_zrange[1])
-    registeredFilepath = os.path.join(output_path, image.name + '_' + filename_suffix + '_registered.tif')
-
-    # Assuming empty dimension F
-    image6D = image.zProjection(projection_type, projection_zrange)
-    registered_image = image6D.copy()
-    for c in range(0, image.sizes['C']):
-        for timepoint in range(0, image.sizes['T']):
-            xyShift = (tmat_int[timepoint, 1]*-1, tmat_int[timepoint, 2]*-1)
-            registered_image[0, timepoint, c, 0, :, :] = np.roll(image6D[0, timepoint, c, 0, :, :], xyShift, axis=(1,0))
-
-    if skip_crop:
-        # Save the registered and un-cropped image
-        OmeTiffWriter.save(registered_image[0,:,:,0,:,:], registeredFilepath, dim_order="TCYX")
-    else:
-        # Crop to desired area
-        y_start = 0 - min(tmat_int[:,2])
-        y_end = image.sizes['Y'] - max(tmat_int[:,2])
-        x_start = 0 - min(tmat_int[:,1])
-        x_end = image.sizes['X'] - max(tmat_int[:,1])
-        # Crop along the y-axis
-        image_cropped = registered_image[:, :, :, :, y_start:y_end, x_start:x_end]
-
-        # Save the registered and cropped image
-        OmeTiffWriter.save(image_cropped[0,:,:,0,:,:], registeredFilepath, dim_order="TCYX")
-
 def registration_values(image, projection_type, projection_zrange, channel_position, output_path, registration_method):
     """
     This function calculates the transformation matrices from brightfield images
@@ -943,10 +905,6 @@ def registration_main(image_path, output_path, channel_position, projection_type
         tmat = registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, registration_method)
     # Align and save
     registration_with_tmat(tmat, image, skip_crop_decision, output_path)
-
-    # If Z not empty it means that in the registration there was a z projection, so save also this
-    if image.sizes['Z'] > 1:
-        registration_projection_with_tmat(tmat, image, projection_type, projection_zrange, skip_crop_decision, output_path)
 
     for im_coal_path in coalignment_images_list:
         try:
