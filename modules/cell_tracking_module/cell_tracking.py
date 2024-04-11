@@ -139,7 +139,7 @@ class CellTracking(QWidget):
         layout4.addWidget(suffix)
         layout4.addWidget(self.output_user_suffix)
         layout3.addRow("Suffix:", layout4)
-        layout4=QVBoxLayout()
+        layout4 = QVBoxLayout()
         layout4.setSpacing(0)
         layout4.addWidget(self.output_filename_label1)
         layout4.addWidget(self.output_filename_label2)
