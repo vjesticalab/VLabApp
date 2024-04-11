@@ -42,9 +42,12 @@ class CellTracking(QWidget):
         self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
         self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
         self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
-        self.output_filename_label = QLineEdit()
-        self.output_filename_label.setFrame(False)
-        self.output_filename_label.setEnabled(False)
+        self.output_filename_label1 = QLineEdit()
+        self.output_filename_label1.setFrame(False)
+        self.output_filename_label1.setEnabled(False)
+        self.output_filename_label2 = QLineEdit()
+        self.output_filename_label2.setFrame(False)
+        self.output_filename_label2.setEnabled(False)
 
         self.min_area = QSpinBox()
         self.min_area.setMinimum(0)
@@ -136,7 +139,11 @@ class CellTracking(QWidget):
         layout4.addWidget(suffix)
         layout4.addWidget(self.output_user_suffix)
         layout3.addRow("Suffix:", layout4)
-        layout3.addRow("Filename:", self.output_filename_label)
+        layout4=QVBoxLayout()
+        layout4.setSpacing(0)
+        layout4.addWidget(self.output_filename_label1)
+        layout4.addWidget(self.output_filename_label2)
+        layout3.addRow("Filename:", layout4)
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -217,7 +224,8 @@ class CellTracking(QWidget):
         else:
             output_path = self.output_folder.text().rstrip("/")
 
-        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".tif"))
+        self.output_filename_label1.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".tif"))
+        self.output_filename_label2.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".graphmlz"))
 
     def submit(self):
         """
