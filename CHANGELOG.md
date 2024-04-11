@@ -7,8 +7,9 @@
 * Image class: shape and sizes attributes are populated in the constructor.
 * Z-projection module: change output file naming (do not create a zprojection/ sub-folder, add _vPR<projection> suffix, use same basename as projected file for log file).
 * GroundTruth module: change output file naming (do not create a ground_truth/ sub-folder, add _vGT suffix).
-* Segmentation module: change output file naming (do not create a segmentation_masks/ sub-folder, add _vSM suffix).
+* Segmentation module: change output file naming (do not create a segmentation_masks/ sub-folder, add _vSM suffix instead of _mask suffix).
 * Segmentation module: if input image contains multiple fields of view (F axis), raise an error instead of saving one image per field of view.
+* Cell tracking module: change output file naming (do not create a cell_tracking/ sub-folder, add _vTG suffix instead of _mask and _graph suffixes).
 
 ### Removed
 
