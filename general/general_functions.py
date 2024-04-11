@@ -217,10 +217,10 @@ class FileTableWidget2(QWidget):
         """
         super().__init__(parent)
 
-        self.filter_name_1 = QLineEdit(filenames_suffix_1, placeholderText='e.g.: _mask.tif')
+        self.filter_name_1 = QLineEdit(filenames_suffix_1, placeholderText='e.g.: _vTG.tif')
         self.filter_name_1.setToolTip('Accept only filenames ending with this text.')
         self.filter_name_1.textChanged.connect(self.filter_name_1_changed)
-        self.filter_name_2 = QLineEdit(filenames_suffix_2, placeholderText='e.g.: _graph.graphmlz')
+        self.filter_name_2 = QLineEdit(filenames_suffix_2, placeholderText='e.g.: _vTG.graphmlz')
         self.filter_name_2.setToolTip('Accept only filenames ending with this text')
         self.filter_name_2.textChanged.connect(self.filter_name_2_changed)
         self.file_table = DropFilesTableWidget2(header_1=header_1, header_2=header_2, filenames_suffix_1=self.filter_name_1.text(), filenames_suffix_2=self.filter_name_2.text())
