@@ -749,7 +749,8 @@ class Image:
 
     def get_TYXarray(self):
         if self.sizes['F'] > 1 or self.sizes['C'] > 1 or self.sizes['Z'] > 1:
-            logging.getLogger(__name__).error('Image format not supported. Please upload an image with only TYX dimesions.')
+            logging.getLogger(__name__).error('Image format not supported. Please load an image with only TYX dimensions.')
+            raise TypeError('Image format not supported. Please load an image with only TYX dimensions')
         return self.image[0,:,0,0,:,:]
 
     def zProjection(self, projection_type, zrange, focus_method="tenengrad_var"):

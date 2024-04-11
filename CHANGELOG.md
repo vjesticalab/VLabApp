@@ -18,6 +18,7 @@
 * Z-projection module: check that input image does not contain multiple fields of view (axis F).
 * Segmentation module: remove default path for Cellpose model (it was pointing to a model trained on images with only Z section with best focus, which should not be used for images obtained with another Z-projection method).
 * Segmentation module: warn that only the first channel is used for segmentation if input image contains more than one channel (axis C).
+* Image class: raise an error if get_TYXarray() is used with a non-TYX image.
 
 
 
