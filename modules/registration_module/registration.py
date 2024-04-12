@@ -108,7 +108,7 @@ class Perform(gf.Page):
         self.registration_method.addItem("feature matching (AKAZE)")
         self.registration_method.addItem("feature matching (SIFT)")
         self.registration_method.setCurrentText("stackreg")
-        self.coalignment_yn_A = QCheckBox("Co-align files with the same unique identifier (part of the basename before the first \"_\")")
+        self.coalignment_yn_A = QCheckBox("Co-align files with the same unique identifier (part of the filename before the first \"_\")")
         self.skip_cropping_yn_A = QCheckBox("Do NOT crop aligned image")
         self.buttonA = QPushButton("Register")
         self.buttonA.clicked.connect(self.register)
@@ -443,7 +443,7 @@ class Align(gf.Page):
 
         ####### Section Alignment #######
         label = QLabel("Images to align using pre-existing registration matrices:")
-        label2 = QLabel("(transformation matrices have to be in the corresponding input image folder and will be matched by unique identifier, i.e. part of the basename before the first \"_\")")
+        label2 = QLabel("(Transformation matrices have to be in the same folde as input images. Matching transformation matrices and images is based on the unique identifier, i.e. part of the filename before the first \"_\")")
         label2.setWordWrap(True)
         label2.setEnabled(False)
         font = label2.font()
