@@ -580,7 +580,7 @@ def register_stack_feature_matching(image, feature_type="ORB", blur=0):
     return [(-x, -y) for x, y in shifts]
 
 
-def registration_with_tmat(tmat_int, image, skip_crop, output_path):
+def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basename):
     """
     This function uses a transformation matrix to performs registration and eventually cropping of an image
     Note - always assuming FoV dimension of the image as empty 
@@ -593,14 +593,16 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
     skip_crop: boolean 
         indicates whether to crop or not the registeret image
     output_path: str
-        parent image path + /registration/
-    
+        output directory
+    output_basename: str
+        output basename. Output file will be saved as `output_path`/`output_basename`.tif
+
     Saves
     ---------------------
     image : ndarray
-        registered and eventually cropped image 
+        registered and eventually cropped image
     """
-    registeredFilepath = os.path.join(output_path, image.name + '_registered.tif')
+    registeredFilepath = os.path.join(output_path, output_basename+'.tif')
 
     # Assuming empty dimension F
     image6D = image.image
@@ -630,17 +632,11 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
 
         # Crop along the y-axis
         image_cropped = registered_image[:, t_start:t_end, :, :, y_start:y_end, x_start:x_end]
-        print(image6D.shape)
-        print(registered_image.shape)
-        print(image_cropped.shape)
-        print(t_start,t_end)
-        print(y_start,y_end)
-        print(x_start,x_end)
 
         # Save the registered and cropped image
         OmeTiffWriter.save(image_cropped[0,:,:,:,:,:], registeredFilepath, dim_order="TCZYX")
 
-def registration_values(image, projection_type, projection_zrange, channel_position, output_path, registration_method):
+def registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method):
     """
     This function calculates the transformation matrices from brightfield images
     Note: aligned images are NOT saved since pixels are recalculated by StackReg method
@@ -658,8 +654,10 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         If zrange is tuple (zmin,zmax), use all z sections in the interval [zmin,zmax].
     channel_position : int
         posizion of the channel to register if it is a c-stack
-    output_path : str
-        parent image path + /registration/
+    output_path: str
+        output directory
+    output_basename: str
+        output basename. Output file will be saved as `output_path`/`output_basename`.tif
     registration_method : str
         method to use for registration. Can be "stackreg", "phase correlation",
         "feature matching (ORB)", "feature matching (BRISK)", "feature matching (AKAZE)"
@@ -758,12 +756,13 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         raise ValueError(f"Error unknown registration method {registration_method}")
 
     # Save the txt file with the translation matrix
-    txt_name = os.path.join(output_path,'transf_matrices', image.name.split('_')[0] +'_transformationMatrix.csv')
+    txt_name = os.path.join(output_path, output_basename+'.csv')
+
     np.savetxt(txt_name, transformation_matrices, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = 'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
 
     return transformation_matrices
 
-def registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, registration_method):
+def registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method):
     """
     This function calculates the transformation matrices from brightfield images
     Note: aligned images are NOT saved since pixels are recalculated by StackReg method
@@ -783,8 +782,10 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
         If zrange is tuple (zmin,zmax), use all z sections in the interval [zmin,zmax].
     channel_position : int
         posizion of the channel to register if it is a c-stack
-    output_path : str
-        parent image path + /registration/
+    output_path: str
+        output directory
+    output_basename: str
+        output basename. Output file will be saved as `output_path`/`output_basename`.tif
     registration_method : str
         method to use for registration. Can be "stackreg", "phase correlation",
         "feature matching (ORB)", "feature matching (BRISK)", "feature matching (AKAZE)"
@@ -872,8 +873,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
         raise ValueError(f"Error unknown registration method {registration_method}")
 
     # Save the txt file with the translation matrix
-    txt_name = os.path.join(output_path,'transf_matrices', image.name.split('_')[0] +'_transformationMatrix.csv')
-
+    txt_name = os.path.join(output_path, output_basename+'.csv')
     transformation_matrices_complete = np.zeros([image.sizes['T'], 8], dtype=np.int64)
     transformation_matrices_complete[timepoint_range[0]-1:timepoint_range[1]-1] = transformation_matrices.astype(int)
 
@@ -889,7 +889,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
 ################################################################
 
 
-def registration_main(image_path, output_path, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, coalignment_images_list, registration_method):
+def registration_main(image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, coalignment_images_list, coalignment_output_basename_list, registration_method):
     # Load image
     # Note: by default the image have to be ALWAYS 3D with TYX
     try:
@@ -898,15 +898,20 @@ def registration_main(image_path, output_path, channel_position, projection_type
     except:
         logging.getLogger(__name__).exception('Error loading image %s', image_path)
         raise
+    # Check 'F' axis has size 1
+    if image.sizes['F'] != 1:
+        logging.getLogger(__name__).error('Image %s has a F axis with size > 1', str(image_path))
+        raise TypeError(f"Image {image_path} has a F axis with size > 1")
+
     if timepoint_range == None:
         # Calculate transformation matrix
-        tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, registration_method)
+        tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method)
     else:
-        tmat = registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, registration_method)
+        tmat = registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method)
     # Align and save
-    registration_with_tmat(tmat, image, skip_crop_decision, output_path)
+    registration_with_tmat(tmat, image, skip_crop_decision, output_path, output_basename)
 
-    for im_coal_path in coalignment_images_list:
+    for im_coal_path, output_basename_coal in zip(coalignment_images_list,coalignment_output_basename_list):
         try:
             image_coal = gf.Image(im_coal_path)
             image_coal.imread()
@@ -914,7 +919,7 @@ def registration_main(image_path, output_path, channel_position, projection_type
             logging.getLogger(__name__).exception('Error loading image %s', im_coal_path)
             raise
         try:
-            registration_with_tmat(tmat, image_coal, skip_crop_decision, output_path)
+            registration_with_tmat(tmat, image_coal, skip_crop_decision, output_path, output_basename_coal)
         except:
             logging.getLogger(__name__).exception('Alignment failed for image %s', im_coal_path)
             raise
@@ -924,9 +929,8 @@ def registration_main(image_path, output_path, channel_position, projection_type
 ################################################################
 
 
-def alignment_main(image_path, skip_crop_decision):
+def alignment_main(image_path, tmat_path, output_path, output_basename, skip_crop_decision):
     # Load image and matrix
-    output_path = os.path.join(os.path.dirname(image_path),'registration')
     try:
         image = gf.Image(image_path)
         image.imread()
@@ -934,14 +938,18 @@ def alignment_main(image_path, skip_crop_decision):
         logging.getLogger(__name__).exception('Error loading image %s', image_path)
         raise
     try:
-        tmat_path = os.path.join(output_path, 'transf_matrices', image.name.split('_')[0] + '_transformationMatrix.csv')
         tmat_int = read_transfMat(tmat_path)
     except:
         logging.getLogger(__name__).exception('Error loading transformation matrix for image %s', image_path)
         raise
+    # Check 'F' axis has size 1
+    if image.sizes['F'] != 1:
+        logging.getLogger(__name__).error('Image %s has a F axis with size > 1', str(image_path))
+        raise TypeError(f"Image {image_path} has a F axis with size > 1")
+
     # Align and save - registration works with multidimensional files, as long as the TYX axes are specified
     try:
-        registration_with_tmat(tmat_int, image, skip_crop_decision, output_path)
+        registration_with_tmat(tmat_int, image, skip_crop_decision, output_path, output_basename)
     except:
         logging.getLogger(__name__).exception('Alignment failed for image %s', image_path)
         raise
@@ -978,9 +986,14 @@ def manual_edit_main(image_path, matrix_path):
     except:
         logging.getLogger(__name__).exception('Error loading image %s', image_path)
         raise
+    # Check 'F' axis has size 1
+    if image.sizes['F'] != 1:
+        logging.getLogger(__name__).error('Image %s has a F axis with size > 1', str(image_path))
+        raise TypeError(f"Image {image_path} has a F axis with size > 1")
+
 
     viewer = napari.Viewer()
-    # FTCZYX image:
+    # assuming a FTCZYX image:
     viewer.add_image(image.image, name="image", channel_axis=2)
     # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
     viewer.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')

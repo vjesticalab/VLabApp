@@ -1,7 +1,7 @@
 import os
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QCheckBox, QComboBox, QFormLayout, QPushButton, QVBoxLayout, QWidget, QGridLayout, QLabel, QLineEdit, QHBoxLayout, QApplication, QSpinBox, QRadioButton, QGroupBox, QFileDialog
-from PyQt5.QtGui import QCursor, QIntValidator
+from PyQt5.QtCore import Qt, QRegExp
+from PyQt5.QtWidgets import QCheckBox, QComboBox, QFormLayout, QPushButton, QVBoxLayout, QWidget, QGridLayout, QLabel, QLineEdit, QHBoxLayout, QApplication, QSpinBox, QRadioButton, QGroupBox, QFileDialog, QMessageBox
+from PyQt5.QtGui import QCursor, QIntValidator, QRegExpValidator
 from functools import partial
 import numpy as np
 import logging
@@ -17,6 +17,9 @@ matplotlib.use("Qt5Agg")
 class Perform(gf.Page):
     def __init__(self):
         super().__init__()
+
+        self.output_suffix = '_vRG'
+
         ####### Section Registration #######
         # Documentation
         label_documentation = QLabel()
@@ -30,6 +33,31 @@ class Perform(gf.Page):
         self.channel_position.setMinimumWidth(200)
         self.channel_position.setValidator(QIntValidator())
 
+        self.use_input_folder = QRadioButton("Use input image folder")
+        self.use_input_folder.setChecked(True)
+        self.use_input_folder.toggled.connect(self.update_output_filename_label)
+        self.use_custom_folder = QRadioButton("Use custom folder")
+        self.use_custom_folder.setChecked(False)
+        self.use_custom_folder.toggled.connect(self.update_output_filename_label)
+        self.output_folder = gf.DropFolderLineEdit()
+        self.output_folder.textChanged.connect(self.update_output_filename_label)
+        browse_button2 = QPushButton("Browse", self)
+        browse_button2.clicked.connect(self.browse_output)
+        self.output_folder.setVisible(self.use_custom_folder.isChecked())
+        browse_button2.setVisible(self.use_custom_folder.isChecked())
+        self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
+        self.use_custom_folder.toggled.connect(browse_button2.setVisible)
+        self.output_user_suffix = QLineEdit()
+        self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
+        self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
+        self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
+        self.output_filename_label1 = QLineEdit()
+        self.output_filename_label1.setFrame(False)
+        self.output_filename_label1.setEnabled(False)
+        self.output_filename_label2 = QLineEdit()
+        self.output_filename_label2.setFrame(False)
+        self.output_filename_label2.setEnabled(False)
+
         # Z-Projection range
         # only bestZ
         self.projection_mode_bestZ = QRadioButton("Z section with best focus")
@@ -37,7 +65,7 @@ class Perform(gf.Page):
         self.projection_mode_bestZ.setToolTip('Keep only Z section with best focus.')
         # around bestZ
         self.projection_mode_around_bestZ = QRadioButton("Range around Z section with best focus")
-        self.projection_mode_around_bestZ.setChecked(False)
+        self.projection_mode_around_bestZ.setChecked(True)
         self.projection_mode_around_bestZ.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
         self.projection_mode_around_bestZ_zrange = QSpinBox()
         self.projection_mode_around_bestZ_zrange.setMinimum(0)
@@ -59,7 +87,7 @@ class Perform(gf.Page):
         self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
         # all
         self.projection_mode_all = QRadioButton("All Z sections")
-        self.projection_mode_all.setChecked(True)
+        self.projection_mode_all.setChecked(False)
         self.projection_mode_all.setToolTip('Project all Z sections.')
         # Z-Projection type
         self.projection_type = QComboBox(self)
@@ -80,7 +108,7 @@ class Perform(gf.Page):
         self.registration_method.addItem("feature matching (AKAZE)")
         self.registration_method.addItem("feature matching (SIFT)")
         self.registration_method.setCurrentText("stackreg")
-        self.coalignment_yn_A = QCheckBox("Co-align files with the same unique identifier (eg. smp01 for smp01_BF.nd2)")
+        self.coalignment_yn_A = QCheckBox("Co-align files with the same unique identifier (part of the basename before the first \"_\")")
         self.skip_cropping_yn_A = QCheckBox("Do NOT crop aligned image")
         self.buttonA = QPushButton("Register")
         self.buttonA.clicked.connect(self.register)
@@ -121,7 +149,35 @@ class Perform(gf.Page):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        groupbox = QGroupBox("Options for multidimensional files:")
+        groupbox = QGroupBox("Output")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(QLabel("Folder:"))
+        layout2.addWidget(self.use_input_folder)
+        layout2.addWidget(self.use_custom_folder)
+        layout3 = QHBoxLayout()
+        layout3.addWidget(self.output_folder)
+        layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
+        layout2.addLayout(layout3)
+        layout3 = QFormLayout()
+        layout4 = QHBoxLayout()
+        layout4.setSpacing(0)
+        suffix = QLineEdit(self.output_suffix)
+        suffix.setDisabled(True)
+        suffix.setFixedWidth(suffix.fontMetrics().width(suffix.text()+"  "))
+        suffix.setAlignment(Qt.AlignRight)
+        layout4.addWidget(suffix)
+        layout4.addWidget(self.output_user_suffix)
+        layout3.addRow("Suffix:", layout4)
+        layout4 = QVBoxLayout()
+        layout4.setSpacing(0)
+        layout4.addWidget(self.output_filename_label1)
+        layout4.addWidget(self.output_filename_label2)
+        layout3.addRow("Filename:", layout4)
+        layout2.addLayout(layout3)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
+        groupbox = QGroupBox("Options")
         layout3 = QFormLayout()
         layout3.setLabelAlignment(Qt.AlignLeft)
         layout3.setFormAlignment(Qt.AlignLeft)
@@ -205,6 +261,8 @@ class Perform(gf.Page):
 
         self.logger = logging.getLogger(__name__)
 
+        self.update_output_filename_label()
+
     def register(self):
         """
         Consider Unique Identifier as split('_')[0]
@@ -267,24 +325,31 @@ class Perform(gf.Page):
         status = []
         error_messages = []
         arguments = []
-        output_path = os.path.join(os.path.dirname(image_paths[0]), 'registration')
-        os.makedirs(os.path.join(output_path, 'transf_matrices'), exist_ok=True)
-        for image_path in image_paths:
+        if self.use_input_folder.isChecked():
+            output_paths = [os.path.dirname(path) for path in image_paths]
+        else:
+            output_paths = [self.output_folder.text() for path in image_paths]
+        user_suffix = self.output_user_suffix.text()
+        output_basenames = [os.path.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
+        for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
             if os.path.isfile(image_path):
                 # Set log and cursor info
                 self.logger.info("Image %s", image_path)
 
                 coalignment_images_list = []
-
+                coalignment_output_basename_list = []
                 if coalignment:
+                    # keep files with same unique identifier, extension in self.imagetypes, not already aligned (i.e. filename does not contain self.output_suffix)
                     unique_identifier = os.path.basename(image_path).split('_')[0]
                     for im in os.listdir(os.path.dirname(image_path)):
-                        if unique_identifier in im and im != image_path:
-                            coalignment_images_list.append(os.path.join(os.path.dirname(image_path),im))
-
+                        if im.startswith(unique_identifier) and not self.output_suffix in im and any(im.endswith(imagetype) for imagetype in self.imagetypes):
+                            if not im in image_paths and not im in coalignment_images_list:
+                                coalign_image_path=os.path.join(os.path.dirname(image_path),im)
+                                coalignment_images_list.append(coalign_image_path)
+                                coalignment_output_basename_list.append(os.path.splitext(os.path.basename(coalign_image_path))[0] + self.output_suffix + user_suffix)
 
                 # collect arguments
-                arguments.append((image_path, output_path, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, coalignment_images_list,registration_method))
+                arguments.append((image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, coalignment_images_list,coalignment_output_basename_list,registration_method))
 
             else:
                 self.logger.error("Unable to locate file %s", image_path)
@@ -336,6 +401,20 @@ class Perform(gf.Page):
 
         self.logger.info("Done")
 
+    def browse_output(self):
+        # Browse folders in order to choose the output one
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
+        self.output_folder.setText(folder_path)
+
+    def update_output_filename_label(self):
+        if self.use_input_folder.isChecked():
+            output_path = "<input folder>"
+        else:
+            output_path = self.output_folder.text().rstrip("/")
+
+        self.output_filename_label1.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".csv"))
+        self.output_filename_label2.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".tif"))
+
     def projection_mode_fixed_zmin_changed(self, value):
         if self.projection_mode_fixed_zmax.value() < value:
             self.projection_mode_fixed_zmax.setValue(value)
@@ -356,19 +435,49 @@ class Perform(gf.Page):
 class Align(gf.Page):
     def __init__(self):
         super().__init__()
+
+        self.output_suffix = '_vRG'
+
+        self.imagetypes = ['.nd2', '.tif', '.tiff']
+        self.matricestypes = ['.txt','.csv']
+
         ####### Section Alignment #######
-        label = QLabel("Input files to align using pre-existing registration matrices:")
-        label2 = QLabel('(the corresponding matrices have to be in "image_path/registration/transf_matrices/" folder)')
+        label = QLabel("Images to align using pre-existing registration matrices:")
+        label2 = QLabel("(transformation matrices have to be in the corresponding input image folder and will be matched by unique identifier, i.e. part of the basename before the first \"_\")")
+        label2.setWordWrap(True)
+        label2.setEnabled(False)
         font = label2.font()
         font.setItalic(True)
         label2.setFont(font)
-        self.imagetypes = ['.nd2', '.tif', '.tiff']
-        self.image_listB = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='')
+        self.image_listB = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='', filenames_exclude_filter=self.output_suffix)
+
+        self.use_input_folder = QRadioButton("Use input image folder")
+        self.use_input_folder.setChecked(True)
+        self.use_input_folder.toggled.connect(self.update_output_filename_label)
+        self.use_custom_folder = QRadioButton("Use custom folder")
+        self.use_custom_folder.setChecked(False)
+        self.use_custom_folder.toggled.connect(self.update_output_filename_label)
+        self.output_folder = gf.DropFolderLineEdit()
+        self.output_folder.textChanged.connect(self.update_output_filename_label)
+        browse_button2 = QPushButton("Browse", self)
+        browse_button2.clicked.connect(self.browse_output)
+        self.output_folder.setVisible(self.use_custom_folder.isChecked())
+        browse_button2.setVisible(self.use_custom_folder.isChecked())
+        self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
+        self.use_custom_folder.toggled.connect(browse_button2.setVisible)
+        self.output_user_suffix = QLineEdit()
+        self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
+        self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
+        self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
+        self.output_filename_label = QLineEdit()
+        self.output_filename_label.setFrame(False)
+        self.output_filename_label.setEnabled(False)
+
         self.skip_cropping_yn_B = QCheckBox("Do NOT crop aligned image")
         self.buttonB = QPushButton("Align")
         self.buttonB.clicked.connect(self.align)
 
-        # Layout
+         # Layout
         layout = QVBoxLayout()
         layout.addWidget(label)
         layout.addWidget(label2)
@@ -377,7 +486,37 @@ class Align(gf.Page):
         layout2.addWidget(self.image_listB)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        layout.addWidget(self.skip_cropping_yn_B)
+        groupbox = QGroupBox("Output")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(QLabel("Folder:"))
+        layout2.addWidget(self.use_input_folder)
+        layout2.addWidget(self.use_custom_folder)
+        layout3 = QHBoxLayout()
+        layout3.addWidget(self.output_folder)
+        layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
+        layout2.addLayout(layout3)
+        layout3 = QFormLayout()
+        layout4 = QHBoxLayout()
+        layout4.setSpacing(0)
+        suffix = QLineEdit(self.output_suffix)
+        suffix.setDisabled(True)
+        suffix.setFixedWidth(suffix.fontMetrics().width(suffix.text()+"  "))
+        suffix.setAlignment(Qt.AlignRight)
+        layout4.addWidget(suffix)
+        layout4.addWidget(self.output_user_suffix)
+        layout3.addRow("Suffix:", layout4)
+        layout4 = QVBoxLayout()
+        layout4.setSpacing(0)
+        layout4.addWidget(self.output_filename_label)
+        layout3.addRow("Filename:", layout4)
+        layout2.addLayout(layout3)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        groupbox = QGroupBox("Options")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.skip_cropping_yn_B)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
         layout.addWidget(self.buttonB, alignment=Qt.AlignCenter)
 
         self.window = QVBoxLayout(self.container)
@@ -385,6 +524,21 @@ class Align(gf.Page):
         self.window.addStretch()
 
         self.logger = logging.getLogger(__name__)
+
+        self.update_output_filename_label()
+
+    def browse_output(self):
+        # Browse folders in order to choose the output one
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
+        self.output_folder.setText(folder_path)
+
+    def update_output_filename_label(self):
+        if self.use_input_folder.isChecked():
+            output_path = "<input folder>"
+        else:
+            output_path = self.output_folder.text().rstrip("/")
+
+        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".tif"))
 
     def align(self):
         def check_inputs(image_paths):
@@ -401,10 +555,47 @@ class Align(gf.Page):
                     return False
             return True
 
+        def get_tmat_paths(image_path):
+            #get path with matrix filetype (self.matricestype), containing self.output_suffix and with same unique identifier
+            tmat_paths=[path for path in os.listdir(os.path.dirname(image_path)) if any(path.endswith(matricestype) for matricestype in self.matricestypes) and self.output_suffix in path and os.path.basename(path).split('_')[0] == os.path.basename(image_path).split('_')[0]]
+            #sort by path length
+            return [os.path.join(os.path.dirname(image_path), path) for path in sorted(tmat_paths, key=len)]
+
         image_paths = self.image_listB.get_file_list()
         skip_crop_decision = self.skip_cropping_yn_B.isChecked()
         if not check_inputs(image_paths):
             return
+
+        user_suffix = self.output_user_suffix.text()
+        output_basenames = [os.path.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
+        if self.use_input_folder.isChecked():
+            output_paths = [os.path.dirname(path) for path in image_paths]
+        else:
+            output_paths = [self.output_folder.text() for path in image_paths]
+
+        tmat_paths_all =  [get_tmat_paths(path) for path in image_paths]
+        #check if at least one matrix was found for each image
+        if any([len(path) == 0 for path in tmat_paths_all]):
+            self.logger.error('Transformation matrix not found for the folling images\n' + "\n".join([image_path for image_path,tmat_path in zip(image_paths,tmat_paths_all) if len(tmat_path) == 0]))
+            return False
+        #arbitrarily choose first path
+        tmat_paths =  [paths[0] for paths in tmat_paths_all]
+        #check for multiple matches
+        if any([len(path) > 1 for path in tmat_paths_all]):
+            print("multiple matches")
+            msgbox = QMessageBox()
+            msgbox.setIcon(QMessageBox.Warning)
+            msgbox.setWindowTitle("Warning")
+            msgbox.setText("Multiple transformation matrices found.");
+            msgbox.setInformativeText("For each image, one transformation matrix was arbitrarily selected.\nContinue?");
+            msgbox.setDetailedText("\n\n".join(["Image:\n " + image + "\nSelected transformation matrix:\n " + os.path.basename(tmat) + "\nCandidate transformation matrices:\n "+ "\n ".join([os.path.basename(x) for x in tmat_all]) for tmat, tmat_all, image in zip(tmat_paths,tmat_paths_all,image_paths)]));
+            btncontinue = msgbox.addButton("Continue", QMessageBox.AcceptRole)
+            btnabort = msgbox.addButton("Abort",QMessageBox.RejectRole)
+            msgbox.setDefaultButton(btnabort);
+            msgbox.exec();
+            if msgbox.clickedButton() == btnabort:
+                return False
+
 
         # disable messagebox error handler
         messagebox_error_handler = None
@@ -416,7 +607,7 @@ class Align(gf.Page):
 
         status = []
         error_messages = []
-        for image_path in image_paths:
+        for image_path, tmat_path, output_path, output_basename in zip(image_paths, tmat_paths, output_paths, output_basenames):
             if os.path.isfile(image_path):
                 # Set log and cursor info
                 self.logger.info("Image %s", image_path)
@@ -424,7 +615,7 @@ class Align(gf.Page):
                 QApplication.processEvents()
                 # Perform projection
                 try:
-                    f.alignment_main(image_path, skip_crop_decision)
+                    f.alignment_main(image_path, tmat_path, output_path, output_basename, skip_crop_decision)
                     status.append("Success")
                     error_messages.append(None)
                 except Exception as e:
@@ -449,14 +640,18 @@ class Align(gf.Page):
 class Edit(gf.Page):
     def __init__(self):
         super().__init__()
+
+        self.output_suffix = '_vRG'
+
         ####### Section Editing #######
         label = QLabel("Matrices to edit")
         label2 = QLabel('(double click on the transformation matrix to visualize it)')
+        label2.setDisabled(True)
         font = label2.font()
         font.setItalic(True)
         label2.setFont(font)
         self.matricestypes = ['.txt','.csv']
-        self.matrices_list = gf.FileListWidget(filetypes=self.matricestypes, filenames_filter='')
+        self.matrices_list = gf.FileListWidget(filetypes=self.matricestypes, filenames_filter=self.output_suffix)
         self.matrices_list.file_list_double_clicked.connect(self.display_matrix)
         #self.update_label = QLabel('After double-clicking the matrix, you can update its range', self)
         self.start_timepoint_label = QLabel('New start point:', self)

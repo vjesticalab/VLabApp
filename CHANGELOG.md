@@ -13,6 +13,8 @@
 * Graph filtering module: change output file naming (do not create a graph_filtering/ sub-folder, add _vGF suffix instead of _mask and _graph suffixes).
 * Registration module: the z-projected image (evaluated when the input image contains a Z-stack) is not saved anymore.
 * Registration module: save transformation matrices with .csv extension instead of .txt. Remove space character at the beginning of each field.
+* Registration module: change output file naming (do not create a registration/ nor registration/transf_matrices/ sub-folders, add _vRG suffix instead of _registered and _transformationMatrix suffixes). Add a new "Output" box in the GUI.
+* Registration module (Alignment tab): search for matching transformation matrices based on unique identifier (part of the basename before the first "_") and warn if multiple matches are found.
 
 ### Removed
 
@@ -22,6 +24,8 @@
 * Segmentation module: remove default path for Cellpose model (it was pointing to a model trained on images with only Z section with best focus, which should not be used for images obtained with another Z-projection method).
 * Segmentation module: warn that only the first channel is used for segmentation if input image contains more than one channel (axis C).
 * Image class: raise an error if get_TYXarray() is used with a non-TYX image.
+* Registration module: when coaligning files with same unique identifier, only select image files (instead of all file types) and do not select images already aligned.
+* Registration module: check that input image does not contain multiple fields of view (axis F).
 
 
 
