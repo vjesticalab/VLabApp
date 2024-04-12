@@ -455,7 +455,7 @@ class Edit(gf.Page):
         font = label2.font()
         font.setItalic(True)
         label2.setFont(font)
-        self.matricestypes = ['.txt']
+        self.matricestypes = ['.txt','.csv']
         self.matrices_list = gf.FileListWidget(filetypes=self.matricestypes, filenames_filter='')
         self.matrices_list.file_list_double_clicked.connect(self.display_matrix)
         #self.update_label = QLabel('After double-clicking the matrix, you can update its range', self)
@@ -542,7 +542,7 @@ class ManualEdit(gf.Page):
         super().__init__()
 
         self.imagetypes = ['.nd2', '.tif', '.tiff']
-        self.matricestypes = ['.txt']
+        self.matricestypes = ['.txt','.csv']
 
         ####### Section Manual Editing #######
         self.input_image = gf.DropFileLineEdit(filetypes=self.imagetypes)

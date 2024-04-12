@@ -236,7 +236,7 @@ class EditTransformationMatrix(QWidget):
         filename = QFileDialog.getSaveFileName(self, 'Save transformation matrix', self.input_filename)[0]
         if filename != '':
             logging.getLogger(__name__).info('Saving transformation matrix to %s', filename)
-            np.savetxt(filename, self.tmat, fmt='%d, %d, %d, %d, %d, %d, %d, %d', header='timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y, x, y', delimiter = '\t')
+            np.savetxt(filename, self.tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header='timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
             logging.getLogger(__name__).info('Done')
 
 
@@ -758,8 +758,8 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         raise ValueError(f"Error unknown registration method {registration_method}")
 
     # Save the txt file with the translation matrix
-    txt_name = os.path.join(output_path,'transf_matrices', image.name.split('_')[0] +'_transformationMatrix.txt')
-    np.savetxt(txt_name, transformation_matrices, fmt = '%d, %d, %d, %d, %d, %d, %d, %d', header = 'timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y, x, y', delimiter = '\t')
+    txt_name = os.path.join(output_path,'transf_matrices', image.name.split('_')[0] +'_transformationMatrix.csv')
+    np.savetxt(txt_name, transformation_matrices, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = 'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
 
     return transformation_matrices
 
@@ -872,7 +872,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
         raise ValueError(f"Error unknown registration method {registration_method}")
 
     # Save the txt file with the translation matrix
-    txt_name = os.path.join(output_path,'transf_matrices', image.name.split('_')[0] +'_transformationMatrix.txt')
+    txt_name = os.path.join(output_path,'transf_matrices', image.name.split('_')[0] +'_transformationMatrix.csv')
 
     transformation_matrices_complete = np.zeros([image.sizes['T'], 8], dtype=np.int64)
     transformation_matrices_complete[timepoint_range[0]-1:timepoint_range[1]-1] = transformation_matrices.astype(int)
@@ -882,7 +882,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
     transformation_matrices_complete[:, 6] = image.sizes['X']
     transformation_matrices_complete[:, 7] = image.sizes['Y']
 
-    np.savetxt(txt_name, transformation_matrices_complete, fmt = '%d, %d, %d, %d, %d, %d, %d, %d', header = 'timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y, x, y', delimiter = '\t')
+    np.savetxt(txt_name, transformation_matrices_complete, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = 'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
 
     return transformation_matrices_complete
 
@@ -934,7 +934,7 @@ def alignment_main(image_path, skip_crop_decision):
         logging.getLogger(__name__).exception('Error loading image %s', image_path)
         raise
     try:
-        tmat_path = os.path.join(output_path, 'transf_matrices', image.name.split('_')[0] + '_transformationMatrix.txt')
+        tmat_path = os.path.join(output_path, 'transf_matrices', image.name.split('_')[0] + '_transformationMatrix.csv')
         tmat_int = read_transfMat(tmat_path)
     except:
         logging.getLogger(__name__).exception('Error loading transformation matrix for image %s', image_path)
@@ -965,7 +965,7 @@ def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end
     tmat_updated  = gf.update_transfMat(tmat_int, reference_timepoint-1, range_start-1, range_end-1)
     headerText += time.strftime('Updated on %Y/%m/%d at %H:%M:%S .') + ' Timepoints range: ' + str(range_start) + ' - ' + str(range_end) + ' . Reference timepoint: ' + str(reference_timepoint)
     # Save the new matrix
-    np.savetxt(reference_matrix_path, tmat_updated, fmt = '%d, %d, %d, %d, %d, %d, %d, %d', header=headerText, delimiter='\t')
+    np.savetxt(reference_matrix_path, tmat_updated, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header=headerText, delimiter='\t')
 
 
 ################################################################
