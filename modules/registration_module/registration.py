@@ -322,6 +322,7 @@ class Perform(gf.Page):
         QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         QApplication.processEvents()
 
+        # first step: evaluate transformation matrix and align image
         status = []
         error_messages = []
         arguments = []
@@ -332,33 +333,13 @@ class Perform(gf.Page):
         user_suffix = self.output_user_suffix.text()
         output_basenames = [os.path.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
         for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
-            if os.path.isfile(image_path):
-                # Set log and cursor info
-                self.logger.info("Image %s", image_path)
-
-                coalignment_images_list = []
-                coalignment_output_basename_list = []
-                if coalignment:
-                    # keep files with same unique identifier, extension in self.imagetypes, not already aligned (i.e. filename does not contain self.output_suffix)
-                    unique_identifier = os.path.basename(image_path).split('_')[0]
-                    for im in os.listdir(os.path.dirname(image_path)):
-                        if im.startswith(unique_identifier) and not self.output_suffix in im and any(im.endswith(imagetype) for imagetype in self.imagetypes):
-                            coalign_image_path=os.path.join(os.path.dirname(image_path),im)
-                            if not coalign_image_path in image_paths and not coalign_image_path in coalignment_images_list:
-                                coalignment_images_list.append(coalign_image_path)
-                                coalignment_output_basename_list.append(os.path.splitext(os.path.basename(coalign_image_path))[0] + self.output_suffix + user_suffix)
-
-                # collect arguments
-                arguments.append((image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, coalignment_images_list,coalignment_output_basename_list,registration_method))
-
-            else:
-                self.logger.error("Unable to locate file %s", image_path)
-
-        n_count = min(len(arguments), self.n_count.value())
-
-        self.logger.info(f"Using: {n_count} cores to perform registration")
+            # collect arguments
+            print("IMAGE=",image_path)
+            arguments.append((image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, registration_method))
         if not arguments:
             return
+        n_count = min(len(arguments), self.n_count.value())
+        self.logger.info(f"Using: {n_count} cores to perform registration")
         # Perform projection
         if len(arguments) == 1:
             try:
@@ -387,6 +368,71 @@ class Perform(gf.Page):
                     else:
                         self.logger.info(f" Image: {image_path} Done")
 
+        # second step: coalign other images
+        if coalignment:
+            status_alignment = []
+            error_messages_alignment = []
+            map_run_to_image_no = []
+            arguments = []
+            if self.use_input_folder.isChecked():
+                output_paths = [os.path.dirname(path) for path in image_paths]
+            else:
+                output_paths = [self.output_folder.text() for path in image_paths]
+            user_suffix = self.output_user_suffix.text()
+            output_basenames = [os.path.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
+            for n, (image_path, output_path, output_basename) in enumerate(zip(image_paths, output_paths, output_basenames)):
+                if status[n] == "Success":
+                    tmat_path = os.path.join(output_path, output_basename+'.csv')
+                    # keep files with same unique identifier, extension in self.imagetypes, not already aligned (i.e. filename does not contain self.output_suffix)
+                    unique_identifier = os.path.basename(image_path).split('_')[0]
+                    for im in os.listdir(os.path.dirname(image_path)):
+                        if im.startswith(unique_identifier) and not self.output_suffix in im and any(im.endswith(imagetype) for imagetype in self.imagetypes):
+                            coalign_image_path = os.path.join(os.path.dirname(image_path),im)
+                            if not coalign_image_path in image_paths:
+                                coalignment_output_basename=os.path.splitext(os.path.basename(coalign_image_path))[0] + self.output_suffix + user_suffix
+                                print("IMAGE(co)=",coalign_image_path)
+                                map_run_to_image_no.append(n)
+                                arguments.append((coalign_image_path, tmat_path,  output_path, coalignment_output_basename, skip_crop_decision))
+            if arguments:
+                n_count = min(len(arguments), self.n_count.value())
+                self.logger.info(f"Using: {n_count} cores to perform alignment")
+                # Perform alignment
+                if len(arguments) == 1:
+                    try:
+                        f.alignment_main(*arguments[0])
+                        status_alignment.append("Success")
+                        error_messages_alignment.append("")
+                    except Exception as e:
+                        status_alignment.append("Failed")
+                        error_messages_alignment.append(str(e))
+                        self.logger.exception("Registration failed")
+                else:
+                    # we go parallel
+                    with concurrent.futures.ProcessPoolExecutor(max_workers=n_count) as executor:
+                        future_reg = {
+                            executor.submit(f.alignment_main, *args): args for args in arguments
+                        }
+                        for future in future_reg:
+                            try:
+                                image_path = future.result()
+                                status_alignment.append("Success")
+                                error_messages_alignment.append("")
+                            except Exception as e:
+                                status_alignment.append("Failed")
+                                error_messages_alignment.append(str(e))
+                                self.logger.exception("An exception occurred")
+                            else:
+                                self.logger.info(f" Image: {image_path} Done")
+
+                #collect statuses and error_messages
+                for m, s in enumerate(status_alignment):
+                    n = map_run_to_image_no[m]
+                    if s != "Success":
+                        status[n] = s
+                for m, e in enumerate(error_messages_alignment):
+                    n = map_run_to_image_no[m]
+                    if e != "":
+                        error_messages[n] = error_messages[n] + "\n" + e
 
         # Restore cursor
         QApplication.restoreOverrideCursor()
@@ -582,7 +628,6 @@ class Align(gf.Page):
         tmat_paths =  [paths[0] for paths in tmat_paths_all]
         #check for multiple matches
         if any([len(path) > 1 for path in tmat_paths_all]):
-            print("multiple matches")
             msgbox = QMessageBox()
             msgbox.setIcon(QMessageBox.Warning)
             msgbox.setWindowTitle("Warning")

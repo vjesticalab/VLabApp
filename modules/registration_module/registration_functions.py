@@ -920,7 +920,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
 ################################################################
 
 
-def registration_main(image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, coalignment_images_list, coalignment_output_basename_list, registration_method):
+def registration_main(image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, registration_method):
 
     # Setup logging to file in output_path
     logger = logging.getLogger(__name__)
@@ -940,25 +940,8 @@ def registration_main(image_path, output_path, output_basename, channel_position
     logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
     logging.getLogger('general.general_functions').addHandler(logfile_handler)
 
-    #open logfiles for coaligned images
-    coalignment_logfile_handlers = dict()
-    for output_basename_coal in coalignment_output_basename_list:
-        logfile = os.path.join(output_path, output_basename_coal+".log")
-        logger.setLevel(logging.DEBUG)
-        logger.debug("writing log output to: %s", logfile)
-        logfile_handler2 = logging.FileHandler(logfile, mode='w')
-        logfile_handler2.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-        logfile_handler2.setLevel(logging.INFO)
-        logger.addHandler(logfile_handler2)
-        # Also save general.general_functions logger to the same file (to log information on z-projection)
-        logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
-        logging.getLogger('general.general_functions').addHandler(logfile_handler2)
-        coalignment_logfile_handlers[output_basename_coal] = logfile_handler2
-
     logger.info("System info:\npystackreg version: %s\nopencv version: %s\nnumpy version: %s\nskimage version: %s\nnapari version: %s", StackReg_version, cv.__version__, np.__version__, skimage_version, napari.__version__)
     logger.info("image: %s", image_path)
-    logger.info("coaligned images: %s", ", ".join(coalignment_images_list))
-    logger.info("output directory: %s", output_path)
 
 
     # Load image
@@ -982,39 +965,9 @@ def registration_main(image_path, output_path, output_basename, channel_position
         tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method)
     else:
         tmat = registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method)
-    # remove logfiles for coaligned image
-    for output_basename_coal in coalignment_output_basename_list:
-        logger.removeHandler(coalignment_logfile_handlers[output_basename_coal])
-        logging.getLogger('general.general_functions').removeHandler(coalignment_logfile_handlers[output_basename_coal])
 
     # Align and save
     registration_with_tmat(tmat, image, skip_crop_decision, output_path, output_basename)
-
-    # remove logfile for output_basename
-    logger.removeHandler(logfile_handler)
-    logging.getLogger('general.general_functions').removeHandler(logfile_handler)
-
-    for im_coal_path, output_basename_coal in zip(coalignment_images_list,coalignment_output_basename_list):
-        ## add logfile handler
-        logger.addHandler(coalignment_logfile_handlers[output_basename_coal])
-        logging.getLogger('general.general_functions').addHandler(coalignment_logfile_handlers[output_basename_coal])
-        try:
-            logger.info('loading %s', im_coal_path)
-            image_coal = gf.Image(im_coal_path)
-            image_coal.imread()
-        except:
-            logger.exception('Error loading image %s', im_coal_path)
-            remove_all_log_handlers()
-            raise
-        try:
-            registration_with_tmat(tmat, image_coal, skip_crop_decision, output_path, output_basename_coal)
-        except:
-            logger.exception('Alignment failed for image %s', im_coal_path)
-            remove_all_log_handlers()
-            raise
-        ## remove logfile handler
-        logger.removeHandler(coalignment_logfile_handlers[output_basename_coal])
-        logging.getLogger('general.general_functions').removeHandler(coalignment_logfile_handlers[output_basename_coal])
 
     remove_all_log_handlers()
     return image_path
@@ -1042,7 +995,6 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
     logger.info("image: %s", image_path)
     logger.info("transformation matrix: %s", tmat_path)
     logger.info("Crop image?: %s", not skip_crop_decision)
-    logger.info("output directory: %s", output_path)
 
     # Load image and matrix
     try:
