@@ -4,10 +4,12 @@ import numpy as np
 import os
 import time
 from pystackreg import StackReg
+from pystackreg import __version__ as StackReg_version
 import cv2 as cv
 from aicsimageio.writers import OmeTiffWriter
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform
+from skimage import __version__ as skimage_version
 from PyQt5.QtWidgets import QVBoxLayout, QWidget, QPushButton, QLabel, QScrollArea, QFileDialog, QRadioButton, QGroupBox, QFormLayout, QSpinBox, QMessageBox, QApplication, QCheckBox
 from PyQt5.QtCore import Qt, pyqtSignal
 import matplotlib.pyplot as plt
@@ -15,6 +17,13 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.backend_bases import MouseButton
 import napari
 
+def remove_all_log_handlers():
+    # remove all handlers for this module
+    while len(logging.getLogger(__name__).handlers) > 0:
+        logging.getLogger(__name__).removeHandler(logging.getLogger(__name__).handlers[0])
+    # remove all handlers for general.general_functions
+    while len(logging.getLogger('general.general_functions').handlers) > 0:
+        logging.getLogger('general.general_functions').removeHandler(logging.getLogger('general.general_functions').handlers[0])
 
 class EditTransformationMatrix(QWidget):
     """
@@ -230,14 +239,16 @@ class EditTransformationMatrix(QWidget):
             save = QMessageBox.question(self, 'Save changes', "Save transformation matrix before closing?", QMessageBox.Yes | QMessageBox.No)
             if save == QMessageBox.Yes:
                 self.save()
-                self.tmat_saved_version = self.tmat.copy()
+        remove_all_log_handlers()
+        logging.getLogger(__name__).info('Done')
 
     def save(self):
-        filename = QFileDialog.getSaveFileName(self, 'Save transformation matrix', self.input_filename)[0]
+        #filename = QFileDialog.getSaveFileName(self, 'Save transformation matrix', self.input_filename)[0]
+        filename = self.input_filename
         if filename != '':
             logging.getLogger(__name__).info('Saving transformation matrix to %s', filename)
             np.savetxt(filename, self.tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header='timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
-            logging.getLogger(__name__).info('Done')
+            self.tmat_saved_version = self.tmat.copy()
 
 
 class PlotTransformation(QWidget):
@@ -591,7 +602,7 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
         transformation matrix
     image: Image object
     skip_crop: boolean 
-        indicates whether to crop or not the registeret image
+        indicates whether to crop or not the registered image
     output_path: str
         output directory
     output_basename: str
@@ -602,6 +613,7 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
     image : ndarray
         registered and eventually cropped image
     """
+    logging.getLogger(__name__).info('Transforming image')
     registeredFilepath = os.path.join(output_path, output_basename+'.tif')
 
     # Assuming empty dimension F
@@ -619,9 +631,10 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
         t_end = max([d[0] for d in tmat_int if d[3] == 1])
         registered_image = registered_image[:, t_start:t_end, :, :, :, :]
         # Save the registered and un-cropped image
-
+        logging.getLogger(__name__).info('Saving transformed image to %s', registeredFilepath)
         OmeTiffWriter.save(registered_image[0,:,:,:,:,:], registeredFilepath, dim_order="TCZYX")
     else:
+        logging.getLogger(__name__).info('Cropping image')
         # Crop to desired area
         y_start = 0 - min([d[2] for d in tmat_int if d[3] == 1]) 
         y_end = image.sizes['Y'] - max([d[2] for d in tmat_int if d[3] == 1])
@@ -634,6 +647,7 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
         image_cropped = registered_image[:, t_start:t_end, :, :, y_start:y_end, x_start:x_end]
 
         # Save the registered and cropped image
+        logging.getLogger(__name__).info('Saving transformed image to %s', registeredFilepath)
         OmeTiffWriter.save(image_cropped[0,:,:,:,:,:], registeredFilepath, dim_order="TCZYX")
 
 def registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method):
@@ -673,33 +687,39 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
     txt_res :
         file which contains the values t_x and t_y (x and y pixel shifts) as columns for each time point (rows)
     """
+
     # Assuming empty dimensions F and C defined in channel_position
     # if Z not empty then make z-projection (projection_type,projection_zrange)
     if image.sizes['Z'] > 1:
         try:
+            logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: performing Z-projection')
             projection = image.zProjection(projection_type, projection_zrange)
-            logging.getLogger(__name__).info('Made z-projection ('+projection_type+', zrange '+str(projection_zrange)+') for image '+image.basename)
         except:
             logging.getLogger(__name__).exception('Z-projection failed for image %s',image.basename)
+            remove_all_log_handlers()
             raise
         if image.sizes['C'] > channel_position:
+            logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting channel %s',channel_position)
             image3D = projection[0,:,channel_position,0,:,:]
         else:
             logging.getLogger(__name__).error('Position of the channel given (%s) is out of range for image %s', channel_position, image.basename)
+            remove_all_log_handlers()
             raise TypeError(f"Position of the channel given ({channel_position}) is out of range for image {image.basename}")
     # Otherwise read the 3D image
     else:
         if image.sizes['C'] > 1:
             if image.sizes['C'] > channel_position:
+                logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting channel %s',channel_position)
                 image3D = image.image[0,:,channel_position,0,:,:]
             else:
                 logging.getLogger(__name__).error('Position of the channel given (%s) is out of range for image %s', channel_position, image.basename)
+                remove_all_log_handlers()
                 raise TypeError(f"Position of the channel given ({channel_position}) is out of range for image {image.basename}")
         else:
             image3D = image.get_TYXarray()
 
     if registration_method == "stackreg":
-        logging.getLogger(__name__).info('Registration with stackreg')
+        logging.getLogger(__name__).info('Evaluating transformation matrix with stackreg')
 
         # Translation = only movements on x and y axis
         sr = StackReg(StackReg.TRANSLATION)
@@ -717,7 +737,7 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         transformation_matrices[:, 6] = image.sizes['X']
         transformation_matrices[:, 7] = image.sizes['Y']
     elif registration_method == "phase correlation":
-        logging.getLogger(__name__).info('Registration with phase correlation')
+        logging.getLogger(__name__).info('Evaluating transformation matrix with phase correlation')
         shifts=register_stack_phase_correlation(image3D,blur=5)
         # Transformation matrix has 6 columns:
         # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
@@ -729,19 +749,20 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         transformation_matrices[:, 7] = image.sizes['Y']
     elif registration_method.startswith("feature matching"):
         if registration_method == "feature matching (ORB)":
-            logging.getLogger(__name__).info('Registration with feature matching (ORB)')
+            logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (ORB)')
             shifts=register_stack_feature_matching(image3D, feature_type="ORB")
         elif registration_method == "feature matching (BRISK)":
-            logging.getLogger(__name__).info('Registration with feature matching (BRISK)')
+            logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (BRISK)')
             shifts=register_stack_feature_matching(image3D, feature_type="BRISK")
         elif registration_method == "feature matching (AKAZE)":
-            logging.getLogger(__name__).info('Registration with feature matching (AKAZE)')
+            logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (AKAZE)')
             shifts=register_stack_feature_matching(image3D, feature_type="AKAZE")
         elif registration_method == "feature matching (SIFT)":
-            logging.getLogger(__name__).info('Registration with feature matching (SIFT)')
+            logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (SIFT)')
             shifts=register_stack_feature_matching(image3D, feature_type="SIFT")
         else:
             logging.getLogger(__name__).error('Error unknown registration method %s', registration_method)
+            remove_all_log_handlers()
             raise ValueError(f"Error unknown registration method {registration_method}")
         # Transformation matrix has 6 columns:
         # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
@@ -753,11 +774,12 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         transformation_matrices[:, 7] = image.sizes['Y']
     else:
         logging.getLogger(__name__).error('Error unknown registration method %s', registration_method)
+        remove_all_log_handlers()
         raise ValueError(f"Error unknown registration method {registration_method}")
 
     # Save the txt file with the translation matrix
     txt_name = os.path.join(output_path, output_basename+'.csv')
-
+    logging.getLogger(__name__).info("Saving transformation matrix to %s", txt_name)
     np.savetxt(txt_name, transformation_matrices, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = 'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
 
     return transformation_matrices
@@ -805,31 +827,37 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
     # if Z not empty then make z-projection (projection_type,projection_zrange)
     if image.sizes['Z'] > 1:
         try:
+            logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: performing Z-projection')
             projection = image.zProjection(projection_type, projection_zrange)
-            logging.getLogger(__name__).info('Made z-projection ('+projection_type+', zrange '+str(projection_zrange)+') for image '+image.basename)
         except:
             logging.getLogger(__name__).exception('Z-projection failed for image %s',image.basename)
+            remove_all_log_handlers()
             raise
         if image.sizes['C'] > channel_position:
+            logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting channel %s',channel_position)
             image3D = projection[0,:,channel_position,0,:,:]
         else:
-            image3D = projection[0,:,0,0,:,:]
-            logging.getLogger(__name__).info('Position of the channel given (%s) is out of range for image %s, using the only channel available', channel_position, image.basename)
+            logging.getLogger(__name__).error('Position of the channel given (%s) is out of range for image %s', channel_position, image.basename)
+            remove_all_log_handlers()
+            raise TypeError(f"Position of the channel given ({channel_position}) is out of range for image {image.basename}")
     # Otherwise read the 3D image
     else:
         if image.sizes['C'] > 1:
             if image.sizes['C'] > channel_position:
+                logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting channel %s',channel_position)
                 image3D = image.image[0,:,channel_position,0,:,:]
             else:
-                image3D = projection[0,:,0,0,:,:]
-                logging.getLogger(__name__).info('Position of the channel given (%s) is out of range for image %s, using the only channel available', channel_position, image.basename)
+                logging.getLogger(__name__).error('Position of the channel given (%s) is out of range for image %s', channel_position, image.basename)
+                remove_all_log_handlers()
+                raise TypeError(f"Position of the channel given ({channel_position}) is out of range for image {image.basename}")
         else:
             image3D = image.get_TYXarray()
-    
+
+    logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting time frames %s<=T<%s',timepoint_range[0],timepoint_range[1])
     image3D = image3D[int(timepoint_range[0]):int(timepoint_range[1]), :, :]
 
     if registration_method == "stackreg":
-        logging.getLogger(__name__).info('Registration with stackreg')
+        logging.getLogger(__name__).info('Evaluating transformation matrix with stackreg')
 
         # Translation = only movements on x and y axis
         sr = StackReg(StackReg.TRANSLATION)
@@ -842,7 +870,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
         transformation_matrices = np.zeros((tmats_float.shape[0], 8), dtype=np.int64)
         transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = tmats_float[:, 0:2, 2].astype(int)
     elif registration_method == "phase correlation":
-        logging.getLogger(__name__).info('Registration with phase correlation')
+        logging.getLogger(__name__).info('Evaluating transformation matrix with phase correlation')
         shifts=register_stack_phase_correlation(image3D,blur=5)
         # Transformation matrix has 6 columns:
         # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
@@ -850,19 +878,20 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
         transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = np.round(np.array(shifts)).astype(int)
     elif registration_method.startswith("feature matching"):
         if registration_method == "feature matching (ORB)":
-            logging.getLogger(__name__).info('Registration with feature matching (ORB)')
+            logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (ORB)')
             shifts=register_stack_feature_matching(image3D, feature_type="ORB")
         elif registration_method == "feature matching (BRISK)":
-            logging.getLogger(__name__).info('Registration with feature matching (BRISK)')
+            logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (BRISK)')
             shifts=register_stack_feature_matching(image3D, feature_type="BRISK")
         elif registration_method == "feature matching (AKAZE)":
-            logging.getLogger(__name__).info('Registration with feature matching (AKAZE)')
+            logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (AKAZE)')
             shifts=register_stack_feature_matching(image3D, feature_type="AKAZE")
         elif registration_method == "feature matching (SIFT)":
-            logging.getLogger(__name__).info('Registration with feature matching (SIFT)')
+            logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (SIFT)')
             shifts=register_stack_feature_matching(image3D, feature_type="SIFT")
         else:
             logging.getLogger(__name__).error('Error unknown registration method %s', registration_method)
+            remove_all_log_handlers()
             raise ValueError(f"Error unknown registration method {registration_method}")
         # Transformation matrix has 6 columns:
         # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
@@ -870,6 +899,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
         transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = np.round(np.array(shifts)).astype(int)
     else:
         logging.getLogger(__name__).error('Error unknown registration method %s', registration_method)
+        remove_all_log_handlers()
         raise ValueError(f"Error unknown registration method {registration_method}")
 
     # Save the txt file with the translation matrix
@@ -882,6 +912,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
     transformation_matrices_complete[:, 6] = image.sizes['X']
     transformation_matrices_complete[:, 7] = image.sizes['Y']
 
+    logging.getLogger(__name__).info("Saving transformation matrix to %s", txt_name)
     np.savetxt(txt_name, transformation_matrices_complete, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = 'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
 
     return transformation_matrices_complete
@@ -890,17 +921,60 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
 
 
 def registration_main(image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, coalignment_images_list, coalignment_output_basename_list, registration_method):
+
+    # Setup logging to file in output_path
+    logger = logging.getLogger(__name__)
+    logger.info("REGISTRATION MODULE (registration)")
+    if not os.path.isdir(output_path):
+        logger.debug("creating: %s", output_path)
+        os.makedirs(output_path)
+
+    logfile = os.path.join(output_path, output_basename+".log")
+    logger.setLevel(logging.DEBUG)
+    logger.debug("writing log output to: %s", logfile)
+    logfile_handler = logging.FileHandler(logfile, mode='w')
+    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+    logfile_handler.setLevel(logging.INFO)
+    logger.addHandler(logfile_handler)
+    # Also save general.general_functions logger to the same file (to log information on z-projection)
+    logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
+    logging.getLogger('general.general_functions').addHandler(logfile_handler)
+
+    #open logfiles for coaligned images
+    coalignment_logfile_handlers = dict()
+    for output_basename_coal in coalignment_output_basename_list:
+        logfile = os.path.join(output_path, output_basename_coal+".log")
+        logger.setLevel(logging.DEBUG)
+        logger.debug("writing log output to: %s", logfile)
+        logfile_handler2 = logging.FileHandler(logfile, mode='w')
+        logfile_handler2.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        logfile_handler2.setLevel(logging.INFO)
+        logger.addHandler(logfile_handler2)
+        # Also save general.general_functions logger to the same file (to log information on z-projection)
+        logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
+        logging.getLogger('general.general_functions').addHandler(logfile_handler2)
+        coalignment_logfile_handlers[output_basename_coal] = logfile_handler2
+
+    logger.info("System info:\npystackreg version: %s\nopencv version: %s\nnumpy version: %s\nskimage version: %s\nnapari version: %s", StackReg_version, cv.__version__, np.__version__, skimage_version, napari.__version__)
+    logger.info("image: %s", image_path)
+    logger.info("coaligned images: %s", ", ".join(coalignment_images_list))
+    logger.info("output directory: %s", output_path)
+
+
     # Load image
     # Note: by default the image have to be ALWAYS 3D with TYX
     try:
+        logger.info('loading %s', image_path)
         image = gf.Image(image_path)
         image.imread()
     except:
-        logging.getLogger(__name__).exception('Error loading image %s', image_path)
+        logger.exception('Error loading image %s', image_path)
+        remove_all_log_handlers()
         raise
     # Check 'F' axis has size 1
     if image.sizes['F'] != 1:
-        logging.getLogger(__name__).error('Image %s has a F axis with size > 1', str(image_path))
+        logger.error('Image %s has a F axis with size > 1', str(image_path))
+        remove_all_log_handlers()
         raise TypeError(f"Image {image_path} has a F axis with size > 1")
 
     if timepoint_range == None:
@@ -908,43 +982,88 @@ def registration_main(image_path, output_path, output_basename, channel_position
         tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method)
     else:
         tmat = registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method)
+    # remove logfiles for coaligned image
+    for output_basename_coal in coalignment_output_basename_list:
+        logger.removeHandler(coalignment_logfile_handlers[output_basename_coal])
+        logging.getLogger('general.general_functions').removeHandler(coalignment_logfile_handlers[output_basename_coal])
+
     # Align and save
     registration_with_tmat(tmat, image, skip_crop_decision, output_path, output_basename)
 
+    # remove logfile for output_basename
+    logger.removeHandler(logfile_handler)
+    logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+
     for im_coal_path, output_basename_coal in zip(coalignment_images_list,coalignment_output_basename_list):
+        ## add logfile handler
+        logger.addHandler(coalignment_logfile_handlers[output_basename_coal])
+        logging.getLogger('general.general_functions').addHandler(coalignment_logfile_handlers[output_basename_coal])
         try:
+            logger.info('loading %s', im_coal_path)
             image_coal = gf.Image(im_coal_path)
             image_coal.imread()
         except:
-            logging.getLogger(__name__).exception('Error loading image %s', im_coal_path)
+            logger.exception('Error loading image %s', im_coal_path)
+            remove_all_log_handlers()
             raise
         try:
             registration_with_tmat(tmat, image_coal, skip_crop_decision, output_path, output_basename_coal)
         except:
-            logging.getLogger(__name__).exception('Alignment failed for image %s', im_coal_path)
+            logger.exception('Alignment failed for image %s', im_coal_path)
+            remove_all_log_handlers()
             raise
+        ## remove logfile handler
+        logger.removeHandler(coalignment_logfile_handlers[output_basename_coal])
+        logging.getLogger('general.general_functions').removeHandler(coalignment_logfile_handlers[output_basename_coal])
 
+    remove_all_log_handlers()
     return image_path
 
 ################################################################
 
 
 def alignment_main(image_path, tmat_path, output_path, output_basename, skip_crop_decision):
+    # Setup logging to file in output_path
+    logger = logging.getLogger(__name__)
+    logger.info("REGISTRATION MODULE (alignment)")
+    if not os.path.isdir(output_path):
+        logger.debug("creating: %s", output_path)
+        os.makedirs(output_path)
+
+    logfile = os.path.join(output_path, output_basename+".log")
+    logger.setLevel(logging.DEBUG)
+    logger.debug("writing log output to: %s", logfile)
+    logfile_handler = logging.FileHandler(logfile, mode='w')
+    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+    logfile_handler.setLevel(logging.INFO)
+    logger.addHandler(logfile_handler)
+
+    logger.info("System info:\npystackreg version: %s\nopencv version: %s\nnumpy version: %s\nskimage version: %s\nnapari version: %s", StackReg_version, cv.__version__, np.__version__, skimage_version, napari.__version__)
+    logger.info("image: %s", image_path)
+    logger.info("transformation matrix: %s", tmat_path)
+    logger.info("Crop image?: %s", not skip_crop_decision)
+    logger.info("output directory: %s", output_path)
+
     # Load image and matrix
     try:
+        logger.info('loading %s', image_path)
         image = gf.Image(image_path)
         image.imread()
     except:
         logging.getLogger(__name__).exception('Error loading image %s', image_path)
+        remove_all_log_handlers()
         raise
     try:
+        logger.info('loading %s', tmat_path)
         tmat_int = read_transfMat(tmat_path)
     except:
         logging.getLogger(__name__).exception('Error loading transformation matrix for image %s', image_path)
+        remove_all_log_handlers()
         raise
     # Check 'F' axis has size 1
     if image.sizes['F'] != 1:
         logging.getLogger(__name__).error('Image %s has a F axis with size > 1', str(image_path))
+        remove_all_log_handlers()
         raise TypeError(f"Image {image_path} has a F axis with size > 1")
 
     # Align and save - registration works with multidimensional files, as long as the TYX axes are specified
@@ -952,13 +1071,37 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
         registration_with_tmat(tmat_int, image, skip_crop_decision, output_path, output_basename)
     except:
         logging.getLogger(__name__).exception('Alignment failed for image %s', image_path)
+        remove_all_log_handlers()
         raise
+
+    remove_all_log_handlers()
 
 ################################################################
 
 
 def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end):
+    log_path=os.path.splitext(reference_matrix_path)[0] + '.log'
+
+    # Setup logging to file in output_path
+    logger = logging.getLogger(__name__)
+    logger.info("REGISTRATION MODULE (editing)")
+
+    logfile = os.path.join(log_path)
+    logger.setLevel(logging.DEBUG)
+    logger.debug("writing log output to: %s", logfile)
+    logfile_handler = logging.FileHandler(logfile, mode='a')
+    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+    logfile_handler.setLevel(logging.INFO)
+    logger.addHandler(logfile_handler)
+
+    logger.info("System info:\npystackreg version: %s\nopencv version: %s\nnumpy version: %s\nskimage version: %s\nnapari version: %s", StackReg_version, cv.__version__, np.__version__, skimage_version, napari.__version__)
+    logger.info("transformation matrix: %s", reference_matrix_path)
+    logger.info("Reference timepoint: %s", reference_timepoint)
+    logger.info("Start timepoint: %s", range_start)
+    logger.info("End timepoint: %s", range_end)
+
     # Load the transformation matrix
+    logger.info("loading: %s", reference_matrix_path)
     tmat_int = read_transfMat(reference_matrix_path)
     # Load the transformation matrix header
     with open(reference_matrix_path) as f:
@@ -970,16 +1113,37 @@ def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end
             if hashtag == '#':
                 headerText += linecontent[2:]
     # Make sure reference point is within range and update transformation matrix
+    logger.info("Editing transformation matrix (Reference timepoint=%s, start=%s, end=%s)", reference_timepoint, range_start, range_end)
     tmat_updated  = gf.update_transfMat(tmat_int, reference_timepoint-1, range_start-1, range_end-1)
     headerText += time.strftime('Updated on %Y/%m/%d at %H:%M:%S .') + ' Timepoints range: ' + str(range_start) + ' - ' + str(range_end) + ' . Reference timepoint: ' + str(reference_timepoint)
     # Save the new matrix
+    logger.info("Saving transformation matrix to %s",reference_matrix_path)
     np.savetxt(reference_matrix_path, tmat_updated, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header=headerText, delimiter='\t')
+
+    remove_all_log_handlers()
 
 
 ################################################################
 
 
 def manual_edit_main(image_path, matrix_path):
+    log_path=os.path.splitext(matrix_path)[0] + '.log'
+
+    # Setup logging to file in output_path
+    logger = logging.getLogger(__name__)
+    logger.info("REGISTRATION MODULE (manual editing)")
+
+    logfile = os.path.join(log_path)
+    logger.setLevel(logging.DEBUG)
+    logger.debug("writing log output to: %s", logfile)
+    logfile_handler = logging.FileHandler(logfile, mode='a')
+    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+    logfile_handler.setLevel(logging.INFO)
+    logger.addHandler(logfile_handler)
+
+    logger.info("System info:\npystackreg version: %s\nopencv version: %s\nnumpy version: %s\nskimage version: %s\nnapari version: %s", StackReg_version, cv.__version__, np.__version__, skimage_version, napari.__version__)
+    logger.info("transformation matrix: %s", matrix_path)
+
     try:
         image = gf.Image(image_path)
         image.imread()
@@ -999,6 +1163,7 @@ def manual_edit_main(image_path, matrix_path):
     viewer.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
 
 
+    logger.info("Manually editing the transformation matrix")
 
     scroll_area = QScrollArea()
     scroll_area.setWidgetResizable(True)
@@ -1012,3 +1177,4 @@ def manual_edit_main(image_path, matrix_path):
     viewer.window.add_dock_widget(plot_transformation, area="bottom")
 
     edit_transformation_matrix.tmat_changed.connect(plot_transformation.update)
+

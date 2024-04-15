@@ -28,7 +28,7 @@ class Perform(gf.Page):
 
         self.imagetypes = ['.nd2', '.tif', '.tiff']
 
-        self.image_listA = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_BF')
+        self.image_listA = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_BF', filenames_exclude_filter=self.output_suffix)
         self.channel_position = QLineEdit(placeholderText='eg. 0 (default) / 1 / ...')
         self.channel_position.setMinimumWidth(200)
         self.channel_position.setValidator(QIntValidator())
@@ -343,8 +343,8 @@ class Perform(gf.Page):
                     unique_identifier = os.path.basename(image_path).split('_')[0]
                     for im in os.listdir(os.path.dirname(image_path)):
                         if im.startswith(unique_identifier) and not self.output_suffix in im and any(im.endswith(imagetype) for imagetype in self.imagetypes):
-                            if not im in image_paths and not im in coalignment_images_list:
-                                coalign_image_path=os.path.join(os.path.dirname(image_path),im)
+                            coalign_image_path=os.path.join(os.path.dirname(image_path),im)
+                            if not coalign_image_path in image_paths and not coalign_image_path in coalignment_images_list:
                                 coalignment_images_list.append(coalign_image_path)
                                 coalignment_output_basename_list.append(os.path.splitext(os.path.basename(coalign_image_path))[0] + self.output_suffix + user_suffix)
 
@@ -588,7 +588,7 @@ class Align(gf.Page):
             msgbox.setWindowTitle("Warning")
             msgbox.setText("Multiple transformation matrices found.");
             msgbox.setInformativeText("For each image, one transformation matrix was arbitrarily selected.\nContinue?");
-            msgbox.setDetailedText("\n\n".join(["Image:\n " + image + "\nSelected transformation matrix:\n " + os.path.basename(tmat) + "\nCandidate transformation matrices:\n "+ "\n ".join([os.path.basename(x) for x in tmat_all]) for tmat, tmat_all, image in zip(tmat_paths,tmat_paths_all,image_paths)]));
+            msgbox.setDetailedText("\n\n".join(["Image:\n - " + image + "\nSelected transformation matrix:\n - " + os.path.basename(tmat) + "\nCandidate transformation matrices:\n - "+ "\n - ".join([os.path.basename(x) for x in tmat_all]) for tmat, tmat_all, image in zip(tmat_paths,tmat_paths_all,image_paths)]));
             btncontinue = msgbox.addButton("Continue", QMessageBox.AcceptRole)
             btnabort = msgbox.addButton("Abort",QMessageBox.RejectRole)
             msgbox.setDefaultButton(btnabort);
