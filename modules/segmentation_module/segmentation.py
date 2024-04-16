@@ -14,7 +14,7 @@ class Segmentation(QWidget):
 
         self.output_suffix = '_vSM'
 
-        self.imagetypes = ['.nd2', '.tif', '.tiff']
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
         self.image_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_BF')
         self.image_list.file_list_changed.connect(self.image_list_changed)
 
@@ -182,7 +182,7 @@ class Segmentation(QWidget):
         image_paths = self.image_list.get_file_list()
         model_path = self.selected_model.text()
         user_suffix = self.output_user_suffix.text()
-        output_basenames = [os.path.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
+        output_basenames = [gf.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
         if self.use_input_folder.isChecked():
             output_paths = [os.path.dirname(path) for path in image_paths]
         else:

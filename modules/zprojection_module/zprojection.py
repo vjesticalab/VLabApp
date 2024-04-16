@@ -19,7 +19,7 @@ class zProjection(QWidget):
         label_documentation.setText('<a href="file://' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
 
         # Input images
-        self.imagetypes = ['.nd2', '.tif', '.tiff']
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
         self.image_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='')
 
         # Output folders
@@ -282,7 +282,7 @@ class zProjection(QWidget):
 
         image_paths = self.image_list.get_file_list()
         # prepare output suffix (incl. projection)
-        output_basenames = [os.path.splitext(os.path.basename(path))[0] + self.output_suffix + self.get_projection_suffix(path, projection_zrange, projection_type) for path in image_paths]
+        output_basenames = [gf.splitext(os.path.basename(path))[0] + self.output_suffix + self.get_projection_suffix(path, projection_zrange, projection_type) for path in image_paths]
         if self.use_input_folder.isChecked():
             output_paths = [os.path.dirname(path) for path in image_paths]
         else:

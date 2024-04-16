@@ -14,7 +14,7 @@ class Generator(QWidget):
         self.output_suffix = '_vGT'
 
         # Input widgets
-        self.imagetypes = ['.nd2', '.tif', '.tiff']
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
         self.image_list = gf.FileListWidget(filetypes=self.imagetypes)
         # Output widgets
         self.use_input_folder = QRadioButton("Use input image folder")
@@ -131,7 +131,7 @@ class Generator(QWidget):
                     output_path = self.output_folder.text()
                 if not output_path.endswith('/'): output_path += '/'
                 if not os.path.exists(output_path): os.makedirs(output_path)
-                output_basename = os.path.splitext(os.path.basename(image_path))[0] + self.output_suffix + self.output_user_suffix.text()
+                output_basename = gf.splitext(os.path.basename(image_path))[0] + self.output_suffix + self.output_user_suffix.text()
                 # Set log and cursor info
                 self.logger.info("Image %s", image_path)
                 # Perform projection

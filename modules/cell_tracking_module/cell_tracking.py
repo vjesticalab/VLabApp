@@ -19,7 +19,7 @@ class CellTracking(QWidget):
         label_documentation.setOpenExternalLinks(True)
         label_documentation.setText('<a href="file://'+os.path.join(os.path.dirname(__file__), "doc", "METHODS.html")+'">Methods</a>')
 
-        self.imagetypes = ['.nd2', '.tif', '.tiff']
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
 
         self.mask_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter=self.mask_suffix)
         self.mask_list.file_list_changed.connect(self.mask_list_changed)
@@ -261,7 +261,7 @@ class CellTracking(QWidget):
             image_path = ""
         mask_paths = self.mask_list.get_file_list()
         user_suffix = self.output_user_suffix.text()
-        output_basenames = [os.path.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in mask_paths]
+        output_basenames = [gf.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in mask_paths]
         if self.use_input_folder.isChecked():
             output_paths = [os.path.dirname(path) for path in mask_paths]
         else:

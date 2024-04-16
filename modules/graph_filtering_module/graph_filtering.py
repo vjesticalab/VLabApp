@@ -17,7 +17,7 @@ class GraphFiltering(QWidget):
 
         layout = QVBoxLayout()
 
-        self.imagetypes = ['.nd2', '.tif', '.tiff']
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
 
         self.mask_graph_table = gf.FileTableWidget2(header_1="Mask", header_2="Graph", filenames_suffix_1='.tif', filenames_suffix_2='.graphmlz')
         self.mask_graph_table.file_table_changed.connect(self.mask_graph_table_changed)
@@ -364,7 +364,7 @@ class GraphFiltering(QWidget):
         mask_paths = [mask_path for mask_path, graph_path in mask_graph_paths]
         graph_paths = [graph_path for mask_path, graph_path in mask_graph_paths]
         user_suffix = self.output_user_suffix.text()
-        output_basenames = [os.path.splitext(os.path.basename(mask_path))[0] + self.output_suffix + user_suffix for mask_path in mask_paths]
+        output_basenames = [gf.splitext(os.path.basename(mask_path))[0] + self.output_suffix + user_suffix for mask_path in mask_paths]
         if self.use_input_folder.isChecked():
             output_paths = [os.path.dirname(mask_path) for mask_path in mask_paths]
         else:

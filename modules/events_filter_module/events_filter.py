@@ -13,7 +13,7 @@ class GraphEventFilter(QWidget):
 
         self.output_suffix = '_vEF'
 
-        self.imagetypes = ['.nd2', '.tif', '.tiff']
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
         self.graphtypes = ['.graphmlz']
 
         # Browse segmentation mask
@@ -282,7 +282,7 @@ class GraphEventFilter(QWidget):
         else:
             output_path = self.output_folder.text()
         user_suffix = self.output_user_suffix.text()
-        output_basename = os.path.splitext(os.path.basename(mask_path))[0] + self.output_suffix + user_suffix
+        output_basename = gf.splitext(os.path.basename(mask_path))[0] + self.output_suffix + user_suffix
         self.logger.info("Event filtering (mask %s, graph %s)", mask_path, graph_path)
 
         # Set event

@@ -26,7 +26,7 @@ class Perform(gf.Page):
         label_documentation.setOpenExternalLinks(True)
         label_documentation.setText('<a href="file://' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
 
-        self.imagetypes = ['.nd2', '.tif', '.tiff']
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
 
         self.image_listA = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_BF', filenames_exclude_filter=self.output_suffix)
         self.channel_position = QLineEdit(placeholderText='eg. 0 (default) / 1 / ...')
@@ -331,7 +331,7 @@ class Perform(gf.Page):
         else:
             output_paths = [self.output_folder.text() for path in image_paths]
         user_suffix = self.output_user_suffix.text()
-        output_basenames = [os.path.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
+        output_basenames = [gf.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
         for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
             # collect arguments
             print("IMAGE=",image_path)
@@ -379,7 +379,7 @@ class Perform(gf.Page):
             else:
                 output_paths = [self.output_folder.text() for path in image_paths]
             user_suffix = self.output_user_suffix.text()
-            output_basenames = [os.path.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
+            output_basenames = [gf.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
             for n, (image_path, output_path, output_basename) in enumerate(zip(image_paths, output_paths, output_basenames)):
                 if status[n] == "Success":
                     tmat_path = os.path.join(output_path, output_basename+'.csv')
@@ -389,7 +389,7 @@ class Perform(gf.Page):
                         if im.startswith(unique_identifier) and not self.output_suffix in im and any(im.endswith(imagetype) for imagetype in self.imagetypes):
                             coalign_image_path = os.path.join(os.path.dirname(image_path),im)
                             if not coalign_image_path in image_paths:
-                                coalignment_output_basename=os.path.splitext(os.path.basename(coalign_image_path))[0] + self.output_suffix + user_suffix
+                                coalignment_output_basename=gf.splitext(os.path.basename(coalign_image_path))[0] + self.output_suffix + user_suffix
                                 print("IMAGE(co)=",coalign_image_path)
                                 map_run_to_image_no.append(n)
                                 arguments.append((coalign_image_path, tmat_path,  output_path, coalignment_output_basename, skip_crop_decision))
@@ -484,7 +484,7 @@ class Align(gf.Page):
 
         self.output_suffix = '_vRG'
 
-        self.imagetypes = ['.nd2', '.tif', '.tiff']
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
         self.matricestypes = ['.txt','.csv']
 
         ####### Section Alignment #######
@@ -613,7 +613,7 @@ class Align(gf.Page):
             return
 
         user_suffix = self.output_user_suffix.text()
-        output_basenames = [os.path.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
+        output_basenames = [gf.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
         if self.use_input_folder.isChecked():
             output_paths = [os.path.dirname(path) for path in image_paths]
         else:
@@ -763,7 +763,7 @@ class Edit(gf.Page):
             f.edit_main(self.transfmat_path, int(start_timepoint), int(start_timepoint), int(end_timepoint))
             # Create an instance of the second window
             self.display_graph = DisplayGraphWindow(self.transfmat_path)
-            self.display_graph.setWindowTitle(os.path.splitext(os.path.basename(self.transfmat_path))[0])
+            self.display_graph.setWindowTitle(gf.splitext(os.path.basename(self.transfmat_path))[0])
             self.display_graph.move(700,0)
             self.display_graph.show()
 
@@ -772,7 +772,7 @@ class Edit(gf.Page):
         self.transfmat_path = item.text()
         # Display the matrix
         self.display_graph = DisplayGraphWindow(self.transfmat_path)
-        self.display_graph.setWindowTitle(os.path.splitext(os.path.basename(self.transfmat_path))[0])
+        self.display_graph.setWindowTitle(gf.splitext(os.path.basename(self.transfmat_path))[0])
         self.display_graph.move(700,0)
         self.display_graph.show()
 
@@ -781,7 +781,7 @@ class ManualEdit(gf.Page):
     def __init__(self):
         super().__init__()
 
-        self.imagetypes = ['.nd2', '.tif', '.tiff']
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
         self.matricestypes = ['.txt','.csv']
 
         ####### Section Manual Editing #######

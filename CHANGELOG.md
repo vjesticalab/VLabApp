@@ -28,7 +28,7 @@
 * Image class: raise an error if get_TYXarray() is used with a non-TYX image.
 * Registration module: when coaligning files with same unique identifier, only select image files (instead of all file types) and do not select images already aligned.
 * Registration module: check that input image does not contain multiple fields of view (axis F).
-
+* Fix handling of .ome.tif files.
 
 
 

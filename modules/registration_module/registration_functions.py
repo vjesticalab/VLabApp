@@ -1034,7 +1034,7 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
 
 
 def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end):
-    log_path=os.path.splitext(reference_matrix_path)[0] + '.log'
+    log_path=gf.splitext(reference_matrix_path)[0] + '.log'
 
     # Setup logging to file in output_path
     logger = logging.getLogger(__name__)
@@ -1081,7 +1081,7 @@ def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end
 
 
 def manual_edit_main(image_path, matrix_path):
-    log_path=os.path.splitext(matrix_path)[0] + '.log'
+    log_path=gf.splitext(matrix_path)[0] + '.log'
 
     # Setup logging to file in output_path
     logger = logging.getLogger(__name__)

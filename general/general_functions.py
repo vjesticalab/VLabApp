@@ -12,6 +12,51 @@ import igraph as ig
 from matplotlib import cm
 import cv2
 
+def splitext(path):
+    """
+    Quick and dirty hack based on os.path.splitext() but modified to
+    deal with .ome.* extensions (e.g. .ome.tif, .ome.tiff, .ome.zarr, ...).
+    Split `path` into a pair (root, ext) such that root + ext == path
+    and ext is everything from the last dot to the end, except if root
+    ends with ".ome", in which case ".ome" is moved to ext.
+
+    Parameters
+    ----------
+    path: str
+        a path name.
+
+    Returns
+    -------
+    (str, str)
+        a tuple (root, ext).
+
+    Examples
+    --------
+    >>> splitext('bar')
+    ('bar', '')
+
+    >>> splitext('foo.bar.exe')
+    ('foo.bar', '.exe')
+
+    >>> splitext('foo.ome.tif')
+    ('foo', '.ome.tif')
+
+    >>> splitext('.cshrc')
+    ('.cshrc', '')
+
+    >>> splitext('/foo/....jpg')
+    ('/foo/....jpg', '')
+
+    >>> splitext('project-v0.4.17.zip')
+    ('project-v0.4.17', '.zip')
+    """
+    root, ext = os.path.splitext(path)
+    ext2 = '.ome'
+    if root.endswith(ext2):
+        root, ext2 = os.path.splitext(root)
+        ext = ext2 + ext
+    return (root, ext)
+
 
 class QLineEditHandler(logging.Handler):
     """
@@ -375,7 +420,7 @@ class DropFilesListWidget(QListWidget):
             if url.isLocalFile():
                 if os.path.isfile(url.toLocalFile()):
                     filename = url.toLocalFile()
-                    if len(self.findItems(filename, Qt.MatchExactly)) == 0 and (len(self.filetypes) == 0 or self.filetypes is None or os.path.splitext(filename)[1] in self.filetypes) and (self.filenames_filter is None or self.filenames_filter in os.path.basename(filename)) and (self.filenames_exclude_filter is None or self.filenames_exclude_filter == '' or  not self.filenames_exclude_filter in os.path.basename(filename)):
+                    if len(self.findItems(filename, Qt.MatchExactly)) == 0 and (len(self.filetypes) == 0 or self.filetypes is None or splitext(filename)[1] in self.filetypes) and (self.filenames_filter is None or self.filenames_filter in os.path.basename(filename)) and (self.filenames_exclude_filter is None or self.filenames_exclude_filter == '' or  not self.filenames_exclude_filter in os.path.basename(filename)):
                         self.addItem(filename)
                 if os.path.isdir(url.toLocalFile()):
                     d = url.toLocalFile()
@@ -385,7 +430,7 @@ class DropFilesListWidget(QListWidget):
                     if len(self.filetypes) > 0 and not self.filetypes is None:
                         # keep only allowed filetypes
                         filenames = [f for f in filenames
-                                     if os.path.splitext(f)[1] in self.filetypes]
+                                     if splitext(f)[1] in self.filetypes]
                     if not self.filenames_filter is None:
                         # keep only filenames containing filenames_filter
                         filenames = [f for f in filenames
@@ -511,7 +556,7 @@ class FileListWidget(QWidget):
     def add_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder_path:
-            files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if os.path.splitext(f)[1] in self.filetypes.text().split() and self.filter_name.text() in f and (self.filter_name_exclude.text() == '' or not self.filter_name_exclude.text() in f)]
+            files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if splitext(f)[1] in self.filetypes.text().split() and self.filter_name.text() in f and (self.filter_name_exclude.text() == '' or not self.filter_name_exclude.text() in f)]
             self.file_list.addItems([f for f in files if len(self.file_list.findItems(f, Qt.MatchExactly)) == 0])
 
     def remove_file(self):
@@ -551,7 +596,7 @@ class DropFileLineEdit(QLineEdit):
             if url.isLocalFile():
                 if os.path.isfile(url.toLocalFile()):
                     filename = url.toLocalFile()
-                    if self.filetypes is None or len(self.filetypes) == 0 or os.path.splitext(filename)[1] in self.filetypes:
+                    if self.filetypes is None or len(self.filetypes) == 0 or splitext(filename)[1] in self.filetypes:
                         self.setText(filename)
 
 
@@ -667,7 +712,7 @@ class Image:
     def __init__(self, im_path):
         self.path = im_path
         self.basename = os.path.basename(self.path)
-        self.name, self.extension = os.path.splitext(self.basename)
+        self.name, self.extension = splitext(self.basename)
         self.sizes = None
         self.image = None
         self.shape = None
@@ -680,7 +725,7 @@ class Image:
             axes_order = str(''.join(list(reader.sizes.keys()))).upper() #eg. reader.sizes = {'T': 10, 'C': 2, 'Y': 2048, 'X': 2048}
             shape = reader.shape
             reader.close()
-        elif (self.extension == '.tiff' or self.extension == '.tif'):
+        elif self.extension in ['.tif', '.tiff', '.ome.tif', '.ome.tiff']:
             reader = tifffile.TiffFile(self.path)
             axes_order = str(reader.series[0].axes).upper()
             shape = reader.series[0].shape
@@ -731,7 +776,7 @@ class Image:
             axes_order = str(''.join(list(reader.sizes.keys()))).upper() #eg. reader.sizes = {'T': 10, 'C': 2, 'Y': 2048, 'X': 2048}
             image = reader.asarray() #nd2.imread(self.path)
             reader.close()
-        elif (self.extension == '.tiff' or self.extension == '.tif'):
+        elif self.extension in ['.tif', '.tiff', '.ome.tif', '.ome.tiff']:
             reader = tifffile.TiffFile(self.path)
             axes_order = str(reader.series[0].axes).upper()
             image = reader.asarray()

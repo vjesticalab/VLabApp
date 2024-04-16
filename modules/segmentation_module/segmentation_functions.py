@@ -49,7 +49,7 @@ def par_run_eval(image, mask, model, logger, tot_iterations, n_count):
 def main(image_path, model_path, output_path, output_basename, n_count, display_results=True, use_gpu=True, run_parallel=True):
     """
     Load image, segment with cellpose and save the resulting mask
-    into `output_path` directory using filename <image basename>_mask.tif
+    into `output_path` directory using filename <image basename>.tif
     Note : we assume that the image first channel is ALWAYS BF and we will only apply the segmentation on that channel
 
     Parameters
