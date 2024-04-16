@@ -167,6 +167,9 @@ class DropFilesTableWidget2(QTableWidget):
         self.filenames_suffix_2 = filenames_suffix_2
         self.filenames_filter = filenames_filter
         self.filenames_exclude_filter = filenames_exclude_filter
+        shortcut = QShortcut(QKeySequence.Delete,self)
+        shortcut.setContext( Qt.WidgetWithChildrenShortcut)
+        shortcut.activated.connect(self.remove_selected)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls:
@@ -240,6 +243,12 @@ class DropFilesTableWidget2(QTableWidget):
                                 item.setFlags(item.flags() ^ Qt.ItemIsEditable)
                                 self.setItem(self.rowCount()-1, 1, item)
 
+    def remove_selected(self):
+        rows = set()
+        for index in self.selectedIndexes():
+            rows.add(index.row())
+        for row in sorted(rows, reverse=True):
+            self.removeRow(row)
 
 class FileTableWidget2(QWidget):
     """
@@ -411,11 +420,7 @@ class FileTableWidget2(QWidget):
                                 self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
 
     def remove_file(self):
-        rows = set()
-        for index in self.file_table.selectedIndexes():
-            rows.add(index.row())
-        for row in sorted(rows, reverse=True):
-            self.file_table.removeRow(row)
+        self.file_table.remove_selected()
 
     def rowCount(self):
         return self.file_table.rowCount()
