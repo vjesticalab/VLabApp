@@ -19,7 +19,7 @@ class GraphFiltering(QWidget):
 
         self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
 
-        self.mask_graph_table = gf.FileTableWidget2(header_1="Mask", header_2="Graph", filenames_suffix_1='.tif', filenames_suffix_2='.graphmlz')
+        self.mask_graph_table = gf.FileTableWidget2(header_1="Mask", header_2="Graph", filenames_suffix_1='.ome.tif', filenames_suffix_2='.graphmlz')
         self.mask_graph_table.file_table_changed.connect(self.mask_graph_table_changed)
         groupbox = QGroupBox('Segmentation masks and cell tracking graphs to process')
         layout2 = QVBoxLayout()
@@ -351,7 +351,7 @@ class GraphFiltering(QWidget):
         else:
             output_path = self.output_folder.text().rstrip("/")
 
-        self.output_filename_label1.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".tif"))
+        self.output_filename_label1.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
         self.output_filename_label2.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".graphmlz"))
 
     def submit(self):

@@ -67,7 +67,7 @@ class SaveButton(QWidget):
     def save_layer(self):
         for layer in self.viewer.layers:
             if layer in self.viewer.layers.selection:
-                OmeTiffWriter.save(layer.data, os.path.join(self.output_path, self.output_basename + '.tif'))#, dim_order="TCYX")
+                OmeTiffWriter.save(layer.data, os.path.join(self.output_path, self.output_basename + '.ome.tif'))#, dim_order="TCYX")
         print('Layer saved!')
 
 class QuitButton(QWidget):
@@ -172,7 +172,7 @@ def main(image_path, output_path, output_basename):
     output_path: str
         output directory
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`.tif
+        output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif
 
     Saves
     ---------------------

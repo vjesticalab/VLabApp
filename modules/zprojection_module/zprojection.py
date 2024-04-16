@@ -211,7 +211,7 @@ class zProjection(QWidget):
             projection_zrange = None
         projection_suffix = self.get_projection_suffix(None, projection_zrange, projection_type)
 
-        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + projection_suffix+".tif"))
+        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + projection_suffix+".ome.tif"))
 
     def get_projection_suffix(self,image_path,projection_zrange,projection_type):
         if projection_zrange is None:

@@ -17,6 +17,7 @@
 * Registration module (Alignment tab): search for matching transformation matrices based on unique identifier (part of the basename before the first "_") and warn if multiple matches are found.
 * Event filter module: change output file naming (do not create a event_filter/ sub-folder, add _vEF suffix instead of _mask, _graph and _dictionary suffixes).
 * Registration module: log to file.
+* Use .ome.tif file extension for output files instead of using .tif extension (but saving in ome-tif format).
 
 ### Removed
 

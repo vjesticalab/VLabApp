@@ -92,7 +92,7 @@ class Generator(QWidget):
         else:
             output_path = self.output_folder.text().rstrip("/")
 
-        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".tif"))
+        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
 
     def submit(self):
         """

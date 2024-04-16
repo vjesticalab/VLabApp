@@ -212,7 +212,7 @@ def save_cropped_events(events_list, n_tp, total_events_mask, marker_image, chcr
                 cropped_mask[:,i+1,:,:] = valid_im[:, ymin:ymax, xmin:xmax] #TYX
         
         # Save
-        OmeTiffWriter.save(cropped_mask, os.path.join(crop_output_path, crop_output_basename+'-'+str(n)+'.tif'), dim_order="TCYX")
+        OmeTiffWriter.save(cropped_mask, os.path.join(crop_output_path, crop_output_basename+'-'+str(n)+'.ome.tif'), dim_order="TCYX")
     
 
 def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_before, tp_after, cropsave, chcropimage_path, BFimage_path, output_path, output_basename):
@@ -237,7 +237,7 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
     output_path: str
         output directory.
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`.tif, `output_path`/`output_basename`.graphmlz, `output_path`/`output_basename`.csv and `output_path`/`output_basename`.log.
+        output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif, `output_path`/`output_basename`.graphmlz, `output_path`/`output_basename`.csv and `output_path`/`output_basename`.log.
 
     Saves
     ---------------------
@@ -301,7 +301,7 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
     total_events_mask, total_events_graph, events_list = event_filter(mask.get_TYXarray(), graph, event, timecorrection, magn_image, tp_before, tp_after, output_path, output_basename)
 
     # Save mask and graph
-    OmeTiffWriter.save(total_events_mask, os.path.join(output_path, output_basename+'.tif'), dim_order="TCYX")
+    OmeTiffWriter.save(total_events_mask, os.path.join(output_path, output_basename+'.ome.tif'), dim_order="TCYX")
     total_events_graph.write_graphmlz( os.path.join(output_path, output_basename+'.graphmlz'))
 
     # If required, save cropped events 

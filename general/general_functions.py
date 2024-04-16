@@ -262,7 +262,7 @@ class FileTableWidget2(QWidget):
         """
         super().__init__(parent)
 
-        self.filter_name_1 = QLineEdit(filenames_suffix_1, placeholderText='e.g.: _vTG.tif')
+        self.filter_name_1 = QLineEdit(filenames_suffix_1, placeholderText='e.g.: _vTG.ome.tif')
         self.filter_name_1.setToolTip('Accept only filenames ending with this text.')
         self.filter_name_1.textChanged.connect(self.filter_name_1_changed)
         self.filter_name_2 = QLineEdit(filenames_suffix_2, placeholderText='e.g.: _vTG.graphmlz')
@@ -482,7 +482,7 @@ class FileListWidget(QWidget):
         self.filter_name_exclude = QLineEdit(filenames_exclude_filter, placeholderText='e.g.: _WL508')
         self.filter_name_exclude.setToolTip('Accept only filenames NOT containing this text. Filtering is done only when populating the list.')
         self.filter_name_exclude.textChanged.connect(self.filter_name_exclude_changed)
-        self.filetypes = QLineEdit(' '.join(filetypes), placeholderText='e.g.: .nd2 .tif .tiff')
+        self.filetypes = QLineEdit(' '.join(filetypes), placeholderText='e.g.: .nd2 .tif .tiff .ome.tif .ome.tiff')
         self.filetypes.setToolTip('Space separated list of accepted file extensions. Filtering is done only when populating the list.')
         self.filetypes.textChanged.connect(self.filetypes_changed)
         self.file_list = DropFilesListWidget(filetypes=self.filetypes.text().split(), filenames_filter=self.filter_name.text(), filenames_exclude_filter=self.filter_name_exclude.text())
@@ -731,8 +731,8 @@ class Image:
             shape = reader.series[0].shape
             reader.close()
         else:
-            logging.getLogger(__name__).error('Image format not supported. Please upload a tiff or nd2 image file.')
-            raise TypeError('Image format not supported. Please upload a tiff or nd2 image file.')
+            logging.getLogger(__name__).error('Image format not supported. Please upload a tiff, ome-tiff or nd2 image file.')
+            raise TypeError('Image format not supported. Please upload a tiff, ome-tiff or nd2 image file.')
 
         self.shape = []
         self.sizes= dict()
@@ -782,8 +782,8 @@ class Image:
             image = reader.asarray()
             reader.close()
         else:
-            logging.getLogger(__name__).error('Image format not supported. Please upload a tiff or nd2 image file.')
-            raise TypeError('Image format not supported. Please upload a tiff or nd2 image file.')
+            logging.getLogger(__name__).error('Image format not supported. Please upload a tiff, ome-tiff or nd2 image file.')
+            raise TypeError('Image format not supported. Please upload a tiff, ome-tiff or nd2 image file.')
 
         self.image = set_6Dimage(image, axes_order)
         return self.image

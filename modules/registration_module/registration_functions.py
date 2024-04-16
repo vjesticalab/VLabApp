@@ -606,7 +606,7 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
     output_path: str
         output directory
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`.tif
+        output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif
 
     Saves
     ---------------------
@@ -614,7 +614,7 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
         registered and eventually cropped image
     """
     logging.getLogger(__name__).info('Transforming image')
-    registeredFilepath = os.path.join(output_path, output_basename+'.tif')
+    registeredFilepath = os.path.join(output_path, output_basename+'.ome.tif')
 
     # Assuming empty dimension F
     image6D = image.image
@@ -671,7 +671,7 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
     output_path: str
         output directory
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`.tif
+        output basename. Output file will be saved as `output_path`/`output_basename`.csv
     registration_method : str
         method to use for registration. Can be "stackreg", "phase correlation",
         "feature matching (ORB)", "feature matching (BRISK)", "feature matching (AKAZE)"
@@ -807,7 +807,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
     output_path: str
         output directory
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`.tif
+        output basename. Output file will be saved as `output_path`/`output_basename`.csv
     registration_method : str
         method to use for registration. Can be "stackreg", "phase correlation",
         "feature matching (ORB)", "feature matching (BRISK)", "feature matching (AKAZE)"

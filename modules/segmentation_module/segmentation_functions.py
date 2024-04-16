@@ -49,19 +49,19 @@ def par_run_eval(image, mask, model, logger, tot_iterations, n_count):
 def main(image_path, model_path, output_path, output_basename, n_count, display_results=True, use_gpu=True, run_parallel=True):
     """
     Load image, segment with cellpose and save the resulting mask
-    into `output_path` directory using filename <image basename>.tif
+    into `output_path` directory using filename <image basename>.ome.tif
     Note : we assume that the image first channel is ALWAYS BF and we will only apply the segmentation on that channel
 
     Parameters
     ----------
     image_path: str
-        input image path. Must be a tif or nd2 image with axes T,Y,X
+        input image path. Must be a tif, ome-tif or nd2 image with axes T,Y,X
     model_path: str
         cellpose pretrained model path
     output_path: str
         output directory
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`.tif and `output_path`/`output_basename`.log.
+        output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif and `output_path`/`output_basename`.log.
     display_results: bool, default True
         display input image and segmentation mask in napari
     use_gpu: bool, default False
@@ -162,7 +162,7 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
 
 
     # Save the mask
-    output_name = os.path.join(output_path, output_basename+".tif")
+    output_name = os.path.join(output_path, output_basename+".ome.tif")
     mask = mask[:, np.newaxis, :, :]
     OmeTiffWriter.save(mask, output_name, dim_order="TCYX")
 

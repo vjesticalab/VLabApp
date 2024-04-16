@@ -459,7 +459,7 @@ class Perform(gf.Page):
             output_path = self.output_folder.text().rstrip("/")
 
         self.output_filename_label1.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".csv"))
-        self.output_filename_label2.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".tif"))
+        self.output_filename_label2.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
 
     def projection_mode_fixed_zmin_changed(self, value):
         if self.projection_mode_fixed_zmax.value() < value:
@@ -584,7 +584,7 @@ class Align(gf.Page):
         else:
             output_path = self.output_folder.text().rstrip("/")
 
-        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".tif"))
+        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
 
     def align(self):
         def check_inputs(image_paths):

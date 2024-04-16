@@ -1451,7 +1451,7 @@ class CellTrackingWidget(QWidget):
             self.relabel(closing)
 
         # TODO: adapt metadata to more generic input files (other axes)
-        output_file1 = os.path.join(self.output_path, self.output_basename+".tif")
+        output_file1 = os.path.join(self.output_path, self.output_basename+".ome.tif")
         self.logger.info("Saving segmentation mask to %s", output_file1)
         self.mask = self.mask[:, np.newaxis, :, :]
         OmeTiffWriter.save(self.mask, output_file1, dim_order="TCYX")
@@ -1502,14 +1502,14 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
     Parameters
     ----------
     image_path: str
-        input image path (tif or nd2 3D image TYX) to be shown in napari
+        input image path (tif, ome-tif or nd2 3D image TYX) to be shown in napari
         Use empty string to ignore
     mask_path: str
-        segmentation mask (uint16 tif 3D image TYX)
+        segmentation mask (uint16 tif or ome-tif 3D image TYX)
     output_path: str
         output directory
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`.tif, `output_path`/`output_basename`.graphmlz and `output_path`/`output_basename`.log.
+        output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif, `output_path`/`output_basename`.graphmlz and `output_path`/`output_basename`.log.
     min_area: int
         remove mask regions with area (number of pixels) below `min_area`
     max_delta_frame: int
@@ -1663,7 +1663,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
 
     else:
-        output_file = os.path.join(output_path, output_basename+".tif")
+        output_file = os.path.join(output_path, output_basename+".ome.tif")
         logger.info("Saving segmentation mask to %s", output_file)
         mask = mask[:, np.newaxis, :, :]
         OmeTiffWriter.save(mask, output_file, dim_order="TCYX")

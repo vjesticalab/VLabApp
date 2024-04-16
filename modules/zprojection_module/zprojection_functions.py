@@ -16,7 +16,7 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
     output_path: str
         output directory
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`.tif and `output_path`/`output_basename`.log.
+        output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif and `output_path`/`output_basename`.log.
     projection_type: str
         type of the projection to perfrom
     projection_zrange:  int or (int,int) or None
@@ -92,7 +92,7 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
         raise
 
     # Save the projection
-    output_file_name = os.path.join(output_path, output_basename+".tif")
+    output_file_name = os.path.join(output_path, output_basename+".ome.tif")
     # TODO: properly deal with 'F' axis.
     OmeTiffWriter.save(projected_image[0, :, :, 0, :, :], output_file_name, dim_order="TCYX")
     logger.info("Projection performed and saved (%s)", output_file_name)
