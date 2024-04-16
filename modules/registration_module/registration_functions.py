@@ -942,6 +942,8 @@ def registration_main(image_path, output_path, output_basename, channel_position
 
     logger.info("System info:\npystackreg version: %s\nopencv version: %s\nnumpy version: %s\nskimage version: %s\nnapari version: %s", StackReg_version, cv.__version__, np.__version__, skimage_version, napari.__version__)
     logger.info("image: %s", image_path)
+    logger.info("registration method: %s", registration_method)
+    logger.info("Crop image?: %s", not skip_crop_decision)
 
 
     # Load image
