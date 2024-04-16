@@ -154,7 +154,7 @@ class DropFilesTableWidget2(QTableWidget):
     A QTableWidget with drop support for files and folders with 2 columns. If a folder is dropped, all files contained in the folder are added.
     """
 
-    def __init__(self, parent=None, header_1=None, header_2=None, filenames_suffix_1=None, filenames_suffix_2=None):
+    def __init__(self, parent=None, header_1=None, header_2=None, filenames_suffix_1=None, filenames_suffix_2=None, filenames_filter=None, filenames_exclude_filter=None):
         super().__init__(parent)
         self.setColumnCount(2)
         self.setHorizontalHeaderLabels([header_1, header_2])
@@ -165,6 +165,8 @@ class DropFilesTableWidget2(QTableWidget):
         self.setWordWrap(False)
         self.filenames_suffix_1 = filenames_suffix_1
         self.filenames_suffix_2 = filenames_suffix_2
+        self.filenames_filter = filenames_filter
+        self.filenames_exclude_filter = filenames_exclude_filter
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls:
@@ -198,7 +200,7 @@ class DropFilesTableWidget2(QTableWidget):
                         if os.path.isfile(basename + self.filenames_suffix_1):
                             path_1 = basename + self.filenames_suffix_1
                     if not path_1 is None and not path_2 is None:
-                        if len(self.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.findItems(path_1, Qt.MatchExactly)) == 0:
+                        if len(self.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.findItems(path_1, Qt.MatchExactly)) == 0 and (self.filenames_filter is None or self.filenames_filter in os.path.basename(path_1) and self.filenames_filter in os.path.basename(path_2)) and (self.filenames_exclude_filter is None or self.filenames_exclude_filter == '' or not self.filenames_exclude_filter in os.path.basename(path_1) and not self.filenames_exclude_filter in os.path.basename(path_2)):
                             self.insertRow(self.rowCount())
                             item = QTableWidgetItem(path_1)
                             item.setToolTip(path_1)
@@ -227,7 +229,7 @@ class DropFilesTableWidget2(QTableWidget):
                             if os.path.isfile(basename + self.filenames_suffix_1):
                                 path_1 = basename + self.filenames_suffix_1
                         if not path_1 is None and not path_2 is None:
-                            if len(self.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.findItems(path_1, Qt.MatchExactly)) == 0:
+                            if len(self.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.findItems(path_1, Qt.MatchExactly)) == 0  and (self.filenames_filter is None or self.filenames_filter in os.path.basename(path_1) and self.filenames_filter in os.path.basename(path_2)) and (self.filenames_exclude_filter is None or self.filenames_exclude_filter == '' or not self.filenames_exclude_filter in os.path.basename(path_1) and not self.filenames_exclude_filter in os.path.basename(path_2)):
                                 self.insertRow(self.rowCount())
                                 item = QTableWidgetItem(path_1)
                                 item.setToolTip(path_1)
@@ -247,7 +249,7 @@ class FileTableWidget2(QWidget):
     """
     file_table_changed = pyqtSignal()
 
-    def __init__(self, parent=None, header_1=None, header_2=None, filenames_suffix_1=None, filenames_suffix_2=None):
+    def __init__(self, parent=None, header_1=None, header_2=None, filenames_suffix_1=None, filenames_suffix_2=None, filenames_filter='', filenames_exclude_filter=''):
         """
         Parameters
         ----------
@@ -259,16 +261,27 @@ class FileTableWidget2(QWidget):
             filenames not ending with this text will be ignored (for column 1).
         filename_suffix_2: str
             filenames not ending with this text will be ignored (for column 2).
+        filenames_filter: str
+            filenames not containing this text will be ignored.
+        filenames_exclude_filter: str
+            filenames containing this text will be ignored.
         """
         super().__init__(parent)
 
-        self.filter_name_1 = QLineEdit(filenames_suffix_1, placeholderText='e.g.: _vTG.ome.tif')
-        self.filter_name_1.setToolTip('Accept only filenames ending with this text.')
-        self.filter_name_1.textChanged.connect(self.filter_name_1_changed)
-        self.filter_name_2 = QLineEdit(filenames_suffix_2, placeholderText='e.g.: _vTG.graphmlz')
-        self.filter_name_2.setToolTip('Accept only filenames ending with this text')
-        self.filter_name_2.textChanged.connect(self.filter_name_2_changed)
-        self.file_table = DropFilesTableWidget2(header_1=header_1, header_2=header_2, filenames_suffix_1=self.filter_name_1.text(), filenames_suffix_2=self.filter_name_2.text())
+        self.filter_name = QLineEdit(filenames_filter, placeholderText='e.g.: _BF')
+        self.filter_name.setToolTip('Accept only filenames containing this text. Filtering is done only when populating the table.')
+        self.filter_name.textChanged.connect(self.filter_name_changed)
+        self.filter_name_exclude = QLineEdit(filenames_exclude_filter, placeholderText='e.g.: _WL508')
+        self.filter_name_exclude.setToolTip('Accept only filenames NOT containing this text. Filtering is done only when populating the table.')
+        self.filter_name_exclude.textChanged.connect(self.filter_name_exclude_changed)
+
+        self.suffix_1 = QLineEdit(filenames_suffix_1, placeholderText='e.g.: _vTG.ome.tif')
+        self.suffix_1.setToolTip('Accept only filenames ending with this text.')
+        self.suffix_1.textChanged.connect(self.suffix_1_changed)
+        self.suffix_2 = QLineEdit(filenames_suffix_2, placeholderText='e.g.: _vTG.graphmlz')
+        self.suffix_2.setToolTip('Accept only filenames ending with this text')
+        self.suffix_2.textChanged.connect(self.suffix_2_changed)
+        self.file_table = DropFilesTableWidget2(header_1=header_1, header_2=header_2, filenames_suffix_1=self.suffix_1.text(), filenames_suffix_2=self.suffix_2.text(), filenames_filter=self.filter_name.text(), filenames_exclude_filter=self.filter_name_exclude.text())
         self.file_table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.file_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.file_table.model().rowsInserted.connect(self.file_table_rows_inserted)
@@ -282,6 +295,15 @@ class FileTableWidget2(QWidget):
 
 
         layout = QVBoxLayout()
+        layout.addWidget(QLabel('Filter files to process:'))
+        layout2 = QHBoxLayout()
+        layout3 = QFormLayout()
+        layout3.addRow("Filename must include:", self.filter_name)
+        layout2.addLayout(layout3)
+        layout3 = QFormLayout()
+        layout3.addRow("Filename must NOT include:", self.filter_name_exclude)
+        layout2.addLayout(layout3)
+        layout.addLayout(layout2)
         layout.addWidget(self.file_table)
         layout2 = QHBoxLayout()
         layout2.addWidget(self.add_file_button)
@@ -290,13 +312,13 @@ class FileTableWidget2(QWidget):
         layout.addLayout(layout2)
         layout2 = QHBoxLayout()
         layout3 = QFormLayout()
-        layout3.addRow(header_1 + " suffix:", self.filter_name_1)
+        layout3.addRow(header_1 + " suffix:", self.suffix_1)
         layout2.addLayout(layout3)
         layout3 = QFormLayout()
-        layout3.addRow(header_2 + " suffix:", self.filter_name_2)
+        layout3.addRow(header_2 + " suffix:", self.suffix_2)
         layout2.addLayout(layout3)
         layout.addLayout(layout2)
-        help_label = QLabel("Corresponding " + header_1 + " and " + header_2 + " files must be in the same directory. Their filenames must share the same basename and end with the specified suffix (by default <basename>"+self.filter_name_1.text()+" and <basename>"+self.filter_name_2.text()+")")
+        help_label = QLabel("Corresponding " + header_1 + " and " + header_2 + " files must be in the same directory. Their filenames must share the same basename and end with the specified suffix (by default <basename>"+self.suffix_1.text()+" and <basename>"+self.suffix_2.text()+")")
         help_label.setWordWrap(True)
         layout.addWidget(help_label)
         layout.setContentsMargins(0,0,0,0)
@@ -308,40 +330,52 @@ class FileTableWidget2(QWidget):
     def file_table_rows_removed(self):
         self.file_table_changed.emit()
 
-    def filter_name_1_changed(self):
-        self.file_table.filenames_suffix_1 = self.filter_name_1.text()
+    def filter_name_changed(self):
+        self.file_table.filenames_filter = self.filter_name.text()
 
-    def filter_name_2_changed(self):
-        self.file_table.filenames_suffix_2 = self.filter_name_2.text()
+    def filter_name_exclude_changed(self):
+        self.file_table.filenames_exclude_filter = self.filter_name_exclude.text()
+
+    def suffix_1_changed(self):
+        self.file_table.filenames_suffix_1 = self.suffix_1.text()
+
+    def suffix_2_changed(self):
+        self.file_table.filenames_suffix_2 = self.suffix_2.text()
 
     def add_file(self):
-        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Images ('+'*'+self.filter_name_1.text()+' '+'*'+self.filter_name_2.text()+')')
+        type_list = ['*'+self.suffix_1.text(), '*'+self.suffix_2.text()]
+        if self.filter_name.text() != '':
+            type_list = ['*'+self.filter_name.text()+x for x in type_list]
+
+        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Images ('+' '.join(type_list)+')')
         for file_path in file_paths:
             path_1 = None
             path_2 = None
-            re_pattern = self.filter_name_1.text() + '$'
+            re_pattern = self.suffix_1.text() + '$'
             if re.search(re_pattern, file_path):
                 basename = re.sub(re_pattern, '', file_path)
                 path_1 = file_path
-                if os.path.isfile(basename + self.filter_name_2.text()):
-                    path_2 = basename + self.filter_name_2.text()
-            re_pattern = self.filter_name_2.text() + '$'
+                if os.path.isfile(basename + self.suffix_2.text()):
+                    path_2 = basename + self.suffix_2.text()
+            re_pattern = self.suffix_2.text() + '$'
             if re.search(re_pattern, file_path):
                 basename = re.sub(re_pattern, '', file_path)
                 path_2 = file_path
-                if os.path.isfile(basename + self.filter_name_1.text()):
-                    path_1 = basename + self.filter_name_1.text()
+                if os.path.isfile(basename + self.suffix_1.text()):
+                    path_1 = basename + self.suffix_1.text()
             if not path_1 is None and not path_2 is None:
-                if len(self.file_table.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.file_table.findItems(path_1, Qt.MatchExactly)) == 0:
-                    self.file_table.insertRow(self.file_table.rowCount())
-                    item = QTableWidgetItem(path_1)
-                    item.setToolTip(path_1)
-                    item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-                    self.file_table.setItem(self.file_table.rowCount()-1, 0, item)
-                    item = QTableWidgetItem(path_2)
-                    item.setToolTip(path_2)
-                    item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-                    self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
+                if self.filter_name.text() in os.path.basename(path_1) and self.filter_name.text() in os.path.basename(path_2):
+                    if self.filter_name_exclude.text() == '' or ( not self.filter_name_exclude.text() in os.path.basename(path_1) and  not self.filter_name_exclude.text() in os.path.basename(path_2) ):
+                        if len(self.file_table.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.file_table.findItems(path_1, Qt.MatchExactly)) == 0:
+                            self.file_table.insertRow(self.file_table.rowCount())
+                            item = QTableWidgetItem(path_1)
+                            item.setToolTip(path_1)
+                            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                            self.file_table.setItem(self.file_table.rowCount()-1, 0, item)
+                            item = QTableWidgetItem(path_2)
+                            item.setToolTip(path_2)
+                            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                            self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
 
     def add_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
@@ -350,29 +384,31 @@ class FileTableWidget2(QWidget):
                 file_path = os.path.join(folder_path, fname)
                 path_1 = None
                 path_2 = None
-                re_pattern = self.filter_name_1.text() + '$'
+                re_pattern = self.suffix_1.text() + '$'
                 if re.search(re_pattern, file_path):
                     basename = re.sub(re_pattern, '', file_path)
                     path_1 = file_path
-                    if os.path.isfile(basename + self.filter_name_2.text()):
-                        path_2 = basename + self.filter_name_2.text()
-                re_pattern = self.filter_name_2.text() + '$'
+                    if os.path.isfile(basename + self.suffix_2.text()):
+                        path_2 = basename + self.suffix_2.text()
+                re_pattern = self.suffix_2.text() + '$'
                 if re.search(re_pattern, file_path):
                     basename = re.sub(re_pattern, '', file_path)
                     path_2 = file_path
-                    if os.path.isfile(basename + self.filter_name_1.text()):
-                        path_1 = basename + self.filter_name_1.text()
+                    if os.path.isfile(basename + self.suffix_1.text()):
+                        path_1 = basename + self.suffix_1.text()
                 if not path_1 is None and not path_2 is None:
-                    if len(self.file_table.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.file_table.findItems(path_1, Qt.MatchExactly)) == 0:
-                        self.file_table.insertRow(self.file_table.rowCount())
-                        item = QTableWidgetItem(path_1)
-                        item.setToolTip(path_1)
-                        item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-                        self.file_table.setItem(self.file_table.rowCount()-1, 0, item)
-                        item = QTableWidgetItem(path_2)
-                        item.setToolTip(path_2)
-                        item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-                        self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
+                    if self.filter_name.text() in os.path.basename(path_1) and self.filter_name.text() in os.path.basename(path_2):
+                        if self.filter_name_exclude.text() == '' or ( not self.filter_name_exclude.text() in os.path.basename(path_1) and  not self.filter_name_exclude.text() in os.path.basename(path_2) ):
+                            if len(self.file_table.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.file_table.findItems(path_1, Qt.MatchExactly)) == 0:
+                                self.file_table.insertRow(self.file_table.rowCount())
+                                item = QTableWidgetItem(path_1)
+                                item.setToolTip(path_1)
+                                item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                                self.file_table.setItem(self.file_table.rowCount()-1, 0, item)
+                                item = QTableWidgetItem(path_2)
+                                item.setToolTip(path_2)
+                                item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                                self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
 
     def remove_file(self):
         rows = set()
@@ -436,7 +472,7 @@ class DropFilesListWidget(QListWidget):
                         filenames = [f for f in filenames
                                      if self.filenames_filter in os.path.basename(f)]
                     if not self.filenames_exclude_filter is None:
-                        # keep only filenames not containing filenames_filter
+                        # keep only filenames not containing filenames_exclude_filter
                         print(filenames)
                         filenames = [f for f in filenames
                                      if self.filenames_exclude_filter == '' or not self.filenames_exclude_filter in os.path.basename(f)]

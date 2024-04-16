@@ -2,6 +2,8 @@
 
 ### Added
 
+* Graph filtering module: add "filename must include" and "filename must NOT include" filters to table of input files (FileTableWidget2).
+
 ### Changed
 
 * Image class: shape and sizes attributes are populated in the constructor.
