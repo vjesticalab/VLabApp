@@ -630,12 +630,6 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path):
 
         # Crop along the y-axis
         image_cropped = registered_image[:, t_start:t_end, :, :, y_start:y_end, x_start:x_end]
-        print(image6D.shape)
-        print(registered_image.shape)
-        print(image_cropped.shape)
-        print(t_start,t_end)
-        print(y_start,y_end)
-        print(x_start,x_end)
 
         # Save the registered and cropped image
         OmeTiffWriter.save(image_cropped[0,:,:,:,:,:], registeredFilepath, dim_order="TCZYX")
