@@ -57,6 +57,38 @@ def splitext(path):
         ext = ext2 + ext
     return (root, ext)
 
+class CollapsibleWidget(QWidget):
+    def __init__(self, text, parent=None, collapsed_icon="▶", expanded_icon="▼", expanded = True):
+        super().__init__(parent)
+
+        self.collapsed_icon = collapsed_icon
+        self.expanded_icon = expanded_icon
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0,0,0,0)
+
+        layout2 = QHBoxLayout()
+        self.button = QPushButton()
+        self.button.setCheckable(True)
+        self.button.setChecked(expanded)
+        self.button.setStyleSheet("border: none;padding-left: 0px; padding-right: 0px;padding-top: 0px; padding-bottom: 0px;")
+        self.content = QWidget()
+        layout2.addWidget(self.button,alignment=Qt.AlignLeft)
+        layout2.addWidget(QLabel(text))
+        layout2.addStretch()
+        layout.addLayout(layout2)
+        layout.addWidget(self.content)
+
+        self.set_icon(self.button.isChecked())
+        self.content.setVisible(self.button.isChecked())
+        self.button.clicked.connect(self.content.setVisible)
+        self.button.clicked.connect(self.set_icon)
+
+    def set_icon(self, expanded):
+        if expanded:
+            self.button.setText(self.expanded_icon)
+        else:
+            self.button.setText(self.collapsed_icon)
 
 class QLineEditHandler(logging.Handler):
     """
@@ -304,15 +336,16 @@ class FileTableWidget2(QWidget):
 
 
         layout = QVBoxLayout()
-        layout.addWidget(QLabel('Filter files to process:'))
+        filters = CollapsibleWidget('Filters (applied when populating the table)', expanded=False)
         layout2 = QHBoxLayout()
+        filters.content.setLayout(layout2)
         layout3 = QFormLayout()
         layout3.addRow("Filename must include:", self.filter_name)
         layout2.addLayout(layout3)
         layout3 = QFormLayout()
         layout3.addRow("Filename must NOT include:", self.filter_name_exclude)
         layout2.addLayout(layout3)
-        layout.addLayout(layout2)
+        layout.addWidget(filters)
         layout.addWidget(self.file_table)
         layout2 = QHBoxLayout()
         layout2.addWidget(self.add_file_button)
@@ -541,8 +574,9 @@ class FileListWidget(QWidget):
 
         layout = QVBoxLayout()
 
-        layout.addWidget(QLabel('Filter files to process:'))
+        filters = CollapsibleWidget('Filters (applied when populating the list)', expanded=False)
         layout2 = QHBoxLayout()
+        filters.content.setLayout(layout2)
         layout3 = QFormLayout()
         layout3.addRow("Filename must include:", self.filter_name)
         layout2.addLayout(layout3)
@@ -552,7 +586,7 @@ class FileListWidget(QWidget):
         layout3 = QFormLayout()
         layout3.addRow("File types:", self.filetypes)
         layout2.addLayout(layout3)
-        layout.addLayout(layout2)
+        layout.addWidget(filters)
 
         layout.addWidget(self.file_list)
         layout2 = QHBoxLayout()

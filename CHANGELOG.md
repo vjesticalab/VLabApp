@@ -3,6 +3,7 @@
 ### Added
 
 * Graph filtering module: add "filename must include" and "filename must NOT include" filters to table of input files (FileTableWidget2).
+* Graph filtering module: Add a "Delete" shortcut to table of input files (FileTableWidget2).
 
 ### Changed
 
@@ -20,6 +21,7 @@
 * Event filter module: change output file naming (do not create a event_filter/ sub-folder, add _vEF suffix instead of _mask, _graph and _dictionary suffixes).
 * Registration module: log to file.
 * Use .ome.tif file extension for output files instead of using .tif extension (but saving in ome-tif format).
+* Place the "filename must include" and "filename must NOT include" filters in a collapsible widget (FileListWidget and FileTableWidget2).
 
 ### Removed
 
