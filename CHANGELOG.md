@@ -4,6 +4,7 @@
 
 * Graph filtering module: add "filename must include" and "filename must NOT include" filters to table of input files (FileTableWidget2).
 * Graph filtering module: Add a "Delete" shortcut to table of input files (FileTableWidget2).
+* Segmentation module: add option to perform z-projection and select a specific channel (C axis) before segmentation.
 
 ### Changed
 

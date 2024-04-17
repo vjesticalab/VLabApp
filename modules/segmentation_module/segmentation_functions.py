@@ -31,9 +31,9 @@ def par_run_eval(image, mask, model, logger, tot_iterations, n_count):
                 call_evaluate,
                 t,
                 model,
-                image.image[0, t, 0, 0, :, :],
+                image[t, :, :],
                 model.diam_labels, [0, 0]
-            ): t for t in range(image.sizes['T'])
+            ): t for t in range(image.shape[0])
         }
         for future in concurrent.futures.as_completed(future_reg):
             try:
@@ -46,7 +46,7 @@ def par_run_eval(image, mask, model, logger, tot_iterations, n_count):
     return mask
 
 
-def main(image_path, model_path, output_path, output_basename, n_count, display_results=True, use_gpu=True, run_parallel=True):
+def main(image_path, model_path, output_path, output_basename, channel_position, projection_type, projection_zrange, n_count, display_results=True, use_gpu=True, run_parallel=True):
     """
     Load image, segment with cellpose and save the resulting mask
     into `output_path` directory using filename <image basename>.ome.tif
@@ -62,6 +62,16 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
         output directory
     output_basename: str
         output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif and `output_path`/`output_basename`.log.
+    channel_position : int
+        position of the channel to segment if the image is a c-stack
+    projection_type : str
+        type of projection to perform if the image is a z-stack
+    projection_zrange: int or (int,int) or None
+        the range of z sections to use for projection.
+        If zrange is None, use all z sections.
+        If zrange is an integer, use all z sections in the interval [z_best-zrange,z_best+zrange]
+        where z_best is the Z corresponding to best focus.
+        If zrange is tuple (zmin,zmax), use all z sections in the interval [zmin,zmax].
     display_results: bool, default True
         display input image and segmentation mask in napari
     use_gpu: bool, default False
@@ -85,6 +95,9 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
     logfile_handler.setFormatter(logging.Formatter('%(asctime)s  [%(levelname)s] %(message)s'))
     logfile_handler.setLevel(logging.INFO)
     logger.addHandler(logfile_handler)
+    # Also save general.general_functions logger to the same file (to log information on z-projection)
+    logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
+    logging.getLogger('general.general_functions').addHandler(logfile_handler)
 
     # Cellpose_version already contains platform, python version and torch version
     logger.info("System info: %s\nnumpy version: %s\nnapari version: %s", cellpose_version, np.__version__, napari.__version__)
@@ -103,6 +116,7 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
         logging.getLogger(__name__).exception('Error loading image %s', image_path)
         # stop using logfile
         logger.removeHandler(logfile_handler)
+        logging.getLogger('general.general_functions').removeHandler(logfile_handler)
         raise
 
     # Check 'F' axis has size 1
@@ -113,20 +127,34 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
         logging.getLogger('general.general_functions').removeHandler(logfile_handler)
         raise TypeError(f"Image {image_path} has a F axis with size > 1")
 
-    # Check 'C' axis has size 1
-    if image.sizes['C'] != 1:
-        logger.warning('Image %s has a C axis with size > 1. Using first channel for segmentation.', str(image_path))
+    # Project Z axis if needed and select channel
+    if image.sizes['Z'] > 1:
+        logger.info('Preparing image to segment: performing Z-projection')
+        image3D = image.zProjection(projection_type, projection_zrange)
+    else:
+        image3D = image.image
+    # keep only selected channel ('C' axis)
+    if image.sizes['C'] > channel_position:
+        logging.getLogger(__name__).info('Preparing image to segment: selecting channel %s',channel_position)
+        image3D = image3D[0,:,channel_position,0,:,:]
+    else:
+        logging.getLogger(__name__).error('Position of the channel given (%s) is out of range for image %s', channel_position, image.basename)
+        # Close logfile
+        logger.removeHandler(logfile_handler)
+        logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        raise TypeError(f"Position of the channel given ({channel_position}) is out of range for image {image.basename}")
 
     # Create cellpose model
     logger.debug("loading cellpose model %s", model_path)
     model = models.CellposeModel(gpu=use_gpu, pretrained_model=model_path)
 
-    tot_iterations = image.sizes['Z']*image.sizes['T']
+    tot_iterations = image.sizes['T']
 
     if display_results:
         # Open image in napari
         viewer_images = napari.Viewer(title=image_path)
-        image_napari = image.get_TYXarray()
+        image_napari = image3D
+        # TCYX
         image_napari = image_napari[:, np.newaxis, :, :]
         viewer_images.add_image(image_napari, name="Input image")
 
@@ -144,14 +172,13 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
     logger.info("Cellpose segmentation (model diameter=%s)", model.diam_labels)
 
     iteration = 0
-    mask = np.zeros((image.sizes['T'], image.sizes['Y'], image.sizes['X']), dtype='uint16')
+    mask = np.zeros(image3D.shape, dtype='uint16')
     if run_parallel:
-        mask = par_run_eval(image, mask, model, 0, logger, tot_iterations, n_count)
+        mask = par_run_eval(image3D, mask, model, logger, tot_iterations, n_count)
     else:
-        for t in range(image.sizes['T']):
-            # Always assuming BF in channel=0 and only one Z channel
+        for t in range(image3D.shape[0]):
             iteration += 1
-            image_2D = image.image[0, t, 0, 0, :, :]
+            image_2D = image3D[t, :, :]
             if display_results:
                 # Logging into napari window
                 pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
@@ -182,3 +209,4 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
 
     # stop using logfile
     logger.removeHandler(logfile_handler)
+    logging.getLogger('general.general_functions').removeHandler(logfile_handler)
