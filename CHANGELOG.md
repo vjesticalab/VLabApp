@@ -35,6 +35,8 @@
 * Registration module: when coaligning files with same unique identifier, only select image files (instead of all file types) and do not select images already aligned.
 * Registration module: check that input image does not contain multiple fields of view (axis F).
 * Fix handling of .ome.tif files.
+* Force non-editable napari layers to stay non-editable (In napari v0.4.17, changing an axis value using the corresponding slider makes the layer editable).
+
 
 
 

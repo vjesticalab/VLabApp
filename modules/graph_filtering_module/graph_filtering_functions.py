@@ -1149,8 +1149,14 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
             viewer_images.add_image(image.get_TYXarray(), name="Image")
         layer = viewer_images.add_labels(mask.get_TYXarray(), name="Cell mask", visible=False)
         layer.editable = False
+        # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
+        # This is a quick and dirty hack to force the layer to stay non-editable.
+        layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
         selected_mask_layer = viewer_images.add_labels(mask.get_TYXarray(), name="Selected cell mask")
         selected_mask_layer.editable = False
+        # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
+        # This is a quick and dirty hack to force the layer to stay non-editable.
+        selected_mask_layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
 
         # add GraphFilteringWidget to napari
         scroll_area = QScrollArea()

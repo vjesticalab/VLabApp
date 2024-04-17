@@ -1132,6 +1132,9 @@ def plot_graph(viewer, graph_path):
                     edge_color="lightgrey",
                     shape_type='line')
     edges_layer.editable = False
+    # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
+    # This is a quick and dirty hack to force the layer to stay non-editable.
+    edges_layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
     edges_layer.refresh()
 
     # Add vertices
@@ -1155,7 +1158,9 @@ def plot_graph(viewer, graph_path):
                                  'selected': np.repeat(False, graph.vcount())}
     vertices_layer.selected_data = set()
     vertices_layer.editable = False
-
+    # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
+    # This is a quick and dirty hack to force the layer to stay non-editable.
+    vertices_layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
     vertices_layer.refresh()
 
     # Note: it would be probably better to use the already existing option to select points in the Points layer instead of using an additional 'selected' property.
