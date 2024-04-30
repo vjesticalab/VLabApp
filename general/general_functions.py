@@ -644,6 +644,133 @@ class FileListWidget(QWidget):
         return [self.file_list.item(x).text() for x in range(self.file_list.count())]
 
 
+class DropDirsListWidget(QListWidget):
+    """
+    A QListWidget with drop support for folders.
+    """
+
+    def __init__(self, parent=None, dirnames_filter=None, dirnames_exclude_filter=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.dirnames_filter = dirnames_filter
+        self.dirnames_exclude_filter = dirnames_exclude_filter
+        shortcut = QShortcut(QKeySequence.Delete,self)
+        shortcut.setContext( Qt.WidgetWithChildrenShortcut)
+        shortcut.activated.connect(self.remove_selected)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls:
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            if url.isLocalFile():
+                if os.path.isdir(url.toLocalFile()):
+                    dirname = url.toLocalFile()
+                    if len(self.findItems(dirname, Qt.MatchExactly)) == 0 and (self.dirnames_filter is None or self.dirnames_filter in os.path.basename(dirname.rstrip('/'))) and (self.dirnames_exclude_filter is None or self.dirnames_exclude_filter == '' or  not self.dirnames_exclude_filter in os.path.basename(dirname.rstrip('/'))):
+                        self.addItem(dirname.rstrip('/')+'/')
+
+    def remove_selected(self):
+        for item in self.selectedItems():
+            self.takeItem(self.row(item))
+
+
+class DirListWidget(QWidget):
+    """
+    A list of dir with filters, button to add folders and drag and drop support.
+    """
+    dir_list_changed = pyqtSignal()
+    dir_list_double_clicked = pyqtSignal(QListWidgetItem)
+
+    def __init__(self, parent=None, dirnames_filter='', dirnames_exclude_filter=''):
+        """
+        Parameters
+        ----------
+        dirnames_filter: str
+            Folders with name not containing this text will be ignored.
+        dirnames_exclude_filter: str
+            Folders with name containing this text will be ignored.
+        """
+        super().__init__(parent)
+
+        self.filter_name = QLineEdit(dirnames_filter, placeholderText='e.g.: _BF')
+        self.filter_name.setToolTip('Accept only folder names containing this text. Filtering is done only when populating the list.')
+        self.filter_name.textChanged.connect(self.filter_name_changed)
+        self.filter_name_exclude = QLineEdit(dirnames_exclude_filter, placeholderText='e.g.: _WL508')
+        self.filter_name_exclude.setToolTip('Accept only folder names NOT containing this text. Filtering is done only when populating the list.')
+        self.filter_name_exclude.textChanged.connect(self.filter_name_exclude_changed)
+        self.dir_list = DropDirsListWidget(dirnames_filter=self.filter_name.text(), dirnames_exclude_filter=self.filter_name_exclude.text())
+        self.dir_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.dir_list.model().rowsInserted.connect(self.dir_list_rows_inserted)
+        self.dir_list.model().rowsRemoved.connect(self.dir_list_rows_removed)
+        self.dir_list.itemDoubleClicked.connect(self.dir_list_double_clicked)
+        self.add_folder_button = QPushButton("Add folder", self)
+        self.add_folder_button.clicked.connect(self.add_folder)
+        self.remove_dir_button = QPushButton("Remove selected", self)
+        self.remove_dir_button.clicked.connect(self.remove_dir)
+
+
+        layout = QVBoxLayout()
+
+        filters = CollapsibleWidget('Filters (applied when populating the list)', expanded=False)
+        layout2 = QHBoxLayout()
+        filters.content.setLayout(layout2)
+        layout3 = QFormLayout()
+        layout3.addRow("Folder name must include:", self.filter_name)
+        layout2.addLayout(layout3)
+        layout3 = QFormLayout()
+        layout3.addRow("Folder name must NOT include:", self.filter_name_exclude)
+        layout2.addLayout(layout3)
+        layout.addWidget(filters)
+
+        layout.addWidget(self.dir_list)
+        layout2 = QHBoxLayout()
+        layout2.addWidget(self.add_folder_button)
+        layout2.addWidget(self.remove_dir_button)
+        layout.addLayout(layout2)
+
+        layout.setContentsMargins(0,0,0,0)
+        self.setLayout(layout)
+
+
+    def dir_list_rows_inserted(self):
+        self.dir_list_changed.emit()
+
+    def dir_list_rows_removed(self):
+        self.dir_list_changed.emit()
+
+    def filter_name_changed(self):
+        self.dir_list.dirnames_filter = self.filter_name.text()
+
+    def filter_name_exclude_changed(self):
+        self.dir_list.dirnames_exclude_filter = self.filter_name_exclude.text()
+
+    def add_folder(self):
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
+        if folder_path:
+            if self.filter_name.text() in os.path.basename(folder_path.rstrip('/')):
+                if self.filter_name_exclude.text() == '' or not self.filter_name_exclude.text() in os.path.basename(folder_path.rstrip('/')):
+                    if folder_path and len(self.dir_list.findItems(folder_path, Qt.MatchExactly)) == 0:
+                        self.dir_list.addItem(folder_path.rstrip('/')+'/')
+
+    def remove_dir(self):
+        self.dir_list.remove_selected()
+
+    def count(self):
+        return self.dir_list.count()
+
+    def get_dir_list(self):
+        return [self.dir_list.item(x).text() for x in range(self.dir_list.count())]
+
+
 class DropFileLineEdit(QLineEdit):
     """
     A QLineEdit with drop support for files.
