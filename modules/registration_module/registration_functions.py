@@ -475,7 +475,7 @@ def register_stack_phase_correlation(image, blur=5):
     return [(-x, -y) for x, y in shifts]
 
 
-def register_stack_feature_matching(image, feature_type="ORB", blur=0):
+def register_stack_feature_matching(image, feature_type="ORB", blur=0, seed=76249):
     """
     Register an image using feature matching implemented in opencv followed by parameter estimatimtion with RANSAC.
 
@@ -488,6 +488,8 @@ def register_stack_feature_matching(image, feature_type="ORB", blur=0):
         Possible feature types: AKAZE, BRISK, KAZE, ORB and SIFT.
     blur: int
         kernel size for gaussian blue
+    seed: int
+        seed for the random number generator
 
     Returns
     -------
@@ -517,6 +519,7 @@ def register_stack_feature_matching(image, feature_type="ORB", blur=0):
         logging.getLogger(__name__).error('Error unknown feature type %s', feature_type)
         raise ValueError(f"Error unknown feature type {feature_type}")
 
+    cv.setRNGSeed(seed)
     # taken from https://docs.opencv.org/4.x/dc/dc3/tutorial_py_matcher.html
     if feature_type in ["SIFT","KAZE"]:
         ##for sift, kase
@@ -576,7 +579,7 @@ def register_stack_feature_matching(image, feature_type="ORB", blur=0):
         shift = (0, 0)
         if len(matches) > 3:
             model_robust, inliers = ransac((points1, points2), MoveTransform, min_samples=3,
-                                           residual_threshold=2, max_trials=100)
+                                           residual_threshold=2, max_trials=100,random_state=seed)
             if model_robust is not None:
                 shift = -model_robust.translation
 
