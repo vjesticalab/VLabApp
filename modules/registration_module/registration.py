@@ -55,9 +55,11 @@ class Perform(gf.Page):
         self.output_filename_label1 = QLineEdit()
         self.output_filename_label1.setFrame(False)
         self.output_filename_label1.setEnabled(False)
+        self.output_filename_label1.textChanged.connect(self.output_filename_label1.setToolTip)
         self.output_filename_label2 = QLineEdit()
         self.output_filename_label2.setFrame(False)
         self.output_filename_label2.setEnabled(False)
+        self.output_filename_label2.textChanged.connect(self.output_filename_label2.setToolTip)
 
         # Z-Projection range
         # only bestZ
@@ -160,6 +162,7 @@ class Perform(gf.Page):
         layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
         layout2.addLayout(layout3)
         layout3 = QFormLayout()
+        layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout4 = QHBoxLayout()
         layout4.setSpacing(0)
         suffix = QLineEdit(self.output_suffix)

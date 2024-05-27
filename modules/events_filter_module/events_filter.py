@@ -48,12 +48,15 @@ class GraphEventFilter(QWidget):
         self.output_filename_label1 = QLineEdit()
         self.output_filename_label1.setFrame(False)
         self.output_filename_label1.setEnabled(False)
+        self.output_filename_label1.textChanged.connect(self.output_filename_label1.setToolTip)
         self.output_filename_label2 = QLineEdit()
         self.output_filename_label2.setFrame(False)
         self.output_filename_label2.setEnabled(False)
+        self.output_filename_label2.textChanged.connect(self.output_filename_label2.setToolTip)
         self.output_filename_label3 = QLineEdit()
         self.output_filename_label3.setFrame(False)
         self.output_filename_label3.setEnabled(False)
+        self.output_filename_label3.textChanged.connect(self.output_filename_label3.setToolTip)
 
         # Browse type of event
         self.button_fusion = QRadioButton("Fusion")
@@ -130,6 +133,7 @@ class GraphEventFilter(QWidget):
         layout3.addWidget(browse_button3, alignment=Qt.AlignCenter)
         layout2.addLayout(layout3)
         layout3 = QFormLayout()
+        layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout4 = QHBoxLayout()
         layout4.setSpacing(0)
         suffix = QLineEdit(self.output_suffix)

@@ -40,6 +40,7 @@ class zProjection(QWidget):
         self.output_filename_label = QLineEdit()
         self.output_filename_label.setFrame(False)
         self.output_filename_label.setEnabled(False)
+        self.output_filename_label.textChanged.connect(self.output_filename_label.setToolTip)
 
         # Z-Projection range
         # only bestZ
@@ -121,6 +122,7 @@ class zProjection(QWidget):
         layout3.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
         layout2.addLayout(layout3)
         layout3 = QFormLayout()
+        layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         suffix = QLineEdit(self.output_suffix+"<projection>")
         suffix.setDisabled(True)
         suffix.setFixedWidth(suffix.fontMetrics().width(suffix.text()+"  "))
