@@ -1,3 +1,4 @@
+import os
 import logging
 import napari
 import cv2
@@ -52,9 +53,10 @@ class MultipleViewerWidget(QSplitter):
         self.addWidget(self.tab_widget)
 
 class SaveButton(QWidget):
-    def __init__(self, viewer: napari.Viewer, output_path):
+    def __init__(self, viewer: napari.Viewer, output_path, output_basename):
         super().__init__()
         self.output_path = output_path
+        self.output_basename = output_basename
         self.viewer = viewer
         self.button = QPushButton('Save layer')
         self.button.clicked.connect(self.save_layer)
@@ -65,7 +67,7 @@ class SaveButton(QWidget):
     def save_layer(self):
         for layer in self.viewer.layers:
             if layer in self.viewer.layers.selection:
-                OmeTiffWriter.save(layer.data, self.output_path+'/'+image_name+'_gtmask.tif')#, dim_order="TCYX")
+                OmeTiffWriter.save(layer.data, os.path.join(self.output_path, self.output_basename + '.ome.tif'))#, dim_order="TCYX")
         print('Layer saved!')
 
 class QuitButton(QWidget):
@@ -80,13 +82,13 @@ class QuitButton(QWidget):
         self.setLayout(layout)
 
 class NapariWindow(QWidget):
-    def __init__(self, output_path):
+    def __init__(self, output_path, output_basename):
         super().__init__()
         viewer = napari.Viewer()
         viewer.add_image(norm_channels_image.astype('uint32'), name='image')
         dock_widget = MultipleViewerWidget(viewer)
         viewer.window.add_dock_widget(dock_widget, name="Segment")
-        save_button = SaveButton(viewer, output_path)
+        save_button = SaveButton(viewer, output_path, output_basename)
         viewer.window.add_dock_widget(save_button, name='Save', area='left')
         quit_button = QuitButton(viewer)
         viewer.window.add_dock_widget(quit_button, name='Quit', area='right')
@@ -159,7 +161,7 @@ def tresh_mask(image, lowerTreshold, upperTreshold, viewer):
         logging.getLogger(__name__).error("Error in mask generation.\n" + image_name + ' - ' + str(e))
 
 
-def main(image_path, output_path):
+def main(image_path, output_path, output_basename):
     """
     Generate ground truth masks
     
@@ -169,6 +171,8 @@ def main(image_path, output_path):
         input image path
     output_path: str
         output directory
+    output_basename: str
+        output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif
 
     Saves
     ---------------------
@@ -203,21 +207,5 @@ def main(image_path, output_path):
             channels_image += channel_image
         
         norm_channels_image = cv2.normalize(channels_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32F)  
-        nw = NapariWindow(output_path)
+        nw = NapariWindow(output_path,output_basename)
       
-# To test
-"""
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        main(path, output_path)
-
-
-if __name__ == "__main__":
-   path = '/Users/aravera/Documents/CIG_Aleks/_AVScript01-Calculating MAsks for AI/Script1_InputSample'
-   output_path = '/Users/aravera/Desktop'
-   app = QApplication(sys.argv)
-   w = MainWindow()
-   w.show()
-   app.exec()
-"""

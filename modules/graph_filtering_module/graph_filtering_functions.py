@@ -618,7 +618,7 @@ class CellTracksFiltering:
 
     def save(self, output_path, output_basename, relabel_mask_ids=True):
         """
-        Save filtered cell tracking graph and cell mask as  `output_path`/`output_basename`_graph.graphmlz and `output_path`/`output_basename`_mask.tif.
+        Save filtered cell tracking graph and cell mask as  `output_path`/`output_basename`.graphmlz and `output_path`/`output_basename`.ome.tif.
 
         Parameters
         ----------
@@ -634,13 +634,13 @@ class CellTracksFiltering:
             os.makedirs(output_path)
 
         self.logger.info("Selected cell tracks: %s/%s", len(self.selected_cell_track_ids), len(self.cell_tracks))
-        output_file = os.path.join(output_path, output_basename+"_mask.tif")
+        output_file = os.path.join(output_path, output_basename+".ome.tif")
         self.logger.info("Saving segmentation mask to %s", output_file)
         selected_mask = self.get_mask(relabel_mask_ids)
         selected_mask = selected_mask[:, np.newaxis, :, :]
         OmeTiffWriter.save(selected_mask, output_file, dim_order="TCYX")
 
-        output_file = os.path.join(output_path, output_basename+"_graph.graphmlz")
+        output_file = os.path.join(output_path, output_basename+".graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file)
         g = self.get_graph(relabel_mask_ids)
         g.write_graphmlz(output_file)
@@ -1005,7 +1005,7 @@ class GraphFilteringWidget(QWidget):
         # restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
-        QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + os.path.join(self.output_path, self.output_basename+"_mask.tif") + "\n" + os.path.join(self.output_path, self.output_basename+"_graph.graphmlz"))
+        QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + os.path.join(self.output_path, self.output_basename+".ome.tif") + "\n" + os.path.join(self.output_path, self.output_basename+".graphmlz"))
 
     def quit(self):
         self.viewer_images.close()
@@ -1043,16 +1043,16 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
     Parameters
     ----------
     image_path: str
-        input image path (tif or nd2 image with axes T,Y,X) to be shown in napari.
+        input image path (tif, ome-tif or nd2 image with axes T,Y,X) to be shown in napari.
         Use empty string to ignore.
     mask_path: str
-        segmentation mask (uint16 tif image with axes T,Y,X).
+        segmentation mask (uint16 tif or ome-tif image with axes T,Y,X).
     graph_path: str
         cell tracking graph (graphmlz format).
     output_path: str
         output directory.
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`_mask.tif, `output_path`/`output_basename`_graph.graphmlz and `output_path`/`output_basename`.log.
+        output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif, `output_path`/`output_basename`.graphmlz and `output_path`/`output_basename`.log.
     filters: list of tuple
         list of filters to apply. Each filter is defined by a tuple with filter name (str) as first element, following by filter parameters.
         Possible filters are (see CellTrackingFiltering for more information):
@@ -1149,8 +1149,14 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
             viewer_images.add_image(image.get_TYXarray(), name="Image")
         layer = viewer_images.add_labels(mask.get_TYXarray(), name="Cell mask", visible=False)
         layer.editable = False
+        # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
+        # This is a quick and dirty hack to force the layer to stay non-editable.
+        layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
         selected_mask_layer = viewer_images.add_labels(mask.get_TYXarray(), name="Selected cell mask")
         selected_mask_layer.editable = False
+        # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
+        # This is a quick and dirty hack to force the layer to stay non-editable.
+        selected_mask_layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
 
         # add GraphFilteringWidget to napari
         scroll_area = QScrollArea()

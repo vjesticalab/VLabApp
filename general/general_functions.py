@@ -12,6 +12,83 @@ import igraph as ig
 from matplotlib import cm
 import cv2
 
+def splitext(path):
+    """
+    Quick and dirty hack based on os.path.splitext() but modified to
+    deal with .ome.* extensions (e.g. .ome.tif, .ome.tiff, .ome.zarr, ...).
+    Split `path` into a pair (root, ext) such that root + ext == path
+    and ext is everything from the last dot to the end, except if root
+    ends with ".ome", in which case ".ome" is moved to ext.
+
+    Parameters
+    ----------
+    path: str
+        a path name.
+
+    Returns
+    -------
+    (str, str)
+        a tuple (root, ext).
+
+    Examples
+    --------
+    >>> splitext('bar')
+    ('bar', '')
+
+    >>> splitext('foo.bar.exe')
+    ('foo.bar', '.exe')
+
+    >>> splitext('foo.ome.tif')
+    ('foo', '.ome.tif')
+
+    >>> splitext('.cshrc')
+    ('.cshrc', '')
+
+    >>> splitext('/foo/....jpg')
+    ('/foo/....jpg', '')
+
+    >>> splitext('project-v0.4.17.zip')
+    ('project-v0.4.17', '.zip')
+    """
+    root, ext = os.path.splitext(path)
+    ext2 = '.ome'
+    if root.endswith(ext2):
+        root, ext2 = os.path.splitext(root)
+        ext = ext2 + ext
+    return (root, ext)
+
+class CollapsibleWidget(QWidget):
+    def __init__(self, text, parent=None, collapsed_icon="▶", expanded_icon="▼", expanded = True):
+        super().__init__(parent)
+
+        self.collapsed_icon = collapsed_icon
+        self.expanded_icon = expanded_icon
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0,0,0,0)
+
+        layout2 = QHBoxLayout()
+        self.button = QPushButton()
+        self.button.setCheckable(True)
+        self.button.setChecked(expanded)
+        self.button.setStyleSheet("border: none;padding-left: 0px; padding-right: 0px;padding-top: 0px; padding-bottom: 0px;")
+        self.content = QWidget()
+        layout2.addWidget(self.button,alignment=Qt.AlignLeft)
+        layout2.addWidget(QLabel(text))
+        layout2.addStretch()
+        layout.addLayout(layout2)
+        layout.addWidget(self.content)
+
+        self.set_icon(self.button.isChecked())
+        self.content.setVisible(self.button.isChecked())
+        self.button.clicked.connect(self.content.setVisible)
+        self.button.clicked.connect(self.set_icon)
+
+    def set_icon(self, expanded):
+        if expanded:
+            self.button.setText(self.expanded_icon)
+        else:
+            self.button.setText(self.collapsed_icon)
 
 class QLineEditHandler(logging.Handler):
     """
@@ -109,7 +186,7 @@ class DropFilesTableWidget2(QTableWidget):
     A QTableWidget with drop support for files and folders with 2 columns. If a folder is dropped, all files contained in the folder are added.
     """
 
-    def __init__(self, parent=None, header_1=None, header_2=None, filenames_suffix_1=None, filenames_suffix_2=None):
+    def __init__(self, parent=None, header_1=None, header_2=None, filenames_suffix_1=None, filenames_suffix_2=None, filenames_filter=None, filenames_exclude_filter=None):
         super().__init__(parent)
         self.setColumnCount(2)
         self.setHorizontalHeaderLabels([header_1, header_2])
@@ -120,6 +197,11 @@ class DropFilesTableWidget2(QTableWidget):
         self.setWordWrap(False)
         self.filenames_suffix_1 = filenames_suffix_1
         self.filenames_suffix_2 = filenames_suffix_2
+        self.filenames_filter = filenames_filter
+        self.filenames_exclude_filter = filenames_exclude_filter
+        shortcut = QShortcut(QKeySequence.Delete,self)
+        shortcut.setContext( Qt.WidgetWithChildrenShortcut)
+        shortcut.activated.connect(self.remove_selected)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls:
@@ -153,7 +235,7 @@ class DropFilesTableWidget2(QTableWidget):
                         if os.path.isfile(basename + self.filenames_suffix_1):
                             path_1 = basename + self.filenames_suffix_1
                     if not path_1 is None and not path_2 is None:
-                        if len(self.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.findItems(path_1, Qt.MatchExactly)) == 0:
+                        if len(self.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.findItems(path_1, Qt.MatchExactly)) == 0 and (self.filenames_filter is None or self.filenames_filter in os.path.basename(path_1) and self.filenames_filter in os.path.basename(path_2)) and (self.filenames_exclude_filter is None or self.filenames_exclude_filter == '' or not self.filenames_exclude_filter in os.path.basename(path_1) and not self.filenames_exclude_filter in os.path.basename(path_2)):
                             self.insertRow(self.rowCount())
                             item = QTableWidgetItem(path_1)
                             item.setToolTip(path_1)
@@ -182,7 +264,7 @@ class DropFilesTableWidget2(QTableWidget):
                             if os.path.isfile(basename + self.filenames_suffix_1):
                                 path_1 = basename + self.filenames_suffix_1
                         if not path_1 is None and not path_2 is None:
-                            if len(self.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.findItems(path_1, Qt.MatchExactly)) == 0:
+                            if len(self.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.findItems(path_1, Qt.MatchExactly)) == 0  and (self.filenames_filter is None or self.filenames_filter in os.path.basename(path_1) and self.filenames_filter in os.path.basename(path_2)) and (self.filenames_exclude_filter is None or self.filenames_exclude_filter == '' or not self.filenames_exclude_filter in os.path.basename(path_1) and not self.filenames_exclude_filter in os.path.basename(path_2)):
                                 self.insertRow(self.rowCount())
                                 item = QTableWidgetItem(path_1)
                                 item.setToolTip(path_1)
@@ -193,6 +275,12 @@ class DropFilesTableWidget2(QTableWidget):
                                 item.setFlags(item.flags() ^ Qt.ItemIsEditable)
                                 self.setItem(self.rowCount()-1, 1, item)
 
+    def remove_selected(self):
+        rows = set()
+        for index in self.selectedIndexes():
+            rows.add(index.row())
+        for row in sorted(rows, reverse=True):
+            self.removeRow(row)
 
 class FileTableWidget2(QWidget):
     """
@@ -202,7 +290,7 @@ class FileTableWidget2(QWidget):
     """
     file_table_changed = pyqtSignal()
 
-    def __init__(self, parent=None, header_1=None, header_2=None, filenames_suffix_1=None, filenames_suffix_2=None):
+    def __init__(self, parent=None, header_1=None, header_2=None, filenames_suffix_1=None, filenames_suffix_2=None, filenames_filter='', filenames_exclude_filter=''):
         """
         Parameters
         ----------
@@ -214,16 +302,27 @@ class FileTableWidget2(QWidget):
             filenames not ending with this text will be ignored (for column 1).
         filename_suffix_2: str
             filenames not ending with this text will be ignored (for column 2).
+        filenames_filter: str
+            filenames not containing this text will be ignored.
+        filenames_exclude_filter: str
+            filenames containing this text will be ignored.
         """
         super().__init__(parent)
 
-        self.filter_name_1 = QLineEdit(filenames_suffix_1, placeholderText='e.g.: _mask.tif')
-        self.filter_name_1.setToolTip('Accept only filenames ending with this text.')
-        self.filter_name_1.textChanged.connect(self.filter_name_1_changed)
-        self.filter_name_2 = QLineEdit(filenames_suffix_2, placeholderText='e.g.: _graph.graphmlz')
-        self.filter_name_2.setToolTip('Accept only filenames ending with this text')
-        self.filter_name_2.textChanged.connect(self.filter_name_2_changed)
-        self.file_table = DropFilesTableWidget2(header_1=header_1, header_2=header_2, filenames_suffix_1=self.filter_name_1.text(), filenames_suffix_2=self.filter_name_2.text())
+        self.filter_name = QLineEdit(filenames_filter, placeholderText='e.g.: _BF')
+        self.filter_name.setToolTip('Accept only filenames containing this text. Filtering is done only when populating the table.')
+        self.filter_name.textChanged.connect(self.filter_name_changed)
+        self.filter_name_exclude = QLineEdit(filenames_exclude_filter, placeholderText='e.g.: _WL508')
+        self.filter_name_exclude.setToolTip('Accept only filenames NOT containing this text. Filtering is done only when populating the table.')
+        self.filter_name_exclude.textChanged.connect(self.filter_name_exclude_changed)
+
+        self.suffix_1 = QLineEdit(filenames_suffix_1, placeholderText='e.g.: _vTG.ome.tif')
+        self.suffix_1.setToolTip('Accept only filenames ending with this text.')
+        self.suffix_1.textChanged.connect(self.suffix_1_changed)
+        self.suffix_2 = QLineEdit(filenames_suffix_2, placeholderText='e.g.: _vTG.graphmlz')
+        self.suffix_2.setToolTip('Accept only filenames ending with this text')
+        self.suffix_2.textChanged.connect(self.suffix_2_changed)
+        self.file_table = DropFilesTableWidget2(header_1=header_1, header_2=header_2, filenames_suffix_1=self.suffix_1.text(), filenames_suffix_2=self.suffix_2.text(), filenames_filter=self.filter_name.text(), filenames_exclude_filter=self.filter_name_exclude.text())
         self.file_table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.file_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.file_table.model().rowsInserted.connect(self.file_table_rows_inserted)
@@ -237,6 +336,16 @@ class FileTableWidget2(QWidget):
 
 
         layout = QVBoxLayout()
+        filters = CollapsibleWidget('Filters (applied when populating the table)', expanded=False)
+        layout2 = QHBoxLayout()
+        filters.content.setLayout(layout2)
+        layout3 = QFormLayout()
+        layout3.addRow("Filename must include:", self.filter_name)
+        layout2.addLayout(layout3)
+        layout3 = QFormLayout()
+        layout3.addRow("Filename must NOT include:", self.filter_name_exclude)
+        layout2.addLayout(layout3)
+        layout.addWidget(filters)
         layout.addWidget(self.file_table)
         layout2 = QHBoxLayout()
         layout2.addWidget(self.add_file_button)
@@ -245,13 +354,13 @@ class FileTableWidget2(QWidget):
         layout.addLayout(layout2)
         layout2 = QHBoxLayout()
         layout3 = QFormLayout()
-        layout3.addRow(header_1 + " suffix:", self.filter_name_1)
+        layout3.addRow(header_1 + " suffix:", self.suffix_1)
         layout2.addLayout(layout3)
         layout3 = QFormLayout()
-        layout3.addRow(header_2 + " suffix:", self.filter_name_2)
+        layout3.addRow(header_2 + " suffix:", self.suffix_2)
         layout2.addLayout(layout3)
         layout.addLayout(layout2)
-        help_label = QLabel("Corresponding " + header_1 + " and " + header_2 + " files must be in the same directory. Their filenames must share the same basename and end with the specified suffix (by default <basename>"+self.filter_name_1.text()+" and <basename>"+self.filter_name_2.text()+")")
+        help_label = QLabel("Corresponding " + header_1 + " and " + header_2 + " files must be in the same directory. Their filenames must share the same basename and end with the specified suffix (by default <basename>"+self.suffix_1.text()+" and <basename>"+self.suffix_2.text()+")")
         help_label.setWordWrap(True)
         layout.addWidget(help_label)
         layout.setContentsMargins(0,0,0,0)
@@ -263,40 +372,52 @@ class FileTableWidget2(QWidget):
     def file_table_rows_removed(self):
         self.file_table_changed.emit()
 
-    def filter_name_1_changed(self):
-        self.file_table.filenames_suffix_1 = self.filter_name_1.text()
+    def filter_name_changed(self):
+        self.file_table.filenames_filter = self.filter_name.text()
 
-    def filter_name_2_changed(self):
-        self.file_table.filenames_suffix_2 = self.filter_name_2.text()
+    def filter_name_exclude_changed(self):
+        self.file_table.filenames_exclude_filter = self.filter_name_exclude.text()
+
+    def suffix_1_changed(self):
+        self.file_table.filenames_suffix_1 = self.suffix_1.text()
+
+    def suffix_2_changed(self):
+        self.file_table.filenames_suffix_2 = self.suffix_2.text()
 
     def add_file(self):
-        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Images ('+'*'+self.filter_name_1.text()+' '+'*'+self.filter_name_2.text()+')')
+        type_list = ['*'+self.suffix_1.text(), '*'+self.suffix_2.text()]
+        if self.filter_name.text() != '':
+            type_list = ['*'+self.filter_name.text()+x for x in type_list]
+
+        file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Images ('+' '.join(type_list)+')')
         for file_path in file_paths:
             path_1 = None
             path_2 = None
-            re_pattern = self.filter_name_1.text() + '$'
+            re_pattern = self.suffix_1.text() + '$'
             if re.search(re_pattern, file_path):
                 basename = re.sub(re_pattern, '', file_path)
                 path_1 = file_path
-                if os.path.isfile(basename + self.filter_name_2.text()):
-                    path_2 = basename + self.filter_name_2.text()
-            re_pattern = self.filter_name_2.text() + '$'
+                if os.path.isfile(basename + self.suffix_2.text()):
+                    path_2 = basename + self.suffix_2.text()
+            re_pattern = self.suffix_2.text() + '$'
             if re.search(re_pattern, file_path):
                 basename = re.sub(re_pattern, '', file_path)
                 path_2 = file_path
-                if os.path.isfile(basename + self.filter_name_1.text()):
-                    path_1 = basename + self.filter_name_1.text()
+                if os.path.isfile(basename + self.suffix_1.text()):
+                    path_1 = basename + self.suffix_1.text()
             if not path_1 is None and not path_2 is None:
-                if len(self.file_table.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.file_table.findItems(path_1, Qt.MatchExactly)) == 0:
-                    self.file_table.insertRow(self.file_table.rowCount())
-                    item = QTableWidgetItem(path_1)
-                    item.setToolTip(path_1)
-                    item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-                    self.file_table.setItem(self.file_table.rowCount()-1, 0, item)
-                    item = QTableWidgetItem(path_2)
-                    item.setToolTip(path_2)
-                    item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-                    self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
+                if self.filter_name.text() in os.path.basename(path_1) and self.filter_name.text() in os.path.basename(path_2):
+                    if self.filter_name_exclude.text() == '' or ( not self.filter_name_exclude.text() in os.path.basename(path_1) and  not self.filter_name_exclude.text() in os.path.basename(path_2) ):
+                        if len(self.file_table.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.file_table.findItems(path_1, Qt.MatchExactly)) == 0:
+                            self.file_table.insertRow(self.file_table.rowCount())
+                            item = QTableWidgetItem(path_1)
+                            item.setToolTip(path_1)
+                            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                            self.file_table.setItem(self.file_table.rowCount()-1, 0, item)
+                            item = QTableWidgetItem(path_2)
+                            item.setToolTip(path_2)
+                            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                            self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
 
     def add_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
@@ -305,36 +426,34 @@ class FileTableWidget2(QWidget):
                 file_path = os.path.join(folder_path, fname)
                 path_1 = None
                 path_2 = None
-                re_pattern = self.filter_name_1.text() + '$'
+                re_pattern = self.suffix_1.text() + '$'
                 if re.search(re_pattern, file_path):
                     basename = re.sub(re_pattern, '', file_path)
                     path_1 = file_path
-                    if os.path.isfile(basename + self.filter_name_2.text()):
-                        path_2 = basename + self.filter_name_2.text()
-                re_pattern = self.filter_name_2.text() + '$'
+                    if os.path.isfile(basename + self.suffix_2.text()):
+                        path_2 = basename + self.suffix_2.text()
+                re_pattern = self.suffix_2.text() + '$'
                 if re.search(re_pattern, file_path):
                     basename = re.sub(re_pattern, '', file_path)
                     path_2 = file_path
-                    if os.path.isfile(basename + self.filter_name_1.text()):
-                        path_1 = basename + self.filter_name_1.text()
+                    if os.path.isfile(basename + self.suffix_1.text()):
+                        path_1 = basename + self.suffix_1.text()
                 if not path_1 is None and not path_2 is None:
-                    if len(self.file_table.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.file_table.findItems(path_1, Qt.MatchExactly)) == 0:
-                        self.file_table.insertRow(self.file_table.rowCount())
-                        item = QTableWidgetItem(path_1)
-                        item.setToolTip(path_1)
-                        item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-                        self.file_table.setItem(self.file_table.rowCount()-1, 0, item)
-                        item = QTableWidgetItem(path_2)
-                        item.setToolTip(path_2)
-                        item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-                        self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
+                    if self.filter_name.text() in os.path.basename(path_1) and self.filter_name.text() in os.path.basename(path_2):
+                        if self.filter_name_exclude.text() == '' or ( not self.filter_name_exclude.text() in os.path.basename(path_1) and  not self.filter_name_exclude.text() in os.path.basename(path_2) ):
+                            if len(self.file_table.findItems(path_2, Qt.MatchExactly)) == 0 and len(self.file_table.findItems(path_1, Qt.MatchExactly)) == 0:
+                                self.file_table.insertRow(self.file_table.rowCount())
+                                item = QTableWidgetItem(path_1)
+                                item.setToolTip(path_1)
+                                item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                                self.file_table.setItem(self.file_table.rowCount()-1, 0, item)
+                                item = QTableWidgetItem(path_2)
+                                item.setToolTip(path_2)
+                                item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                                self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
 
     def remove_file(self):
-        rows = set()
-        for index in self.file_table.selectedIndexes():
-            rows.add(index.row())
-        for row in sorted(rows, reverse=True):
-            self.file_table.removeRow(row)
+        self.file_table.remove_selected()
 
     def rowCount(self):
         return self.file_table.rowCount()
@@ -375,7 +494,7 @@ class DropFilesListWidget(QListWidget):
             if url.isLocalFile():
                 if os.path.isfile(url.toLocalFile()):
                     filename = url.toLocalFile()
-                    if len(self.findItems(filename, Qt.MatchExactly)) == 0 and (len(self.filetypes) == 0 or self.filetypes is None or os.path.splitext(filename)[1] in self.filetypes) and (self.filenames_filter is None or self.filenames_filter in os.path.basename(filename)) and (self.filenames_exclude_filter is None or self.filenames_exclude_filter == '' or  not self.filenames_exclude_filter in os.path.basename(filename)):
+                    if len(self.findItems(filename, Qt.MatchExactly)) == 0 and (len(self.filetypes) == 0 or self.filetypes is None or splitext(filename)[1] in self.filetypes) and (self.filenames_filter is None or self.filenames_filter in os.path.basename(filename)) and (self.filenames_exclude_filter is None or self.filenames_exclude_filter == '' or  not self.filenames_exclude_filter in os.path.basename(filename)):
                         self.addItem(filename)
                 if os.path.isdir(url.toLocalFile()):
                     d = url.toLocalFile()
@@ -385,13 +504,13 @@ class DropFilesListWidget(QListWidget):
                     if len(self.filetypes) > 0 and not self.filetypes is None:
                         # keep only allowed filetypes
                         filenames = [f for f in filenames
-                                     if os.path.splitext(f)[1] in self.filetypes]
+                                     if splitext(f)[1] in self.filetypes]
                     if not self.filenames_filter is None:
                         # keep only filenames containing filenames_filter
                         filenames = [f for f in filenames
                                      if self.filenames_filter in os.path.basename(f)]
                     if not self.filenames_exclude_filter is None:
-                        # keep only filenames not containing filenames_filter
+                        # keep only filenames not containing filenames_exclude_filter
                         print(filenames)
                         filenames = [f for f in filenames
                                      if self.filenames_exclude_filter == '' or not self.filenames_exclude_filter in os.path.basename(f)]
@@ -437,7 +556,7 @@ class FileListWidget(QWidget):
         self.filter_name_exclude = QLineEdit(filenames_exclude_filter, placeholderText='e.g.: _WL508')
         self.filter_name_exclude.setToolTip('Accept only filenames NOT containing this text. Filtering is done only when populating the list.')
         self.filter_name_exclude.textChanged.connect(self.filter_name_exclude_changed)
-        self.filetypes = QLineEdit(' '.join(filetypes), placeholderText='e.g.: .nd2 .tif .tiff')
+        self.filetypes = QLineEdit(' '.join(filetypes), placeholderText='e.g.: .nd2 .tif .tiff .ome.tif .ome.tiff')
         self.filetypes.setToolTip('Space separated list of accepted file extensions. Filtering is done only when populating the list.')
         self.filetypes.textChanged.connect(self.filetypes_changed)
         self.file_list = DropFilesListWidget(filetypes=self.filetypes.text().split(), filenames_filter=self.filter_name.text(), filenames_exclude_filter=self.filter_name_exclude.text())
@@ -455,8 +574,9 @@ class FileListWidget(QWidget):
 
         layout = QVBoxLayout()
 
-        layout.addWidget(QLabel('Filter files to process:'))
+        filters = CollapsibleWidget('Filters (applied when populating the list)', expanded=False)
         layout2 = QHBoxLayout()
+        filters.content.setLayout(layout2)
         layout3 = QFormLayout()
         layout3.addRow("Filename must include:", self.filter_name)
         layout2.addLayout(layout3)
@@ -466,7 +586,7 @@ class FileListWidget(QWidget):
         layout3 = QFormLayout()
         layout3.addRow("File types:", self.filetypes)
         layout2.addLayout(layout3)
-        layout.addLayout(layout2)
+        layout.addWidget(filters)
 
         layout.addWidget(self.file_list)
         layout2 = QHBoxLayout()
@@ -511,7 +631,7 @@ class FileListWidget(QWidget):
     def add_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder_path:
-            files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if os.path.splitext(f)[1] in self.filetypes.text().split() and self.filter_name.text() in f and (self.filter_name_exclude.text() == '' or not self.filter_name_exclude.text() in f)]
+            files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if splitext(f)[1] in self.filetypes.text().split() and self.filter_name.text() in f and (self.filter_name_exclude.text() == '' or not self.filter_name_exclude.text() in f)]
             self.file_list.addItems([f for f in files if len(self.file_list.findItems(f, Qt.MatchExactly)) == 0])
 
     def remove_file(self):
@@ -522,6 +642,133 @@ class FileListWidget(QWidget):
 
     def get_file_list(self):
         return [self.file_list.item(x).text() for x in range(self.file_list.count())]
+
+
+class DropDirsListWidget(QListWidget):
+    """
+    A QListWidget with drop support for folders.
+    """
+
+    def __init__(self, parent=None, dirnames_filter=None, dirnames_exclude_filter=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.dirnames_filter = dirnames_filter
+        self.dirnames_exclude_filter = dirnames_exclude_filter
+        shortcut = QShortcut(QKeySequence.Delete,self)
+        shortcut.setContext( Qt.WidgetWithChildrenShortcut)
+        shortcut.activated.connect(self.remove_selected)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls:
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            if url.isLocalFile():
+                if os.path.isdir(url.toLocalFile()):
+                    dirname = url.toLocalFile()
+                    if len(self.findItems(dirname, Qt.MatchExactly)) == 0 and (self.dirnames_filter is None or self.dirnames_filter in os.path.basename(dirname.rstrip('/'))) and (self.dirnames_exclude_filter is None or self.dirnames_exclude_filter == '' or  not self.dirnames_exclude_filter in os.path.basename(dirname.rstrip('/'))):
+                        self.addItem(dirname.rstrip('/')+'/')
+
+    def remove_selected(self):
+        for item in self.selectedItems():
+            self.takeItem(self.row(item))
+
+
+class DirListWidget(QWidget):
+    """
+    A list of dir with filters, button to add folders and drag and drop support.
+    """
+    dir_list_changed = pyqtSignal()
+    dir_list_double_clicked = pyqtSignal(QListWidgetItem)
+
+    def __init__(self, parent=None, dirnames_filter='', dirnames_exclude_filter=''):
+        """
+        Parameters
+        ----------
+        dirnames_filter: str
+            Folders with name not containing this text will be ignored.
+        dirnames_exclude_filter: str
+            Folders with name containing this text will be ignored.
+        """
+        super().__init__(parent)
+
+        self.filter_name = QLineEdit(dirnames_filter, placeholderText='e.g.: _BF')
+        self.filter_name.setToolTip('Accept only folder names containing this text. Filtering is done only when populating the list.')
+        self.filter_name.textChanged.connect(self.filter_name_changed)
+        self.filter_name_exclude = QLineEdit(dirnames_exclude_filter, placeholderText='e.g.: _WL508')
+        self.filter_name_exclude.setToolTip('Accept only folder names NOT containing this text. Filtering is done only when populating the list.')
+        self.filter_name_exclude.textChanged.connect(self.filter_name_exclude_changed)
+        self.dir_list = DropDirsListWidget(dirnames_filter=self.filter_name.text(), dirnames_exclude_filter=self.filter_name_exclude.text())
+        self.dir_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.dir_list.model().rowsInserted.connect(self.dir_list_rows_inserted)
+        self.dir_list.model().rowsRemoved.connect(self.dir_list_rows_removed)
+        self.dir_list.itemDoubleClicked.connect(self.dir_list_double_clicked)
+        self.add_folder_button = QPushButton("Add folder", self)
+        self.add_folder_button.clicked.connect(self.add_folder)
+        self.remove_dir_button = QPushButton("Remove selected", self)
+        self.remove_dir_button.clicked.connect(self.remove_dir)
+
+
+        layout = QVBoxLayout()
+
+        filters = CollapsibleWidget('Filters (applied when populating the list)', expanded=False)
+        layout2 = QHBoxLayout()
+        filters.content.setLayout(layout2)
+        layout3 = QFormLayout()
+        layout3.addRow("Folder name must include:", self.filter_name)
+        layout2.addLayout(layout3)
+        layout3 = QFormLayout()
+        layout3.addRow("Folder name must NOT include:", self.filter_name_exclude)
+        layout2.addLayout(layout3)
+        layout.addWidget(filters)
+
+        layout.addWidget(self.dir_list)
+        layout2 = QHBoxLayout()
+        layout2.addWidget(self.add_folder_button)
+        layout2.addWidget(self.remove_dir_button)
+        layout.addLayout(layout2)
+
+        layout.setContentsMargins(0,0,0,0)
+        self.setLayout(layout)
+
+
+    def dir_list_rows_inserted(self):
+        self.dir_list_changed.emit()
+
+    def dir_list_rows_removed(self):
+        self.dir_list_changed.emit()
+
+    def filter_name_changed(self):
+        self.dir_list.dirnames_filter = self.filter_name.text()
+
+    def filter_name_exclude_changed(self):
+        self.dir_list.dirnames_exclude_filter = self.filter_name_exclude.text()
+
+    def add_folder(self):
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
+        if folder_path:
+            if self.filter_name.text() in os.path.basename(folder_path.rstrip('/')):
+                if self.filter_name_exclude.text() == '' or not self.filter_name_exclude.text() in os.path.basename(folder_path.rstrip('/')):
+                    if folder_path and len(self.dir_list.findItems(folder_path, Qt.MatchExactly)) == 0:
+                        self.dir_list.addItem(folder_path.rstrip('/')+'/')
+
+    def remove_dir(self):
+        self.dir_list.remove_selected()
+
+    def count(self):
+        return self.dir_list.count()
+
+    def get_dir_list(self):
+        return [self.dir_list.item(x).text() for x in range(self.dir_list.count())]
 
 
 class DropFileLineEdit(QLineEdit):
@@ -551,7 +798,7 @@ class DropFileLineEdit(QLineEdit):
             if url.isLocalFile():
                 if os.path.isfile(url.toLocalFile()):
                     filename = url.toLocalFile()
-                    if self.filetypes is None or len(self.filetypes) == 0 or os.path.splitext(filename)[1] in self.filetypes:
+                    if self.filetypes is None or len(self.filetypes) == 0 or splitext(filename)[1] in self.filetypes:
                         self.setText(filename)
 
 
@@ -646,9 +893,11 @@ class Image:
 
     Methods
     -------
+    __init__()
+        Set the 'path' and populate attributes sizes and shape.
     imread()
-        Read the image from the already setted 'path'
-        Attributes image, sizes and shape are populated here
+        Read the image from the already setted 'path'.
+        Attribute image is populated here.
     save()
         Empty
     get_TYXarray()
@@ -665,35 +914,63 @@ class Image:
     def __init__(self, im_path):
         self.path = im_path
         self.basename = os.path.basename(self.path)
-        self.name, self.extension = os.path.splitext(self.basename)
+        self.name, self.extension = splitext(self.basename)
         self.sizes = None
         self.image = None
         self.shape = None
+        self._axes = 'FTCZYX'
+        self.read_attr()
+
+    def read_attr(self):
+        if self.extension == '.nd2':
+            reader = nd2.ND2File(self.path)
+            axes_order = str(''.join(list(reader.sizes.keys()))).upper() #eg. reader.sizes = {'T': 10, 'C': 2, 'Y': 2048, 'X': 2048}
+            shape = reader.shape
+            reader.close()
+        elif self.extension in ['.tif', '.tiff', '.ome.tif', '.ome.tiff']:
+            reader = tifffile.TiffFile(self.path)
+            axes_order = str(reader.series[0].axes).upper()
+            shape = reader.series[0].shape
+            reader.close()
+        else:
+            logging.getLogger(__name__).error('Image format not supported. Please upload a tiff, ome-tiff or nd2 image file.')
+            raise TypeError('Image format not supported. Please upload a tiff, ome-tiff or nd2 image file.')
+
+        self.shape = []
+        self.sizes= dict()
+        for a in self._axes:
+            if a in axes_order:
+                self.shape.append(shape[axes_order.index(a)])
+                self.sizes[a] = shape[axes_order.index(a)]
+            else:
+                self.shape.append(1)
+                self.sizes[a] = 1
+        self.shape = tuple(self.shape)
 
     def imread(self):
         def set_6Dimage(image, axes):
             """
             Return a 6D ndarray of the input image
             """
-            dimensions = {'F': 0, 'T': 1, 'C': 2, 'Z': 3, 'Y': 4, 'X': 5}
+            dimensions = {k:v for v,k in enumerate(self._axes)}
             # Dictionary with image axes order
             axes_order = {}
             for i, char in enumerate(axes):
                 axes_order[char] = i
             # Mapping for the desired order of dimensions
-            mapping = [axes_order.get(d, None) for d in 'FTCZYX']
+            mapping = [axes_order.get(d, None) for d in self._axes]
             mapping = [i for i in mapping if i is not None]
             # Rearrange the image array based on the desired order
             image = np.transpose(image, axes=mapping)
             # Determine the missing dimensions and reshape the array filling the missing dimensions
             missing_dims = []
-            for c in 'FTCZYX':
+            for c in self._axes:
                 if c not in axes:
                     missing_dims.append(c)
             for dim in missing_dims:
                 position = dimensions[dim]
                 image = np.expand_dims(image, axis=position)
-            return image, image.shape
+            return image
 
         # axis default order: FTCZYX for 6D - F = FieldofView, T = time, C = channels
         if self.extension == '.nd2':
@@ -701,32 +978,26 @@ class Image:
             axes_order = str(''.join(list(reader.sizes.keys()))).upper() #eg. reader.sizes = {'T': 10, 'C': 2, 'Y': 2048, 'X': 2048}
             image = reader.asarray() #nd2.imread(self.path)
             reader.close()
-            self.sizes = {}
-            self.image, self.shape = set_6Dimage(image, axes_order)
-            for key, value in zip('FTCZYX', self.shape):
-                self.sizes[key] = value # eg. {'F': 1, 'T': 10, 'C': 2, 'Z': 1, 'Y': 2048, 'X': 2048}
-            return self.image
-
-        elif (self.extension == '.tiff' or self.extension == '.tif'):
+        elif self.extension in ['.tif', '.tiff', '.ome.tif', '.ome.tiff']:
             reader = tifffile.TiffFile(self.path)
             axes_order = str(reader.series[0].axes).upper()
             image = reader.asarray()
             reader.close()
-            self.sizes = {}
-            self.image, self.shape = set_6Dimage(image, axes_order)
-            for key, value in zip('FTCZYX', self.shape):
-                self.sizes[key] = value
-            return self.image
         else:
-            logging.getLogger(__name__).error('Image format not supported. Please upload a tiff or nd2 image file.')
-            raise TypeError('Image format not supported. Please upload a tiff or nd2 image file.')
+            logging.getLogger(__name__).error('Image format not supported. Please upload a tiff, ome-tiff or nd2 image file.')
+            raise TypeError('Image format not supported. Please upload a tiff, ome-tiff or nd2 image file.')
+
+        self.image = set_6Dimage(image, axes_order)
+        return self.image
+
 
     def save(self):
         pass
 
     def get_TYXarray(self):
         if self.sizes['F'] > 1 or self.sizes['C'] > 1 or self.sizes['Z'] > 1:
-            logging.getLogger(__name__).error('Image format not supported. Please upload an image with only TYX dimesions.')
+            logging.getLogger(__name__).error('Image format not supported. Please load an image with only TYX dimensions.')
+            raise TypeError('Image format not supported. Please load an image with only TYX dimensions')
         return self.image[0,:,0,0,:,:]
 
     def zProjection(self, projection_type, zrange, focus_method="tenengrad_var"):
@@ -988,6 +1259,9 @@ def plot_graph(viewer, graph_path):
                     edge_color="lightgrey",
                     shape_type='line')
     edges_layer.editable = False
+    # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
+    # This is a quick and dirty hack to force the layer to stay non-editable.
+    edges_layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
     edges_layer.refresh()
 
     # Add vertices
@@ -1011,7 +1285,9 @@ def plot_graph(viewer, graph_path):
                                  'selected': np.repeat(False, graph.vcount())}
     vertices_layer.selected_data = set()
     vertices_layer.editable = False
-
+    # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
+    # This is a quick and dirty hack to force the layer to stay non-editable.
+    vertices_layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
     vertices_layer.refresh()
 
     # Note: it would be probably better to use the already existing option to select points in the Points layer instead of using an additional 'selected' property.

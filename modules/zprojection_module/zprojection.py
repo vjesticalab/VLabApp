@@ -1,6 +1,6 @@
 import logging
 import os
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QFileDialog, QComboBox, QSpinBox, QLabel, QFormLayout
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QFileDialog, QComboBox, QSpinBox, QLabel, QFormLayout, QLineEdit
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.zprojection_module import zprojection_functions as f
@@ -11,59 +11,75 @@ class zProjection(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.output_suffix = '_vPR'
+
         # Documentation
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
         label_documentation.setText('<a href="file://' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
 
         # Input images
-        self.imagetypes = ['.nd2', '.tif', '.tiff']
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
         self.image_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='')
 
         # Output folders
-        self.use_input_folder = QRadioButton("Sub-folder 'zprojection' in the input file folder")
+        self.use_input_folder = QRadioButton("Use input file folder")
         self.use_input_folder.setChecked(True)
-        self.use_custom_folder = QRadioButton("Custom folder (same for all the input files):")
+        self.use_input_folder.toggled.connect(self.update_output_filename_label)
+        self.use_custom_folder = QRadioButton("Use custom folder (same for all the input files)")
         self.use_custom_folder.setChecked(False)
+        self.use_custom_folder.toggled.connect(self.update_output_filename_label)
         self.output_folder = gf.DropFolderLineEdit()
+        self.output_folder.textChanged.connect(self.update_output_filename_label)
         self.browse_button2 = QPushButton("Browse", self)
         self.browse_button2.clicked.connect(self.browse_output)
-        self.output_folder.setEnabled(self.use_custom_folder.isChecked())
-        self.browse_button2.setEnabled(self.use_custom_folder.isChecked())
-        self.use_custom_folder.toggled.connect(self.output_folder.setEnabled)
-        self.use_custom_folder.toggled.connect(self.browse_button2.setEnabled)
+        self.output_folder.setVisible(self.use_custom_folder.isChecked())
+        self.browse_button2.setVisible(self.use_custom_folder.isChecked())
+        self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
+        self.use_custom_folder.toggled.connect(self.browse_button2.setVisible)
+        self.output_filename_label = QLineEdit()
+        self.output_filename_label.setFrame(False)
+        self.output_filename_label.setEnabled(False)
+        self.output_filename_label.textChanged.connect(self.output_filename_label.setToolTip)
 
         # Z-Projection range
         # only bestZ
         self.projection_mode_bestZ = QRadioButton("Z section with best focus")
         self.projection_mode_bestZ.setChecked(False)
         self.projection_mode_bestZ.setToolTip('Keep only Z section with best focus.')
+        self.projection_mode_bestZ.toggled.connect(self.update_output_filename_label)
         # around bestZ
         self.projection_mode_around_bestZ = QRadioButton("Range around Z section with best focus")
         self.projection_mode_around_bestZ.setChecked(True)
         self.projection_mode_around_bestZ.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
+        self.projection_mode_around_bestZ.toggled.connect(self.update_output_filename_label)
         self.projection_mode_around_bestZ_zrange = QSpinBox()
-        self.projection_mode_around_bestZ_zrange.setMinimum(0)
+        self.projection_mode_around_bestZ_zrange.setMinimum(1)
         self.projection_mode_around_bestZ_zrange.setMaximum(20)
         self.projection_mode_around_bestZ_zrange.setValue(3)
+        self.projection_mode_around_bestZ_zrange.valueChanged.connect(self.update_output_filename_label)
         # fixed range
         self.projection_mode_fixed = QRadioButton("Fixed range")
         self.projection_mode_fixed.setChecked(False)
         self.projection_mode_fixed.setToolTip('Project all Z sections with Z in the interval [from,to].')
+        self.projection_mode_fixed.toggled.connect(self.update_output_filename_label)
         self.projection_mode_fixed_zmin = QSpinBox()
         self.projection_mode_fixed_zmin.setMinimum(0)
         self.projection_mode_fixed_zmin.setMaximum(20)
         self.projection_mode_fixed_zmin.setValue(4)
         self.projection_mode_fixed_zmin.valueChanged.connect(self.projection_mode_fixed_zmin_changed)
+        self.projection_mode_fixed_zmin.valueChanged.connect(self.update_output_filename_label)
         self.projection_mode_fixed_zmax = QSpinBox()
         self.projection_mode_fixed_zmax.setMinimum(0)
         self.projection_mode_fixed_zmax.setMaximum(20)
         self.projection_mode_fixed_zmax.setValue(6)
         self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
+        self.projection_mode_fixed_zmax.valueChanged.connect(self.update_output_filename_label)
         # all
         self.projection_mode_all = QRadioButton("All Z sections")
         self.projection_mode_all.setChecked(False)
         self.projection_mode_all.setToolTip('Project all Z sections.')
+        self.projection_mode_all.toggled.connect(self.update_output_filename_label)
         # Z-Projection type
         self.projection_type = QComboBox(self)
         self.projection_type.addItem("max")
@@ -73,6 +89,7 @@ class zProjection(QWidget):
         self.projection_type.addItem("std")
         self.projection_type.setCurrentText("mean")
         self.projection_type.setDisabled(self.projection_mode_bestZ.isChecked())
+        self.projection_type.currentTextChanged.connect(self.update_output_filename_label)
         self.projection_mode_bestZ.toggled.connect(self.projection_type.setDisabled)
         # Submit
         self.submit_button = QPushButton("Submit", self)
@@ -95,13 +112,23 @@ class zProjection(QWidget):
         layout.addWidget(groupbox)
 
         # Output folders
-        groupbox = QGroupBox("Output folder")
+        groupbox = QGroupBox('Output')
         layout2 = QVBoxLayout()
+        layout2.addWidget(QLabel("Folder:"))
         layout2.addWidget(self.use_input_folder)
         layout2.addWidget(self.use_custom_folder)
         layout3 = QHBoxLayout()
         layout3.addWidget(self.output_folder)
         layout3.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
+        layout2.addLayout(layout3)
+        layout3 = QFormLayout()
+        layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        suffix = QLineEdit(self.output_suffix+"<projection>")
+        suffix.setDisabled(True)
+        suffix.setFixedWidth(suffix.fontMetrics().width(suffix.text()+"  "))
+        suffix.setAlignment(Qt.AlignRight)
+        layout3.addRow("Suffix:", suffix)
+        layout3.addRow("Filename:", self.output_filename_label)
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -153,6 +180,8 @@ class zProjection(QWidget):
 
         self.logger = logging.getLogger(__name__)
 
+        self.update_output_filename_label()
+
     def browse_output(self):
         # Browse folders in order to choose the output one
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
@@ -167,6 +196,53 @@ class zProjection(QWidget):
     def projection_mode_fixed_zmax_changed(self, value):
         if self.projection_mode_fixed_zmin.value() > value:
             self.projection_mode_fixed_zmin.setValue(value)
+
+    def update_output_filename_label(self):
+        if self.use_input_folder.isChecked():
+            output_path = "<input folder>"
+        else:
+            output_path = self.output_folder.text().rstrip("/")
+        projection_type = self.projection_type.currentText()
+        if self.projection_mode_bestZ.isChecked():
+            projection_zrange = 0
+        elif self.projection_mode_around_bestZ.isChecked():
+            projection_zrange = self.projection_mode_around_bestZ_zrange.value()
+        elif self.projection_mode_fixed.isChecked():
+            projection_zrange = (self.projection_mode_fixed_zmin.value(), self.projection_mode_fixed_zmax.value())
+        elif self.projection_mode_all.isChecked():
+            projection_zrange = None
+        projection_suffix = self.get_projection_suffix(None, projection_zrange, projection_type)
+
+        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + projection_suffix+".ome.tif"))
+
+    def get_projection_suffix(self,image_path,projection_zrange,projection_type):
+        if projection_zrange is None:
+            if image_path is not None:
+                im = gf.Image(image_path)
+                maxZ = im.sizes['Z']
+            else:
+                maxZ = 11
+            output_suffix_reference = 'f'
+            output_suffix_range = '0-'+str(maxZ)
+            output_suffix_projection_type = projection_type
+        elif isinstance(projection_zrange, int):
+            output_suffix_reference = 'b'
+            output_suffix_range = str(projection_zrange)
+            if projection_zrange > 0:
+                output_suffix_projection_type = projection_type
+            else:
+                output_suffix_projection_type = 'none'
+        elif isinstance(projection_zrange, tuple) and len(projection_zrange):
+            output_suffix_reference = 'f'
+            output_suffix_range = str(min(projection_zrange)) + '-' + str(max(projection_zrange))
+            if max(projection_zrange) > min(projection_zrange):
+                output_suffix_projection_type = projection_type
+            else:
+                output_suffix_projection_type = 'none'
+        else:
+            self.logger.error('Invalid projection_zrange: %s', str(projection_zrange))
+            raise TypeError(f"Invalid projection_zrange: {projection_zrange}")
+        return output_suffix_reference + output_suffix_range + output_suffix_projection_type
 
     def submit(self):
         """
@@ -196,16 +272,6 @@ class zProjection(QWidget):
                 return False
             return True
 
-        image_paths = self.image_list.get_file_list()
-        output_basenames = [os.path.splitext(os.path.basename(path))[0] for path in image_paths]
-        if self.use_input_folder.isChecked():
-            output_paths = [os.path.join(os.path.dirname(path), 'zprojection') for path in image_paths]
-        else:
-            output_paths = [self.output_folder.text() for path in image_paths]
-
-        if not check_inputs(image_paths, output_paths, output_basenames):
-            return
-
         projection_type = self.projection_type.currentText()
         if self.projection_mode_bestZ.isChecked():
             projection_zrange = 0
@@ -215,6 +281,17 @@ class zProjection(QWidget):
             projection_zrange = (self.projection_mode_fixed_zmin.value(), self.projection_mode_fixed_zmax.value())
         elif self.projection_mode_all.isChecked():
             projection_zrange = None
+
+        image_paths = self.image_list.get_file_list()
+        # prepare output suffix (incl. projection)
+        output_basenames = [gf.splitext(os.path.basename(path))[0] + self.output_suffix + self.get_projection_suffix(path, projection_zrange, projection_type) for path in image_paths]
+        if self.use_input_folder.isChecked():
+            output_paths = [os.path.dirname(path) for path in image_paths]
+        else:
+            output_paths = [self.output_folder.text() for path in image_paths]
+
+        if not check_inputs(image_paths, output_paths, output_basenames):
+            return
 
         # disable messagebox error handler
         messagebox_error_handler = None

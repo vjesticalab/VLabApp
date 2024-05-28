@@ -8,7 +8,7 @@ from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
 
 
-def event_filter(mask, graph, event, timecorrection, magn_image, tp_before, tp_after, output_path):
+def event_filter(mask, graph, event, timecorrection, magn_image, tp_before, tp_after, output_path, output_basename):
     """
     Correct the fusion time of the found mask based on the magnified image
     
@@ -22,6 +22,8 @@ def event_filter(mask, graph, event, timecorrection, magn_image, tp_before, tp_a
         cell tracking graph
     output_path: str
         output directory
+    output_basename: str
+        output basename. Output file will be saved as `output_path`/`output_basename`.csv, `output_path`/`output_basename`.graphmlz and `output_path`/`output_basename`.log.
 
     Saves
     ---------------------
@@ -34,7 +36,7 @@ def event_filter(mask, graph, event, timecorrection, magn_image, tp_before, tp_a
     # FIND FUSION - same code of "event filter" module
 
     # Initialize the cvs file with results
-    with open(output_path+'_'+event+'s_dictionary.csv', "w") as file:
+    with open(os.path.join(output_path, output_basename+'.csv'), "w") as file:
         writer = csv.writer(file)
         writer.writerow(['TP start', 'TP event', 'TP end', 'id(s) before event', 'id(s) after event'])
 
@@ -152,7 +154,7 @@ def event_filter(mask, graph, event, timecorrection, magn_image, tp_before, tp_a
                     if vertex['frame'] in tp_to_check:
                         events_vertices.append(vertex)
                 # If event is valid -> add the event in the csv file
-                with open(output_path+'_'+event+'s_dictionary.csv', 'a') as file:
+                with open(os.path.join(output_path, output_basename+'.csv'), 'a') as file:
                     writer = csv.writer(file)
                     writer.writerow([min(tp_to_check), real_event_tp, max(tp_to_check), ids_before, ids_after])
                     events_list.append((min(tp_to_check), real_event_tp, max(tp_to_check), ids_before, ids_after))
@@ -169,7 +171,7 @@ def event_filter(mask, graph, event, timecorrection, magn_image, tp_before, tp_a
     return events_mask, events_graph, events_list
 
 
-def save_cropped_events(events_list, n_tp, total_events_mask, marker_image, chcropimage_path, BFimage_path, crop_output_path):
+def save_cropped_events(events_list, n_tp, total_events_mask, marker_image, chcropimage_path, BFimage_path, crop_output_path, crop_output_basename):
     """
     marker_image, chcropimage_path, BFimage_path : can be None
     """
@@ -210,10 +212,10 @@ def save_cropped_events(events_list, n_tp, total_events_mask, marker_image, chcr
                 cropped_mask[:,i+1,:,:] = valid_im[:, ymin:ymax, xmin:xmax] #TYX
         
         # Save
-        OmeTiffWriter.save(cropped_mask, crop_output_path+'fusion'+str(n)+'.tif', dim_order="TCYX")
+        OmeTiffWriter.save(cropped_mask, os.path.join(crop_output_path, crop_output_basename+'-'+str(n)+'.ome.tif'), dim_order="TCYX")
     
 
-def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_before, tp_after, cropsave, chcropimage_path, BFimage_path, output_path):
+def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_before, tp_after, cropsave, chcropimage_path, BFimage_path, output_path, output_basename):
     """
     Generate mask and graph with for the specified event and with minimum 
     tp_before and tp_after timepoints free of other events 
@@ -233,7 +235,9 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
     tp_after: int
         number of time points after the event to consider
     output_path: str
-        output directory
+        output directory.
+    output_basename: str
+        output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif, `output_path`/`output_basename`.graphmlz, `output_path`/`output_basename`.csv and `output_path`/`output_basename`.log.
 
     Saves
     ---------------------
@@ -252,7 +256,7 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
         logger.debug("creating: %s", output_path)
         os.makedirs(output_path)
     
-    logfile = os.path.join(output_path, os.path.splitext(os.path.basename(graph_path))[0]+".log")
+    logfile = os.path.join(output_path, output_basename+'.log')
     logger.setLevel(logging.DEBUG)
     logger.debug("writing log output to: %s", logfile)
     logfile_handler = logging.FileHandler(logfile, mode='w')
@@ -263,6 +267,7 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
     logger.info("Mask path: %s", mask_path)
     logger.info("Graph path: %s", graph_path)
     logger.info("Output path: %s", output_path)
+    logger.info("Output basename: %s", output_basename)
     logger.info("Event: %s - with %d timepoints before and %d after", event, tp_before, tp_after)
 
     ###########################
@@ -283,13 +288,6 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
     # Adjust attibute types
     graph = gf.adjust_graph_types(graph, mask.image.dtype)
 
-    # Output path
-    if not output_path.endswith('/'):
-        output_path += '/'
-    image_name = os.path.basename(mask_path).replace('_mask.tif', '')
-    image_name = os.path.basename(mask_path).replace('.tif', '')
-    output_path += image_name
-
     if event == 'fusion' and timecorrection: 
         try:
             magn_image = gf.Image(magn_image_path) #
@@ -297,29 +295,25 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
             magn_image = magn_image.get_TYXarray()
         except Exception as e:
             logging.getLogger(__name__).error('Error loading magnified image '+magn_image_path+'\n'+str(e))
-        
     else:
         magn_image = None
-    
-    total_events_mask, total_events_graph, events_list = event_filter(mask.get_TYXarray(), graph, event, timecorrection, magn_image, tp_before, tp_after, output_path)
-    
+
+    total_events_mask, total_events_graph, events_list = event_filter(mask.get_TYXarray(), graph, event, timecorrection, magn_image, tp_before, tp_after, output_path, output_basename)
+
     # Save mask and graph
-    OmeTiffWriter.save(total_events_mask, output_path+'_'+event+'s_mask.tif', dim_order="TCYX")
-    total_events_graph.write_graphmlz(output_path+'_'+event+'s_graph.graphmlz')
-    
+    OmeTiffWriter.save(total_events_mask, os.path.join(output_path, output_basename+'.ome.tif'), dim_order="TCYX")
+    total_events_graph.write_graphmlz( os.path.join(output_path, output_basename+'.graphmlz'))
+
     # If required, save cropped events 
     # Note: currently it is possible only with fusions
     if cropsave:
-        crop_output_path = output_path+'single_events/'
-        if not os.path.isdir(crop_output_path):
-            os.makedirs(crop_output_path)
         if magn_image_path:
             magn_image = gf.Image(magn_image_path) #
             magn_image.imread()
             magn_image = magn_image.get_TYXarray()
         else:
             magn_image = None
-        save_cropped_events(events_list, mask.get_TYXarray().shape[0], total_events_mask, magn_image, chcropimage_path, BFimage_path, crop_output_path)
+        save_cropped_events(events_list, mask.get_TYXarray().shape[0], total_events_mask, magn_image, chcropimage_path, BFimage_path, output_path, output_basename)
         
 
     logger.info("Done!\n")

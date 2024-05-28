@@ -286,6 +286,9 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                     edge_color="lightgrey",
                     shape_type='line')
     edges_layer.editable = False
+    # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
+    # This is a quick and dirty hack to force the layer to stay non-editable.
+    edges_layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
     edges_layer.refresh()
 
     # Add vertices
@@ -309,7 +312,9 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                                  'selected': np.repeat(False, graph.vcount())}
     vertices_layer.selected_data = set()
     vertices_layer.editable = False
-
+    # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
+    # This is a quick and dirty hack to force the layer to stay non-editable.
+    vertices_layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
     vertices_layer.refresh()
 
     # Note: it would be probably better to use the already existing option to select points in the Points layer instead of using an additional 'selected' property.
@@ -1451,16 +1456,16 @@ class CellTrackingWidget(QWidget):
             self.relabel(closing)
 
         # TODO: adapt metadata to more generic input files (other axes)
-        output_file1 = os.path.join(self.output_path, self.output_basename+"_mask.tif")
+        output_file1 = os.path.join(self.output_path, self.output_basename+".ome.tif")
         self.logger.info("Saving segmentation mask to %s", output_file1)
         self.mask = self.mask[:, np.newaxis, :, :]
         OmeTiffWriter.save(self.mask, output_file1, dim_order="TCYX")
 
-        # output_file2 = os.path.join(self.output_path, self.output_basename+"_graph.dot")
+        # output_file2 = os.path.join(self.output_path, self.output_basename+".dot")
         # self.logger.info("Saving cell tracking graph to %s", output_file2)
         # self.cell_tracking_graph.write_dot(output_file2)
 
-        output_file3 = os.path.join(self.output_path, self.output_basename+"_graph.graphmlz")
+        output_file3 = os.path.join(self.output_path, self.output_basename+".graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file3)
         self.cell_tracking_graph.get_graph().write_graphmlz(output_file3)
 
@@ -1502,14 +1507,14 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
     Parameters
     ----------
     image_path: str
-        input image path (tif or nd2 3D image TYX) to be shown in napari
+        input image path (tif, ome-tif or nd2 3D image TYX) to be shown in napari
         Use empty string to ignore
     mask_path: str
-        segmentation mask (uint16 tif 3D image TYX)
+        segmentation mask (uint16 tif or ome-tif 3D image TYX)
     output_path: str
         output directory
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`_mask.tif, `output_path`/`output_basename`_graph.graphmlz and `output_path`/`output_basename`.log.
+        output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif, `output_path`/`output_basename`.graphmlz and `output_path`/`output_basename`.log.
     min_area: int
         remove mask regions with area (number of pixels) below `min_area`
     max_delta_frame: int
@@ -1663,27 +1668,19 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
 
     else:
-        output_file = os.path.join(output_path, output_basename+"_mask.tif")
+        output_file = os.path.join(output_path, output_basename+".ome.tif")
         logger.info("Saving segmentation mask to %s", output_file)
         mask = mask[:, np.newaxis, :, :]
         OmeTiffWriter.save(mask, output_file, dim_order="TCYX")
 
-        # output_file = os.path.join(output_path, output_basename+"_graph.dot")
+        # output_file = os.path.join(output_path, output_basename+".dot")
         # logger.info("Saving cell tracking graph to %s", output_file)
         # cell_tracking_graph.write_dot(output_file)
 
-        output_file = os.path.join(output_path, output_basename+"_graph.graphmlz")
+        output_file = os.path.join(output_path, output_basename+".graphmlz")
         logger.info("Saving cell tracking graph to %s", output_file)
         cell_tracking_graph.get_graph().write_graphmlz(output_file)
         # stop using logfile
         logger.removeHandler(logfile_handler)
 
 
-# To test
-"""
-if __name__ == "__main__":
-    image_path = ''
-    mask_path = ''
-    output_path = ''
-    main(image_path, mask_path, output_path=output_path)
-"""

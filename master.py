@@ -13,6 +13,7 @@ from modules.cell_tracking_module import cell_tracking
 from modules.graph_filtering_module import graph_filtering
 from modules.events_filter_module import events_filter
 from modules.viewer_module import viewer
+from modules.file_organization_module import file_organization
 from general import general_functions as gf
 import multiprocessing as mp
 
@@ -96,6 +97,14 @@ class Viewer(gf.Page):
         self.window.addStretch()
 
 
+class FileOrganization(gf.Page):
+    def __init__(self):
+        super().__init__()
+        self.window = QVBoxLayout(self.container)
+        self.window.addWidget(file_organization.FileOrganization())
+        self.window.addStretch()
+
+
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -122,6 +131,7 @@ class MainWindow(QWidget):
         tabwizard.addPage(CellTracking(), "Cell tracking")
         tabwizard.addPage(GraphFiltering(), "Graph filtering")
         tabwizard.addPage(GraphEventFilter(), "Events filter")
+        tabwizard.addPage(FileOrganization(), "File organization")
 
         layout = QHBoxLayout()
         self.status_line = QLineEdit()

@@ -21,7 +21,7 @@ def call_evaluate(index, model, image_2D, diameter, channels):
     return tuple([index]) + model.eval(image_2D, diameter=diameter, channels=channels)
 
 
-def par_run_eval(image, mask, model, f, logger, tot_iterations, n_count):
+def par_run_eval(image, mask, model, logger, tot_iterations, n_count, pbr=None):
     """
     Run model evaluation in parallel
     """
@@ -31,9 +31,9 @@ def par_run_eval(image, mask, model, f, logger, tot_iterations, n_count):
                 call_evaluate,
                 t,
                 model,
-                image.image[f, t, 0, 0, :, :],
+                image[t, :, :],
                 model.diam_labels, [0, 0]
-            ): t for t in range(image.sizes['T'])
+            ): t for t in range(image.shape[0])
         }
         for future in concurrent.futures.as_completed(future_reg):
             try:
@@ -41,27 +41,40 @@ def par_run_eval(image, mask, model, f, logger, tot_iterations, n_count):
             except Exception:
                 logger.exception("An exception occurred")
             else:
-                logger.info("cellpose segmentation %s/%s", index, tot_iterations)
+                logger.info("cellpose segmentation %s/%s", index+1, tot_iterations)
+                if pbr is not None:
+                    pbr.set_description(f"cellpose segmentation {index+1}/{tot_iterations}")
+                    pbr.update(1)
 
     return mask
 
 
-def main(image_path, model_path, output_path, output_basename, n_count, display_results=True, use_gpu=True, run_parallel=True):
+def main(image_path, model_path, output_path, output_basename, channel_position, projection_type, projection_zrange, n_count, display_results=True, use_gpu=True, run_parallel=True):
     """
     Load image, segment with cellpose and save the resulting mask
-    into `output_path` directory using filename <image basename>_mask.tif
+    into `output_path` directory using filename <image basename>.ome.tif
     Note : we assume that the image first channel is ALWAYS BF and we will only apply the segmentation on that channel
 
     Parameters
     ----------
     image_path: str
-        input image path. Must be a tif or nd2 image with axes T,Y,X
+        input image path. Must be a tif, ome-tif or nd2 image with axes T,Y,X
     model_path: str
         cellpose pretrained model path
     output_path: str
         output directory
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`_mask.tif and `output_path`/`output_basename`.log.
+        output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif and `output_path`/`output_basename`.log.
+    channel_position : int
+        position of the channel to segment if the image is a c-stack
+    projection_type : str
+        type of projection to perform if the image is a z-stack
+    projection_zrange: int or (int,int) or None
+        the range of z sections to use for projection.
+        If zrange is None, use all z sections.
+        If zrange is an integer, use all z sections in the interval [z_best-zrange,z_best+zrange]
+        where z_best is the Z corresponding to best focus.
+        If zrange is tuple (zmin,zmax), use all z sections in the interval [zmin,zmax].
     display_results: bool, default True
         display input image and segmentation mask in napari
     use_gpu: bool, default False
@@ -85,6 +98,9 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
     logfile_handler.setFormatter(logging.Formatter('%(asctime)s  [%(levelname)s] %(message)s'))
     logfile_handler.setLevel(logging.INFO)
     logger.addHandler(logfile_handler)
+    # Also save general.general_functions logger to the same file (to log information on z-projection)
+    logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
+    logging.getLogger('general.general_functions').addHandler(logfile_handler)
 
     # Cellpose_version already contains platform, python version and torch version
     logger.info("System info: %s\nnumpy version: %s\nnapari version: %s", cellpose_version, np.__version__, napari.__version__)
@@ -103,18 +119,45 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
         logging.getLogger(__name__).exception('Error loading image %s', image_path)
         # stop using logfile
         logger.removeHandler(logfile_handler)
+        logging.getLogger('general.general_functions').removeHandler(logfile_handler)
         raise
+
+    # Check 'F' axis has size 1
+    if image.sizes['F'] != 1:
+        logger.error('Image %s has a F axis with size > 1', str(image_path))
+        # Close logfile
+        logger.removeHandler(logfile_handler)
+        logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        raise TypeError(f"Image {image_path} has a F axis with size > 1")
+
+    # Project Z axis if needed and select channel
+    if image.sizes['Z'] > 1:
+        logger.info('Preparing image to segment: performing Z-projection')
+        image3D = image.zProjection(projection_type, projection_zrange)
+    else:
+        image3D = image.image
+    # keep only selected channel ('C' axis)
+    if image.sizes['C'] > channel_position:
+        logging.getLogger(__name__).info('Preparing image to segment: selecting channel %s',channel_position)
+        image3D = image3D[0,:,channel_position,0,:,:]
+    else:
+        logging.getLogger(__name__).error('Position of the channel given (%s) is out of range for image %s', channel_position, image.basename)
+        # Close logfile
+        logger.removeHandler(logfile_handler)
+        logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        raise TypeError(f"Position of the channel given ({channel_position}) is out of range for image {image.basename}")
 
     # Create cellpose model
     logger.debug("loading cellpose model %s", model_path)
     model = models.CellposeModel(gpu=use_gpu, pretrained_model=model_path)
 
-    tot_iterations = image.sizes['Z']*image.sizes['T']*image.sizes['F']
+    tot_iterations = image.sizes['T']
 
     if display_results:
         # Open image in napari
         viewer_images = napari.Viewer(title=image_path)
-        image_napari = image.get_TYXarray()
+        image_napari = image3D
+        # TCYX
         image_napari = image_napari[:, np.newaxis, :, :]
         viewer_images.add_image(image_napari, name="Input image")
 
@@ -127,48 +170,38 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
         # Show activity dock & add napari progress bar
         viewer_images.window._status_bar._toggle_activity_dock(True)
         pbr = napari.utils.progress(total=tot_iterations)
+    else:
+        pbr = None
 
     # Cellpose segmentation
     logger.info("Cellpose segmentation (model diameter=%s)", model.diam_labels)
 
     iteration = 0
-    multiple_fov = True if image.sizes['F'] > 1 else False
-    for f in range(image.sizes['F']):
-        mask = np.zeros((image.sizes['T'], image.sizes['Y'], image.sizes['X']), dtype='uint16')
-        if run_parallel:
-            mask = par_run_eval(image, mask, model, f, logger, tot_iterations, n_count)
-        else:
-            for t in range(image.sizes['T']):
-                # Always assuming BF in channel=0 and only one Z channel
-                iteration += 1
-                image_2D = image.image[f, t, 0, 0, :, :]
-                if display_results:
-                    # Logging into napari window
-                    pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
-                    pbr.update(1)
-                logger.info("cellpose segmentation %s/%s", iteration, tot_iterations)
-                mask[t, :, :], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
+    mask = np.zeros(image3D.shape, dtype='uint16')
+    if run_parallel and n_count > 1:
+        mask = par_run_eval(image3D, mask, model, logger, tot_iterations, n_count, pbr)
+    else:
+        for t in range(image3D.shape[0]):
+            iteration += 1
+            image_2D = image3D[t, :, :]
+            if display_results:
+                # Logging into napari window
+                pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
+                pbr.update(1)
+            logger.info("cellpose segmentation %s/%s", iteration, tot_iterations)
+            mask[t, :, :], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
 
 
 
-        # Save image for each FoV
-        if multiple_fov:
-            output_name_originalimage = os.path.join(output_path, output_basename+"_FoV"+str(f+1)+".tif")
-            fov_image = image.get_TYXarray()
-            fov_image = fov_image[:, np.newaxis, :, :]
-            OmeTiffWriter.save(fov_image, output_name_originalimage, dim_order="TCYX")
-    
-            output_name = os.path.join(output_path, output_basename+"_FoV"+str(f+1)+"_mask.tif")
-        else:
-            output_name = os.path.join(output_path, output_basename+"_mask.tif")
-        # Save the mask
-        mask = mask[:, np.newaxis, :, :]
-        OmeTiffWriter.save(mask, output_name, dim_order="TCYX")
+    # Save the mask
+    output_name = os.path.join(output_path, output_basename+".ome.tif")
+    mask = mask[:, np.newaxis, :, :]
+    OmeTiffWriter.save(mask, output_name, dim_order="TCYX")
 
-        logger.info("Saving segmentation masks to %s", output_name)
+    logger.info("Saving segmentation masks to %s", output_name)
 
-        if display_results:
-            QMessageBox.information(viewer_images.window._qt_window, 'File saved', 'Masks saved to\n' + output_name)
+    if display_results:
+        QMessageBox.information(viewer_images.window._qt_window, 'File saved', 'Masks saved to\n' + output_name)
 
     if display_results:
         # Stop logging into napari window & restore cursor
@@ -178,6 +211,10 @@ def main(image_path, model_path, output_path, output_basename, n_count, display_
         # Show mask in napari
         layer_mask = viewer_images.add_labels(mask, name="Cell mask")
         layer_mask.editable = False
+        # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
+        # This is a quick and dirty hack to force the layer to stay non-editable.
+        layer_mask.events.editable.connect(lambda e: setattr(e.source,'editable',False))
 
     # stop using logfile
     logger.removeHandler(logfile_handler)
+    logging.getLogger('general.general_functions').removeHandler(logfile_handler)

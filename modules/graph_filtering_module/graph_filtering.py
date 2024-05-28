@@ -2,9 +2,9 @@ import os
 import logging
 import re
 import igraph as ig
-from PyQt5.QtWidgets import QFileDialog, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QLabel, QFormLayout, QSpinBox, QCheckBox, QSizePolicy
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QCursor
+from PyQt5.QtWidgets import QFileDialog, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QLabel, QFormLayout, QSpinBox, QCheckBox, QSizePolicy, QLineEdit
+from PyQt5.QtCore import Qt, QRegExp
+from PyQt5.QtGui import QCursor, QRegExpValidator
 from modules.graph_filtering_module import graph_filtering_functions as f
 from general import general_functions as gf
 
@@ -13,11 +13,14 @@ class GraphFiltering(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.output_suffix = '_vGF'
+        self.celltracking_suffix = '_vTG'
+
         layout = QVBoxLayout()
 
-        self.imagetypes = ['.nd2', '.tif', '.tiff']
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
 
-        self.mask_graph_table = gf.FileTableWidget2(header_1="Mask", header_2="Graph", filenames_suffix_1='_mask.tif', filenames_suffix_2='_graph.graphmlz')
+        self.mask_graph_table = gf.FileTableWidget2(header_1="Mask", header_2="Graph", filenames_suffix_1='.ome.tif', filenames_suffix_2='.graphmlz', filenames_filter=self.celltracking_suffix)
         self.mask_graph_table.file_table_changed.connect(self.mask_graph_table_changed)
         groupbox = QGroupBox('Segmentation masks and cell tracking graphs to process')
         layout2 = QVBoxLayout()
@@ -25,24 +28,57 @@ class GraphFiltering(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        self.use_input_folder = QRadioButton("Use input mask and graph folder (graph_filtering sub-folder)")
+        self.use_input_folder = QRadioButton("Use input mask and graph folder")
         self.use_input_folder.setChecked(True)
-        self.use_custom_folder = QRadioButton("Use custom folder:")
+        self.use_input_folder.toggled.connect(self.update_output_filename_label)
+        self.use_custom_folder = QRadioButton("Use custom folder")
         self.use_custom_folder.setChecked(False)
+        self.use_custom_folder.toggled.connect(self.update_output_filename_label)
         self.output_folder = gf.DropFolderLineEdit()
+        self.output_folder.textChanged.connect(self.update_output_filename_label)
         browse_button2 = QPushButton("Browse", self)
         browse_button2.clicked.connect(self.browse_output)
-        self.output_folder.setEnabled(self.use_custom_folder.isChecked())
-        browse_button2.setEnabled(self.use_custom_folder.isChecked())
-        self.use_custom_folder.toggled.connect(self.output_folder.setEnabled)
-        self.use_custom_folder.toggled.connect(browse_button2.setEnabled)
-        groupbox = QGroupBox("Output folder")
+        self.output_folder.setVisible(self.use_custom_folder.isChecked())
+        browse_button2.setVisible(self.use_custom_folder.isChecked())
+        self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
+        self.use_custom_folder.toggled.connect(browse_button2.setVisible)
+        self.output_user_suffix = QLineEdit()
+        self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
+        self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
+        self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
+        self.output_filename_label1 = QLineEdit()
+        self.output_filename_label1.setFrame(False)
+        self.output_filename_label1.setEnabled(False)
+        self.output_filename_label1.textChanged.connect(self.output_filename_label1.setToolTip)
+        self.output_filename_label2 = QLineEdit()
+        self.output_filename_label2.setFrame(False)
+        self.output_filename_label2.setEnabled(False)
+        self.output_filename_label2.textChanged.connect(self.output_filename_label2.setToolTip)
+        groupbox = QGroupBox("Output")
         layout2 = QVBoxLayout()
+        layout2.addWidget(QLabel("Folder:"))
         layout2.addWidget(self.use_input_folder)
         layout2.addWidget(self.use_custom_folder)
         layout3 = QHBoxLayout()
         layout3.addWidget(self.output_folder)
         layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
+        layout2.addLayout(layout3)
+        layout3 = QFormLayout()
+        layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        layout4 = QHBoxLayout()
+        layout4.setSpacing(0)
+        suffix = QLineEdit(self.output_suffix)
+        suffix.setDisabled(True)
+        suffix.setFixedWidth(suffix.fontMetrics().width(suffix.text()+"  "))
+        suffix.setAlignment(Qt.AlignRight)
+        layout4.addWidget(suffix)
+        layout4.addWidget(self.output_user_suffix)
+        layout3.addRow("Suffix:", layout4)
+        layout4 = QVBoxLayout()
+        layout4.setSpacing(0)
+        layout4.addWidget(self.output_filename_label1)
+        layout4.addWidget(self.output_filename_label2)
+        layout3.addRow("Filename:", layout4)
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -291,12 +327,14 @@ class GraphFiltering(QWidget):
         layout.addWidget(self.display_results)
 
         self.submit_button = QPushButton("Submit", self)
-        self.submit_button.clicked.connect(self.process_input)
+        self.submit_button.clicked.connect(self.submit)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
+
+        self.update_output_filename_label()
 
     def mask_graph_table_changed(self):
         if self.mask_graph_table.rowCount() > 1:
@@ -311,7 +349,16 @@ class GraphFiltering(QWidget):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         self.output_folder.setText(folder_path)
 
-    def process_input(self):
+    def update_output_filename_label(self):
+        if self.use_input_folder.isChecked():
+            output_path = "<input folder>"
+        else:
+            output_path = self.output_folder.text().rstrip("/")
+
+        self.output_filename_label1.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
+        self.output_filename_label2.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".graphmlz"))
+
+    def submit(self):
         if self.input_image.isEnabled():
             image_path = self.input_image.text()
         else:
@@ -320,9 +367,10 @@ class GraphFiltering(QWidget):
         mask_graph_paths = self.mask_graph_table.get_file_table()
         mask_paths = [mask_path for mask_path, graph_path in mask_graph_paths]
         graph_paths = [graph_path for mask_path, graph_path in mask_graph_paths]
-        output_basenames = [re.sub("_masks{0,1}$", "", os.path.splitext(os.path.basename(mask_path))[0]) for mask_path in mask_paths]
+        user_suffix = self.output_user_suffix.text()
+        output_basenames = [gf.splitext(os.path.basename(mask_path))[0] + self.output_suffix + user_suffix for mask_path in mask_paths]
         if self.use_input_folder.isChecked():
-            output_paths = [os.path.join(os.path.dirname(mask_path), 'graph_filtering') for mask_path in mask_paths]
+            output_paths = [os.path.dirname(mask_path) for mask_path in mask_paths]
         else:
             output_paths = [self.output_folder.text() for path in mask_paths]
 

@@ -1,9 +1,9 @@
 import os
 import logging
 import re
-from PyQt5.QtWidgets import QFileDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QCursor
+from PyQt5.QtWidgets import QFileDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QLineEdit
+from PyQt5.QtCore import Qt, QRegExp
+from PyQt5.QtGui import QCursor, QRegExpValidator
 from modules.cell_tracking_module import cell_tracking_functions as f
 from general import general_functions as gf
 
@@ -12,26 +12,44 @@ class CellTracking(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.output_suffix = '_vTG'
+        self.mask_suffix = '_vSM'
+
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
         label_documentation.setText('<a href="file://'+os.path.join(os.path.dirname(__file__), "doc", "METHODS.html")+'">Methods</a>')
 
-        self.imagetypes = ['.nd2', '.tif', '.tiff']
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
 
-        self.mask_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_mask')
+        self.mask_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter=self.mask_suffix)
         self.mask_list.file_list_changed.connect(self.mask_list_changed)
 
-        self.use_input_folder = QRadioButton("Use input mask folder (cell_tracking sub-folder)")
+        self.use_input_folder = QRadioButton("Use input mask folder")
         self.use_input_folder.setChecked(True)
-        self.use_custom_folder = QRadioButton("Use custom folder:")
+        self.use_input_folder.toggled.connect(self.update_output_filename_label)
+        self.use_custom_folder = QRadioButton("Use custom folder")
         self.use_custom_folder.setChecked(False)
+        self.use_custom_folder.toggled.connect(self.update_output_filename_label)
         self.output_folder = gf.DropFolderLineEdit()
+        self.output_folder.textChanged.connect(self.update_output_filename_label)
         browse_button2 = QPushButton("Browse", self)
         browse_button2.clicked.connect(self.browse_output)
-        self.output_folder.setEnabled(self.use_custom_folder.isChecked())
-        browse_button2.setEnabled(self.use_custom_folder.isChecked())
-        self.use_custom_folder.toggled.connect(self.output_folder.setEnabled)
-        self.use_custom_folder.toggled.connect(browse_button2.setEnabled)
+        self.output_folder.setVisible(self.use_custom_folder.isChecked())
+        browse_button2.setVisible(self.use_custom_folder.isChecked())
+        self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
+        self.use_custom_folder.toggled.connect(browse_button2.setVisible)
+        self.output_user_suffix = QLineEdit()
+        self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
+        self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
+        self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
+        self.output_filename_label1 = QLineEdit()
+        self.output_filename_label1.setFrame(False)
+        self.output_filename_label1.setEnabled(False)
+        self.output_filename_label1.textChanged.connect(self.output_filename_label1.setToolTip)
+        self.output_filename_label2 = QLineEdit()
+        self.output_filename_label2.setFrame(False)
+        self.output_filename_label2.setEnabled(False)
+        self.output_filename_label2.textChanged.connect(self.output_filename_label2.setToolTip)
 
         self.min_area = QSpinBox()
         self.min_area.setMinimum(0)
@@ -104,13 +122,31 @@ class CellTracking(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        groupbox = QGroupBox("Output folder")
+        groupbox = QGroupBox("Output")
         layout2 = QVBoxLayout()
+        layout2.addWidget(QLabel("Folder:"))
         layout2.addWidget(self.use_input_folder)
         layout2.addWidget(self.use_custom_folder)
         layout3 = QHBoxLayout()
         layout3.addWidget(self.output_folder)
         layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
+        layout2.addLayout(layout3)
+        layout3 = QFormLayout()
+        layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        layout4 = QHBoxLayout()
+        layout4.setSpacing(0)
+        suffix = QLineEdit(self.output_suffix)
+        suffix.setDisabled(True)
+        suffix.setFixedWidth(suffix.fontMetrics().width(suffix.text()+"  "))
+        suffix.setAlignment(Qt.AlignRight)
+        layout4.addWidget(suffix)
+        layout4.addWidget(self.output_user_suffix)
+        layout3.addRow("Suffix:", layout4)
+        layout4 = QVBoxLayout()
+        layout4.setSpacing(0)
+        layout4.addWidget(self.output_filename_label1)
+        layout4.addWidget(self.output_filename_label2)
+        layout3.addRow("Filename:", layout4)
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -146,6 +182,8 @@ class CellTracking(QWidget):
         self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
+
+        self.update_output_filename_label()
 
     def mask_list_changed(self):
         if self.mask_list.count() > 1:
@@ -183,6 +221,15 @@ class CellTracking(QWidget):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
         self.input_image.setText(file_path)
 
+    def update_output_filename_label(self):
+        if self.use_input_folder.isChecked():
+            output_path = "<input folder>"
+        else:
+            output_path = self.output_folder.text().rstrip("/")
+
+        self.output_filename_label1.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
+        self.output_filename_label2.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".graphmlz"))
+
     def submit(self):
         """
         Retrieve the input parameters
@@ -216,9 +263,10 @@ class CellTracking(QWidget):
         else:
             image_path = ""
         mask_paths = self.mask_list.get_file_list()
-        output_basenames = [re.sub("_masks{0,1}$", "", os.path.splitext(os.path.basename(path))[0]) for path in mask_paths]
+        user_suffix = self.output_user_suffix.text()
+        output_basenames = [gf.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in mask_paths]
         if self.use_input_folder.isChecked():
-            output_paths = [os.path.join(os.path.dirname(path), 'cell_tracking') for path in mask_paths]
+            output_paths = [os.path.dirname(path) for path in mask_paths]
         else:
             output_paths = [self.output_folder.text() for path in mask_paths]
 
