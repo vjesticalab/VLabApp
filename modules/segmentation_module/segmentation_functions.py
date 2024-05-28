@@ -21,7 +21,7 @@ def call_evaluate(index, model, image_2D, diameter, channels):
     return tuple([index]) + model.eval(image_2D, diameter=diameter, channels=channels)
 
 
-def par_run_eval(image, mask, model, logger, tot_iterations, n_count):
+def par_run_eval(image, mask, model, logger, tot_iterations, n_count, pbr=None):
     """
     Run model evaluation in parallel
     """
@@ -41,7 +41,10 @@ def par_run_eval(image, mask, model, logger, tot_iterations, n_count):
             except Exception:
                 logger.exception("An exception occurred")
             else:
-                logger.info("cellpose segmentation %s/%s", index, tot_iterations)
+                logger.info("cellpose segmentation %s/%s", index+1, tot_iterations)
+                if pbr is not None:
+                    pbr.set_description(f"cellpose segmentation {index+1}/{tot_iterations}")
+                    pbr.update(1)
 
     return mask
 
@@ -167,14 +170,16 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
         # Show activity dock & add napari progress bar
         viewer_images.window._status_bar._toggle_activity_dock(True)
         pbr = napari.utils.progress(total=tot_iterations)
+    else:
+        pbr = None
 
     # Cellpose segmentation
     logger.info("Cellpose segmentation (model diameter=%s)", model.diam_labels)
 
     iteration = 0
     mask = np.zeros(image3D.shape, dtype='uint16')
-    if run_parallel:
-        mask = par_run_eval(image3D, mask, model, logger, tot_iterations, n_count)
+    if run_parallel and n_count > 1:
+        mask = par_run_eval(image3D, mask, model, logger, tot_iterations, n_count, pbr)
     else:
         for t in range(image3D.shape[0]):
             iteration += 1

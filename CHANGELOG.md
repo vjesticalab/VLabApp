@@ -38,7 +38,7 @@
 * Fix handling of .ome.tif files.
 * Force non-editable napari layers to stay non-editable (In napari v0.4.17, changing an axis value using the corresponding slider makes the layer editable).
 * Set random seed in "feature matching" registration methods for reproducibility.
-
+* Segmentation module: fix napari progress bar when using CPU.
 
 
 
