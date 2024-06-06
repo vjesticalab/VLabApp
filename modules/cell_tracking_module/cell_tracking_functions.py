@@ -1,5 +1,6 @@
 import os
 import logging
+from platform import python_version, platform
 from collections import deque
 import numpy as np
 import napari
@@ -24,7 +25,7 @@ def split_regions(mask):
     mask: ndarray
         a 3D (TYX) 16bit unsigned integer (uint16) numpy array, modified in-place
     """
-    logging.getLogger(__name__).debug("Splitting disconnected regions:")
+    logging.getLogger(__name__).debug("Splitting disconnected regions")
     for t in range(mask.shape[0]):
         for n in range(mask[t].max()):
             xmin, ymin, w, h = cv.boundingRect((mask[t] == n+1).astype('uint8'))
@@ -48,7 +49,7 @@ def remove_small_regions(mask, min_area):
     min_area: int
         remove mask regions with area (number of pixels) below `min_area`
     """
-    logging.getLogger(__name__).debug("Removing small regions:")
+    logging.getLogger(__name__).debug("Removing small regions")
     for t in range(mask.shape[0]):
         areas = np.bincount(mask[t].ravel())
         mask_ids_toremove = np.where((areas < min_area) & (areas > 0))[0]
@@ -1330,7 +1331,7 @@ class CellTrackingWidget(QWidget):
         self.mask_need_relabelling = True
         self.save_button.setText("Relabel && Save")
 
-        self.logger.info("Done")
+        self.logger.debug("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
@@ -1390,7 +1391,7 @@ class CellTrackingWidget(QWidget):
         self.mask_need_relabelling = True
         self.save_button.setText("Relabel && Save")
 
-        self.logger.info("Done")
+        self.logger.debug("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
@@ -1443,7 +1444,7 @@ class CellTrackingWidget(QWidget):
         self.mask_modified = True
         self.mask_need_relabelling = False
 
-        self.logger.info("Done")
+        self.logger.debug("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
@@ -1473,7 +1474,7 @@ class CellTrackingWidget(QWidget):
             self.mask_modified = False
             self.save_button.setStyleSheet("")
 
-        self.logger.info("Done")
+        self.logger.debug("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
 
@@ -1496,7 +1497,7 @@ class CellTrackingWidget(QWidget):
         # remove all handlers for this module
         while len(self.logger.handlers) > 0:
             self.logger.removeHandler(self.logger.handlers[0])
-        self.logger.info("Done")
+        self.logger.debug("Done")
 
 
 def main(image_path, mask_path, output_path, output_basename, min_area=300, max_delta_frame=5, min_overlap_fraction=0.2, clean=False, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0, display_results=True):
@@ -1559,11 +1560,20 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
     logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
     logger.addHandler(logfile_handler)
 
-    logger.info("System info: igraph version: %s\nopencv version: %s\nnumpy version: %s\nnapari version: %s", ig.__version__, cv.__version__, np.__version__, napari.__version__)
-    logger.info("image: %s", image_path)
-    logger.info("mask: %s", mask_path)
-    logger.info("output directory: %s", output_path)
-    logger.info("output basename: %s", output_basename)
+    logger.info("System info:")
+    logger.info("- platform: %s", platform())
+    logger.info("- python version: %s", python_version())
+    logger.info("- numpy version: %s", np.__version__)
+    logger.info("- opencv version: %s", cv.__version__)
+    logger.info("- igraph version: %s", ig.__version__)
+    if display_results:
+        logger.info("- napari version: %s", napari.__version__)
+
+    if image_path:
+        logger.info("Image path: %s", image_path)
+    logger.info("Mask path: %s", mask_path)
+    logger.info("Output path: %s", output_path)
+    logger.info("Output basename: %s", output_basename)
     logger.debug("min area: %s", min_area)
     logger.debug("max delta frame: %s", max_delta_frame)
     logger.debug("min overlap fraction: %s%%", min_overlap_fraction*100)

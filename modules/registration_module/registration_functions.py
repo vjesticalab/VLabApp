@@ -1,4 +1,5 @@
 import logging
+from platform import python_version, platform
 from general import general_functions as gf
 import numpy as np
 import os
@@ -940,16 +941,24 @@ def registration_main(image_path, output_path, output_basename, channel_position
     logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
     logging.getLogger('general.general_functions').addHandler(logfile_handler)
 
-    logger.info("System info:\npystackreg version: %s\nopencv version: %s\nnumpy version: %s\nskimage version: %s\nnapari version: %s", StackReg_version, cv.__version__, np.__version__, skimage_version, napari.__version__)
-    logger.info("image: %s", image_path)
-    logger.info("registration method: %s", registration_method)
-    logger.info("Crop image?: %s", not skip_crop_decision)
+    logger.info("System info:")
+    logger.info("- platform: %s", platform())
+    logger.info("- python version: %s", python_version())
+    logger.info("- numpy version: %s", np.__version__)
+    logger.info("- pystackreg version: %s", StackReg_version)
+    logger.info("- opencv version: %s", cv.__version__)
+    logger.info("- skimage version: %s", skimage_version)
+
+    logger.info("Image path: %s", image_path)
+    logger.info("Output path: %s", output_path)
+    logger.info("Output basename: %s", output_basename)
+    logger.info("Registration method: %s", registration_method)
 
 
     # Load image
     # Note: by default the image have to be ALWAYS 3D with TYX
     try:
-        logger.info('loading %s', image_path)
+        logger.debug('Loading %s', image_path)
         image = gf.Image(image_path)
         image.imread()
     except:
@@ -993,14 +1002,22 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
     logfile_handler.setLevel(logging.INFO)
     logger.addHandler(logfile_handler)
 
-    logger.info("System info:\npystackreg version: %s\nopencv version: %s\nnumpy version: %s\nskimage version: %s\nnapari version: %s", StackReg_version, cv.__version__, np.__version__, skimage_version, napari.__version__)
-    logger.info("image: %s", image_path)
-    logger.info("transformation matrix: %s", tmat_path)
-    logger.info("Crop image?: %s", not skip_crop_decision)
+    logger.info("System info:")
+    logger.info("- platform: %s", platform())
+    logger.info("- python version: %s", python_version())
+    logger.info("- numpy version: %s", np.__version__)
+    logger.info("- pystackreg version: %s", StackReg_version)
+    logger.info("- opencv version: %s", cv.__version__)
+    logger.info("- skimage version: %s", skimage_version)
+
+    logger.info("Image path: %s", image_path)
+    logger.info("Transformation matrix path: %s", tmat_path)
+    logger.info("Output path: %s", output_path)
+    logger.info("Output basename: %s", output_basename)
 
     # Load image and matrix
     try:
-        logger.info('loading %s', image_path)
+        logger.debug('loading %s', image_path)
         image = gf.Image(image_path)
         image.imread()
     except:
@@ -1008,7 +1025,7 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
         remove_all_log_handlers()
         raise
     try:
-        logger.info('loading %s', tmat_path)
+        logger.debug('loading %s', tmat_path)
         tmat_int = read_transfMat(tmat_path)
     except:
         logging.getLogger(__name__).exception('Error loading transformation matrix for image %s', image_path)
@@ -1048,14 +1065,21 @@ def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end
     logfile_handler.setLevel(logging.INFO)
     logger.addHandler(logfile_handler)
 
-    logger.info("System info:\npystackreg version: %s\nopencv version: %s\nnumpy version: %s\nskimage version: %s\nnapari version: %s", StackReg_version, cv.__version__, np.__version__, skimage_version, napari.__version__)
-    logger.info("transformation matrix: %s", reference_matrix_path)
+    logger.info("System info:")
+    logger.info("- platform: %s", platform())
+    logger.info("- python version: %s", python_version())
+    logger.info("- numpy version: %s", np.__version__)
+    logger.info("- pystackreg version: %s", StackReg_version)
+    logger.info("- opencv version: %s", cv.__version__)
+    logger.info("- skimage version: %s", skimage_version)
+
+    logger.info("Transformation matrix path: %s", reference_matrix_path)
     logger.info("Reference timepoint: %s", reference_timepoint)
     logger.info("Start timepoint: %s", range_start)
     logger.info("End timepoint: %s", range_end)
 
     # Load the transformation matrix
-    logger.info("loading: %s", reference_matrix_path)
+    logger.debug("loading: %s", reference_matrix_path)
     tmat_int = read_transfMat(reference_matrix_path)
     # Load the transformation matrix header
     with open(reference_matrix_path) as f:
@@ -1095,8 +1119,17 @@ def manual_edit_main(image_path, matrix_path):
     logfile_handler.setLevel(logging.INFO)
     logger.addHandler(logfile_handler)
 
-    logger.info("System info:\npystackreg version: %s\nopencv version: %s\nnumpy version: %s\nskimage version: %s\nnapari version: %s", StackReg_version, cv.__version__, np.__version__, skimage_version, napari.__version__)
-    logger.info("transformation matrix: %s", matrix_path)
+    logger.info("System info:")
+    logger.info("- platform: %s", platform())
+    logger.info("- python version: %s", python_version())
+    logger.info("- numpy version: %s", np.__version__)
+    logger.info("- pystackreg version: %s", StackReg_version)
+    logger.info("- opencv version: %s", cv.__version__)
+    logger.info("- skimage version: %s", skimage_version)
+    logger.info("- napari version: %s", napari.__version__)
+
+    logger.info("Image path: %s", image_path)
+    logger.info("Transformation matrix path: %s", matrix_path)
 
     try:
         image = gf.Image(image_path)

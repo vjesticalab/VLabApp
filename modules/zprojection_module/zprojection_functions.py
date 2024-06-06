@@ -1,6 +1,9 @@
 import os
 import logging
+from platform import python_version, platform
 import tifffile
+from numpy import __version__ as np_version
+from cv2 import __version__ as cv_version
 from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
 
@@ -53,8 +56,18 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
     logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
     logging.getLogger('general.general_functions').addHandler(logfile_handler)
 
+    logger.info("System info:")
+    logger.info("- platform: %s", platform())
+    logger.info("- python version: %s", python_version())
+    logger.info("- numpy version: %s", np_version)
+    logger.info("- opencv version: %s", cv_version)
+
     # Load image
-    logger.debug("loading %s", image_path)
+    logger.info("Image path: %s", image_path)
+    logger.info("Output path: %s", output_path)
+    logger.info("Output basename: %s", output_basename)
+
+    logger.debug("Loading %s", image_path)
     try:
         image = gf.Image(image_path)
         image.imread()
@@ -95,9 +108,9 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
     output_file_name = os.path.join(output_path, output_basename+".ome.tif")
     # TODO: properly deal with 'F' axis.
     OmeTiffWriter.save(projected_image[0, :, :, 0, :, :], output_file_name, dim_order="TCYX")
-    logger.info("Projection performed and saved (%s)", output_file_name)
+    logger.info("Saving projected image to %s", output_file_name)
 
-    print('Projection performed and saved '+output_file_name)
+    print('Saving projected image to '+output_file_name)
 
     # Close logfile
     logger.removeHandler(logfile_handler)

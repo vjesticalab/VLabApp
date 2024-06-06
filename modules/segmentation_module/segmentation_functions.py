@@ -1,10 +1,12 @@
 import os
 import logging
+from platform import python_version, platform
 import numpy as np
 import napari
 import tifffile
 from cellpose import models
-from cellpose import version_str as cellpose_version
+from cellpose import version as cellpose_version
+from torch import __version__ as torch_version
 from general import general_functions as gf
 from PyQt5.QtGui import QCursor
 from PyQt5.QtCore import Qt
@@ -41,7 +43,7 @@ def par_run_eval(image, mask, model, logger, tot_iterations, n_count, pbr=None):
             except Exception:
                 logger.exception("An exception occurred")
             else:
-                logger.info("cellpose segmentation %s/%s", index+1, tot_iterations)
+                logger.debug("cellpose segmentation %s/%s", index+1, tot_iterations)
                 if pbr is not None:
                     pbr.set_description(f"cellpose segmentation {index+1}/{tot_iterations}")
                     pbr.update(1)
@@ -103,10 +105,19 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
     logging.getLogger('general.general_functions').addHandler(logfile_handler)
 
     # Cellpose_version already contains platform, python version and torch version
-    logger.info("System info: %s\nnumpy version: %s\nnapari version: %s", cellpose_version, np.__version__, napari.__version__)
-    logger.info("image: %s", image_path)
-    logger.info("cellpose model: %s", model_path)
-    logger.info("output: %s", output_path)
+    logger.info("System info:")
+    logger.info("- platform: %s", platform())
+    logger.info("- python version: %s", python_version())
+    logger.info("- numpy version: %s", np.__version__)
+    logger.info("- cellpose version: %s", cellpose_version)
+    logger.info("- torch version: %s", torch_version)
+    if display_results:
+        logger.info("- napari version: %s", napari.__version__)
+
+    logger.info("Image path: %s", image_path)
+    logger.info("Cellpose model path: %s", model_path)
+    logger.info("Output path: %s", output_path)
+    logger.info("Output basename: %s", output_basename)
     logger.debug("use_gpu: %s", use_gpu)
     logger.debug("display_results: %s", display_results)
 
@@ -188,7 +199,7 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
                 # Logging into napari window
                 pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
                 pbr.update(1)
-            logger.info("cellpose segmentation %s/%s", iteration, tot_iterations)
+            logger.debug("cellpose segmentation %s/%s", iteration, tot_iterations)
             mask[t, :, :], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
 
 
@@ -198,13 +209,13 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
     mask = mask[:, np.newaxis, :, :]
     OmeTiffWriter.save(mask, output_name, dim_order="TCYX")
 
-    logger.info("Saving segmentation masks to %s", output_name)
+    logger.info("Saving segmentation mask to %s", output_name)
 
     if display_results:
-        QMessageBox.information(viewer_images.window._qt_window, 'File saved', 'Masks saved to\n' + output_name)
-
-    if display_results:
-        # Stop logging into napari window & restore cursor
+        # Restore cursor
+        napari.qt.get_app().restoreOverrideCursor()
+        QMessageBox.information(viewer_images.window._qt_window, 'File saved', 'Mask saved to\n' + output_name)
+        # Stop logging into napari window
         napari.qt.get_app().restoreOverrideCursor()
         viewer_images.window._status_bar._toggle_activity_dock(False)
         pbr.close()

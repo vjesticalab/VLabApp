@@ -1026,13 +1026,13 @@ class GraphFilteringWidget(QWidget):
         # Remove all handlers for this module
         while len(self.logger.handlers) > 0:
             self.logger.removeHandler(self.logger.handlers[0])
-        self.logger.info("Done")
+        self.logger.debug("Done")
 
     def __del__(self):
         # Remove all handlers for this module
         while len(self.logger.handlers) > 0:
             self.logger.removeHandler(self.logger.handlers[0])
-        self.logger.info("Done")
+        self.logger.debug("Done")
 
 
 def main(image_path, mask_path, graph_path, output_path, output_basename, filters, display_results=True, graph_topologies=None):
@@ -1089,12 +1089,20 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
     logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
     logger.addHandler(logfile_handler)
 
-    logger.info("System info:\nplatform: %s\npython version: %s\nigraph version: %s\nnumpy version: %s\nnapari version: %s", platform(), python_version(), ig.__version__, np.__version__, napari.__version__)
-    logger.info("image: %s", image_path)
-    logger.info("mask: %s", mask_path)
-    logger.info("graph: %s", graph_path)
-    logger.info("output directory: %s", output_path)
-    logger.info("output basename: %s", output_basename)
+    logger.info("System info:")
+    logger.info("- platform: %s", platform())
+    logger.info("- python version: %s", python_version())
+    logger.info("- numpy version: %s", np.__version__)
+    logger.info("- igraph version: %s", ig.__version__)
+    if display_results:
+        logger.info("- napari version: %s", napari.__version__)
+
+    if image_path:
+        logger.info("Image path: %s", image_path)
+    logger.info("Mask path: %s", mask_path)
+    logger.info("Graph path: %s", graph_path)
+    logger.info("Output path: %s", output_path)
+    logger.info("Output basename: %s", output_basename)
 
     ###########################
     # Load image, mask and graph

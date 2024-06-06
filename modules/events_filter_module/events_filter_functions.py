@@ -1,5 +1,6 @@
 import os
 import logging
+from platform import python_version, platform
 import numpy as np
 import pandas as pd
 import igraph as ig
@@ -263,6 +264,12 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
     logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     logfile_handler.setLevel(logging.INFO)
     logger.addHandler(logfile_handler)
+
+    logger.info("System info:")
+    logger.info("- platform: %s", platform())
+    logger.info("- python version: %s", python_version())
+    logger.info("- numpy version: %s", np.__version__)
+    logger.info("- igraph version: %s", ig.__version__)
 
     logger.info("Mask path: %s", mask_path)
     logger.info("Graph path: %s", graph_path)
