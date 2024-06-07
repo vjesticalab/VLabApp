@@ -7,6 +7,7 @@ import igraph as ig
 import csv
 from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
+from aicsimageio.types import PhysicalPixelSizes
 
 
 def event_filter(mask, graph, event, timecorrection, magn_image, tp_before, tp_after, output_path, output_basename):
@@ -172,7 +173,7 @@ def event_filter(mask, graph, event, timecorrection, magn_image, tp_before, tp_a
     return events_mask, events_graph, events_list
 
 
-def save_cropped_events(events_list, n_tp, total_events_mask, marker_image, chcropimage_path, BFimage_path, crop_output_path, crop_output_basename):
+def save_cropped_events(events_list, n_tp, total_events_mask, marker_image, chcropimage_path, BFimage_path, crop_output_path, crop_output_basename, mask_physical_pixel_sizes=(None, None, None)):
     """
     marker_image, chcropimage_path, BFimage_path : can be None
     """
@@ -213,8 +214,11 @@ def save_cropped_events(events_list, n_tp, total_events_mask, marker_image, chcr
                 cropped_mask[:,i+1,:,:] = valid_im[:, ymin:ymax, xmin:xmax] #TYX
         
         # Save
-        OmeTiffWriter.save(cropped_mask, os.path.join(crop_output_path, crop_output_basename+'-'+str(n)+'.ome.tif'), dim_order="TCYX")
-    
+        OmeTiffWriter.save(cropped_mask,
+                           os.path.join(crop_output_path, crop_output_basename+'-'+str(n)+'.ome.tif'),
+                           dim_order="TCYX",
+                           physical_pixel_sizes=PhysicalPixelSizes(X=mask_physical_pixel_sizes[0], Y=mask_physical_pixel_sizes[1], Z=mask_physical_pixel_sizes[2]))
+
 
 def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_before, tp_after, cropsave, chcropimage_path, BFimage_path, output_path, output_basename):
     """
@@ -288,7 +292,7 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
         mask.imread()
     except Exception as e:
         logging.getLogger(__name__).error('Error loading mask '+mask_path+'\n'+str(e))
-    
+
     # Load graph
     logger.debug("loading %s", graph_path)
     graph = ig.Graph().Read_GraphMLz(graph_path)
@@ -308,7 +312,11 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
     total_events_mask, total_events_graph, events_list = event_filter(mask.get_TYXarray(), graph, event, timecorrection, magn_image, tp_before, tp_after, output_path, output_basename)
 
     # Save mask and graph
-    OmeTiffWriter.save(total_events_mask, os.path.join(output_path, output_basename+'.ome.tif'), dim_order="TCYX")
+    OmeTiffWriter.save(total_events_mask,
+                       os.path.join(output_path, output_basename+'.ome.tif'),
+                       dim_order="TCYX",
+                       channel_names=mask.channel_names,
+                       physical_pixel_sizes=PhysicalPixelSizes(X=mask.physical_pixel_sizes[0],Y=mask.physical_pixel_sizes[1],Z=mask.physical_pixel_sizes[2]))
     total_events_graph.write_graphmlz( os.path.join(output_path, output_basename+'.graphmlz'))
 
     # If required, save cropped events 
@@ -320,7 +328,7 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
             magn_image = magn_image.get_TYXarray()
         else:
             magn_image = None
-        save_cropped_events(events_list, mask.get_TYXarray().shape[0], total_events_mask, magn_image, chcropimage_path, BFimage_path, output_path, output_basename)
-        
+        save_cropped_events(events_list, mask.get_TYXarray().shape[0], total_events_mask, magn_image, chcropimage_path, BFimage_path, output_path, output_basename, mask_physical_pixel_sizes=mask.physical_pixel_sizes)
+
 
     logger.info("Done!\n")

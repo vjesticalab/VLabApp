@@ -8,6 +8,7 @@ from pystackreg import StackReg
 from pystackreg import __version__ as StackReg_version
 import cv2 as cv
 from aicsimageio.writers import OmeTiffWriter
+from aicsimageio.types import PhysicalPixelSizes
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform
 from skimage import __version__ as skimage_version
@@ -633,7 +634,11 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
         registered_image = registered_image[:, t_start:t_end, :, :, :, :]
         # Save the registered and un-cropped image
         logging.getLogger(__name__).info('Saving transformed image to %s', registeredFilepath)
-        OmeTiffWriter.save(registered_image[0,:,:,:,:,:], registeredFilepath, dim_order="TCZYX")
+        OmeTiffWriter.save(registered_image[0,:,:,:,:,:],
+                           registeredFilepath,
+                           dim_order="TCZYX",
+                           channel_names=image.channel_names,
+                           physical_pixel_sizes=PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2]))
     else:
         logging.getLogger(__name__).info('Cropping image')
         # Crop to desired area
@@ -649,7 +654,11 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
 
         # Save the registered and cropped image
         logging.getLogger(__name__).info('Saving transformed image to %s', registeredFilepath)
-        OmeTiffWriter.save(image_cropped[0,:,:,:,:,:], registeredFilepath, dim_order="TCZYX")
+        OmeTiffWriter.save(image_cropped[0,:,:,:,:,:],
+                           registeredFilepath,
+                           dim_order="TCZYX",
+                           channel_names=image.channel_names,
+                           physical_pixel_sizes=PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2]))
 
 def registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method):
     """

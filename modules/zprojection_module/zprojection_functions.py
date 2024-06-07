@@ -6,6 +6,7 @@ from numpy import __version__ as np_version
 from cv2 import __version__ as cv_version
 from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
+from aicsimageio.types import PhysicalPixelSizes
 
 
 def main(image_path, output_path, output_basename, projection_type, projection_zrange):
@@ -107,7 +108,11 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
     # Save the projection
     output_file_name = os.path.join(output_path, output_basename+".ome.tif")
     # TODO: properly deal with 'F' axis.
-    OmeTiffWriter.save(projected_image[0, :, :, 0, :, :], output_file_name, dim_order="TCYX")
+    OmeTiffWriter.save(projected_image[0, :, :, 0, :, :],
+                       output_file_name,
+                       dim_order="TCYX",
+                       channel_names=image.channel_names,
+                       physical_pixel_sizes=PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2]))
     logger.info("Saving projected image to %s", output_file_name)
 
     print('Saving projected image to '+output_file_name)

@@ -13,6 +13,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
+from aicsimageio.types import PhysicalPixelSizes
 
 
 def split_regions(mask):
@@ -1023,12 +1024,15 @@ class CellTrackingWidget(QWidget):
     A widget to use inside napari
     """
 
-    def __init__(self, mask, cell_tracking_graph, viewer_graph, viewer_images, image_path, output_path, output_basename, min_area=300, max_delta_frame=5, min_overlap_fraction=0.2, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0):
+    # TODO: pass the mask as an Image object, instead of using the quick&dirty hack to pass the additional parameters mask_physical_pixel_sizes and mask_channel_names.
+    def __init__(self, mask, cell_tracking_graph, viewer_graph, viewer_images, image_path, output_path, output_basename, min_area=300, max_delta_frame=5, min_overlap_fraction=0.2, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0, mask_physical_pixel_sizes=(None, None, None), mask_channel_names=None):
         super().__init__()
         self.logger = logging.getLogger(__name__)
         self.logger.debug("CellTrackingWidget.__init__")
 
         self.mask = mask
+        self.mask_physical_pixel_sizes = mask_physical_pixel_sizes
+        self.mask_channel_names = mask_channel_names
         self.cell_tracking_graph = cell_tracking_graph
         self.viewer_graph = viewer_graph
         self.viewer_images = viewer_images
@@ -1460,8 +1464,11 @@ class CellTrackingWidget(QWidget):
         output_file1 = os.path.join(self.output_path, self.output_basename+".ome.tif")
         self.logger.info("Saving segmentation mask to %s", output_file1)
         self.mask = self.mask[:, np.newaxis, :, :]
-        OmeTiffWriter.save(self.mask, output_file1, dim_order="TCYX")
-
+        OmeTiffWriter.save(self.mask,
+                           output_file1,
+                           dim_order="TCYX",
+                           channel_names=self.mask_channel_names,
+                           physical_pixel_sizes=PhysicalPixelSizes(X=self.mask_physical_pixel_sizes[0], Y=self.mask_physical_pixel_sizes[1], Z=self.mask_physical_pixel_sizes[2]))
         # output_file2 = os.path.join(self.output_path, self.output_basename+".dot")
         # self.logger.info("Saving cell tracking graph to %s", output_file2)
         # self.cell_tracking_graph.write_dot(output_file2)
@@ -1674,14 +1681,20 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
                                                  min_area=min_area, max_delta_frame=max_delta_frame,
                                                  min_overlap_fraction=min_overlap_fraction, max_delta_frame_interpolation=max_delta_frame_interpolation,
                                                  nframes_defect=nframes_defect, nframes_stable=nframes_stable,
-                                                 stable_overlap_fraction=stable_overlap_fraction))
+                                                 stable_overlap_fraction=stable_overlap_fraction,
+                                                 mask_physical_pixel_sizes=mask_image.physical_pixel_sizes,
+                                                 mask_channel_names=mask_image.channel_names))
         viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
 
     else:
         output_file = os.path.join(output_path, output_basename+".ome.tif")
         logger.info("Saving segmentation mask to %s", output_file)
         mask = mask[:, np.newaxis, :, :]
-        OmeTiffWriter.save(mask, output_file, dim_order="TCYX")
+        OmeTiffWriter.save(mask,
+                           output_file,
+                           dim_order="TCYX",
+                           channel_names=mask_image.channel_names,
+                           physical_pixel_sizes=PhysicalPixelSizes(X=mask_image.physical_pixel_sizes[0],Y=mask_image.physical_pixel_sizes[1],Z=mask_image.physical_pixel_sizes[2]))
 
         # output_file = os.path.join(output_path, output_basename+".dot")
         # logger.info("Saving cell tracking graph to %s", output_file)

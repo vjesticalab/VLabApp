@@ -10,6 +10,7 @@ from PyQt5.QtCore import Qt, QPointF
 from PyQt5.QtGui import QCursor, QPixmap, QPainter, QPen, QPolygonF
 from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
+from aicsimageio.types import PhysicalPixelSizes
 
 
 class NapariStatusBarHandler(logging.Handler):
@@ -169,7 +170,8 @@ class CellTracksFiltering:
     A class to manipulate (currently only filter) cell tracking graph and mask.
     """
 
-    def __init__(self, mask, graph, graph_topologies=None):
+    # TODO: pass the mask as an Image object, instead of using the quick&dirty hack to pass the additional parameters mask_physical_pixel_sizes and mask_channel_names.
+    def __init__(self, mask, graph, graph_topologies=None, mask_physical_pixel_sizes=(None, None, None), mask_channel_names=None):
         """
         Parameters
         ----------
@@ -183,6 +185,8 @@ class CellTracksFiltering:
 
         self.logger = logging.getLogger(__name__)
         self.mask = mask
+        self.mask_physical_pixel_sizes = mask_physical_pixel_sizes
+        self.mask_channel_names = mask_channel_names
         self.graph = graph
         self.cell_tracks = None
         self.selected_cell_track_ids = None
@@ -638,7 +642,11 @@ class CellTracksFiltering:
         self.logger.info("Saving segmentation mask to %s", output_file)
         selected_mask = self.get_mask(relabel_mask_ids)
         selected_mask = selected_mask[:, np.newaxis, :, :]
-        OmeTiffWriter.save(selected_mask, output_file, dim_order="TCYX")
+        OmeTiffWriter.save(selected_mask,
+                           output_file,
+                           dim_order="TCYX",
+                           channel_names=self.mask_channel_names,
+                           physical_pixel_sizes=PhysicalPixelSizes(X=self.mask_physical_pixel_sizes[0], Y=self.mask_physical_pixel_sizes[1], Z=self.mask_physical_pixel_sizes[2]))
 
         output_file = os.path.join(output_path, output_basename+".graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file)
@@ -651,10 +659,13 @@ class GraphFilteringWidget(QWidget):
     A widget to use inside napari
     """
 
-    def __init__(self, mask, graph, viewer_images, image_path, output_path, output_basename, graph_topologies=None):
+    # TODO: pass the mask as an Image object, instead of using the quick&dirty hack to pass the additional parameters mask_physical_pixel_sizes and mask_channel_names.
+    def __init__(self, mask, graph, viewer_images, image_path, output_path, output_basename, graph_topologies=None, mask_physical_pixel_sizes=(None, None, None), mask_channel_names=None):
         super().__init__()
         self.logger = logging.getLogger(__name__)
         self.mask = mask.get_TYXarray()
+        self.mask_physical_pixel_sizes = mask_physical_pixel_sizes
+        self.mask_channel_names = mask_channel_names
         self.graph = graph
         self.viewer_images = viewer_images
         self.image_path = image_path
@@ -666,7 +677,7 @@ class GraphFilteringWidget(QWidget):
         # True if mask have been modified since last save (or not yet saved):
         self.mask_modified = True
 
-        self.cell_tracks_filtering = CellTracksFiltering(self.mask, self.graph, graph_topologies=graph_topologies)
+        self.cell_tracks_filtering = CellTracksFiltering(self.mask, self.graph, graph_topologies=graph_topologies, mask_physical_pixel_sizes=self.mask_physical_pixel_sizes, mask_channel_names=self.mask_channel_names)
 
         layout = QVBoxLayout()
 
@@ -1169,7 +1180,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
         # add GraphFilteringWidget to napari
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        graph_filtering_widget = GraphFilteringWidget(mask, graph, viewer_images, image_path, output_path, output_basename, graph_topologies=graph_topologies)
+        graph_filtering_widget = GraphFilteringWidget(mask, graph, viewer_images, image_path, output_path, output_basename, graph_topologies=graph_topologies, mask_physical_pixel_sizes=mask.physical_pixel_sizes, mask_channel_names=mask.channel_names)
         scroll_area.setWidget(graph_filtering_widget)
         viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
         if len(filters) > 0:
@@ -1209,7 +1220,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
                     logger.error("ignoring unknown filter %s.", filter_name)
             graph_filtering_widget.filter()
     else:
-        cell_tracks_filtering = CellTracksFiltering(mask.get_TYXarray(), graph, graph_topologies=graph_topologies)
+        cell_tracks_filtering = CellTracksFiltering(mask.get_TYXarray(), graph, graph_topologies=graph_topologies, mask_physical_pixel_sizes=mask.physical_pixel_sizes, mask_channel_names=mask.channel_names)
         if len(filters) > 0:
             for filter_name, *filter_params in filters:
                 if filter_name == 'filter_border':

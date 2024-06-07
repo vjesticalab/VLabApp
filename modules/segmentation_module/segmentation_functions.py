@@ -12,6 +12,7 @@ from PyQt5.QtGui import QCursor
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox
 from aicsimageio.writers import OmeTiffWriter
+from aicsimageio.types import PhysicalPixelSizes
 from concurrent.futures import ProcessPoolExecutor
 import concurrent
 
@@ -207,7 +208,12 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
     # Save the mask
     output_name = os.path.join(output_path, output_basename+".ome.tif")
     mask = mask[:, np.newaxis, :, :]
-    OmeTiffWriter.save(mask, output_name, dim_order="TCYX")
+    OmeTiffWriter.save(mask,
+                       output_name,
+                       dim_order="TCYX",
+                       channel_names=['Segmentation mask'],
+                       physical_pixel_sizes=PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2]))
+
 
     logger.info("Saving segmentation mask to %s", output_name)
 
