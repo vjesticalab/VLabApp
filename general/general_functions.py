@@ -3,6 +3,7 @@ import os
 import tifffile
 import nd2
 import re
+from aicsimageio.readers import OmeTiffReader
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PyQt5.QtGui import QIcon, QPalette, QBrush, QKeySequence
 from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem, QDialog, QShortcut
@@ -890,6 +891,12 @@ class Image:
         numpy ndarray with the image
     shape : list
         list with image shapes
+    channel_names : list
+        list with channel names. None if not available
+    physical_pixel_sizes : tuple
+        tuple with physical pixel sizes in x, y and z direction (in micrometer). (None,None,None) if not available.
+    ome_metadata : ome_types.model.ome.OME
+        ome metadata. None if not available.
 
     Methods
     -------
@@ -919,6 +926,9 @@ class Image:
         self.image = None
         self.shape = None
         self._axes = 'FTCZYX'
+        self.channel_names = None
+        self.physical_pixel_sizes = (None, None, None)
+        self.ome_metadata = None
         self.read_attr()
 
     def read_attr(self):
@@ -926,8 +936,17 @@ class Image:
             reader = nd2.ND2File(self.path)
             axes_order = str(''.join(list(reader.sizes.keys()))).upper() #eg. reader.sizes = {'T': 10, 'C': 2, 'Y': 2048, 'X': 2048}
             shape = reader.shape
+            self.channel_names = [x.channel.name for x in reader.metadata.channels]
+            self.physical_pixel_sizes = reader.voxel_size(channel=0)
             reader.close()
-        elif self.extension in ['.tif', '.tiff', '.ome.tif', '.ome.tiff']:
+        elif self.extension in ['.ome.tif', '.ome.tiff']:
+            reader = OmeTiffReader(self.path)
+            axes_order = reader.dims.order.upper()
+            shape = reader.shape
+            self.channel_names=reader.channel_names
+            self.physical_pixel_sizes = (reader.physical_pixel_sizes.X,reader.physical_pixel_sizes.Y,reader.physical_pixel_sizes.Z)
+            self.ome_metadata = reader.ome_metadata
+        elif self.extension in ['.tif', '.tiff']:
             reader = tifffile.TiffFile(self.path)
             axes_order = str(reader.series[0].axes).upper()
             shape = reader.series[0].shape
@@ -978,7 +997,11 @@ class Image:
             axes_order = str(''.join(list(reader.sizes.keys()))).upper() #eg. reader.sizes = {'T': 10, 'C': 2, 'Y': 2048, 'X': 2048}
             image = reader.asarray() #nd2.imread(self.path)
             reader.close()
-        elif self.extension in ['.tif', '.tiff', '.ome.tif', '.ome.tiff']:
+        elif self.extension in ['.ome.tif', '.ome.tiff']:
+            reader=OmeTiffReader(self.path)
+            axes_order=reader.dims.order.upper()
+            image = reader.data
+        elif self.extension in ['.tif', '.tiff']:
             reader = tifffile.TiffFile(self.path)
             axes_order = str(reader.series[0].axes).upper()
             image = reader.asarray()
