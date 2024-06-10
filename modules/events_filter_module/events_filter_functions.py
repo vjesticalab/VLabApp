@@ -9,6 +9,10 @@ from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
 
+def remove_all_log_handlers():
+    # remove all handlers for this module
+    while len(logging.getLogger(__name__).handlers) > 0:
+        logging.getLogger(__name__).removeHandler(logging.getLogger(__name__).handlers[0])
 
 def event_filter(mask, graph, event, timecorrection, magn_image, tp_before, tp_after, output_path, output_basename):
     """
@@ -208,7 +212,9 @@ def save_cropped_events(events_list, n_tp, total_events_mask, marker_image, chcr
                     img.imread()
                     img = img.get_TYXarray()
                 except Exception as e:
-                    logging.getLogger(__name__).error('Error loading image to crop '+valid_im+'\n'+str(e))
+                    logging.getLogger(__name__).exception('Error loading image to crop %s',valid_im)
+                    remove_all_log_handlers()
+                    raise
                 cropped_mask[:,i+1,:,:] = img[:, ymin:ymax, xmin:xmax] #TYX
             else: # marker_image -> already into the variable
                 cropped_mask[:,i+1,:,:] = valid_im[:, ymin:ymax, xmin:xmax] #TYX
@@ -260,7 +266,7 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
     if not os.path.isdir(output_path):
         logger.debug("creating: %s", output_path)
         os.makedirs(output_path)
-    
+
     logfile = os.path.join(output_path, output_basename+'.log')
     logger.setLevel(logging.DEBUG)
     logger.debug("writing log output to: %s", logfile)
@@ -291,7 +297,9 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
         mask = gf.Image(mask_path)
         mask.imread()
     except Exception as e:
-        logging.getLogger(__name__).error('Error loading mask '+mask_path+'\n'+str(e))
+        logging.getLogger(__name__).exception('Error loading mask %s',mask_path)
+        remove_all_log_handlers()
+        raise
 
     # Load graph
     logger.debug("loading %s", graph_path)
@@ -305,7 +313,9 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
             magn_image.imread()
             magn_image = magn_image.get_TYXarray()
         except Exception as e:
-            logging.getLogger(__name__).error('Error loading magnified image '+magn_image_path+'\n'+str(e))
+            logging.getLogger(__name__).exception('Error loading magnified image %s',magn_image_path)
+            remove_all_log_handlers()
+            raise
     else:
         magn_image = None
 
@@ -331,4 +341,5 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
         save_cropped_events(events_list, mask.get_TYXarray().shape[0], total_events_mask, magn_image, chcropimage_path, BFimage_path, output_path, output_basename, mask_physical_pixel_sizes=mask.physical_pixel_sizes)
 
 
+    remove_all_log_handlers()
     logger.info("Done!\n")
