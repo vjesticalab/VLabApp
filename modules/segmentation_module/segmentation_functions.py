@@ -13,6 +13,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox
 from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
+from ome_types.model import CommentAnnotation
 from concurrent.futures import ProcessPoolExecutor
 import concurrent
 
@@ -98,12 +99,20 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
     logger.setLevel(logging.DEBUG)
     logger.debug("writing log output to: %s", logfile)
     logfile_handler = logging.FileHandler(logfile, mode='w')
-    logfile_handler.setFormatter(logging.Formatter('%(asctime)s  [%(levelname)s] %(message)s'))
+    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     logfile_handler.setLevel(logging.INFO)
     logger.addHandler(logfile_handler)
     # Also save general.general_functions logger to the same file (to log information on z-projection)
     logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
     logging.getLogger('general.general_functions').addHandler(logfile_handler)
+
+    # Log to memory
+    buffered_handler = gf.BufferedHandler()
+    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - segmentation module) [%(levelname)s] %(message)s'))
+    buffered_handler.setLevel(logging.INFO)
+    logger.addHandler(buffered_handler)
+    # Also save general.general_functions logger to the same file (to log information on z-projection)
+    logging.getLogger('general.general_functions').addHandler(buffered_handler)
 
     # Cellpose_version already contains platform, python version and torch version
     logger.info("System info:")
@@ -132,6 +141,8 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
         # stop using logfile
         logger.removeHandler(logfile_handler)
         logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        logger.removeHandler(buffered_handler)
+        logging.getLogger('general.general_functions').removeHandler(buffered_handler)
         raise
 
     # Check 'F' axis has size 1
@@ -140,6 +151,8 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
         # Close logfile
         logger.removeHandler(logfile_handler)
         logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        logger.removeHandler(buffered_handler)
+        logging.getLogger('general.general_functions').removeHandler(buffered_handler)
         raise TypeError(f"Image {image_path} has a F axis with size > 1")
 
     # Project Z axis if needed and select channel
@@ -157,6 +170,8 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
         # Close logfile
         logger.removeHandler(logfile_handler)
         logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        logger.removeHandler(buffered_handler)
+        logging.getLogger('general.general_functions').removeHandler(buffered_handler)
         raise TypeError(f"Position of the channel given ({channel_position}) is out of range for image {image.basename}")
 
     # Create cellpose model
@@ -208,14 +223,16 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
     # Save the mask
     output_name = os.path.join(output_path, output_basename+".ome.tif")
     mask = mask[:, np.newaxis, :, :]
-    OmeTiffWriter.save(mask,
-                       output_name,
-                       dim_order="TCYX",
-                       channel_names=['Segmentation mask'],
-                       physical_pixel_sizes=PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2]))
-
-
     logger.info("Saving segmentation mask to %s", output_name)
+    ome_metadata=OmeTiffWriter.build_ome(data_shapes=[mask.shape],
+                                         data_types=[mask.dtype],
+                                         dimension_order=["TCYX"],
+                                         channel_names=[['Segmentation mask']],
+                                         physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
+    ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+    OmeTiffWriter.save(mask, output_name, ome_xml=ome_metadata)
+    #buffered_handler.reset()
+
 
     if display_results:
         # Restore cursor
@@ -235,3 +252,5 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
     # stop using logfile
     logger.removeHandler(logfile_handler)
     logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+    logger.removeHandler(buffered_handler)
+    logging.getLogger('general.general_functions').removeHandler(buffered_handler)

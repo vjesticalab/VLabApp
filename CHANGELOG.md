@@ -6,6 +6,9 @@
 * Graph filtering module: Add a "Delete" shortcut to table of input files (FileTableWidget2).
 * Segmentation module: add option to perform z-projection and select a specific channel (C axis) before segmentation.
 * Add a new "file organization" module.
+* Add metadata to .ome.tif, .graphmlz and .csv output files (with same content as in log file).
+* Add channel_names and physiscal_pixel_sizes attributes to class Image.
+* For .ome.tif output, add channel_names and physiscal_pixel_sizes to metadata.
 
 ### Changed
 
@@ -39,7 +42,7 @@
 * Force non-editable napari layers to stay non-editable (In napari v0.4.17, changing an axis value using the corresponding slider makes the layer editable).
 * Set random seed in "feature matching" registration methods for reproducibility.
 * Segmentation module: fix napari progress bar when using CPU.
-
+* Close log file when leaving events_filter module.
 
 
 

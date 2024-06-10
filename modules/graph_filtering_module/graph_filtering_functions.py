@@ -11,6 +11,7 @@ from PyQt5.QtGui import QCursor, QPixmap, QPainter, QPen, QPolygonF
 from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
+from ome_types.model import CommentAnnotation
 
 
 class NapariStatusBarHandler(logging.Handler):
@@ -642,15 +643,19 @@ class CellTracksFiltering:
         self.logger.info("Saving segmentation mask to %s", output_file)
         selected_mask = self.get_mask(relabel_mask_ids)
         selected_mask = selected_mask[:, np.newaxis, :, :]
-        OmeTiffWriter.save(selected_mask,
-                           output_file,
-                           dim_order="TCYX",
-                           channel_names=self.mask_channel_names,
-                           physical_pixel_sizes=PhysicalPixelSizes(X=self.mask_physical_pixel_sizes[0], Y=self.mask_physical_pixel_sizes[1], Z=self.mask_physical_pixel_sizes[2]))
+        ome_metadata=OmeTiffWriter.build_ome(data_shapes=[selected_mask.shape],
+                                             data_types=[selected_mask.dtype],
+                                             dimension_order=["TCYX"],
+                                             channel_names=[self.mask_channel_names],
+                                             physical_pixel_sizes=[PhysicalPixelSizes(X=self.mask_physical_pixel_sizes[0], Y=self.mask_physical_pixel_sizes[1], Z=self.mask_physical_pixel_sizes[2])])
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        OmeTiffWriter.save(selected_mask, output_file, ome_xml=ome_metadata)
 
         output_file = os.path.join(output_path, output_basename+".graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file)
         g = self.get_graph(relabel_mask_ids)
+        #add metadata
+        g['VLabApp:Annotation:1'] = buffered_handler.get_messages()
         g.write_graphmlz(output_file)
 
 
@@ -1100,6 +1105,13 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
     logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
     logger.addHandler(logfile_handler)
 
+    # Log to memory
+    global buffered_handler
+    buffered_handler = gf.BufferedHandler()
+    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - graph filtering module) [%(levelname)s] %(message)s'))
+    buffered_handler.setLevel(logging.INFO)
+    logger.addHandler(buffered_handler)
+
     logger.info("System info:")
     logger.info("- platform: %s", platform())
     logger.info("- python version: %s", python_version())
@@ -1129,6 +1141,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
             logger.exception('Error loading image %s', image_path)
             # stop using logfile
             logger.removeHandler(logfile_handler)
+            logger.removeHandler(buffered_handler)
             raise
 
     # Load mask
@@ -1140,6 +1153,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
         logger.exception('Error loading mask %s', mask_path)
         # stop using logfile
         logger.removeHandler(logfile_handler)
+        logger.removeHandler(buffered_handler)
         raise
 
     # Load graph
@@ -1245,3 +1259,4 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
         cell_tracks_filtering.save(output_path, output_basename, relabel_mask_ids=True)
         # stop using logfile
         logger.removeHandler(logfile_handler)
+        logger.removeHandler(buffered_handler)

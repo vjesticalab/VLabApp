@@ -8,6 +8,7 @@ import csv
 from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
+from ome_types.model import CommentAnnotation
 
 def remove_all_log_handlers():
     # remove all handlers for this module
@@ -177,7 +178,7 @@ def event_filter(mask, graph, event, timecorrection, magn_image, tp_before, tp_a
     return events_mask, events_graph, events_list
 
 
-def save_cropped_events(events_list, n_tp, total_events_mask, marker_image, chcropimage_path, BFimage_path, crop_output_path, crop_output_basename, mask_physical_pixel_sizes=(None, None, None)):
+def save_cropped_events(events_list, n_tp, total_events_mask, marker_image, chcropimage_path, BFimage_path, crop_output_path, crop_output_basename, mask_physical_pixel_sizes=(None, None, None), mask_channel_names=None):
     """
     marker_image, chcropimage_path, BFimage_path : can be None
     """
@@ -218,19 +219,24 @@ def save_cropped_events(events_list, n_tp, total_events_mask, marker_image, chcr
                 cropped_mask[:,i+1,:,:] = img[:, ymin:ymax, xmin:xmax] #TYX
             else: # marker_image -> already into the variable
                 cropped_mask[:,i+1,:,:] = valid_im[:, ymin:ymax, xmin:xmax] #TYX
-        
+
         # Save
-        OmeTiffWriter.save(cropped_mask,
-                           os.path.join(crop_output_path, crop_output_basename+'-'+str(n)+'.ome.tif'),
-                           dim_order="TCYX",
-                           physical_pixel_sizes=PhysicalPixelSizes(X=mask_physical_pixel_sizes[0], Y=mask_physical_pixel_sizes[1], Z=mask_physical_pixel_sizes[2]))
+        output_name=os.path.join(crop_output_path, crop_output_basename+'-'+str(n)+'.ome.tif')
+        logger.info("Saving cropped mask %d to %s",n, output_name)
+        ome_metadata=OmeTiffWriter.build_ome(data_shapes=[cropped_mask.shape],
+                                             data_types=[cropped_mask.dtype],
+                                             dimension_order=["TCYX"],
+                                             channel_names=[mask_channel_names],
+                                             physical_pixel_sizes=[PhysicalPixelSizes(X=mask_physical_pixel_sizes[0], Y=mask_physical_pixel_sizes[1], Z=mask_physical_pixel_sizes[2])])
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        OmeTiffWriter.save(cropped_mask, output_name, ome_xml=ome_metadata)
 
 
 def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_before, tp_after, cropsave, chcropimage_path, BFimage_path, output_path, output_basename):
     """
-    Generate mask and graph with for the specified event and with minimum 
-    tp_before and tp_after timepoints free of other events 
-    
+    Generate mask and graph with for the specified event and with minimum
+    tp_before and tp_after timepoints free of other events
+
     Parameters
     ---------------------
     mask_path: str
@@ -274,6 +280,13 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
     logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     logfile_handler.setLevel(logging.INFO)
     logger.addHandler(logfile_handler)
+
+    # Log to memory
+    global buffered_handler
+    buffered_handler = gf.BufferedHandler()
+    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - events filter module) [%(levelname)s] %(message)s'))
+    buffered_handler.setLevel(logging.INFO)
+    logger.addHandler(buffered_handler)
 
     logger.info("System info:")
     logger.info("- platform: %s", platform())
@@ -322,12 +335,21 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
     total_events_mask, total_events_graph, events_list = event_filter(mask.get_TYXarray(), graph, event, timecorrection, magn_image, tp_before, tp_after, output_path, output_basename)
 
     # Save mask and graph
-    OmeTiffWriter.save(total_events_mask,
-                       os.path.join(output_path, output_basename+'.ome.tif'),
-                       dim_order="TCYX",
-                       channel_names=mask.channel_names,
-                       physical_pixel_sizes=PhysicalPixelSizes(X=mask.physical_pixel_sizes[0],Y=mask.physical_pixel_sizes[1],Z=mask.physical_pixel_sizes[2]))
-    total_events_graph.write_graphmlz( os.path.join(output_path, output_basename+'.graphmlz'))
+    output_name=os.path.join(output_path, output_basename+'.ome.tif')
+    logger.info("Saving mask to %s", output_name)
+    ome_metadata=OmeTiffWriter.build_ome(data_shapes=[total_events_mask.shape],
+                                         data_types=[total_events_mask.dtype],
+                                         dimension_order=["TCYX"],
+                                         channel_names=[mask.channel_names],
+                                         physical_pixel_sizes=[PhysicalPixelSizes(X=mask.physical_pixel_sizes[0],Y=mask.physical_pixel_sizes[1],Z=mask.physical_pixel_sizes[2])])
+    ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+    OmeTiffWriter.save(total_events_mask, output_name, ome_xml=ome_metadata)
+
+    output_name=os.path.join(output_path, output_basename+'.graphmlz')
+    logger.info("Saving cell tracking graph to %s", output_name)
+    #add metadata
+    total_events_graph['VLabApp:Annotation:1'] = buffered_handler.get_messages()
+    total_events_graph.write_graphmlz(output_name)
 
     # If required, save cropped events 
     # Note: currently it is possible only with fusions

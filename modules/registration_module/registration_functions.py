@@ -4,11 +4,13 @@ from general import general_functions as gf
 import numpy as np
 import os
 import time
+import re
 from pystackreg import StackReg
 from pystackreg import __version__ as StackReg_version
 import cv2 as cv
 from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
+from ome_types.model import CommentAnnotation
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform
 from skimage import __version__ as skimage_version
@@ -246,7 +248,13 @@ class EditTransformationMatrix(QWidget):
         filename = self.input_filename
         if filename != '':
             logging.getLogger(__name__).info('Saving transformation matrix to %s', filename)
-            np.savetxt(filename, self.tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header='timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
+            #load previous header
+            header = ''
+            with open(self.input_filename) as f:
+                for line in f:
+                    if line.startswith('# ') and not line.startswith("# timePoint,"):
+                        header += line[2:]
+            np.savetxt(filename, self.tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+buffered_handler.get_messages()+'\n'+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
             self.tmat_saved_version = self.tmat.copy()
 
 
@@ -634,17 +642,19 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
         registered_image = registered_image[:, t_start:t_end, :, :, :, :]
         # Save the registered and un-cropped image
         logging.getLogger(__name__).info('Saving transformed image to %s', registeredFilepath)
-        OmeTiffWriter.save(registered_image[0,:,:,:,:,:],
-                           registeredFilepath,
-                           dim_order="TCZYX",
-                           channel_names=image.channel_names,
-                           physical_pixel_sizes=PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2]))
+        ome_metadata=OmeTiffWriter.build_ome(data_shapes=[registered_image[0,:,:,:,:,:].shape],
+                                             data_types=[registered_image[0,:,:,:,:,:].dtype],
+                                             dimension_order=["TCZYX"],
+                                             channel_names=[image.channel_names],
+                                             physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        OmeTiffWriter.save(registered_image[0,:,:,:,:,:], registeredFilepath, ome_xml=ome_metadata)
     else:
         logging.getLogger(__name__).info('Cropping image')
         # Crop to desired area
-        y_start = 0 - min([d[2] for d in tmat_int if d[3] == 1]) 
+        y_start = 0 - min([d[2] for d in tmat_int if d[3] == 1])
         y_end = image.sizes['Y'] - max([d[2] for d in tmat_int if d[3] == 1])
-        x_start = 0 - min([d[1] for d in tmat_int if d[3] == 1]) 
+        x_start = 0 - min([d[1] for d in tmat_int if d[3] == 1])
         x_end = image.sizes['X'] - max([d[1] for d in tmat_int if d[3] == 1])
         t_start = min([d[0] for d in tmat_int if d[3] == 1]) - 1
         t_end = max([d[0] for d in tmat_int if d[3] == 1])
@@ -654,11 +664,13 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
 
         # Save the registered and cropped image
         logging.getLogger(__name__).info('Saving transformed image to %s', registeredFilepath)
-        OmeTiffWriter.save(image_cropped[0,:,:,:,:,:],
-                           registeredFilepath,
-                           dim_order="TCZYX",
-                           channel_names=image.channel_names,
-                           physical_pixel_sizes=PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2]))
+        ome_metadata=OmeTiffWriter.build_ome(data_shapes=[image_cropped[0,:,:,:,:,:].shape],
+                                             data_types=[image_cropped[0,:,:,:,:,:].dtype],
+                                             dimension_order=["TCZYX"],
+                                             channel_names=[image.channel_names],
+                                             physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        OmeTiffWriter.save(image_cropped[0,:,:,:,:,:], registeredFilepath, ome_xml=ome_metadata)
 
 def registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method):
     """
@@ -790,7 +802,7 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
     # Save the txt file with the translation matrix
     txt_name = os.path.join(output_path, output_basename+'.csv')
     logging.getLogger(__name__).info("Saving transformation matrix to %s", txt_name)
-    np.savetxt(txt_name, transformation_matrices, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = 'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
+    np.savetxt(txt_name, transformation_matrices, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = buffered_handler.get_messages()+'\n'+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
 
     return transformation_matrices
 
@@ -923,7 +935,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
     transformation_matrices_complete[:, 7] = image.sizes['Y']
 
     logging.getLogger(__name__).info("Saving transformation matrix to %s", txt_name)
-    np.savetxt(txt_name, transformation_matrices_complete, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = 'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
+    np.savetxt(txt_name, transformation_matrices_complete, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = buffered_handler.get_messages()+'\n'+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
 
     return transformation_matrices_complete
 
@@ -949,6 +961,15 @@ def registration_main(image_path, output_path, output_basename, channel_position
     # Also save general.general_functions logger to the same file (to log information on z-projection)
     logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
     logging.getLogger('general.general_functions').addHandler(logfile_handler)
+
+    # Log to memory
+    global buffered_handler
+    buffered_handler = gf.BufferedHandler()
+    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
+    buffered_handler.setLevel(logging.INFO)
+    logger.addHandler(buffered_handler)
+    # Also save general.general_functions logger to the same file (to log information on z-projection)
+    logging.getLogger('general.general_functions').addHandler(buffered_handler)
 
     logger.info("System info:")
     logger.info("- platform: %s", platform())
@@ -1010,6 +1031,13 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
     logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     logfile_handler.setLevel(logging.INFO)
     logger.addHandler(logfile_handler)
+
+    # Log to memory
+    global buffered_handler
+    buffered_handler = gf.BufferedHandler()
+    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
+    buffered_handler.setLevel(logging.INFO)
+    logger.addHandler(buffered_handler)
 
     logger.info("System info:")
     logger.info("- platform: %s", platform())
@@ -1074,6 +1102,13 @@ def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end
     logfile_handler.setLevel(logging.INFO)
     logger.addHandler(logfile_handler)
 
+    # Log to memory
+    global buffered_handler
+    buffered_handler = gf.BufferedHandler()
+    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
+    buffered_handler.setLevel(logging.INFO)
+    logger.addHandler(buffered_handler)
+
     logger.info("System info:")
     logger.info("- platform: %s", platform())
     logger.info("- python version: %s", python_version())
@@ -1090,22 +1125,18 @@ def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end
     # Load the transformation matrix
     logger.debug("loading: %s", reference_matrix_path)
     tmat_int = read_transfMat(reference_matrix_path)
-    # Load the transformation matrix header
-    with open(reference_matrix_path) as f:
-        headerText = ''
-        hashtag = '#'
-        while hashtag == '#':
-            linecontent = f.readline()
-            hashtag = linecontent[0]
-            if hashtag == '#':
-                headerText += linecontent[2:]
     # Make sure reference point is within range and update transformation matrix
     logger.info("Editing transformation matrix (Reference timepoint=%s, start=%s, end=%s)", reference_timepoint, range_start, range_end)
     tmat_updated  = gf.update_transfMat(tmat_int, reference_timepoint-1, range_start-1, range_end-1)
-    headerText += time.strftime('Updated on %Y/%m/%d at %H:%M:%S .') + ' Timepoints range: ' + str(range_start) + ' - ' + str(range_end) + ' . Reference timepoint: ' + str(reference_timepoint)
     # Save the new matrix
     logger.info("Saving transformation matrix to %s",reference_matrix_path)
-    np.savetxt(reference_matrix_path, tmat_updated, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header=headerText, delimiter='\t')
+    #load previous header
+    header = ''
+    with open(reference_matrix_path) as f:
+        for line in f:
+            if line.startswith('# ') and not line.startswith("# timePoint,"):
+                header += line[2:]
+    np.savetxt(reference_matrix_path, tmat_updated, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header=header+buffered_handler.get_messages()+'\n'+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
 
     remove_all_log_handlers()
 
@@ -1127,6 +1158,13 @@ def manual_edit_main(image_path, matrix_path):
     logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     logfile_handler.setLevel(logging.INFO)
     logger.addHandler(logfile_handler)
+
+    # Log to memory
+    global buffered_handler
+    buffered_handler = gf.BufferedHandler()
+    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
+    buffered_handler.setLevel(logging.INFO)
+    logger.addHandler(buffered_handler)
 
     logger.info("System info:")
     logger.info("- platform: %s", platform())

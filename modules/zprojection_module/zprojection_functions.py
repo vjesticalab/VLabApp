@@ -7,6 +7,7 @@ from cv2 import __version__ as cv_version
 from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
+from ome_types.model import CommentAnnotation
 
 
 def main(image_path, output_path, output_basename, projection_type, projection_zrange):
@@ -49,13 +50,20 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
     logger.setLevel(logging.DEBUG)
     logger.debug("writing log output to: %s", logfile)
     logfile_handler = logging.FileHandler(logfile, mode='w')
-    logfile_handler.setFormatter(logging.Formatter('%(asctime)s  [%(levelname)s] %(message)s'))
+    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
     logfile_handler.setLevel(logging.INFO)
     logger.addHandler(logfile_handler)
-
     # Also save general.general_functions logger to the same file (to log information on z-projection)
     logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
     logging.getLogger('general.general_functions').addHandler(logfile_handler)
+
+    # Log to memory
+    buffered_handler = gf.BufferedHandler()
+    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - z-projection module) [%(levelname)s] %(message)s'))
+    buffered_handler.setLevel(logging.INFO)
+    logger.addHandler(buffered_handler)
+    # Also save general.general_functions logger to the same file (to log information on z-projection)
+    logging.getLogger('general.general_functions').addHandler(buffered_handler)
 
     logger.info("System info:")
     logger.info("- platform: %s", platform())
@@ -77,6 +85,8 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
         # Close logfile
         logger.removeHandler(logfile_handler)
         logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        logger.removeHandler(buffered_handler)
+        logging.getLogger('general.general_functions').removeHandler(buffered_handler)
         raise
 
     # Check z existence in the image
@@ -85,6 +95,8 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
         # Close logfile
         logger.removeHandler(logfile_handler)
         logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        logger.removeHandler(buffered_handler)
+        logging.getLogger('general.general_functions').removeHandler(buffered_handler)
         raise TypeError(f"Image {image_path} has no z dimension")
 
     # Check 'F' axis has size 1
@@ -93,6 +105,8 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
         # Close logfile
         logger.removeHandler(logfile_handler)
         logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        logger.removeHandler(buffered_handler)
+        logging.getLogger('general.general_functions').removeHandler(buffered_handler)
         raise TypeError(f"Image {image_path} has a F axis with size > 1")
 
     # Perform projection
@@ -103,23 +117,28 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
         # Close logfile
         logger.removeHandler(logfile_handler)
         logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+        logger.removeHandler(buffered_handler)
+        logging.getLogger('general.general_functions').removeHandler(buffered_handler)
         raise
 
     # Save the projection
     output_file_name = os.path.join(output_path, output_basename+".ome.tif")
     # TODO: properly deal with 'F' axis.
-    OmeTiffWriter.save(projected_image[0, :, :, 0, :, :],
-                       output_file_name,
-                       dim_order="TCYX",
-                       channel_names=image.channel_names,
-                       physical_pixel_sizes=PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2]))
     logger.info("Saving projected image to %s", output_file_name)
+    ome_metadata=OmeTiffWriter.build_ome(data_shapes=[projected_image[0, :, :, 0, :, :].shape],
+                                         data_types=[projected_image[0, :, :, 0, :, :].dtype],
+                                         dimension_order=["TCYX"],
+                                         channel_names=[image.channel_names],
+                                         physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
+    ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+    OmeTiffWriter.save(projected_image[0, :, :, 0, :, :], output_file_name, ome_xml=ome_metadata)
 
-    print('Saving projected image to '+output_file_name)
 
     # Close logfile
     logger.removeHandler(logfile_handler)
     logging.getLogger('general.general_functions').removeHandler(logfile_handler)
+    logger.removeHandler(buffered_handler)
+    logging.getLogger('general.general_functions').removeHandler(buffered_handler)
 
 
 if __name__ == "__main__":

@@ -114,6 +114,31 @@ class QLineEditHandler(logging.Handler):
         # force repainting to update message even when busy
         self.label.repaint()
 
+class BufferedHandler(logging.Handler):
+    """
+    Logging handler to store messages.
+
+    Examples
+    --------
+    handler= BufferedHandler(self)
+    handler.setLevel(logging.INFO)
+    logging.getLogger().addHandler(handler)
+    """
+
+    def __init__(self):
+        logging.Handler.__init__(self)
+        self.records = []
+
+    def emit(self, record):
+        self.records.append(self.format(record))
+
+    def reset(self):
+        self.records = []
+
+    def get_messages(self):
+        return "\n".join(self.records)
+
+
 
 class StatusTableDialog(QDialog):
     """

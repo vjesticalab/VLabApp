@@ -14,6 +14,7 @@ from PyQt5.QtGui import QCursor
 from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
+from ome_types.model import CommentAnnotation
 
 
 def split_regions(mask):
@@ -1464,18 +1465,23 @@ class CellTrackingWidget(QWidget):
         output_file1 = os.path.join(self.output_path, self.output_basename+".ome.tif")
         self.logger.info("Saving segmentation mask to %s", output_file1)
         self.mask = self.mask[:, np.newaxis, :, :]
-        OmeTiffWriter.save(self.mask,
-                           output_file1,
-                           dim_order="TCYX",
-                           channel_names=self.mask_channel_names,
-                           physical_pixel_sizes=PhysicalPixelSizes(X=self.mask_physical_pixel_sizes[0], Y=self.mask_physical_pixel_sizes[1], Z=self.mask_physical_pixel_sizes[2]))
+        ome_metadata=OmeTiffWriter.build_ome(data_shapes=[self.mask.shape],
+                                             data_types=[self.mask.dtype],
+                                             dimension_order=["TCYX"],
+                                             channel_names=[self.mask_channel_names],
+                                             physical_pixel_sizes=[PhysicalPixelSizes(X=self.mask_physical_pixel_sizes[0], Y=self.mask_physical_pixel_sizes[1], Z=self.mask_physical_pixel_sizes[2])])
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        OmeTiffWriter.save(self.mask, output_file1, ome_xml=ome_metadata)
         # output_file2 = os.path.join(self.output_path, self.output_basename+".dot")
         # self.logger.info("Saving cell tracking graph to %s", output_file2)
         # self.cell_tracking_graph.write_dot(output_file2)
 
         output_file3 = os.path.join(self.output_path, self.output_basename+".graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file3)
-        self.cell_tracking_graph.get_graph().write_graphmlz(output_file3)
+        g = self.cell_tracking_graph.get_graph()
+        #add metadata
+        g['VLabApp:Annotation:1'] = buffered_handler.get_messages()
+        g.write_graphmlz(output_file3)
 
         if not closing:
             self.mask_modified = False
@@ -1567,6 +1573,13 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
     logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
     logger.addHandler(logfile_handler)
 
+    # Log to memory
+    global buffered_handler
+    buffered_handler = gf.BufferedHandler()
+    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - cell tracking module) [%(levelname)s] %(message)s'))
+    buffered_handler.setLevel(logging.INFO)
+    logger.addHandler(buffered_handler)
+
     logger.info("System info:")
     logger.info("- platform: %s", platform())
     logger.info("- python version: %s", python_version())
@@ -1599,6 +1612,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
             logging.getLogger(__name__).exception('Error loading image %s', image_path)
             # stop using logfile
             logger.removeHandler(logfile_handler)
+            logger.removeHandler(buffered_handler)
             raise
 
     # Load mask
@@ -1611,6 +1625,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         logging.getLogger(__name__).exception('Error loading mask %s', mask_path)
         # stop using logfile
         logger.removeHandler(logfile_handler)
+        logger.removeHandler(buffered_handler)
         raise
 
     ###########################
@@ -1690,11 +1705,13 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         output_file = os.path.join(output_path, output_basename+".ome.tif")
         logger.info("Saving segmentation mask to %s", output_file)
         mask = mask[:, np.newaxis, :, :]
-        OmeTiffWriter.save(mask,
-                           output_file,
-                           dim_order="TCYX",
-                           channel_names=mask_image.channel_names,
-                           physical_pixel_sizes=PhysicalPixelSizes(X=mask_image.physical_pixel_sizes[0],Y=mask_image.physical_pixel_sizes[1],Z=mask_image.physical_pixel_sizes[2]))
+        ome_metadata=OmeTiffWriter.build_ome(data_shapes=[mask.shape],
+                                             data_types=[mask.dtype],
+                                             dimension_order=["TCYX"],
+                                             channel_names=[mask_image.channel_names],
+                                             physical_pixel_sizes=[PhysicalPixelSizes(X=mask_image.physical_pixel_sizes[0],Y=mask_image.physical_pixel_sizes[1],Z=mask_image.physical_pixel_sizes[2])])
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        OmeTiffWriter.save(mask, output_file, ome_xml=ome_metadata)
 
         # output_file = os.path.join(output_path, output_basename+".dot")
         # logger.info("Saving cell tracking graph to %s", output_file)
@@ -1702,8 +1719,12 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
 
         output_file = os.path.join(output_path, output_basename+".graphmlz")
         logger.info("Saving cell tracking graph to %s", output_file)
-        cell_tracking_graph.get_graph().write_graphmlz(output_file)
+        g = cell_tracking_graph.get_graph()
+        #add metadata
+        g['VLabApp:Annotation:1'] = buffered_handler.get_messages()
+        g.write_graphmlz(output_file)
         # stop using logfile
         logger.removeHandler(logfile_handler)
+        logger.removeHandler(buffered_handler)
 
 
