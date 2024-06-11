@@ -294,8 +294,8 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
     logger.info("- numpy version: %s", np.__version__)
     logger.info("- igraph version: %s", ig.__version__)
 
-    logger.info("Mask path: %s", mask_path)
-    logger.info("Graph path: %s", graph_path)
+    logger.info("Input mask path: %s", mask_path)
+    logger.info("Input graph path: %s", graph_path)
     logger.info("Output path: %s", output_path)
     logger.info("Output basename: %s", output_basename)
     logger.info("Event: %s - with %d timepoints before and %d after", event, tp_before, tp_after)

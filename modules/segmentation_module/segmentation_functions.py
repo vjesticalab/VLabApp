@@ -124,8 +124,8 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
     if display_results:
         logger.info("- napari version: %s", napari.__version__)
 
-    logger.info("Image path: %s", image_path)
-    logger.info("Cellpose model path: %s", model_path)
+    logger.info("Input image path: %s", image_path)
+    logger.info("Input cellpose model path: %s", model_path)
     logger.info("Output path: %s", output_path)
     logger.info("Output basename: %s", output_basename)
     logger.debug("use_gpu: %s", use_gpu)

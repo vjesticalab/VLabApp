@@ -72,7 +72,7 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
     logger.info("- opencv version: %s", cv_version)
 
     # Load image
-    logger.info("Image path: %s", image_path)
+    logger.info("Input image path: %s", image_path)
     logger.info("Output path: %s", output_path)
     logger.info("Output basename: %s", output_basename)
 

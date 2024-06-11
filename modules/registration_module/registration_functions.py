@@ -979,7 +979,7 @@ def registration_main(image_path, output_path, output_basename, channel_position
     logger.info("- opencv version: %s", cv.__version__)
     logger.info("- skimage version: %s", skimage_version)
 
-    logger.info("Image path: %s", image_path)
+    logger.info("Input image path: %s", image_path)
     logger.info("Output path: %s", output_path)
     logger.info("Output basename: %s", output_basename)
     logger.info("Registration method: %s", registration_method)
@@ -1047,8 +1047,8 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
     logger.info("- opencv version: %s", cv.__version__)
     logger.info("- skimage version: %s", skimage_version)
 
-    logger.info("Image path: %s", image_path)
-    logger.info("Transformation matrix path: %s", tmat_path)
+    logger.info("Input image path: %s", image_path)
+    logger.info("Input transformation matrix path: %s", tmat_path)
     logger.info("Output path: %s", output_path)
     logger.info("Output basename: %s", output_basename)
 
@@ -1117,7 +1117,7 @@ def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end
     logger.info("- opencv version: %s", cv.__version__)
     logger.info("- skimage version: %s", skimage_version)
 
-    logger.info("Transformation matrix path: %s", reference_matrix_path)
+    logger.info("Input transformation matrix path: %s", reference_matrix_path)
     logger.info("Reference timepoint: %s", reference_timepoint)
     logger.info("Start timepoint: %s", range_start)
     logger.info("End timepoint: %s", range_end)
@@ -1175,8 +1175,8 @@ def manual_edit_main(image_path, matrix_path):
     logger.info("- skimage version: %s", skimage_version)
     logger.info("- napari version: %s", napari.__version__)
 
-    logger.info("Image path: %s", image_path)
-    logger.info("Transformation matrix path: %s", matrix_path)
+    logger.info("Input image path: %s", image_path)
+    logger.info("Input transformation matrix path: %s", matrix_path)
 
     try:
         image = gf.Image(image_path)
