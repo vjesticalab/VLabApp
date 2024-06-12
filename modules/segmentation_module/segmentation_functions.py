@@ -15,6 +15,7 @@ from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
 from ome_types.model import CommentAnnotation
 from concurrent.futures import ProcessPoolExecutor
+from version import __version__ as vlabapp_version
 import concurrent
 
 
@@ -118,6 +119,7 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
     logger.info("System info:")
     logger.info("- platform: %s", platform())
     logger.info("- python version: %s", python_version())
+    logger.info("- VLabApp version: %s", vlabapp_version)
     logger.info("- numpy version: %s", np.__version__)
     logger.info("- cellpose version: %s", cellpose_version)
     logger.info("- torch version: %s", torch_version)

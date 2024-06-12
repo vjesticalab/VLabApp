@@ -9,6 +9,8 @@ from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
 from ome_types.model import CommentAnnotation
+from version import __version__ as vlabapp_version
+
 
 def remove_all_log_handlers():
     # remove all handlers for this module
@@ -294,6 +296,7 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
     logger.info("System info:")
     logger.info("- platform: %s", platform())
     logger.info("- python version: %s", python_version())
+    logger.info("- VLabApp version: %s", vlabapp_version)
     logger.info("- numpy version: %s", np.__version__)
     logger.info("- igraph version: %s", ig.__version__)
 

@@ -12,6 +12,7 @@ from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
 from ome_types.model import CommentAnnotation
+from version import __version__ as vlabapp_version
 
 
 class NapariStatusBarHandler(logging.Handler):
@@ -1118,6 +1119,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
     logger.info("System info:")
     logger.info("- platform: %s", platform())
     logger.info("- python version: %s", python_version())
+    logger.info("- VLabApp version: %s", vlabapp_version)
     logger.info("- numpy version: %s", np.__version__)
     logger.info("- igraph version: %s", ig.__version__)
     if display_results:

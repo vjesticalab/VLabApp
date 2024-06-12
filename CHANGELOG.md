@@ -9,6 +9,7 @@
 * Add metadata to .ome.tif, .graphmlz and .csv output files (with same content as in log file).
 * Add channel_names and physiscal_pixel_sizes attributes to class Image.
 * For .ome.tif output, add channel_names and physiscal_pixel_sizes to metadata.
+* Add version.py.
 
 ### Changed
 

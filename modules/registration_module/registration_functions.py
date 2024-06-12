@@ -19,6 +19,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.backend_bases import MouseButton
+from version import __version__ as vlabapp_version
 import napari
 
 def remove_all_log_handlers():
@@ -1003,6 +1004,7 @@ def registration_main(image_path, output_path, output_basename, channel_position
     logger.info("System info:")
     logger.info("- platform: %s", platform())
     logger.info("- python version: %s", python_version())
+    logger.info("- VLabApp version: %s", vlabapp_version)
     logger.info("- numpy version: %s", np.__version__)
     logger.info("- pystackreg version: %s", StackReg_version)
     logger.info("- opencv version: %s", cv.__version__)
@@ -1082,6 +1084,7 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
     logger.info("System info:")
     logger.info("- platform: %s", platform())
     logger.info("- python version: %s", python_version())
+    logger.info("- VLabApp version: %s", vlabapp_version)
     logger.info("- numpy version: %s", np.__version__)
     logger.info("- pystackreg version: %s", StackReg_version)
     logger.info("- opencv version: %s", cv.__version__)
@@ -1162,6 +1165,7 @@ def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end
     logger.info("System info:")
     logger.info("- platform: %s", platform())
     logger.info("- python version: %s", python_version())
+    logger.info("- VLabApp version: %s", vlabapp_version)
     logger.info("- numpy version: %s", np.__version__)
     logger.info("- pystackreg version: %s", StackReg_version)
     logger.info("- opencv version: %s", cv.__version__)
@@ -1213,6 +1217,7 @@ def manual_edit_main(image_path, matrix_path):
     logger.info("System info:")
     logger.info("- platform: %s", platform())
     logger.info("- python version: %s", python_version())
+    logger.info("- VLabApp version: %s", vlabapp_version)
     logger.info("- numpy version: %s", np.__version__)
     logger.info("- pystackreg version: %s", StackReg_version)
     logger.info("- opencv version: %s", cv.__version__)

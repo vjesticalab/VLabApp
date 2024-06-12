@@ -8,7 +8,7 @@ from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
 from ome_types.model import CommentAnnotation
-
+from version import __version__ as vlabapp_version
 
 def main(image_path, output_path, output_basename, projection_type, projection_zrange):
     """
@@ -68,6 +68,7 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
     logger.info("System info:")
     logger.info("- platform: %s", platform())
     logger.info("- python version: %s", python_version())
+    logger.info("- VLabApp version: %s", vlabapp_version)
     logger.info("- numpy version: %s", np_version)
     logger.info("- opencv version: %s", cv_version)
 
