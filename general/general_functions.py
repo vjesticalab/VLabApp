@@ -136,7 +136,10 @@ class BufferedHandler(logging.Handler):
         self.records = []
 
     def get_messages(self):
-        return "\n".join(self.records)
+        if len(self.records)>0:
+            return "\n".join(self.records)+"\n"
+        else:
+            return ""
 
 
 

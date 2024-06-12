@@ -89,6 +89,16 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
         logging.getLogger('general.general_functions').removeHandler(buffered_handler)
         raise
 
+    #load image metadata
+    image_metadata = []
+    if image.ome_metadata:
+        for i,x in enumerate(image.ome_metadata.structured_annotations):
+            if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
+                if len(image_metadata) == 0:
+                    image_metadata.append("Metadata for "+image.path+":\n"+x.value)
+                else:
+                    image_metadata.append(x.value)
+
     # Check z existence in the image
     if image.sizes['Z'] == 0:
         logger.error('Image %s has no z dimension', str(image_path))
@@ -131,6 +141,8 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
                                          channel_names=[image.channel_names],
                                          physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
     ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+    for x in image_metadata:
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=x,namespace="VLabApp"))
     OmeTiffWriter.save(projected_image[0, :, :, 0, :, :], output_file_name, ome_xml=ome_metadata)
 
 

@@ -52,7 +52,7 @@ class EditTransformationMatrix(QWidget):
 
         self.viewer = viewer
         self.input_filename = input_filename
-        self.tmat = read_transfMat(input_filename)
+        self.tmat, self.tmat_metadata = read_transfMat(input_filename)
         self.tmat_saved_version = self.tmat.copy()
         tmat_active_frames = np.nonzero(self.tmat[:, 3])[0]
         if len(tmat_active_frames) > 0:
@@ -248,13 +248,10 @@ class EditTransformationMatrix(QWidget):
         filename = self.input_filename
         if filename != '':
             logging.getLogger(__name__).info('Saving transformation matrix to %s', filename)
-            #load previous header
-            header = ''
-            with open(self.input_filename) as f:
-                for line in f:
-                    if line.startswith('# ') and not line.startswith("# timePoint,"):
-                        header += line[2:]
-            np.savetxt(filename, self.tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+buffered_handler.get_messages()+'\n'+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
+            header = buffered_handler.get_messages()
+            for x in self.tmat_metadata:
+                header += x
+            np.savetxt(filename, self.tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
             self.tmat_saved_version = self.tmat.copy()
 
 
@@ -414,15 +411,31 @@ class MoveTransform(ProjectiveTransform):
 def read_transfMat(tmat_path):
     try:
         tmat_string = np.loadtxt(tmat_path, delimiter=",", dtype=str)
-
+        #read metadata
+        tmat_metadata = []
+        metadata_tmp = '' 
+        with open(tmat_path) as f:
+            for line in f:
+                if line.startswith('# Metadata for') and not line.startswith("# timePoint,"):
+                    if len(tmat_metadata)==0:
+                        tmat_metadata.append("Metadata for matrix "+tmat_path+":\n"+metadata_tmp)
+                    else:
+                        tmat_metadata.append(metadata_tmp)
+                    metadata_tmp = ''
+                if line.startswith('# ') and not line.startswith("# timePoint,"):
+                    metadata_tmp += line[2:]
+        if metadata_tmp:
+            if len(tmat_metadata)==0:
+                tmat_metadata.append("Metadata for matrix "+tmat_path+":\n"+metadata_tmp)
+            else:
+                tmat_metadata.append(metadata_tmp)
     except:
         logging.getLogger(__name__).exception('Load transformation matrix failed')
         raise
 
-    else:
-        tmat_float = tmat_string.astype(float)
-        tmat_int = tmat_float.astype(int)
-        return tmat_int
+    tmat_float = tmat_string.astype(float)
+    tmat_int = tmat_float.astype(int)
+    return tmat_int, tmat_metadata
 
 def register_stack_phase_correlation(image, blur=5):
     """
@@ -601,7 +614,7 @@ def register_stack_feature_matching(image, feature_type="ORB", blur=0, seed=7624
     return [(-x, -y) for x, y in shifts]
 
 
-def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basename):
+def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basename,metadata):
     """
     This function uses a transformation matrix to performs registration and eventually cropping of an image
     Note - always assuming FoV dimension of the image as empty 
@@ -617,6 +630,8 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
         output directory
     output_basename: str
         output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif
+    metadata: list of str
+        metadata from input file(s).
 
     Saves
     ---------------------
@@ -648,6 +663,8 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
                                              channel_names=[image.channel_names],
                                              physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
         ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        for x in metadata:
+            ome_metadata.structured_annotations.append(CommentAnnotation(value=x,namespace="VLabApp"))
         OmeTiffWriter.save(registered_image[0,:,:,:,:,:], registeredFilepath, ome_xml=ome_metadata)
     else:
         logging.getLogger(__name__).info('Cropping image')
@@ -670,9 +687,11 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
                                              channel_names=[image.channel_names],
                                              physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
         ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        for x in metadata:
+            ome_metadata.structured_annotations.append(CommentAnnotation(value=x,namespace="VLabApp"))
         OmeTiffWriter.save(image_cropped[0,:,:,:,:,:], registeredFilepath, ome_xml=ome_metadata)
 
-def registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method):
+def registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method,metadata):
     """
     This function calculates the transformation matrices from brightfield images
     Note: aligned images are NOT saved since pixels are recalculated by StackReg method
@@ -698,6 +717,8 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         method to use for registration. Can be "stackreg", "phase correlation",
         "feature matching (ORB)", "feature matching (BRISK)", "feature matching (AKAZE)"
         or "feature matching (SIFT)".
+    metadata: list of str
+        metadata from input file(s).
 
     Returns
     ---------------------
@@ -802,11 +823,14 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
     # Save the txt file with the translation matrix
     txt_name = os.path.join(output_path, output_basename+'.csv')
     logging.getLogger(__name__).info("Saving transformation matrix to %s", txt_name)
-    np.savetxt(txt_name, transformation_matrices, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = buffered_handler.get_messages()+'\n'+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
+    header = buffered_handler.get_messages()
+    for x in metadata:
+        header += x
+    np.savetxt(txt_name, transformation_matrices, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
 
     return transformation_matrices
 
-def registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method):
+def registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method,metadata):
     """
     This function calculates the transformation matrices from brightfield images
     Note: aligned images are NOT saved since pixels are recalculated by StackReg method
@@ -834,6 +858,8 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
         method to use for registration. Can be "stackreg", "phase correlation",
         "feature matching (ORB)", "feature matching (BRISK)", "feature matching (AKAZE)"
         or "feature matching (SIFT)".
+    metadata: list of str
+        metadata from input file(s).
 
     Returns
     ---------------------
@@ -935,7 +961,10 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
     transformation_matrices_complete[:, 7] = image.sizes['Y']
 
     logging.getLogger(__name__).info("Saving transformation matrix to %s", txt_name)
-    np.savetxt(txt_name, transformation_matrices_complete, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = buffered_handler.get_messages()+'\n'+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
+    header = buffered_handler.get_messages()
+    for x in metadata:
+        header += x
+    np.savetxt(txt_name, transformation_matrices_complete, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
 
     return transformation_matrices_complete
 
@@ -995,6 +1024,17 @@ def registration_main(image_path, output_path, output_basename, channel_position
         logger.exception('Error loading image %s', image_path)
         remove_all_log_handlers()
         raise
+
+    #load image metadata
+    image_metadata = []
+    if image.ome_metadata:
+        for i,x in enumerate(image.ome_metadata.structured_annotations):
+            if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
+                if len(image_metadata) == 0:
+                    image_metadata.append("Metadata for "+image.path+":\n"+x.value)
+                else:
+                    image_metadata.append(x.value)
+
     # Check 'F' axis has size 1
     if image.sizes['F'] != 1:
         logger.error('Image %s has a F axis with size > 1', str(image_path))
@@ -1003,12 +1043,12 @@ def registration_main(image_path, output_path, output_basename, channel_position
 
     if timepoint_range == None:
         # Calculate transformation matrix
-        tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method)
+        tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method,image_metadata)
     else:
-        tmat = registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method)
+        tmat = registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method,image_metadata)
 
     # Align and save
-    registration_with_tmat(tmat, image, skip_crop_decision, output_path, output_basename)
+    registration_with_tmat(tmat, image, skip_crop_decision, output_path, output_basename,image_metadata)
 
     remove_all_log_handlers()
     return image_path
@@ -1061,9 +1101,19 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
         logging.getLogger(__name__).exception('Error loading image %s', image_path)
         remove_all_log_handlers()
         raise
+    #load image metadata
+    image_metadata = []
+    if image.ome_metadata:
+        for i,x in enumerate(image.ome_metadata.structured_annotations):
+            if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
+                if len(image_metadata) == 0:
+                    image_metadata.append("Metadata for "+image.path+":\n"+x.value)
+                else:
+                    image_metadata.append(x.value)
+
     try:
         logger.debug('loading %s', tmat_path)
-        tmat_int = read_transfMat(tmat_path)
+        tmat_int, tmat_metadata = read_transfMat(tmat_path)
     except:
         logging.getLogger(__name__).exception('Error loading transformation matrix for image %s', image_path)
         remove_all_log_handlers()
@@ -1076,7 +1126,7 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
 
     # Align and save - registration works with multidimensional files, as long as the TYX axes are specified
     try:
-        registration_with_tmat(tmat_int, image, skip_crop_decision, output_path, output_basename)
+        registration_with_tmat(tmat_int, image, skip_crop_decision, output_path, output_basename,image_metadata+tmat_metadata)
     except:
         logging.getLogger(__name__).exception('Alignment failed for image %s', image_path)
         remove_all_log_handlers()
@@ -1118,25 +1168,19 @@ def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end
     logger.info("- skimage version: %s", skimage_version)
 
     logger.info("Input transformation matrix path: %s", reference_matrix_path)
-    logger.info("Reference timepoint: %s", reference_timepoint)
-    logger.info("Start timepoint: %s", range_start)
-    logger.info("End timepoint: %s", range_end)
 
     # Load the transformation matrix
     logger.debug("loading: %s", reference_matrix_path)
-    tmat_int = read_transfMat(reference_matrix_path)
+    tmat_int, tmat_metadata = read_transfMat(reference_matrix_path)
     # Make sure reference point is within range and update transformation matrix
     logger.info("Editing transformation matrix (Reference timepoint=%s, start=%s, end=%s)", reference_timepoint, range_start, range_end)
     tmat_updated  = gf.update_transfMat(tmat_int, reference_timepoint-1, range_start-1, range_end-1)
     # Save the new matrix
     logger.info("Saving transformation matrix to %s",reference_matrix_path)
-    #load previous header
-    header = ''
-    with open(reference_matrix_path) as f:
-        for line in f:
-            if line.startswith('# ') and not line.startswith("# timePoint,"):
-                header += line[2:]
-    np.savetxt(reference_matrix_path, tmat_updated, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header=header+buffered_handler.get_messages()+'\n'+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
+    header = buffered_handler.get_messages()
+    for x in tmat_metadata:
+        header += x
+    np.savetxt(reference_matrix_path, tmat_updated, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
 
     remove_all_log_handlers()
 
@@ -1184,6 +1228,7 @@ def manual_edit_main(image_path, matrix_path):
     except:
         logging.getLogger(__name__).exception('Error loading image %s', image_path)
         raise
+
     # Check 'F' axis has size 1
     if image.sizes['F'] != 1:
         logging.getLogger(__name__).error('Image %s has a F axis with size > 1', str(image_path))

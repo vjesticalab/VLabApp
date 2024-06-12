@@ -894,7 +894,7 @@ class DisplayGraphWindow(QWidget):
 
     def plot_xy(self, transfmat_path):
         # Read the transformation matrix values
-        transformation_matrix = f.read_transfMat(transfmat_path)
+        transformation_matrix, tmat_metadata = f.read_transfMat(transfmat_path)
 
         if transformation_matrix is None:
             return

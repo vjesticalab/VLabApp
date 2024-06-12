@@ -1026,7 +1026,7 @@ class CellTrackingWidget(QWidget):
     """
 
     # TODO: pass the mask as an Image object, instead of using the quick&dirty hack to pass the additional parameters mask_physical_pixel_sizes and mask_channel_names.
-    def __init__(self, mask, cell_tracking_graph, viewer_graph, viewer_images, image_path, output_path, output_basename, min_area=300, max_delta_frame=5, min_overlap_fraction=0.2, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0, mask_physical_pixel_sizes=(None, None, None), mask_channel_names=None):
+    def __init__(self, mask, cell_tracking_graph, viewer_graph, viewer_images, image_path, output_path, output_basename, min_area=300, max_delta_frame=5, min_overlap_fraction=0.2, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0, mask_physical_pixel_sizes=(None, None, None), mask_channel_names=None, mask_metadata=None):
         super().__init__()
         self.logger = logging.getLogger(__name__)
         self.logger.debug("CellTrackingWidget.__init__")
@@ -1034,6 +1034,7 @@ class CellTrackingWidget(QWidget):
         self.mask = mask
         self.mask_physical_pixel_sizes = mask_physical_pixel_sizes
         self.mask_channel_names = mask_channel_names
+        self.mask_metadata = mask_metadata
         self.cell_tracking_graph = cell_tracking_graph
         self.viewer_graph = viewer_graph
         self.viewer_images = viewer_images
@@ -1471,6 +1472,8 @@ class CellTrackingWidget(QWidget):
                                              channel_names=[self.mask_channel_names],
                                              physical_pixel_sizes=[PhysicalPixelSizes(X=self.mask_physical_pixel_sizes[0], Y=self.mask_physical_pixel_sizes[1], Z=self.mask_physical_pixel_sizes[2])])
         ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        for x in self.mask_metadata:
+            ome_metadata.structured_annotations.append(CommentAnnotation(value=x,namespace="VLabApp"))
         OmeTiffWriter.save(self.mask, output_file1, ome_xml=ome_metadata)
         # output_file2 = os.path.join(self.output_path, self.output_basename+".dot")
         # self.logger.info("Saving cell tracking graph to %s", output_file2)
@@ -1481,6 +1484,8 @@ class CellTrackingWidget(QWidget):
         g = self.cell_tracking_graph.get_graph()
         #add metadata
         g['VLabApp:Annotation:1'] = buffered_handler.get_messages()
+        for i, x in enumerate(self.mask_metadata):
+            g['VLabApp:Annotation:'+str(i+2)] = x
         g.write_graphmlz(output_file3)
 
         if not closing:
@@ -1628,6 +1633,16 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         logger.removeHandler(buffered_handler)
         raise
 
+    #load mask metadata
+    mask_metadata = []
+    if mask_image.ome_metadata:
+        for i,x in enumerate(mask_image.ome_metadata.structured_annotations):
+            if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
+                if len(mask_metadata) == 0:
+                    mask_metadata.append("Metadata for "+mask_image.path+":\n"+x.value)
+                else:
+                    mask_metadata.append(x.value)
+
     ###########################
     # Cell tracking
     ###########################
@@ -1698,7 +1713,8 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
                                                  nframes_defect=nframes_defect, nframes_stable=nframes_stable,
                                                  stable_overlap_fraction=stable_overlap_fraction,
                                                  mask_physical_pixel_sizes=mask_image.physical_pixel_sizes,
-                                                 mask_channel_names=mask_image.channel_names))
+                                                 mask_channel_names=mask_image.channel_names,
+                                                 mask_metadata=mask_metadata))
         viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
 
     else:
@@ -1711,6 +1727,8 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
                                              channel_names=[mask_image.channel_names],
                                              physical_pixel_sizes=[PhysicalPixelSizes(X=mask_image.physical_pixel_sizes[0],Y=mask_image.physical_pixel_sizes[1],Z=mask_image.physical_pixel_sizes[2])])
         ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        for x in mask_metadata:
+            ome_metadata.structured_annotations.append(CommentAnnotation(value=x,namespace="VLabApp"))
         OmeTiffWriter.save(mask, output_file, ome_xml=ome_metadata)
 
         # output_file = os.path.join(output_path, output_basename+".dot")
@@ -1722,6 +1740,8 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         g = cell_tracking_graph.get_graph()
         #add metadata
         g['VLabApp:Annotation:1'] = buffered_handler.get_messages()
+        for i, x in enumerate(mask_metadata):
+            g['VLabApp:Annotation:'+str(i+2)] = x
         g.write_graphmlz(output_file)
         # stop using logfile
         logger.removeHandler(logfile_handler)
