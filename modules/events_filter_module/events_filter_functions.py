@@ -349,20 +349,21 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
         try:
             magn_image = gf.Image(magn_image_path) #
             magn_image.imread()
+            # load magn_image metdata
+            magn_image_metadata = []
+            if magn_image.ome_metadata:
+                for i,x in enumerate(magn_image.ome_metadata.structured_annotations):
+                    if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
+                        if len(magn_image_metadata) == 0:
+                            magn_image_metadata.append("Metadata for "+magn_image.path+":\n"+x.value)
+                        else:
+                            magn_image_metadata.append(x.value)
+
             magn_image = magn_image.get_TYXarray()
         except Exception as e:
             logging.getLogger(__name__).exception('Error loading magnified image %s',magn_image_path)
             remove_all_log_handlers()
             raise
-        # load magn_image metdata
-        magn_image_metadata = []
-        if magn_image.ome_metadata:
-            for i,x in enumerate(magn_image.ome_metadata.structured_annotations):
-                if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
-                    if len(magn_image_metadata) == 0:
-                        magn_image_metadata.append("Metadata for "+magn_image.path+":\n"+x.value)
-                    else:
-                        magn_image_metadata.append(x.value)
     else:
         magn_image = None
         magn_image_metadata = []
@@ -390,12 +391,21 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
         total_events_graph['VLabApp:Annotation:'+str(i+2)] = x
     total_events_graph.write_graphmlz(output_name)
 
-    # If required, save cropped events 
+    # If required, save cropped events
     # Note: currently it is possible only with fusions
     if cropsave:
         if magn_image_path:
             magn_image = gf.Image(magn_image_path) #
             magn_image.imread()
+            # load magn_image metdata
+            magn_image_metadata = []
+            if magn_image.ome_metadata:
+                for i,x in enumerate(magn_image.ome_metadata.structured_annotations):
+                    if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
+                        if len(magn_image_metadata) == 0:
+                            magn_image_metadata.append("Metadata for "+magn_image.path+":\n"+x.value)
+                        else:
+                            magn_image_metadata.append(x.value)
             magn_image = magn_image.get_TYXarray()
         else:
             magn_image = None
