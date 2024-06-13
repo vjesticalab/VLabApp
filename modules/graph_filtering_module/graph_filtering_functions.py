@@ -1173,18 +1173,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
 
     # Load graph
     logger.debug("loading %s", graph_path)
-    graph = ig.Graph().Read_GraphMLz(graph_path)
-    # Adjust attibute types
-    graph.vs['frame'] = np.array(graph.vs['frame'], dtype='int32')
-    graph.vs['mask_id'] = np.array(graph.vs['mask_id'], dtype=mask.image.dtype)
-    graph.vs['area'] = np.array(graph.vs['area'], dtype='int64')
-    graph.es['overlap_area'] = np.array(graph.es['overlap_area'], dtype='int64')
-    graph.es['frame_source'] = np.array(graph.es['frame_source'], dtype='int32')
-    graph.es['frame_target'] = np.array(graph.es['frame_target'], dtype='int32')
-    graph.es['mask_id_source'] = np.array(graph.es['mask_id_source'], dtype=mask.image.dtype)
-    graph.es['mask_id_target'] = np.array(graph.es['mask_id_target'], dtype=mask.image.dtype)
-    # Remove useless attribute
-    del graph.vs['id']
+    graph = gf.load_cell_tracking_graph(graph_path,mask.image.dtype)
 
     #graph metadata
     graph_metadata = []

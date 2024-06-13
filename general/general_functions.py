@@ -1220,7 +1220,9 @@ def error_empty(submission_num, widget, window):
         return label_error
 
 
-def adjust_graph_types(graph, mask_dtype):
+def load_cell_tracking_graph(graph_path,mask_dtype):
+    graph = ig.Graph().Read_GraphMLz(graph_path)
+    # Adjust attibute types
     graph.vs['frame'] = np.array(graph.vs['frame'], dtype='int32')
     graph.vs['mask_id'] = np.array(graph.vs['mask_id'], dtype=mask_dtype)
     graph.vs['area'] = np.array(graph.vs['area'], dtype='int64')
@@ -1230,167 +1232,9 @@ def adjust_graph_types(graph, mask_dtype):
     graph.es['mask_id_source'] = np.array(graph.es['mask_id_source'], dtype=mask_dtype)
     graph.es['mask_id_target'] = np.array(graph.es['mask_id_target'], dtype=mask_dtype)
     # Remove useless attribute
+    del graph.vs['id']
+
     return graph
-
-
-def plot_graph(viewer, graph_path):
-    """
-    Add two layers (with names 'Edges' and 'Vertices') to the `viewer_graph`
-    and plot the cell tracking graph.
-    Existing layers  'Edges' and 'Vertices' will be cleared.
-    Setup mouse click callbacks to allow vertices selection in `viewer_graph`
-    and centering `viewer_images` camera to specific vertex.
-
-    Parameters
-    ----------
-    viewer_graph: napari.Viewer
-        napari viewer in which the graph should be displayed.
-    viewer_images: napari.Viewer
-        napari viewer with image and mask.
-    mask_layer: napari.layer.Labels
-        napari layer with segmentation mask.
-    graph: igraph.Graph
-        cell tracking graph.
-    colors: numpy.array
-        numpy array with shape (number of colors,4) with one color per
-        row (row index i corresponds to to mask id i)
-    """
-    graph = ig.Graph().Read_GraphMLz(graph_path)
-    # Adjust attibute types
-    graph = adjust_graph_types(graph, 'uint16')
-
-    mask_ids = [v['mask_id'] for v in graph.vs]
-
-    colors = []
-    for i, c in enumerate(cm.hsv(np.linspace(0, 1, max(mask_ids)+1))):
-        colors.append(c.tolist())
-    colors = np.asarray(colors)
-
-    layout_per_component = True
-    if layout_per_component:
-        # Layout_sugiyama doesn't always properly split connectected components.
-        # This is an attempt to overcome this problem.
-        # A better option would probably be to use the algorithm used by graphviz (dot) or graphviz.
-        components = graph.connected_components(mode='weak')
-        layout = [[0.0, 0.0] for v in graph.vs]
-        lastx = 0
-        for cmp in components:
-            g2 = graph.subgraph(cmp)
-            layout_tmp = g2.layout_sugiyama(
-                layers=[f+min(graph.vs['frame']) for f in g2.vs['frame']], maxiter=1000)
-            # Shift x coord by lastx
-            minx = min(x for x, y in layout_tmp.coords)
-            maxx = max(x for x, y in layout_tmp.coords)
-            for i, j in enumerate(cmp):
-                x, y = layout_tmp[i]
-                layout[j] = [x-minx+lastx, y]
-            lastx = lastx-minx+maxx+1  # max([x+lastx for x,y in layout_tmp.coords])+1
-    else:
-        # Simple layout_sugiyama
-        layout = graph.layout_sugiyama(
-            layers=[f+min(graph.vs['frame']) for f in graph.vs['frame']], maxiter=1000)
-
-    vertex_size = 0.4
-    edge_w_min = 0.01
-    edge_w_max = vertex_size*0.8
-
-    # Edges
-    if not 'Edges' in viewer.layers:
-        edges_layer = viewer.add_shapes(name='Edges', opacity=1)
-    else:
-        edges_layer = viewer.layers['Edges']
-        edges_layer.data = []
-
-    # Note: (x,y) to reverse horizontal order (left to right)
-    edges_coords = [[[layout[e.source][0], layout[e.source][1]], [
-        layout[e.target][0], layout[e.target][1]]] for e in graph.es]
-    edges_layer.add(edges_coords,
-                    edge_width=np.minimum(graph.es['overlap_fraction_target'],
-                                          graph.es['overlap_fraction_source']) * (edge_w_max - edge_w_min) + edge_w_min,
-                    edge_color="lightgrey",
-                    shape_type='line')
-    edges_layer.editable = False
-    # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
-    # This is a quick and dirty hack to force the layer to stay non-editable.
-    edges_layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
-    edges_layer.refresh()
-
-    # Add vertices
-    if not 'Vertices' in viewer.layers:
-        vertices_layer = viewer.add_points(name='Vertices', opacity=1)
-        vertices_layer.help = "<left-click> to set view, <right-click> to select, <shift>+<right-click> to extend selection"
-        vertices_layer_isnew = True
-    else:
-        vertices_layer = viewer.layers['Vertices']
-        vertices_layer.data = []
-        vertices_layer_isnew = False
-
-    vertices_layer.add(np.array(layout[:graph.vcount()]))
-    vertices_layer.edge_width_is_relative = True
-    vertices_layer.edge_width = 0.0
-    vertices_layer.symbol = 'square'
-    vertices_layer.size = vertex_size
-    vertices_layer.face_color = colors[mask_ids]
-    vertices_layer.properties = {'frame': graph.vs['frame'],
-                                 'mask_id': graph.vs['mask_id'],
-                                 'selected': np.repeat(False, graph.vcount())}
-    vertices_layer.selected_data = set()
-    vertices_layer.editable = False
-    # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
-    # This is a quick and dirty hack to force the layer to stay non-editable.
-    vertices_layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
-    vertices_layer.refresh()
-
-    # Note: it would be probably better to use the already existing option to select points in the Points layer instead of using an additional 'selected' property.
-    # However I couldn't manage to allow selecting points without allowing to move, add or delete points (moving, adding, deleting points should not be allowed as it would cause trouble later).
-
-    if vertices_layer_isnew:
-        # mouse click on viewer_graph
-        @vertices_layer.mouse_drag_callbacks.append
-        def click_drag(layer, event):
-            dragged = False
-            yield
-            # on move
-            while event.type == 'mouse_move':
-                dragged = True
-                yield
-            # on release
-            if not dragged:  # i.e. simple click
-                if event.button == 1:  # center view (left-click)
-                    # center view on corresponding vertex
-                    point_id = layer.get_value(event.position)
-                elif event.button == 2:  # selection (right-click)
-                    # vertices selection (multple mask_ids, same frame range for all)
-                    point_id = layer.get_value(event.position)
-                    if not point_id is None:
-                        if 'Shift' in event.modifiers:
-                            # add to selection
-                            layer.properties['selected'][point_id] = True
-                            # find frame range
-                            v_selected = np.where(layer.properties['selected'])[0]
-                            frame_min = np.min(layer.properties['frame'][v_selected])
-                            frame_max = np.max(layer.properties['frame'][v_selected])
-                            # find selected mask_ids
-                            mask_ids = layer.properties['mask_id'][v_selected]
-                            # erase previous selection
-                            layer.properties['selected'] = False
-                            # select all vertice with mask_id in mask_ids and within frame_range
-                            layer.properties['selected'][(layer.properties['frame'] >= frame_min) & (layer.properties['frame'] <= frame_max) & (np.isin(layer.properties['mask_id'], mask_ids))] = True
-                        else:
-                            # replace selection
-                            layer.properties['selected'][layer.properties['selected']] = False
-                            layer.properties['selected'][point_id] = not layer.properties['selected'][point_id]
-                    else:
-                        if not 'Control' in event.modifiers and not 'Shift' in event.modifiers:
-                            # erase selection
-                            layer.properties['selected'][layer.properties['selected']] = False
-                    # change style
-                    layer.edge_color[layer.properties['selected']] = [1.0, 1.0, 1.0, 1.0]  # white
-                    layer.edge_width[~layer.properties['selected']] = 0
-                    layer.edge_width[layer.properties['selected']] = 0.4
-                    layer.refresh()
-
-        viewer.reset_view()
 
 
 def evaluate_graph_properties(graph):

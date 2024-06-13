@@ -224,13 +224,12 @@ def clean_mask(mask, cell_tracking_graph, max_delta_frame_interpolation=3, nfram
     return defects
 
 
-def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, colors):
+def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, colors, selectable=True):
     """
     Add two layers (with names 'Edges' and 'Vertices') to the `viewer_graph` and plot the cell tracking graph,
     existing layers  'Edges' and 'Vertices' will be cleared.
     Setup mouse click callbacks to allow vertices selection in `viewer_graph` and centering `viewer_images` 
     camera to specific vertex.
-    Note: Ad-hoc version of plot_graph() function of gf
 
     Parameters
     ----------
@@ -244,6 +243,8 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
         cell tracking graph
     colors: numpy.array
         numpy array with shape (number of colors,4) with one color per row (row index i corresponds to to mask id i)
+    selectable: bool
+        is it possible to select vertices?
     """
 
     layout_per_component = True
@@ -298,7 +299,10 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
     # Add vertices
     if not 'Vertices' in viewer_graph.layers:
         vertices_layer = viewer_graph.add_points(name='Vertices', opacity=1)
-        vertices_layer.help = "<left-click> to set view, <right-click> to select, <shift>+<right-click> to extend selection"
+        if selectable:
+            vertices_layer.help = "<left-click> to set view, <right-click> to select, <shift>+<right-click> to extend selection"
+        else:
+            vertices_layer.help = "<left-click> to set view"
         vertices_layer_isnew = True
     else:
         vertices_layer = viewer_graph.layers['Vertices']
@@ -348,7 +352,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                             y0, x0 = np.mean(
                                 np.where(mask_layer.data[frame] == mask_id), axis=1)
                             viewer_images.camera.center = (0, y0, x0)
-                elif event.button == 2:  # selection (right-click)
+                elif event.button == 2 and selectable:  # selection (right-click)
                     # vertices selection (multple mask_ids, same frame range for all)
                     point_id = layer.get_value(event.position)
                     if not point_id is None:
@@ -402,7 +406,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                                 pos = viewer_graph.layers['Vertices'].data[idx][0]
                                 viewer_graph.camera.center = (
                                     0, pos[0], pos[1])
-                    if event.button == 2:  # select in viewer_graph
+                    if event.button == 2 and selectable:  # select in viewer_graph
                         frame = event.position[0]
                         mask_id = layer.get_value(event.position)
                         point_id = None

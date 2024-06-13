@@ -237,9 +237,7 @@ def main(mask_path, graph_path, magn_image_path, tp_before, tp_after, output_pat
     
     # Load graph
     ##logger.debug("loading %s", graph_path)
-    graph = ig.Graph().Read_GraphMLz(graph_path)
-    # Adjust attibute types
-    graph = gf.adjust_graph_types(graph, mask.image.dtype) #gf.
+    graph = gf.load_cell_tracking_graph(graph_path,mask.image.dtype)
 
     # Output path
     if not output_path.endswith('/'):

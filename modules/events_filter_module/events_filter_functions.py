@@ -332,9 +332,7 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
 
     # Load graph
     logger.debug("loading %s", graph_path)
-    graph = ig.Graph().Read_GraphMLz(graph_path)
-    # Adjust attibute types
-    graph = gf.adjust_graph_types(graph, mask.image.dtype)
+    graph = gf.load_cell_tracking_graph(graph_path,mask.image.dtype)
 
     #graph metadata
     graph_metadata = []
