@@ -11,6 +11,7 @@
 * For .ome.tif output, add channel_names and physiscal_pixel_sizes to metadata.
 * Add version.py.
 * Viewer module: new registration matrix viewer.
+* Viewer module: new metadata viewer.
 
 ### Changed
 

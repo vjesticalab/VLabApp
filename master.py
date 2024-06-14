@@ -94,7 +94,7 @@ class Viewer(gf.Page):
         super().__init__()
         self.window = QVBoxLayout(self.container)
         self.window.addWidget(viewer.Viewer())
-        self.window.addStretch()
+        #self.window.addStretch()
 
 
 class FileOrganization(gf.Page):

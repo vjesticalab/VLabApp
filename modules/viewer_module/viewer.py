@@ -1,12 +1,13 @@
 import os
 import re
-from PyQt5.QtWidgets import QFileDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QGridLayout, QScrollArea, QGroupBox
+from PyQt5.QtWidgets import QFileDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QGridLayout, QScrollArea, QGroupBox, QTextEdit, QSizePolicy
 from PyQt5.QtCore import Qt
 from general import general_functions as gf
 import napari
 import logging
 import igraph as ig
 import numpy as np
+from ome_types.model import CommentAnnotation
 from modules.cell_tracking_module.cell_tracking_functions import plot_cell_tracking_graph
 from modules.registration_module.registration_functions import EditTransformationMatrix, PlotTransformation
 from matplotlib.backend_bases import MouseButton
@@ -373,7 +374,91 @@ class RegistrationViewer(QWidget):
         edit_transformation_matrix.tmat_changed.connect(plot_transformation.update)
 
 
+class MetadataViewer(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
+        self.graphtypes = ['.graphmlz']
+        self.matricestypes = ['.txt','.csv']
+        self.filetypes = self.imagetypes + self.graphtypes + self.matricestypes
 
+        self.input_file = gf.DropFileLineEdit(filetypes=self.filetypes)
+        self.input_file.textChanged.connect(self.input_file_changed)
+        browse_file_button = QPushButton("Browse", self)
+        browse_file_button.clicked.connect(self.browse_file)
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.addWidget(QLabel("File:"))
+        layout2 = QHBoxLayout()
+        layout2.addWidget(self.input_file)
+        layout2.addWidget(browse_file_button, alignment=Qt.AlignCenter)
+        layout.addLayout(layout2)
+
+        self.metadata_text = QTextEdit()
+        self.metadata_text.setLineWrapMode(QTextEdit.NoWrap)
+        self.metadata_text.setReadOnly(True)
+        self.metadata_text.setVisible(False)
+        #self.metadata_text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        layout.addWidget(self.metadata_text,stretch=1)
+        layout.addStretch()
+        self.setLayout(layout)
+
+        self.logger = logging.getLogger(__name__)
+
+    def browse_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images, cell tracking graphs or transformation matrices   ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        self.input_file.setText(file_path)
+
+    def input_file_changed(self):
+        file_path=self.input_file.text()
+        self.metadata_text.setPlainText('')
+        self.metadata_text.setVisible(False)
+        if os.path.isfile(file_path):
+            self.show_metadata()
+
+    def show_metadata(self):
+        file_path=self.input_file.text()
+
+        vlabapp_metadata = []
+        image_metadata = None
+        if gf.splitext(file_path)[1] in self.imagetypes:
+            image = gf.Image(file_path)
+            if image.ome_metadata:
+                for i,x in enumerate(image.ome_metadata.structured_annotations):
+                    if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
+                        vlabapp_metadata.append(x.value)
+            image_metadata = 'Dimensions: (' + ', '.join([k+': '+str(v) for (k, v) in image.sizes.items() if v > 1]) + ')\n'
+            if image.channel_names:
+                image_metadata += 'Channel names: \"' + '\", \"'.join([n for n in image.channel_names]) + '\"\n'
+            if image.physical_pixel_sizes:
+                image_metadata += 'Physical pixel sizes: (' + ', '.join([a+': '+str(v)+' \u03bcm' for a, v in zip(("X","Y","Z"),image.physical_pixel_sizes)]) + ')\n'
+        elif gf.splitext(file_path)[1] in self.matricestypes:
+            metadata_tmp = ''
+            with open(file_path) as f:
+                for line in f:
+                    if line.startswith('# Metadata for') and not line.startswith("# timePoint,"):
+                        vlabapp_metadata.append(metadata_tmp)
+                        metadata_tmp = ''
+                    if line.startswith('# ') and not line.startswith("# timePoint,"):
+                        metadata_tmp += line[2:]
+            if metadata_tmp:
+                vlabapp_metadata.append(metadata_tmp)
+        elif gf.splitext(file_path)[1] in self.graphtypes:
+            graph = gf.load_cell_tracking_graph(file_path,'uint16')
+            for a in graph.attributes():
+                if a.startswith('VLabApp:Annotation'):
+                    vlabapp_metadata.append(graph[a])
+
+        text = ''
+        if image_metadata:
+            text += image_metadata
+            if len(vlabapp_metadata) > 0:
+                text += '\n---------------------------------------------\n\n'
+
+        text += '\n\n'.join(vlabapp_metadata)
+        self.metadata_text.setPlainText(text)
+        self.metadata_text.setVisible(True)
 
 
 class Viewer(QWidget):
@@ -394,6 +479,13 @@ class Viewer(QWidget):
         layout2 = QVBoxLayout()
         layout.addWidget(groupbox)
         layout2.addWidget(RegistrationViewer())
+        groupbox.setLayout(layout2)
+
+        # View metadata
+        groupbox = QGroupBox("View metadata")
+        layout2 = QVBoxLayout()
+        layout.addWidget(groupbox)
+        layout2.addWidget(MetadataViewer())
         groupbox.setLayout(layout2)
 
         self.setLayout(layout)
