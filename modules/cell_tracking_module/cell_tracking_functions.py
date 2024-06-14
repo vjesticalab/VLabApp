@@ -1677,10 +1677,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
     # Automatic cleaning
     ###########################
 
-    plot_debug = False
     if clean:
-        if plot_debug:
-            mask_image_original = mask.copy()
         logger.info("Automatic cleaning: max delta frame=%s, max defect size=%s, min stable size=%s, stable overlap fraction=%s%%, min area=%s, clean missing mask only=%s", max_delta_frame_interpolation, nframes_defect, nframes_stable, stable_overlap_fraction*100, min_area, False)
         clean_mask(mask, cell_tracking_graph, max_delta_frame_interpolation=max_delta_frame_interpolation,
                    nframes_defect=nframes_defect, nframes_stable=nframes_stable,
@@ -1701,21 +1698,18 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         logger.debug("displaying image and mask")
         viewer_images = napari.Viewer(title=mask_path)
         if image_path != '':
-            viewer_images.add_image(image.get_TYXarray(), name="Image")
-        if plot_debug and clean:
-            mask_diff = np.zeros(mask.shape, dtype='uint8')
-            mask_diff[mask == mask_image_original] = 0
-            mask_diff[(mask != mask_image_original) & (mask == 0)] = 1  # Removed
-            mask_diff[(mask != mask_image_original) & (mask != 0) & (mask_image_original != 0)] = 2  # Modified
-            mask_diff[(mask != mask_image_original) & (mask_image_original == 0)] = 3  # Added
-            viewer_images.add_image(mask_diff, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
-                                    colormap=napari.utils.Colormap([[0, 0, 0, 0],
-                                                                    [0.77, 0.27, 0.29, 1],
-                                                                    [0.16, 0.36, 0.62, 1],
-                                                                    [0.30, 0.51, 0.15, 1]]),
-                                    contrast_limits=[0, 3], visible=False)
-        mask_layer = viewer_images.add_labels(mask, name="Cell mask")
-        viewer_images.dims.axis_labels = ('T', 'Y', 'X')
+            viewer_images.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+            # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
+            viewer_images.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
+        #broadcast TYX mask to FTZYX with F and Z axis containing shallow copies (C axis is used as channel_axis):
+        sizeF = image.image.shape[0] if image_path != '' else 1
+        sizeZ = image.image.shape[3] if image_path != '' else 1
+        mask_FTZYX=np.broadcast_to(mask[np.newaxis,:,np.newaxis,:,:], (sizeF, mask.shape[0], sizeZ, mask.shape[1], mask.shape[2]))
+        # the resulting mask_FTZYX is read only. To make it writeable:
+        mask_FTZYX.flags['WRITEABLE']=True
+        mask_layer = viewer_images.add_labels(mask_FTZYX, name="Cell mask")
+        # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
+        viewer_images.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
 
         logger.debug("displaying cell tracking graph")
         viewer_graph = napari.Viewer(title='Cell tracking graph')
