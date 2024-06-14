@@ -280,12 +280,11 @@ class RegistrationViewer(QWidget):
         self.input_image.setText(file_path)
 
     def browse_matrix(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Transformation matrices ('+' '.join(['*'+x for x in self.matricestypes])+')')
         self.input_matrix.setText(file_path)
 
     def input_image_changed(self):
         image_path=self.input_image.text()
-        print(image_path)
         self.input_image.setPlaceholderText('')
         self.input_image.setToolTip('')
         self.input_matrix.setPlaceholderText('')
@@ -293,10 +292,8 @@ class RegistrationViewer(QWidget):
         if os.path.isfile(image_path):
             #get path with matrix filetype (self.matricestype), containing self.output_suffixes['registration'] and with same unique identifier
             matrix_paths = [path for path in os.listdir(os.path.dirname(image_path)) if any(path.endswith(matricestype) for matricestype in self.matricestypes) and self.output_suffixes['registration'] in path and os.path.basename(path).split('_')[0] == os.path.basename(image_path).split('_')[0]]
-            print(matrix_paths)
             if len(matrix_paths) > 0:
                 matrix_path = os.path.join(os.path.dirname(image_path),sorted(matrix_paths, key=len)[0])
-                print(matrix_path)
                 if os.path.isfile(matrix_path):
                     self.input_matrix.setPlaceholderText(matrix_path)
                     self.input_matrix.setToolTip(matrix_path)
