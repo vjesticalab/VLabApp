@@ -965,7 +965,7 @@ class Image:
             axes_order = str(''.join(list(reader.sizes.keys()))).upper() #eg. reader.sizes = {'T': 10, 'C': 2, 'Y': 2048, 'X': 2048}
             shape = reader.shape
             self.channel_names = [x.channel.name for x in reader.metadata.channels]
-            self.physical_pixel_sizes = reader.voxel_size(channel=0)
+            self.physical_pixel_sizes = (reader.voxel_size(channel=0).x, reader.voxel_size(channel=0).y, reader.voxel_size(channel=0).z)
             reader.close()
         elif self.extension in ['.ome.tif', '.ome.tiff']:
             reader = OmeTiffReader(self.path)
