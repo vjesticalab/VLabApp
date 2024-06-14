@@ -37,7 +37,7 @@ class EditTransformationMatrix(QWidget):
 
     tmat_changed = pyqtSignal(np.ndarray)
 
-    def __init__(self, viewer, input_filename):
+    def __init__(self, viewer, input_filename, read_only=False):
         """
         Parameters
         ----------
@@ -45,6 +45,8 @@ class EditTransformationMatrix(QWidget):
             the napari viewer that contains the image. viewer.dims.axis_labels must contain the actual axis labels (must contain at least 'T', 'Y' and 'X']).
         input_filename: str
             transformation matrix filename
+        read_only: bool
+            should the matrix be read only?
         """
         super().__init__()
 
@@ -53,6 +55,7 @@ class EditTransformationMatrix(QWidget):
 
         self.viewer = viewer
         self.input_filename = input_filename
+        self.read_only = read_only
         self.tmat, self.tmat_metadata = read_transfMat(input_filename)
         self.tmat_saved_version = self.tmat.copy()
         tmat_active_frames = np.nonzero(self.tmat[:, 3])[0]
@@ -100,52 +103,57 @@ class EditTransformationMatrix(QWidget):
 
         layout = QVBoxLayout()
 
-        groupbox = QGroupBox("Modify:")
-        layout2 = QVBoxLayout()
-        help_label = QLabel("Use SHIFT + CLICK to define the position of the alignment point (for all frames), without modifying the transformation matrix.\nUse CTRL + CLICK to update the position of the alignment point. When modifying the position of the alignment point, apply the modification to the following frame range:")
+        if not self.read_only:
+            groupbox = QGroupBox("Modify:")
+            help_label = QLabel("Use SHIFT + CLICK to define the position of the alignment point (for all frames), without modifying the transformation matrix.\nUse CTRL + CLICK to update the position of the alignment point. When modifying the position of the alignment point, apply the modification to the following frame range:")
+        else:
+            groupbox = QGroupBox()
+            help_label = QLabel("Use SHIFT + CLICK or CTRL + CLICK to define the position of the alignment point.")
         help_label.setWordWrap(True)
         help_label.setMinimumWidth(10)
-        layout2.addWidget(help_label)
         self.modify_previous_frames = QRadioButton("from first to current frame")
         self.modify_previous_frames.setChecked(False)
-        layout2.addWidget(self.modify_previous_frames)
         self.modify_current_frame = QRadioButton("only current frame")
         self.modify_current_frame.setChecked(True)
-        layout2.addWidget(self.modify_current_frame)
         self.modify_subsequent_frames = QRadioButton("from current to last frame")
         self.modify_subsequent_frames.setChecked(False)
-        layout2.addWidget(self.modify_subsequent_frames)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
-
-        groupbox = QGroupBox("Transformation range (frames)")
-        layout2 = QFormLayout()
         self.start_frame = QSpinBox()
         self.start_frame.setMinimum(0)
         self.start_frame.setMaximum(points[:, self.T_axis_index].max() - 1)
         self.start_frame.setValue(tmat_start)
         self.start_frame.valueChanged.connect(self.time_range_changed)
-        layout2.addRow("Start:", self.start_frame)
         self.end_frame = QSpinBox()
         self.end_frame.setMinimum(0)
         self.end_frame.setMaximum(points[:, self.T_axis_index].max())
         self.end_frame.setValue(tmat_end)
         self.end_frame.valueChanged.connect(self.time_range_changed)
-        layout2.addRow("End:", self.end_frame)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
-
-        groupbox = QGroupBox("View")
-        layout2 = QVBoxLayout()
         self.shift_view = QCheckBox("Move view with aligmnent point")
         self.shift_view.setChecked(False)
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self.save)
+        layout2 = QVBoxLayout()
+        layout2.addWidget(help_label)
+        if not self.read_only:
+            layout2.addWidget(self.modify_previous_frames)
+            layout2.addWidget(self.modify_current_frame)
+            layout2.addWidget(self.modify_subsequent_frames)
+            groupbox.setLayout(layout2)
+            layout.addWidget(groupbox)
+
+            groupbox = QGroupBox("Transformation range (frames)")
+            layout2 = QFormLayout()
+            layout2.addRow("Start:", self.start_frame)
+            layout2.addRow("End:", self.end_frame)
+            groupbox.setLayout(layout2)
+            layout.addWidget(groupbox)
+
+            groupbox = QGroupBox("View")
+            layout2 = QVBoxLayout()
         layout2.addWidget(self.shift_view)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-
-        self.save_button = QPushButton("Save")
-        self.save_button.clicked.connect(self.save)
-        layout.addWidget(self.save_button, alignment=Qt.AlignCenter)
+        if not self.read_only:
+            layout.addWidget(self.save_button, alignment=Qt.AlignCenter)
 
         layout.addStretch()
         self.setLayout(layout)
@@ -171,7 +179,7 @@ class EditTransformationMatrix(QWidget):
                         sel = sel & (np.round(self.layer_points.data[:, self.T_axis_index]) == np.round(current_frame))
                         # note that each frame contains only one point, i.e. sel contains a unique True element
                         delta = np.round(event.position - self.layer_points.data[sel])
-                        if  'Shift' in event.modifiers:
+                        if  'Shift' in event.modifiers or self.read_only:
                             # move everything
                             sel = np.repeat(True, self.layer_points.data.shape[0])
                         elif self.modify_previous_frames.isChecked():
@@ -237,7 +245,7 @@ class EditTransformationMatrix(QWidget):
         self.layer_points.refresh()
 
     def on_close(self):
-        if not np.array_equal(self.tmat, self.tmat_saved_version):
+        if not np.array_equal(self.tmat, self.tmat_saved_version) and not self.read_only:
             save = QMessageBox.question(self, 'Save changes', "Save transformation matrix before closing?", QMessageBox.Yes | QMessageBox.No)
             if save == QMessageBox.Yes:
                 self.save()

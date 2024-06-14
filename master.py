@@ -123,7 +123,7 @@ class MainWindow(QWidget):
         #page_description = 'The VLabApp is created with the aim of automating the cellular image analysis process, from the recording of the movies that come out of the microscope, to the tracking of the events within each time frame.\n\n\nThe application is in fact divided into several sub-sections that can be used consecutively or automatically:\n\n  - Image Registration\n\n  - GroundTruth Dataset Construction\n\n  - Image Segmentation\n\n  - Event Tracking'
         
         #tabwizard.addHomePage(Home(page_description))
-        tabwizard.addPage(Viewer(), "Viewer")
+        tabwizard.addPage(Viewer(), "Viewers")
         tabwizard.addPage(zProjection(), "Z-Projection")
         tabwizard.addPage(GTGenerator(), "GroundTruth")
         tabwizard.addPage(Registration(), "Registration")

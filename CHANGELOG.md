@@ -10,6 +10,7 @@
 * Add channel_names and physiscal_pixel_sizes attributes to class Image.
 * For .ome.tif output, add channel_names and physiscal_pixel_sizes to metadata.
 * Add version.py.
+* Viewer module: new registration matrix viewer.
 
 ### Changed
 

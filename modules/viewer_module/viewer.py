@@ -3,11 +3,13 @@ import re
 from PyQt5.QtWidgets import QFileDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QGridLayout, QScrollArea, QGroupBox
 from PyQt5.QtCore import Qt
 from general import general_functions as gf
-from modules.cell_tracking_module.cell_tracking_functions import plot_cell_tracking_graph
 import napari
 import logging
 import igraph as ig
 import numpy as np
+from modules.cell_tracking_module.cell_tracking_functions import plot_cell_tracking_graph
+from modules.registration_module.registration_functions import EditTransformationMatrix, PlotTransformation
+from matplotlib.backend_bases import MouseButton
 
 class ImageMaskGraphViewer(QWidget):
     def __init__(self):
@@ -22,8 +24,6 @@ class ImageMaskGraphViewer(QWidget):
                                  'graph_filtering': '_vGF',
                                  'events_filter': '_vEF'}
 
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
         self.input_image = gf.DropFileLineEdit(filetypes=self.imagetypes)
         browse_image_button = QPushButton("Browse", self)
         browse_image_button.clicked.connect(self.browse_image)
@@ -38,6 +38,8 @@ class ImageMaskGraphViewer(QWidget):
         self.open_button = QPushButton("Open napari", self)
         self.open_button.clicked.connect(self.open)
 
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
         layout.addWidget(QLabel("Image:"))
         layout2 = QHBoxLayout()
         layout2.addWidget(self.input_image)
@@ -230,6 +232,153 @@ class ImageMaskGraphViewer(QWidget):
             viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
 
 
+
+class RegistrationViewer(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
+        self.matricestypes = ['.txt','.csv']
+        self.output_suffixes = { 'zprojection': '_vPR',
+                                 'groundtruth_generator': '_vGT',
+                                 'registration': '_vRG',
+                                 'segmentation': '_vSM',
+                                 'cell_tracking': '_vTG',
+                                 'graph_filtering': '_vGF',
+                                 'events_filter': '_vEF'}
+
+        self.input_image = gf.DropFileLineEdit(filetypes=self.imagetypes)
+        self.input_image.textChanged.connect(self.input_image_changed)
+        browse_image_button = QPushButton("Browse", self)
+        browse_image_button.clicked.connect(self.browse_image)
+        self.input_matrix = gf.DropFileLineEdit(filetypes=self.matricestypes)
+        self.input_matrix.textChanged.connect(self.input_matrix_changed)
+        browse_matrix_button = QPushButton("Browse", self)
+        browse_matrix_button.clicked.connect(self.browse_matrix)
+        self.open_button = QPushButton("Open napari", self)
+        self.open_button.clicked.connect(self.open)
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.addWidget(QLabel("Image (before registration):"))
+        layout2 = QHBoxLayout()
+        layout2.addWidget(self.input_image)
+        layout2.addWidget(browse_image_button, alignment=Qt.AlignCenter)
+        layout.addLayout(layout2)
+        layout.addWidget(QLabel("Registration matrix:"))
+        layout2 = QHBoxLayout()
+        layout2.addWidget(self.input_matrix)
+        layout2.addWidget(browse_matrix_button, alignment=Qt.AlignCenter)
+        layout.addLayout(layout2)
+
+        layout.addWidget(self.open_button, alignment=Qt.AlignCenter)
+        self.setLayout(layout)
+
+        self.logger = logging.getLogger(__name__)
+
+    def browse_image(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        self.input_image.setText(file_path)
+
+    def browse_matrix(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        self.input_matrix.setText(file_path)
+
+    def input_image_changed(self):
+        image_path=self.input_image.text()
+        print(image_path)
+        self.input_image.setPlaceholderText('')
+        self.input_image.setToolTip('')
+        self.input_matrix.setPlaceholderText('')
+        self.input_matrix.setToolTip('')
+        if os.path.isfile(image_path):
+            #get path with matrix filetype (self.matricestype), containing self.output_suffixes['registration'] and with same unique identifier
+            matrix_paths = [path for path in os.listdir(os.path.dirname(image_path)) if any(path.endswith(matricestype) for matricestype in self.matricestypes) and self.output_suffixes['registration'] in path and os.path.basename(path).split('_')[0] == os.path.basename(image_path).split('_')[0]]
+            print(matrix_paths)
+            if len(matrix_paths) > 0:
+                matrix_path = os.path.join(os.path.dirname(image_path),sorted(matrix_paths, key=len)[0])
+                print(matrix_path)
+                if os.path.isfile(matrix_path):
+                    self.input_matrix.setPlaceholderText(matrix_path)
+                    self.input_matrix.setToolTip(matrix_path)
+
+    def input_matrix_changed(self):
+        matrix_path=self.input_matrix.text()
+        self.input_image.setPlaceholderText('')
+        self.input_image.setToolTip('')
+        self.input_matrix.setPlaceholderText('')
+        self.input_matrix.setToolTip('')
+        if os.path.isfile(matrix_path):
+            res = re.match('(.*)'+self.output_suffixes['registration']+'.*$',os.path.basename(matrix_path))
+            if res:
+                for ext in self.imagetypes:
+                    image_path = os.path.join(os.path.dirname(matrix_path),res.group(1)) + ext
+                    if os.path.isfile(image_path):
+                        self.input_image.setPlaceholderText(image_path)
+                        self.input_image.setToolTip(image_path)
+                        break
+
+    def open(self):
+        #EditTransformationMatrix, PlotTransformation
+        matrix_path = self.input_matrix.text()
+        if matrix_path == '':
+            matrix_path = self.input_matrix.placeholderText()
+        image_path = self.input_image.text()
+        if image_path == '':
+            image_path = self.input_image.placeholderText()
+
+        if image_path == '':
+            self.logger.error('Missing image path')
+            self.input_image.setFocus()
+            return
+        if matrix_path == '':
+            self.logger.error('Missing matrix path')
+            self.input_matrix.setFocus()
+            return
+        if image_path != '' and not os.path.isfile(image_path):
+            self.logger.error('Invalid image path')
+            self.input_image.setFocus()
+            return
+        if matrix_path != '' and not os.path.isfile(matrix_path):
+            self.logger.error('Invalid matrix path')
+            self.input_matrix.setFocus()
+            return
+
+        try:
+            image = gf.Image(image_path)
+            image.imread()
+        except Exception as e:
+            self.logger.exception('Error loading image')
+            return
+
+        # Check 'F' axis has size 1
+        if image.sizes['F'] != 1:
+            logging.getLogger(__name__).error('Image %s has a F axis with size > 1', str(image_path))
+            raise TypeError(f"Image {image_path} has a F axis with size > 1")
+
+        viewer = napari.Viewer()
+        # assuming a FTCZYX image:
+        viewer.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+        # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
+        viewer.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
+
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        edit_transformation_matrix = EditTransformationMatrix(viewer, matrix_path, read_only=True)
+        scroll_area.setWidget(edit_transformation_matrix)
+        viewer.window.add_dock_widget(scroll_area, area='right', name="Edit transformation matrix")
+
+        plot_transformation = PlotTransformation(viewer, edit_transformation_matrix.tmat)
+        plot_transformation.fig.canvas.mpl_connect('button_press_event', lambda event: viewer.dims.set_point(1,round(event.xdata)) if event.button is event.button is MouseButton.LEFT and event.inaxes else None)
+        plot_transformation.fig.canvas.mpl_connect('motion_notify_event', lambda event: viewer.dims.set_point(1,round(event.xdata)) if event.button is MouseButton.LEFT and event.inaxes else None)
+        viewer.window.add_dock_widget(plot_transformation, area="bottom")
+
+        edit_transformation_matrix.tmat_changed.connect(plot_transformation.update)
+
+
+
+
+
 class Viewer(QWidget):
     def __init__(self):
         super().__init__()
@@ -241,6 +390,13 @@ class Viewer(QWidget):
         layout2 = QVBoxLayout()
         layout.addWidget(groupbox)
         layout2.addWidget(ImageMaskGraphViewer())
+        groupbox.setLayout(layout2)
+
+        # View registration matrix
+        groupbox = QGroupBox("View registration matrix")
+        layout2 = QVBoxLayout()
+        layout.addWidget(groupbox)
+        layout2.addWidget(RegistrationViewer())
         groupbox.setLayout(layout2)
 
         self.setLayout(layout)
