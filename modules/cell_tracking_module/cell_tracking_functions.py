@@ -236,7 +236,8 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
     viewer_graph: napari.Viewer
         napari viewer in which the graph should be displayed
     viewer_images: napari.Viewer
-        napari viewer with image and mask
+        napari viewer with image and mask.
+        viewer_image.dims.axis_labels must contain the actual axis labels (must contain at least 'T', 'Y' and 'X']).
     mask_layer: napari.layer.Labels
         napari layer with segmentation mask
     graph: igraph.Graph
@@ -246,6 +247,18 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
     selectable: bool
         is it possible to select vertices?
     """
+
+    def get_YX_timeframe(mask,t):
+        # a function to return YX images
+        T_axis_index = viewer_images.dims.axis_labels.index('T')
+        Y_axis_index = viewer_images.dims.axis_labels.index('Y')
+        X_axis_index = viewer_images.dims.axis_labels.index('X')
+        indYX=list(viewer_images.dims.current_step)
+        indYX[T_axis_index]=t
+        indYX[Y_axis_index]=slice(0,mask.shape[Y_axis_index])
+        indYX[X_axis_index]=slice(0,mask.shape[X_axis_index])
+        indYX=tuple(indYX)
+        return mask[indYX]
 
     layout_per_component = True
     if layout_per_component:
@@ -347,10 +360,10 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                         frame = layer.properties['frame'][point_id]
                         mask_id = layer.properties['mask_id'][point_id]
                         # just in case mask has changed and cell_tracking graph has not been updated yet:
-                        if mask_id in mask_layer.data[frame]:
-                            viewer_images.dims.set_point(0, frame)
+                        if mask_id in get_YX_timeframe(mask_layer.data,frame):
+                            viewer_images.dims.set_point(viewer_images.dims.axis_labels.index('T'), frame)
                             y0, x0 = np.mean(
-                                np.where(mask_layer.data[frame] == mask_id), axis=1)
+                                np.where(get_YX_timeframe(mask_layer.data,frame) == mask_id), axis=1)
                             viewer_images.camera.center = (0, y0, x0)
                 elif event.button == 2 and selectable:  # selection (right-click)
                     # vertices selection (multple mask_ids, same frame range for all)
@@ -386,6 +399,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
         # mouse click on viewer_image (mask_layer)
         @mask_layer.mouse_drag_callbacks.append
         def click_drag(layer, event):
+            T_axis_index = viewer_images.dims.axis_labels.index('T')
             dragged = False
             yield
             # on move
@@ -397,7 +411,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                 if layer.mode == 'pan_zoom':
                     if event.button == 1:  # center view (left-click)
                         # center view on corresponding vertex
-                        frame = event.position[0]
+                        frame = event.position[T_axis_index]
                         mask_id = layer.get_value(event.position)
                         if not mask_id is None and mask_id > 0:
                             idx = np.where((viewer_graph.layers['Vertices'].properties['frame'] == frame) &
@@ -407,7 +421,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                                 viewer_graph.camera.center = (
                                     0, pos[0], pos[1])
                     if event.button == 2 and selectable:  # select in viewer_graph
-                        frame = event.position[0]
+                        frame = event.position[T_axis_index]
                         mask_id = layer.get_value(event.position)
                         point_id = None
                         if not mask_id is None and mask_id > 0:
@@ -1701,6 +1715,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
                                                                     [0.30, 0.51, 0.15, 1]]),
                                     contrast_limits=[0, 3], visible=False)
         mask_layer = viewer_images.add_labels(mask, name="Cell mask")
+        viewer_images.dims.axis_labels = ('T', 'Y', 'X')
 
         logger.debug("displaying cell tracking graph")
         viewer_graph = napari.Viewer(title='Cell tracking graph')

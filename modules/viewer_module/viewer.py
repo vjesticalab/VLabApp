@@ -130,7 +130,7 @@ class ImageMaskGraphViewer(QWidget):
             image_path = self.input_image.placeholderText()
 
         if graph_path != '' and mask_path == '':
-            self.logger.error('Missing mask path')
+            self.logger.error('Missing mask path (mandatory when graph path is not empty)')
             self.input_graph.setFocus()
             return
         if image_path != '' and not os.path.isfile(image_path):
@@ -179,9 +179,20 @@ class ImageMaskGraphViewer(QWidget):
 
         viewer_images = napari.Viewer(title=mask_path if mask_path != '' else image_path)
         if image_path != '':
-            viewer_images.add_image(image.get_TYXarray(), name="Image")
+            viewer_images.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+            # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
+            viewer_images.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
         if mask_path != '':
-            mask_layer = viewer_images.add_labels(mask.get_TYXarray(), name="Cell mask")
+            #Assume a TYX mask, broadcast to FTZYX with F and Z axis containing shallow copies (C axis is used as channel_axis):
+            mask_TYX = mask.get_TYXarray()
+            sizeF = image.image.shape[0] if image_path != '' else 1
+            sizeZ = image.image.shape[3] if image_path != '' else 1
+            mask_FTZYX=np.broadcast_to(mask_TYX[np.newaxis,:,np.newaxis,:,:], (sizeF, mask_TYX.shape[0], sizeZ, mask_TYX.shape[1], mask_TYX.shape[2]))
+            # the resulting mask_FTZYX is read only. To make it writeable:
+            # mask_FTZYX.flags['WRITEABLE']=True
+            mask_layer = viewer_images.add_labels(mask_FTZYX, name="Cell mask")
+            viewer_images.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
+            #mask_layer = viewer_images.add_labels(mask.image, name="Cell mask", channel_axis=2)
             mask_layer.help = "<left-click> to set view"
             mask_layer.editable = False
             # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
