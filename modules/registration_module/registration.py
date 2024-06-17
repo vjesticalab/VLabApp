@@ -19,14 +19,17 @@ class Perform(gf.Page):
         super().__init__()
 
         self.output_suffix = '_vRG'
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
+
 
         ####### Section Registration #######
         # Documentation
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
-        label_documentation.setText('<a href="file://' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
-
-        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
+        label_documentation.setWordWrap(True)
+        label_documentation.setText('For each input image, estimate the shift between consecutive time frames, apply the resulting transformation matrix to the input image. Save the transformation matrix and the registered image.<br>'+
+                                    'Input images must have X, Y and T axes. Images with additional Z and/or C axis are supported (Z axis will be projected and only the chosen channel with be selected before evaluating the transformation).<br><br>'+
+                                    'Additional information: <a href="file://' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
 
         self.image_listA = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_BF', filenames_exclude_filter=self.output_suffix)
         self.channel_position = QLineEdit(placeholderText='eg. 0 (default) / 1 / ...')
@@ -492,13 +495,14 @@ class Align(gf.Page):
         self.matricestypes = ['.txt','.csv']
 
         ####### Section Alignment #######
-        label = QLabel("Images to align using pre-existing registration matrices:")
-        label2 = QLabel("(Transformation matrices have to be in the same folde as input images. Matching transformation matrices and images is based on the unique identifier, i.e. part of the filename before the first \"_\")")
-        label2.setWordWrap(True)
-        label2.setEnabled(False)
-        font = label2.font()
-        font.setItalic(True)
-        label2.setFont(font)
+        # Documentation
+        label_documentation = QLabel()
+        label_documentation.setOpenExternalLinks(True)
+        label_documentation.setWordWrap(True)
+        label_documentation.setText('For each input image, load a pre-existing transformation matrix, apply the transformation matrix to the input image and save the resulting registered image.<br>'+
+                                    'The transformation matrix must be in the same folder as the input image. Matching between image and transformation matrix is based on the unique identifier, i.e. part of the filename before the first \"_\"<br>.'+
+                                    'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
+
         self.image_listB = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='', filenames_exclude_filter=self.output_suffix)
 
         self.use_input_folder = QRadioButton("Use input image folder")
@@ -529,9 +533,13 @@ class Align(gf.Page):
 
          # Layout
         layout = QVBoxLayout()
-        layout.addWidget(label)
-        layout.addWidget(label2)
-        groupbox = QGroupBox('')
+        # Documentation
+        groupbox = QGroupBox("Documentation")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(label_documentation)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        groupbox = QGroupBox('Images to align using pre-existing registration matrices')
         layout2 = QVBoxLayout()
         layout2.addWidget(self.image_listB)
         groupbox.setLayout(layout2)
@@ -691,15 +699,14 @@ class Edit(gf.Page):
         super().__init__()
 
         self.output_suffix = '_vRG'
+        self.matricestypes = ['.txt','.csv']
 
         ####### Section Editing #######
-        label = QLabel("Matrices to edit")
-        label2 = QLabel('(double click on the transformation matrix to visualize it)')
-        label2.setDisabled(True)
-        font = label2.font()
-        font.setItalic(True)
-        label2.setFont(font)
-        self.matricestypes = ['.txt','.csv']
+        label_documentation = QLabel()
+        label_documentation.setOpenExternalLinks(True)
+        label_documentation.setWordWrap(True)
+        label_documentation.setText('Modify the start and end point of existing transformation matrices.<br>'+
+                                    'To visualize a matrix, double click on its filename in the list')
         self.matrices_list = gf.FileListWidget(filetypes=self.matricestypes, filenames_filter=self.output_suffix)
         self.matrices_list.file_list_double_clicked.connect(self.display_matrix)
         #self.update_label = QLabel('After double-clicking the matrix, you can update its range', self)
@@ -712,9 +719,13 @@ class Edit(gf.Page):
 
         # Layout
         layout = QVBoxLayout()
-        layout.addWidget(label)
-        layout.addWidget(label2)
-        groupbox = QGroupBox('')
+        # Documentation
+        groupbox = QGroupBox("Documentation")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(label_documentation)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        groupbox = QGroupBox('Matrices to edit')
         layout2 = QVBoxLayout()
         layout2.addWidget(self.matrices_list)
         groupbox.setLayout(layout2)
@@ -789,6 +800,12 @@ class ManualEdit(gf.Page):
         self.matricestypes = ['.txt','.csv']
 
         ####### Section Manual Editing #######
+        label_documentation = QLabel()
+        label_documentation.setOpenExternalLinks(True)
+        label_documentation.setWordWrap(True)
+        label_documentation.setText('View and modify an existing transformation matrix in <a href="https://napari.org">napari</a>.<br>' +
+                                    'Important: select an image that has not been registered.<br>' +
+                                    'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
         self.input_image = gf.DropFileLineEdit(filetypes=self.imagetypes)
         browse_image_button = QPushButton("Browse", self)
         browse_image_button.clicked.connect(self.browse_image)
@@ -800,6 +817,11 @@ class ManualEdit(gf.Page):
 
         # Layout
         layout = QVBoxLayout()
+        groupbox = QGroupBox("Documentation")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(label_documentation)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
         groupbox = QGroupBox("Input image (before registration)")
         layout2 = QHBoxLayout()
         layout2.addWidget(self.input_image)

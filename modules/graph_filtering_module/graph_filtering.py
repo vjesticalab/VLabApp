@@ -15,10 +15,20 @@ class GraphFiltering(QWidget):
 
         self.output_suffix = '_vGF'
         self.celltracking_suffix = '_vTG'
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
 
         layout = QVBoxLayout()
 
-        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
+        label_documentation = QLabel()
+        label_documentation.setOpenExternalLinks(True)
+        label_documentation.setWordWrap(True)
+        label_documentation.setText('For each pair of input segmentation mask and cell tracking graph, apply the selected filters and save the filtered cell tracking graph and segmentation mask.<br>'+
+                                    'Input segmentation mask must have X, Y and T axes. The optional input image must have X, Y and T axes and can optionally have C and/or Z axes.')
+        groupbox = QGroupBox("Documentation")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(label_documentation)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
 
         self.mask_graph_table = gf.FileTableWidget2(header_1="Mask", header_2="Graph", filenames_suffix_1='.ome.tif', filenames_suffix_2='.graphmlz', filenames_filter=self.celltracking_suffix)
         self.mask_graph_table.file_table_changed.connect(self.mask_graph_table_changed)

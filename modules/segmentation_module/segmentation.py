@@ -13,8 +13,15 @@ class Segmentation(QWidget):
         super().__init__()
 
         self.output_suffix = '_vSM'
-
         self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
+
+        label_documentation = QLabel()
+        label_documentation.setOpenExternalLinks(True)
+        label_documentation.setWordWrap(True)
+        label_documentation.setText('For each input image,  perform cell segmentation using <a href="https://www.cellpose.org/">cellpose</a> and save the resulting mask.<br>'+
+                                    'Input images must have X and Y axes and can optionally have C, Z and/or T axes (Z axis will be projected and only the chosen channel with be selected before performing segmentation).<br>'+
+                                    'A "cellpose model" can be obtained by finetuning a pretrained cellpose model on a collection of annotated images similar to the input images (see section "Training" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>).')
+
         self.image_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_BF')
         self.image_list.file_list_changed.connect(self.image_list_changed)
 
@@ -112,6 +119,12 @@ class Segmentation(QWidget):
 
         # Layout
         layout = QVBoxLayout()
+        groupbox = QGroupBox("Documentation")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(label_documentation)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
         groupbox = QGroupBox('Input files (images)')
         layout2 = QVBoxLayout()
         layout2.addWidget(self.image_list)

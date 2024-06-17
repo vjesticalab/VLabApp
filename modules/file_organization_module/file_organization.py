@@ -133,8 +133,14 @@ class FileOrganization(QWidget):
                                  'cell_tracking': '_vTG',
                                  'graph_filtering': '_vGF',
                                  'events_filter': '_vEF'}
+
+        # Documentation
+        label_documentation = QLabel()
+        label_documentation.setOpenExternalLinks(True)
+        label_documentation.setWordWrap(True)
+        label_documentation.setText('For each input folder, selected files types can be exported (i.e. moved) to the specified directory or removed.')
+
         # Input folders
-        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
         self.folder_list = gf.DirListWidget()
 
         # Output folders (export)
@@ -191,6 +197,13 @@ class FileOrganization(QWidget):
 
         # Layout
         layout = QVBoxLayout()
+
+        # Documentation
+        groupbox = QGroupBox("Documentation")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(label_documentation)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
 
         # Input folder
         groupbox = QGroupBox('Input folders')

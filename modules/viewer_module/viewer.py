@@ -25,6 +25,12 @@ class ImageMaskGraphViewer(gf.Page):
                                  'graph_filtering': '_vGF',
                                  'events_filter': '_vEF'}
 
+        label_documentation = QLabel()
+        label_documentation.setOpenExternalLinks(True)
+        label_documentation.setWordWrap(True)
+        label_documentation.setText('View an image, a segmentation mask and/or a cell tracking graph in <a href="https://napari.org">napari</a>.<br>' +
+                                    'Images and masks with X and Y axes and any combination of T, C and Z axes are supported.<br>' +
+                                    'Image, mask and graph are optional. However, a cell tracking graph cannot be viewed without the corresponding segmentation mask.')
         self.input_image = gf.DropFileLineEdit(filetypes=self.imagetypes)
         browse_image_button = QPushButton("Browse", self)
         browse_image_button.clicked.connect(self.browse_image)
@@ -40,7 +46,11 @@ class ImageMaskGraphViewer(gf.Page):
         self.open_button.clicked.connect(self.open)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
+        groupbox = QGroupBox("Documentation")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(label_documentation)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
         groupbox = QGroupBox("Image")
         layout2 = QHBoxLayout()
         layout2.addWidget(self.input_image)
@@ -253,6 +263,12 @@ class RegistrationViewer(gf.Page):
                                  'graph_filtering': '_vGF',
                                  'events_filter': '_vEF'}
 
+        label_documentation = QLabel()
+        label_documentation.setOpenExternalLinks(True)
+        label_documentation.setWordWrap(True)
+        label_documentation.setText('View a registration matrix in <a href="https://napari.org">napari</a>.<br>' +
+                                    'Important: select an image that has not been registered.<br>' +
+                                    'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
         self.input_image = gf.DropFileLineEdit(filetypes=self.imagetypes)
         self.input_image.textChanged.connect(self.input_image_changed)
         browse_image_button = QPushButton("Browse", self)
@@ -265,7 +281,11 @@ class RegistrationViewer(gf.Page):
         self.open_button.clicked.connect(self.open)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
+        groupbox = QGroupBox("Documentation")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(label_documentation)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
         groupbox = QGroupBox("Image (before registration)")
         layout2 = QHBoxLayout()
         layout2.addWidget(self.input_image)
@@ -393,13 +413,21 @@ class MetadataViewer(gf.Page):
         self.matricestypes = ['.txt','.csv']
         self.filetypes = self.imagetypes + self.graphtypes + self.matricestypes
 
+        label_documentation = QLabel()
+        label_documentation.setOpenExternalLinks(True)
+        label_documentation.setWordWrap(True)
+        label_documentation.setText('Display the VLabApp metadata for a file generated with this software. The file can be an image, a segmentation mask, a cell tracking graph or a registration matrix).')
         self.input_file = gf.DropFileLineEdit(filetypes=self.filetypes)
         self.input_file.textChanged.connect(self.input_file_changed)
         browse_file_button = QPushButton("Browse", self)
         browse_file_button.clicked.connect(self.browse_file)
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
+        groupbox = QGroupBox("Documentation")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(label_documentation)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
         groupbox = QGroupBox("File")
         layout2 = QHBoxLayout()
         layout2.addWidget(self.input_file)

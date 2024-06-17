@@ -14,12 +14,15 @@ class CellTracking(QWidget):
 
         self.output_suffix = '_vTG'
         self.mask_suffix = '_vSM'
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
+
 
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
-        label_documentation.setText('<a href="file://'+os.path.join(os.path.dirname(__file__), "doc", "METHODS.html")+'">Methods</a>')
-
-        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
+        label_documentation.setWordWrap(True)
+        label_documentation.setText('For each input segmentation mask, perform cell tracking, save the cell tracking graph and segmentation mask with relabelled cells.<br>'+
+                                    'Input segmentation mask must have X, Y and T axes. The optional input image must have X, Y and T axes and can optionally have C and/or Z axes.<br><br>'+
+                                    'Additional information: <a href="file://'+os.path.join(os.path.dirname(__file__), "doc", "METHODS.html")+'">Methods</a>')
 
         self.mask_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter=self.mask_suffix)
         self.mask_list.file_list_changed.connect(self.mask_list_changed)

@@ -12,14 +12,17 @@ class zProjection(QWidget):
         super().__init__()
 
         self.output_suffix = '_vPR'
+        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
 
         # Documentation
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
-        label_documentation.setText('<a href="file://' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
+        label_documentation.setWordWrap(True)
+        label_documentation.setText('For each input image,  perform a z-stack projection and save the z-projected image.<br>'+
+                                    'Input images must have X, Y and Z axes and can optionally have C and/or T axes.<br><br>'+
+                                    'Additional information: <a href="file://' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
 
         # Input images
-        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
         self.image_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='')
 
         # Output folders
