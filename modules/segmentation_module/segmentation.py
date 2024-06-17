@@ -112,12 +112,12 @@ class Segmentation(QWidget):
 
         # Layout
         layout = QVBoxLayout()
-        groupbox = QGroupBox('Images to process')
+        groupbox = QGroupBox('Input files (images)')
         layout2 = QVBoxLayout()
         layout2.addWidget(self.image_list)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        
+
         groupbox = QGroupBox("Cellpose model")
         layout2 = QVBoxLayout()
         layout3 = QHBoxLayout()

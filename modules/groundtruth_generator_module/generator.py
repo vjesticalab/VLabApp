@@ -47,7 +47,7 @@ class Generator(QWidget):
 
         # Layout
         layout = QVBoxLayout()
-        groupbox = QGroupBox('Images to process')
+        groupbox = QGroupBox('Input files (images)')
         layout2 = QVBoxLayout()
         layout2.addWidget(self.image_list)
         groupbox.setLayout(layout2)

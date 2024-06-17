@@ -24,7 +24,7 @@ class ConfirmExportDialog(QDialog):
         self.setSizeGripEnabled(True)
         self.setWindowTitle('Export')
         layout = QVBoxLayout()
-        message = QLabel('Files to move:')
+        message = QLabel('Files to move')
         message.setWordWrap(True)
         layout.addWidget(message)
         table = QTableWidget()
@@ -98,7 +98,7 @@ class ConfirmRemoveDialog(QDialog):
         self.setSizeGripEnabled(True)
         self.setWindowTitle('Clean')
         layout = QVBoxLayout()
-        message = QLabel('Files to remove:')
+        message = QLabel('Files to remove')
         message.setWordWrap(True)
         layout.addWidget(message)
 

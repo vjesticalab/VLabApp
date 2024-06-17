@@ -116,7 +116,7 @@ class CellTracking(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        groupbox = QGroupBox('Segmentation masks to process')
+        groupbox = QGroupBox('Input files (segmentation masks)')
         layout2 = QVBoxLayout()
         layout2.addWidget(self.mask_list)
         groupbox.setLayout(layout2)
@@ -156,7 +156,7 @@ class CellTracking(QWidget):
         layout2.addRow("Min area:", self.min_area)
         layout2.addRow("Max delta frame:", self.max_delta_frame)
         layout2.addRow("Min overlap fraction:", self.min_overlap_fraction)
-        self.auto_clean = QGroupBox("Automatic cleaning:")
+        self.auto_clean = QGroupBox("Automatic cleaning")
         self.auto_clean.setCheckable(True)
         self.auto_clean.setChecked(True)
         layout3 = QFormLayout()

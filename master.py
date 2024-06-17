@@ -124,14 +124,14 @@ class MainWindow(QWidget):
         
         #tabwizard.addHomePage(Home(page_description))
         tabwizard.addPage(Viewer(), "Viewers")
-        tabwizard.addPage(zProjection(), "Z-Projection")
-        tabwizard.addPage(GTGenerator(), "GroundTruth")
         tabwizard.addPage(Registration(), "Registration")
+        tabwizard.addPage(zProjection(), "Z-Projection")
         tabwizard.addPage(Segmentation(), "Segmentation")
         tabwizard.addPage(CellTracking(), "Cell tracking")
         tabwizard.addPage(GraphFiltering(), "Graph filtering")
         tabwizard.addPage(GraphEventFilter(), "Events filter")
         tabwizard.addPage(FileOrganization(), "File organization")
+        tabwizard.addPage(GTGenerator(), "GroundTruth")
 
         layout = QHBoxLayout()
         self.status_line = QLineEdit()

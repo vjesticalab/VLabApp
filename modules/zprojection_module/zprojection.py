@@ -105,7 +105,7 @@ class zProjection(QWidget):
         layout.addWidget(groupbox)
 
         # Input images
-        groupbox = QGroupBox('Input files')
+        groupbox = QGroupBox('Input files (images)')
         layout2 = QVBoxLayout()
         layout2.addWidget(self.image_list)
         groupbox.setLayout(layout2)
@@ -133,7 +133,7 @@ class zProjection(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        groupbox = QGroupBox("Options:")
+        groupbox = QGroupBox("Options")
         layout2 = QFormLayout()
         # Z-Projection range
         widget = QWidget()

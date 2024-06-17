@@ -22,7 +22,7 @@ class GraphFiltering(QWidget):
 
         self.mask_graph_table = gf.FileTableWidget2(header_1="Mask", header_2="Graph", filenames_suffix_1='.ome.tif', filenames_suffix_2='.graphmlz', filenames_filter=self.celltracking_suffix)
         self.mask_graph_table.file_table_changed.connect(self.mask_graph_table_changed)
-        groupbox = QGroupBox('Segmentation masks and cell tracking graphs to process')
+        groupbox = QGroupBox('Input files (segmentation masks and cell tracking graphs)')
         layout2 = QVBoxLayout()
         layout2.addWidget(self.mask_graph_table)
         groupbox.setLayout(layout2)

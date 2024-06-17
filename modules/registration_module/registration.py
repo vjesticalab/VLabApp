@@ -146,7 +146,7 @@ class Perform(gf.Page):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        groupbox = QGroupBox('Images to process')
+        groupbox = QGroupBox('Input files (images)')
         layout2 = QVBoxLayout()
         layout2.addWidget(self.image_listA)
         groupbox.setLayout(layout2)
