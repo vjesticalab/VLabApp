@@ -12,7 +12,7 @@ from modules.cell_tracking_module.cell_tracking_functions import plot_cell_track
 from modules.registration_module.registration_functions import EditTransformationMatrix, PlotTransformation
 from matplotlib.backend_bases import MouseButton
 
-class ImageMaskGraphViewer(QWidget):
+class ImageMaskGraphViewer(gf.Page):
     def __init__(self):
         super().__init__()
         self.graphtypes = ['.graphmlz']
@@ -41,24 +41,30 @@ class ImageMaskGraphViewer(QWidget):
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
-        layout.addWidget(QLabel("Image:"))
+        groupbox = QGroupBox("Image")
         layout2 = QHBoxLayout()
         layout2.addWidget(self.input_image)
         layout2.addWidget(browse_image_button, alignment=Qt.AlignCenter)
-        layout.addLayout(layout2)
-        layout.addWidget(QLabel("Segmentation mask:"))
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        groupbox = QGroupBox("Segmentation mask")
         layout2 = QHBoxLayout()
         layout2.addWidget(self.input_mask)
         layout2.addWidget(browse_mask_button, alignment=Qt.AlignCenter)
-        layout.addLayout(layout2)
-        layout.addWidget(QLabel("Cell tracking graph:"))
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        groupbox = QGroupBox("Cell tracking graph")
         layout2 = QHBoxLayout()
         layout2.addWidget(self.input_graph)
         layout2.addWidget(browse_graph_button, alignment=Qt.AlignCenter)
-        layout.addLayout(layout2)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
 
         layout.addWidget(self.open_button, alignment=Qt.AlignCenter)
-        self.setLayout(layout)
+
+        self.window = QVBoxLayout(self.container)
+        self.window.addLayout(layout)
+        self.window.addStretch()
 
         self.logger = logging.getLogger(__name__)
 
@@ -234,7 +240,7 @@ class ImageMaskGraphViewer(QWidget):
 
 
 
-class RegistrationViewer(QWidget):
+class RegistrationViewer(gf.Page):
     def __init__(self):
         super().__init__()
         self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
@@ -260,19 +266,24 @@ class RegistrationViewer(QWidget):
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
-        layout.addWidget(QLabel("Image (before registration):"))
+        groupbox = QGroupBox("Image (before registration)")
         layout2 = QHBoxLayout()
         layout2.addWidget(self.input_image)
         layout2.addWidget(browse_image_button, alignment=Qt.AlignCenter)
-        layout.addLayout(layout2)
-        layout.addWidget(QLabel("Registration matrix:"))
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        groupbox = QGroupBox("Registration matrix")
         layout2 = QHBoxLayout()
         layout2.addWidget(self.input_matrix)
         layout2.addWidget(browse_matrix_button, alignment=Qt.AlignCenter)
-        layout.addLayout(layout2)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
 
         layout.addWidget(self.open_button, alignment=Qt.AlignCenter)
-        self.setLayout(layout)
+
+        self.window = QVBoxLayout(self.container)
+        self.window.addLayout(layout)
+        self.window.addStretch()
 
         self.logger = logging.getLogger(__name__)
 
@@ -374,7 +385,7 @@ class RegistrationViewer(QWidget):
         edit_transformation_matrix.tmat_changed.connect(plot_transformation.update)
 
 
-class MetadataViewer(QWidget):
+class MetadataViewer(gf.Page):
     def __init__(self):
         super().__init__()
         self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
@@ -389,11 +400,12 @@ class MetadataViewer(QWidget):
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
-        layout.addWidget(QLabel("File:"))
+        groupbox = QGroupBox("File")
         layout2 = QHBoxLayout()
         layout2.addWidget(self.input_file)
         layout2.addWidget(browse_file_button, alignment=Qt.AlignCenter)
-        layout.addLayout(layout2)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
 
         self.metadata_text = QTextEdit()
         self.metadata_text.setLineWrapMode(QTextEdit.NoWrap)
@@ -402,7 +414,10 @@ class MetadataViewer(QWidget):
         #self.metadata_text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout.addWidget(self.metadata_text,stretch=1)
         layout.addStretch()
-        self.setLayout(layout)
+
+        self.window = QVBoxLayout(self.container)
+        self.window.addLayout(layout)
+        #self.window.addStretch()
 
         self.logger = logging.getLogger(__name__)
 
@@ -465,30 +480,15 @@ class Viewer(QWidget):
     def __init__(self):
         super().__init__()
 
-        layout = QVBoxLayout()
+        window = QVBoxLayout(self)
+        tabwizard = gf.TabWizard()
 
-        # View image, mask and/or cell tracking graph
-        groupbox = QGroupBox("View image, mask and/or cell-tracking graph")
-        layout2 = QVBoxLayout()
-        layout.addWidget(groupbox)
-        layout2.addWidget(ImageMaskGraphViewer())
-        groupbox.setLayout(layout2)
+        tabwizard.addPage(ImageMaskGraphViewer(), "View image, maks and/or graph")
+        tabwizard.addPage(RegistrationViewer(), "View registration matrix")
+        tabwizard.addPage(MetadataViewer(), "View metadata")
 
-        # View registration matrix
-        groupbox = QGroupBox("View registration matrix")
-        layout2 = QVBoxLayout()
-        layout.addWidget(groupbox)
-        layout2.addWidget(RegistrationViewer())
-        groupbox.setLayout(layout2)
+        window.addWidget(tabwizard)
 
-        # View metadata
-        groupbox = QGroupBox("View metadata")
-        layout2 = QVBoxLayout()
-        layout.addWidget(groupbox)
-        layout2.addWidget(MetadataViewer())
-        groupbox.setLayout(layout2)
-
-        self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
 
