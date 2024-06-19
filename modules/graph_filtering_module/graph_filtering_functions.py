@@ -308,11 +308,11 @@ class CellTracksFiltering:
         stable_overlap_fraction: float
             edges are considered as not stable if overlap_fraction_target < `stable_overlap_fraction` or overlap_fraction_source < `stable_overlap_fraction`.
 
-        Returns
+        Notes
         -------
-        list of dict
-            Each element of the list is a dict that correspond to one cell track
-            with the following keys:
+        This function populates the `cell_tracks` attribute.
+        `cell_tracks` is list of dict. Each element of the list is a dict
+        that correspond to one cell track with the following keys:
                 graph_vertices: list of int
                     indices of vertices in the cell track (in `graph`).
                 mask_ids: ndarray
