@@ -332,7 +332,7 @@ class CellTracksFiltering:
                 max_area: int
                      maximum cell area in the cell track.
                 graph_topology: list of int
-                     list of indices. For each index `i` in the list, the cell track is isomorphic to the topology `cell_track_topology[i]`.
+                     list of indices. For each index `i` in the list, the cell track is isomorphic to the topology `graph_topologies[i]`.
         """
         self.logger.debug("evaluating cell tracks")
 
