@@ -4,8 +4,8 @@ import tifffile
 import nd2
 import re
 from aicsimageio.readers import OmeTiffReader
-from PyQt5.QtCore import Qt, pyqtSignal, QSize
-from PyQt5.QtGui import QIcon, QPalette, QBrush, QKeySequence
+from PyQt5.QtCore import Qt, pyqtSignal, QSize, QRect
+from PyQt5.QtGui import QIcon, QPalette, QBrush, QKeySequence, QPainter, QFontMetrics
 from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem, QDialog, QShortcut
 
 import logging
@@ -844,6 +844,21 @@ class DropFileLineEdit(QLineEdit):
                     if self.filetypes is None or len(self.filetypes) == 0 or splitext(filename)[1] in self.filetypes:
                         self.setText(filename)
 
+    def paintEvent(self, event):
+        # reimplement paintEvent to elide placeholder text on the left instead of right.
+        placeholder_text = self.placeholderText()
+        self.setPlaceholderText('')
+        super().paintEvent(event)
+        self.setPlaceholderText(placeholder_text)
+        if not self.text() and self.placeholderText():
+            painter = QPainter(self)
+            painter.setPen(self.palette().placeholderText().color())
+            font_metrics = QFontMetrics(self.font())
+            rect = self.rect()
+            elided_text = font_metrics.elidedText(placeholder_text, Qt.ElideLeft, rect.width()-2)
+            painter.drawText(rect, Qt.AlignLeft | Qt.AlignVCenter, elided_text)
+            painter.end()
+
 
 class DropFolderLineEdit(QLineEdit):
     """
@@ -872,6 +887,21 @@ class DropFolderLineEdit(QLineEdit):
             if url.isLocalFile():
                 if os.path.isdir(url.toLocalFile()):
                     self.setText(url.toLocalFile())
+
+    def paintEvent(self, event):
+        # reimplement paintEvent to elide placeholder text on the left instead of right.
+        placeholder_text = self.placeholderText()
+        self.setPlaceholderText('')
+        super().paintEvent(event)
+        self.setPlaceholderText(placeholder_text)
+        if not self.text() and self.placeholderText():
+            painter = QPainter(self)
+            painter.setPen(self.palette().placeholderText().color())
+            font_metrics = QFontMetrics(self.font())
+            rect = self.rect()
+            elided_text = font_metrics.elidedText(placeholder_text, Qt.ElideLeft, rect.width()-2)
+            painter.drawText(rect, Qt.AlignLeft | Qt.AlignVCenter, elided_text)
+            painter.end()
 
 
 class TabWizard(QTabWidget):
