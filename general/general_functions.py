@@ -821,6 +821,7 @@ class DropFileLineEdit(QLineEdit):
     def __init__(self, parent=None, filetypes=None):
         super().__init__(parent)
         self.setAcceptDrops(True)
+        self.setClearButtonEnabled(True)
         self.filetypes = filetypes
 
     def dragEnterEvent(self, event):
@@ -852,6 +853,7 @@ class DropFolderLineEdit(QLineEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAcceptDrops(True)
+        self.setClearButtonEnabled(True)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls:
