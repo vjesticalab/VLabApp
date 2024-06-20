@@ -11,18 +11,16 @@ class GraphEventFilter(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.output_suffix = '_vEF'
+        self.output_suffix = 'gf.output_suffixes['events_filter']
 
-        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
-        self.graphtypes = ['.graphmlz']
 
         # Browse segmentation mask
-        self.input_mask = gf.DropFileLineEdit(filetypes=self.imagetypes)
+        self.input_mask = gf.DropFileLineEdit(filetypes=gf.imagetypes)
         browse_button1 = QPushButton("Browse", self)
         browse_button1.clicked.connect(self.add_mask)
 
         # Browse cell graph
-        self.input_graph = gf.DropFileLineEdit(filetypes=self.graphtypes)
+        self.input_graph = gf.DropFileLineEdit(filetypes=gf.graphtypes)
         browse_button2 = QPushButton("Browse", self)
         browse_button2.clicked.connect(self.add_graph)
 
@@ -68,7 +66,7 @@ class GraphEventFilter(QWidget):
         self.time_correction.setEnabled(self.button_fusion.isChecked())
         self.button_fusion.toggled.connect(self.time_correction.setEnabled)
         # Browse channel image
-        self.input_chimage = gf.DropFileLineEdit(filetypes=self.imagetypes)
+        self.input_chimage = gf.DropFileLineEdit(filetypes=gf.imagetypes)
         browse_button4 = QPushButton("Browse", self)
         browse_button4.clicked.connect(self.add_chimage)
         self.input_chimage.setEnabled(self.time_correction.isChecked())
@@ -81,14 +79,14 @@ class GraphEventFilter(QWidget):
         self.cropsave.setEnabled(self.button_fusion.isChecked())
         self.button_fusion.toggled.connect(self.cropsave.setEnabled)
         # Browse channel image to crop and BF, not mandatories
-        self.input_chcropimage = gf.DropFileLineEdit(filetypes=self.imagetypes)
+        self.input_chcropimage = gf.DropFileLineEdit(filetypes=gf.imagetypes)
         browse_button5 = QPushButton("Browse", self)
         browse_button5.clicked.connect(self.add_chimage)
         self.input_chcropimage.setEnabled(self.cropsave.isChecked())
         browse_button5.setEnabled(self.cropsave.isChecked())
         self.cropsave.toggled.connect(self.input_chcropimage.setEnabled)
         self.cropsave.toggled.connect(browse_button5.setEnabled)
-        self.input_BFimage = gf.DropFileLineEdit(filetypes=self.imagetypes)
+        self.input_BFimage = gf.DropFileLineEdit(filetypes=gf.imagetypes)
         browse_button6 = QPushButton("Browse", self)
         browse_button6.clicked.connect(self.add_chimage)
         self.input_BFimage.setEnabled(self.cropsave.isChecked())
@@ -210,17 +208,17 @@ class GraphEventFilter(QWidget):
 
     def add_mask(self):
         # Add the selected mask as input
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
         self.input_mask.setText(file_path)
 
     def add_graph(self):
         # Add the selected graph as input
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Cell tracking graphs ('+' '.join(['*'+x for x in self.graphtypes])+')')
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Cell tracking graphs ('+' '.join(['*'+x for x in gf.graphtypes])+')')
         self.input_graph.setText(file_path)
 
     def add_chimage(self):
         # Add the selected mask as input
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
         self.input_chimage.setText(file_path)
 
     def update_output_filename_label(self):

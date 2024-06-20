@@ -11,8 +11,7 @@ class zProjection(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.output_suffix = '_vPR'
-        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
+        self.output_suffix = gf.output_suffixes['zprojection']
 
         # Documentation
         label_documentation = QLabel()
@@ -23,7 +22,7 @@ class zProjection(QWidget):
                                     'Additional information: <a href="file://' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
 
         # Input images
-        self.image_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='')
+        self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='')
 
         # Output folders
         self.use_input_folder = QRadioButton("Use input file folder")

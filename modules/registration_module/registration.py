@@ -18,8 +18,7 @@ class Perform(gf.Page):
     def __init__(self):
         super().__init__()
 
-        self.output_suffix = '_vRG'
-        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
+        self.output_suffix = gf.output_suffixes['registration']
 
 
         ####### Section Registration #######
@@ -31,7 +30,7 @@ class Perform(gf.Page):
                                     'Input images must have X, Y and T axes. Images with additional Z and/or C axis are supported (Z axis will be projected and only the chosen channel with be selected before evaluating the transformation).<br><br>'+
                                     'Additional information: <a href="file://' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
 
-        self.image_listA = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_BF', filenames_exclude_filter=self.output_suffix)
+        self.image_listA = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='_BF', filenames_exclude_filter=self.output_suffix)
         self.channel_position = QLineEdit(placeholderText='eg. 0 (default) / 1 / ...')
         self.channel_position.setMinimumWidth(200)
         self.channel_position.setValidator(QIntValidator())
@@ -390,10 +389,10 @@ class Perform(gf.Page):
             for n, (image_path, output_path, output_basename) in enumerate(zip(image_paths, output_paths, output_basenames)):
                 if status[n] == "Success":
                     tmat_path = os.path.join(output_path, output_basename+'.csv')
-                    # keep files with same unique identifier, extension in self.imagetypes, not already aligned (i.e. filename does not contain self.output_suffix)
+                    # keep files with same unique identifier, extension in gf.imagetypes, not already aligned (i.e. filename does not contain self.output_suffix)
                     unique_identifier = os.path.basename(image_path).split('_')[0]
                     for im in os.listdir(os.path.dirname(image_path)):
-                        if im.startswith(unique_identifier) and not self.output_suffix in im and any(im.endswith(imagetype) for imagetype in self.imagetypes):
+                        if im.startswith(unique_identifier) and not self.output_suffix in im and any(im.endswith(imagetype) for imagetype in gf.imagetypes):
                             coalign_image_path = os.path.join(os.path.dirname(image_path),im)
                             if not coalign_image_path in image_paths:
                                 coalignment_output_basename=gf.splitext(os.path.basename(coalign_image_path))[0] + self.output_suffix + user_suffix
@@ -489,10 +488,7 @@ class Align(gf.Page):
     def __init__(self):
         super().__init__()
 
-        self.output_suffix = '_vRG'
-
-        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
-        self.matricestypes = ['.txt','.csv']
+        self.output_suffix = gf.output_suffixes['registration']
 
         ####### Section Alignment #######
         # Documentation
@@ -503,7 +499,7 @@ class Align(gf.Page):
                                     'The transformation matrix must be in the same folder as the input image. Matching between image and transformation matrix is based on the unique identifier, i.e. part of the filename before the first \"_\"<br>.'+
                                     'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
 
-        self.image_listB = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='', filenames_exclude_filter=self.output_suffix)
+        self.image_listB = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='', filenames_exclude_filter=self.output_suffix)
 
         self.use_input_folder = QRadioButton("Use input image folder")
         self.use_input_folder.setChecked(True)
@@ -615,7 +611,7 @@ class Align(gf.Page):
 
         def get_tmat_paths(image_path):
             #get path with matrix filetype (self.matricestype), containing self.output_suffix and with same unique identifier
-            tmat_paths=[path for path in os.listdir(os.path.dirname(image_path)) if any(path.endswith(matricestype) for matricestype in self.matricestypes) and self.output_suffix in path and os.path.basename(path).split('_')[0] == os.path.basename(image_path).split('_')[0]]
+            tmat_paths=[path for path in os.listdir(os.path.dirname(image_path)) if any(path.endswith(matricestype) for matricestype in gf.matrixtypes) and self.output_suffix in path and os.path.basename(path).split('_')[0] == os.path.basename(image_path).split('_')[0]]
             #sort by path length
             return [os.path.join(os.path.dirname(image_path), path) for path in sorted(tmat_paths, key=len)]
 
@@ -698,8 +694,7 @@ class Edit(gf.Page):
     def __init__(self):
         super().__init__()
 
-        self.output_suffix = '_vRG'
-        self.matricestypes = ['.txt','.csv']
+        self.output_suffix = gf.output_suffixes['registration']
 
         ####### Section Editing #######
         label_documentation = QLabel()
@@ -707,7 +702,7 @@ class Edit(gf.Page):
         label_documentation.setWordWrap(True)
         label_documentation.setText('Modify the start and end point of existing transformation matrices.<br>'+
                                     'To visualize a matrix, double click on its filename in the list')
-        self.matrices_list = gf.FileListWidget(filetypes=self.matricestypes, filenames_filter=self.output_suffix)
+        self.matrices_list = gf.FileListWidget(filetypes=gf.matrixtypes, filenames_filter=self.output_suffix)
         self.matrices_list.file_list_double_clicked.connect(self.display_matrix)
         #self.update_label = QLabel('After double-clicking the matrix, you can update its range', self)
         self.start_timepoint_label = QLabel('New start point:', self)
@@ -796,9 +791,6 @@ class ManualEdit(gf.Page):
     def __init__(self):
         super().__init__()
 
-        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
-        self.matricestypes = ['.txt','.csv']
-
         ####### Section Manual Editing #######
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
@@ -806,10 +798,10 @@ class ManualEdit(gf.Page):
         label_documentation.setText('View and modify an existing transformation matrix in <a href="https://napari.org">napari</a>.<br>' +
                                     'Important: select an image that has not been registered.<br>' +
                                     'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
-        self.input_image = gf.DropFileLineEdit(filetypes=self.imagetypes)
+        self.input_image = gf.DropFileLineEdit(filetypes=gf.imagetypes)
         browse_image_button = QPushButton("Browse", self)
         browse_image_button.clicked.connect(self.browse_image)
-        self.input_matrix = gf.DropFileLineEdit(filetypes=self.matricestypes)
+        self.input_matrix = gf.DropFileLineEdit(filetypes=gf.matrixtypes)
         browse_matrix_button = QPushButton("Browse", self)
         browse_matrix_button.clicked.connect(self.browse_matrix)
         self.button_edit = QPushButton('Edit')
@@ -842,12 +834,12 @@ class ManualEdit(gf.Page):
         self.logger = logging.getLogger(__name__)
 
     def browse_image(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images (' + ' '.join(['*' + x for x in self.imagetypes]) + ')')
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images (' + ' '.join(['*' + x for x in gf.imagetypes]) + ')')
         if file_path != '':
             self.input_image.setText(file_path)
 
     def browse_matrix(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Transformation matrices (' + ' '.join(['*' + x for x in self.matricestypes]) + ')')
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Transformation matrices (' + ' '.join(['*' + x for x in gf.matrixtypes]) + ')')
         if file_path != '':
             self.input_matrix.setText(file_path)
 

@@ -126,14 +126,6 @@ class FileOrganization(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.output_suffixes = { 'zprojection': '_vPR',
-                                 'groundtruth_generator': '_vGT',
-                                 'registration': '_vRG',
-                                 'segmentation': '_vSM',
-                                 'cell_tracking': '_vTG',
-                                 'graph_filtering': '_vGF',
-                                 'events_filter': '_vEF'}
-
         # Documentation
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
@@ -164,13 +156,13 @@ class FileOrganization(QWidget):
 
         #files to export
         self.export_image = QCheckBox('Input image')
-        self.export_zprojection = QCheckBox('Z-projection module output files (*'+self.output_suffixes['zprojection']+')')
-        self.export_groundtruth_generator = QCheckBox('GroundTruth module output files (*'+self.output_suffixes['groundtruth_generator']+')')
-        self.export_registration = QCheckBox('Registration module output files (*'+self.output_suffixes['registration']+')')
-        self.export_segmentation = QCheckBox('Segmentation module output files (*'+self.output_suffixes['segmentation']+')')
-        self.export_cell_tracking = QCheckBox('Cell tracking module output files (*'+self.output_suffixes['cell_tracking']+')')
-        self.export_graph_filtering = QCheckBox('Graph filtering module output files (*'+self.output_suffixes['graph_filtering']+')')
-        self.export_events_filter = QCheckBox('Events filter module output files (*'+self.output_suffixes['events_filter']+')')
+        self.export_zprojection = QCheckBox('Z-projection module output files (*'+gf.output_suffixes['zprojection']+')')
+        self.export_groundtruth_generator = QCheckBox('GroundTruth module output files (*'+gf.output_suffixes['groundtruth_generator']+')')
+        self.export_registration = QCheckBox('Registration module output files (*'+gf.output_suffixes['registration']+')')
+        self.export_segmentation = QCheckBox('Segmentation module output files (*'+gf.output_suffixes['segmentation']+')')
+        self.export_cell_tracking = QCheckBox('Cell tracking module output files (*'+gf.output_suffixes['cell_tracking']+')')
+        self.export_graph_filtering = QCheckBox('Graph filtering module output files (*'+gf.output_suffixes['graph_filtering']+')')
+        self.export_events_filter = QCheckBox('Events filter module output files (*'+gf.output_suffixes['events_filter']+')')
         self.export_intermediate_logs = QCheckBox('Copy intermediate log files')
         self.export_intermediate_logs.setToolTip('Export all log files, including log files corresponding to intermediate files that are not moved')
         self.export_intermediate_logs.setChecked(True)
@@ -180,13 +172,13 @@ class FileOrganization(QWidget):
         self.export_button.clicked.connect(self.export)
 
         #files to clean
-        self.clean_zprojection = QCheckBox('Z-projection module output files (*'+self.output_suffixes['zprojection']+')')
-        self.clean_groundtruth_generator = QCheckBox('GroundTruth module output files (*'+self.output_suffixes['groundtruth_generator']+')')
-        self.clean_registration = QCheckBox('Registration module output files (*'+self.output_suffixes['registration']+')')
-        self.clean_segmentation = QCheckBox('Segmentation module output files (*'+self.output_suffixes['segmentation']+')')
-        self.clean_cell_tracking = QCheckBox('Cell tracking module output files (*'+self.output_suffixes['cell_tracking']+')')
-        self.clean_graph_filtering = QCheckBox('Graph filtering module output files (*'+self.output_suffixes['graph_filtering']+')')
-        self.clean_events_filter = QCheckBox('Events filter module output files (*'+self.output_suffixes['events_filter']+')')
+        self.clean_zprojection = QCheckBox('Z-projection module output files (*'+gf.output_suffixes['zprojection']+')')
+        self.clean_groundtruth_generator = QCheckBox('GroundTruth module output files (*'+gf.output_suffixes['groundtruth_generator']+')')
+        self.clean_registration = QCheckBox('Registration module output files (*'+gf.output_suffixes['registration']+')')
+        self.clean_segmentation = QCheckBox('Segmentation module output files (*'+gf.output_suffixes['segmentation']+')')
+        self.clean_cell_tracking = QCheckBox('Cell tracking module output files (*'+gf.output_suffixes['cell_tracking']+')')
+        self.clean_graph_filtering = QCheckBox('Graph filtering module output files (*'+gf.output_suffixes['graph_filtering']+')')
+        self.clean_events_filter = QCheckBox('Events filter module output files (*'+gf.output_suffixes['events_filter']+')')
         self.clean_keep_intermediate_logs = QCheckBox('Keep intermediate log files')
         self.clean_keep_intermediate_logs.setToolTip('Kepp all log files, including log files corresponding to intermediate files that are removed.')
         self.clean_keep_intermediate_logs.setChecked(True)
@@ -309,19 +301,19 @@ class FileOrganization(QWidget):
 
         patterns = []
         if self.export_zprojection.isChecked():
-            patterns.append(self.output_suffixes['zprojection']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.export_groundtruth_generator.isChecked():
-            patterns.append(self.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.export_registration.isChecked():
-            patterns.append(self.output_suffixes['registration']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['registration']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.export_segmentation.isChecked():
-            patterns.append(self.output_suffixes['segmentation']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['segmentation']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.export_cell_tracking.isChecked():
-            patterns.append(self.output_suffixes['cell_tracking']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['cell_tracking']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.export_graph_filtering.isChecked():
-            patterns.append(self.output_suffixes['graph_filtering']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['graph_filtering']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.export_events_filter.isChecked():
-            patterns.append(self.output_suffixes['events_filter']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['events_filter']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
 
         files_to_export = []
         log_files_to_export = []
@@ -363,19 +355,19 @@ class FileOrganization(QWidget):
 
         patterns = []
         if self.clean_zprojection.isChecked():
-            patterns.append(self.output_suffixes['zprojection']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.clean_groundtruth_generator.isChecked():
-            patterns.append(self.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.clean_registration.isChecked():
-            patterns.append(self.output_suffixes['registration']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['registration']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.clean_segmentation.isChecked():
-            patterns.append(self.output_suffixes['segmentation']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['segmentation']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.clean_cell_tracking.isChecked():
-            patterns.append(self.output_suffixes['cell_tracking']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['cell_tracking']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.clean_graph_filtering.isChecked():
-            patterns.append(self.output_suffixes['graph_filtering']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['graph_filtering']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.clean_events_filter.isChecked():
-            patterns.append(self.output_suffixes['events_filter']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['events_filter']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
 
         files_to_remove = []
         for input_path in input_paths:

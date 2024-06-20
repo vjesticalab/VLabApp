@@ -12,8 +12,7 @@ class Segmentation(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.output_suffix = '_vSM'
-        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
+        self.output_suffix = gf.output_suffixes['segmentation']
 
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
@@ -22,7 +21,7 @@ class Segmentation(QWidget):
                                     'Input images must have X and Y axes and can optionally have C, Z and/or T axes (Z axis will be projected and only the chosen channel with be selected before performing segmentation).<br>'+
                                     'A "cellpose model" can be obtained by finetuning a pretrained cellpose model on a collection of annotated images similar to the input images (see section "Training" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>).')
 
-        self.image_list = gf.FileListWidget(filetypes=self.imagetypes, filenames_filter='_BF')
+        self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='_BF')
         self.image_list.file_list_changed.connect(self.image_list_changed)
 
         self.selected_model = gf.DropFileLineEdit()

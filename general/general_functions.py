@@ -13,6 +13,19 @@ import igraph as ig
 from matplotlib import cm
 import cv2
 
+
+output_suffixes = { 'zprojection': '_vPR',
+                    'groundtruth_generator': '_vGT',
+                    'registration': '_vRG',
+                    'segmentation': '_vSM',
+                    'cell_tracking': '_vTG',
+                    'graph_filtering': '_vGF',
+                    'events_filter': '_vEF'}
+imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
+graphtypes = ['.graphmlz']
+matrixtypes = ['.txt','.csv']
+
+
 def splitext(path):
     """
     Quick and dirty hack based on os.path.splitext() but modified to

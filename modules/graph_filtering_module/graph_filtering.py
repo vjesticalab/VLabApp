@@ -13,9 +13,8 @@ class GraphFiltering(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.output_suffix = '_vGF'
-        self.celltracking_suffix = '_vTG'
-        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
+        self.output_suffix = gf.output_suffixes['graph_filtering']
+        self.celltracking_suffix = gf.output_suffixes['cell_tracking']
 
         layout = QVBoxLayout()
 
@@ -324,7 +323,7 @@ class GraphFiltering(QWidget):
         self.display_results = QGroupBox("Show (and edit) results in napari")
         self.display_results.setCheckable(True)
         self.display_results.setChecked(True)
-        self.input_image = gf.DropFileLineEdit(filetypes=self.imagetypes)
+        self.input_image = gf.DropFileLineEdit(filetypes=gf.imagetypes)
         browse_button1 = QPushButton("Browse", self)
         browse_button1.clicked.connect(self.browse_image)
         layout2 = QVBoxLayout()
@@ -352,7 +351,7 @@ class GraphFiltering(QWidget):
         self.display_results.setEnabled(self.mask_graph_table.rowCount() <= 1)
 
     def browse_image(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
         self.input_image.setText(file_path)
 
     def browse_output(self):

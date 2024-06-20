@@ -11,11 +11,10 @@ class Generator(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.output_suffix = '_vGT'
+        self.output_suffix = gf.output_suffixes['groundtruth_generator']
 
         # Input widgets
-        self.imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
-        self.image_list = gf.FileListWidget(filetypes=self.imagetypes)
+        self.image_list = gf.FileListWidget(filetypes=gf.imagetypes)
         # Output widgets
         self.use_input_folder = QRadioButton("Use input image folder")
         self.use_input_folder.setChecked(True)
