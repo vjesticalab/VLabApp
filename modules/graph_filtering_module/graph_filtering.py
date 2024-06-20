@@ -322,7 +322,7 @@ class GraphFiltering(QWidget):
 
         self.display_results = QGroupBox("Show (and edit) results in napari")
         self.display_results.setCheckable(True)
-        self.display_results.setChecked(True)
+        self.display_results.setChecked(False)
         self.input_image = gf.DropFileLineEdit(filetypes=gf.imagetypes)
         browse_button1 = QPushButton("Browse", self)
         browse_button1.clicked.connect(self.browse_image)
