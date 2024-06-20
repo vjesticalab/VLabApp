@@ -11,7 +11,7 @@ class GraphEventFilter(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.output_suffix = 'gf.output_suffixes['events_filter']
+        self.output_suffix = gf.output_suffixes['events_filter']
 
 
         # Browse segmentation mask

@@ -18,7 +18,7 @@ class Segmentation(QWidget):
         label_documentation.setOpenExternalLinks(True)
         label_documentation.setWordWrap(True)
         label_documentation.setText('For each input image,  perform cell segmentation using <a href="https://www.cellpose.org/">cellpose</a> and save the resulting mask.<br>'+
-                                    'Input images must have X and Y axes and can optionally have C, Z and/or T axes (Z axis will be projected and only the chosen channel with be selected before performing segmentation).<br>'+
+                                    'Input images must have X and Y axes and can optionally have C, Z and/or T axes (Z axis will be projected and only the chosen channel will be selected before performing segmentation).<br>'+
                                     'A "cellpose model" can be obtained by finetuning a pretrained cellpose model on a collection of annotated images similar to the input images (see section "Training" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>).')
 
         self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='_BF')
