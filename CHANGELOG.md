@@ -31,6 +31,7 @@
 * Registration module: log to file.
 * Use .ome.tif file extension for output files instead of using .tif extension (but saving in ome-tif format).
 * Place the "filename must include" and "filename must NOT include" filters in a collapsible widget (FileListWidget and FileTableWidget2).
+* Registration module: use "feature matching (SIFT)"  registration methods by default instead of "stackreg".
 * New viewer for images, masks and/or cell tracking graphs (allow image with more than T,Y,X axes, such as T,C,Z,Y,X).
 * Cell tracking module: when showing results in napari, images with more than T,Y,X axes are allowed (e.g. T,C,Z,Y,X).
 * Reorder tabs.
