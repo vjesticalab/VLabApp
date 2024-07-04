@@ -110,7 +110,7 @@ class Perform(gf.Page):
         self.registration_method.addItem("feature matching (BRISK)")
         self.registration_method.addItem("feature matching (AKAZE)")
         self.registration_method.addItem("feature matching (SIFT)")
-        self.registration_method.setCurrentText("stackreg")
+        self.registration_method.setCurrentText("feature matching (SIFT)")
         self.coalignment_yn_A = QCheckBox("Co-align files with the same unique identifier (part of the filename before the first \"_\")")
         self.skip_cropping_yn_A = QCheckBox("Do NOT crop aligned image")
         self.buttonA = QPushButton("Register")
