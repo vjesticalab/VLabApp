@@ -102,7 +102,11 @@ class zProjection(QWidget):
         # Documentation
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
-        layout2.addWidget(label_documentation)
+        collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
+        collapsible_widget.content.setLayout(QVBoxLayout())
+        collapsible_widget.content.layout().addWidget(label_documentation)
+        collapsible_widget.content.layout().setContentsMargins(0,0,0,0)
+        layout2.addWidget(collapsible_widget)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 

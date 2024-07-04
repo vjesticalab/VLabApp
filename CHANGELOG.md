@@ -35,6 +35,7 @@
 * New viewer for images, masks and/or cell tracking graphs (allow image with more than T,Y,X axes, such as T,C,Z,Y,X).
 * Cell tracking module: when showing results in napari, images with more than T,Y,X axes are allowed (e.g. T,C,Z,Y,X).
 * Reorder tabs.
+* Collapsible documentation sections.
 
 ### Removed
 
