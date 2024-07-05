@@ -52,7 +52,7 @@
 * Set random seed in "feature matching" registration methods for reproducibility.
 * Segmentation module: fix napari progress bar when using CPU.
 * Close log file when leaving events_filter module.
-
+* Graph filtering module: fix evaluation of number of stable frames before/after cell divisions/fusions.
 
 
 ## [v1.5.0] 2024-03-21
