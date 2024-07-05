@@ -18,99 +18,20 @@ from modules.pipeline_module import pipeline
 from general import general_functions as gf
 import multiprocessing as mp
 
-class Home(gf.Page):
-    def __init__(self, page_description):
-        super().__init__()
-        self.window = QFormLayout(self.container)
-        self.title = QLabel('<b>HOME</b>', self)
-        self.title.setFont(QFont('Arial', 18))
-        self.title.setAlignment(Qt.AlignCenter)
-        self.window.addRow(self.title)
-        self.line = QFrame()
-        self.line.setFrameShape(QFrame.HLine)
-        self.window.addRow(self.line)
 
-        self.text = QLabel(page_description, self)
-        self.text.setWordWrap(True)
-        self.window.addRow(self.text)
-
-        
-class Registration(gf.Page):
+class Tools(gf.Page):
     def __init__(self):
         super().__init__()
+
         self.window = QVBoxLayout(self.container)
-        self.window.addWidget(registration.Registration())
+        tabwizard = gf.TabWizard()
+        self.window.addWidget(tabwizard)
+        tabwizard.addPage(gf.Page(widget=viewer.ImageMaskGraphViewer()), "View image, masks and/or graph")
+        tabwizard.addPage(gf.Page(widget=viewer.RegistrationViewer()), "View registration matrix")
+        tabwizard.addPage(gf.Page(widget=viewer.MetadataViewer(), add_stretch=False), "View metadata")
+        tabwizard.addPage(gf.Page(widget=file_organization.FileOrganization()), "File organization")
+        tabwizard.addPage(gf.Page(widget=generator.Generator()), "GroundTruth")
 
-
-class zProjection(gf.Page):
-    def __init__(self):
-        super().__init__()
-        self.window = QVBoxLayout(self.container)
-        self.window.addWidget(zprojection.zProjection())
-        self.window.addStretch()
-
-
-class GTGenerator(gf.Page):
-    def __init__(self):
-        super().__init__()
-        self.window = QVBoxLayout(self.container)
-        self.window.addWidget(generator.Generator())
-        self.window.addStretch()
-   
-
-class Segmentation(gf.Page):
-    def __init__(self):
-        super().__init__()
-        self.window = QVBoxLayout(self.container)
-        self.window.addWidget(segmentation.Segmentation())
-        self.window.addStretch()
-
-
-class CellTracking(gf.Page):
-    def __init__(self):
-        super().__init__()
-        self.window = QVBoxLayout(self.container)
-        self.window.addWidget(cell_tracking.CellTracking())
-        self.window.addStretch()
-
-
-class GraphFiltering(gf.Page):
-    def __init__(self):
-        super().__init__()
-        self.window = QVBoxLayout(self.container)
-        self.window.addWidget(graph_filtering.GraphFiltering())
-        self.window.addStretch()
-
-
-class GraphEventFilter(gf.Page):
-    def __init__(self):
-        super().__init__()
-        self.window = QVBoxLayout(self.container)
-        self.window.addWidget(events_filter.GraphEventFilter())
-        self.window.addStretch()
-
-
-class Viewer(gf.Page):
-    def __init__(self):
-        super().__init__()
-        self.window = QVBoxLayout(self.container)
-        self.window.addWidget(viewer.Viewer())
-        #self.window.addStretch()
-
-
-class FileOrganization(gf.Page):
-    def __init__(self):
-        super().__init__()
-        self.window = QVBoxLayout(self.container)
-        self.window.addWidget(file_organization.FileOrganization())
-        self.window.addStretch()
-
-class Pipeline(gf.Page):
-    def __init__(self):
-        super().__init__()
-        self.window = QVBoxLayout(self.container)
-        self.window.addWidget(pipeline.Pipeline())
-        self.window.addStretch()
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -126,20 +47,15 @@ class MainWindow(QWidget):
         window.addWidget(self.image)
         tabwizard = gf.TabWizard()
         window.addWidget(tabwizard)
-        
-        #page_description = 'The VLabApp is created with the aim of automating the cellular image analysis process, from the recording of the movies that come out of the microscope, to the tracking of the events within each time frame.\n\n\nThe application is in fact divided into several sub-sections that can be used consecutively or automatically:\n\n  - Image Registration\n\n  - GroundTruth Dataset Construction\n\n  - Image Segmentation\n\n  - Event Tracking'
-        
-        #tabwizard.addHomePage(Home(page_description))
-        tabwizard.addPage(Registration(), "Registration")
-        tabwizard.addPage(zProjection(), "Z-Projection")
-        tabwizard.addPage(Segmentation(), "Segmentation")
-        tabwizard.addPage(CellTracking(), "Cell tracking")
-        tabwizard.addPage(GraphFiltering(), "Graph filtering")
-        tabwizard.addPage(GraphEventFilter(), "Events filter")
-        tabwizard.addPage(FileOrganization(), "File organization")
-        tabwizard.addPage(GTGenerator(), "GroundTruth")
-        tabwizard.addPage(Pipeline(), "Pipeline")
-        tabwizard.addPage(Viewer(), "Viewers")
+
+        tabwizard.addPage(gf.Page(widget=registration.Registration(), add_stretch=False), "Registration")
+        tabwizard.addPage(gf.Page(widget=zprojection.zProjection()), "Z-Projection")
+        tabwizard.addPage(gf.Page(widget=segmentation.Segmentation()), "Segmentation")
+        tabwizard.addPage(gf.Page(widget=cell_tracking.CellTracking()), "Cell tracking")
+        tabwizard.addPage(gf.Page(widget=graph_filtering.GraphFiltering()), "Graph filtering")
+        tabwizard.addPage(gf.Page(widget=events_filter.GraphEventFilter()), "Events filter")
+        tabwizard.addPage(gf.Page(widget=pipeline.Pipeline()), "Pipeline")
+        tabwizard.addPage(gf.Page(widget=Tools(), add_stretch=False), "Tools")
 
         layout = QHBoxLayout()
         self.status_line = QLineEdit()

@@ -37,6 +37,7 @@
 * Cell tracking module: when showing results in napari, images with more than T,Y,X axes are allowed (e.g. T,C,Z,Y,X).
 * Reorder tabs.
 * Collapsible documentation sections.
+* Group viewer module, GroundTruth module and File organization module in a new "Tools" tab.
 
 ### Removed
 

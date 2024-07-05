@@ -12,7 +12,7 @@ from modules.cell_tracking_module.cell_tracking_functions import plot_cell_track
 from modules.registration_module.registration_functions import EditTransformationMatrix, PlotTransformation
 from matplotlib.backend_bases import MouseButton
 
-class ImageMaskGraphViewer(gf.Page):
+class ImageMaskGraphViewer(QWidget):
     def __init__(self):
         super().__init__()
 
@@ -39,7 +39,11 @@ class ImageMaskGraphViewer(gf.Page):
         layout = QVBoxLayout()
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
-        layout2.addWidget(label_documentation)
+        collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
+        collapsible_widget.content.setLayout(QVBoxLayout())
+        collapsible_widget.content.layout().addWidget(label_documentation)
+        collapsible_widget.content.layout().setContentsMargins(0,0,0,0)
+        layout2.addWidget(collapsible_widget)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Image")
@@ -63,9 +67,7 @@ class ImageMaskGraphViewer(gf.Page):
 
         layout.addWidget(self.open_button, alignment=Qt.AlignCenter)
 
-        self.window = QVBoxLayout(self.container)
-        self.window.addLayout(layout)
-        self.window.addStretch()
+        self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
 
@@ -241,7 +243,7 @@ class ImageMaskGraphViewer(gf.Page):
 
 
 
-class RegistrationViewer(gf.Page):
+class RegistrationViewer(QWidget):
     def __init__(self):
         super().__init__()
 
@@ -265,7 +267,11 @@ class RegistrationViewer(gf.Page):
         layout = QVBoxLayout()
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
-        layout2.addWidget(label_documentation)
+        collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
+        collapsible_widget.content.setLayout(QVBoxLayout())
+        collapsible_widget.content.layout().addWidget(label_documentation)
+        collapsible_widget.content.layout().setContentsMargins(0,0,0,0)
+        layout2.addWidget(collapsible_widget)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Image (before registration)")
@@ -283,9 +289,7 @@ class RegistrationViewer(gf.Page):
 
         layout.addWidget(self.open_button, alignment=Qt.AlignCenter)
 
-        self.window = QVBoxLayout(self.container)
-        self.window.addLayout(layout)
-        self.window.addStretch()
+        self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
 
@@ -387,7 +391,7 @@ class RegistrationViewer(gf.Page):
         edit_transformation_matrix.tmat_changed.connect(plot_transformation.update)
 
 
-class MetadataViewer(gf.Page):
+class MetadataViewer(QWidget):
     def __init__(self):
         super().__init__()
         self.filetypes = gf.imagetypes + gf.graphtypes + gf.matrixtypes
@@ -404,7 +408,11 @@ class MetadataViewer(gf.Page):
         layout = QVBoxLayout()
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
-        layout2.addWidget(label_documentation)
+        collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
+        collapsible_widget.content.setLayout(QVBoxLayout())
+        collapsible_widget.content.layout().addWidget(label_documentation)
+        collapsible_widget.content.layout().setContentsMargins(0,0,0,0)
+        layout2.addWidget(collapsible_widget)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("File")
@@ -418,13 +426,10 @@ class MetadataViewer(gf.Page):
         self.metadata_text.setLineWrapMode(QTextEdit.NoWrap)
         self.metadata_text.setReadOnly(True)
         self.metadata_text.setVisible(False)
-        #self.metadata_text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout.addWidget(self.metadata_text,stretch=1)
         layout.addStretch()
-
-        self.window = QVBoxLayout(self.container)
-        self.window.addLayout(layout)
-        #self.window.addStretch()
+        
+        self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
 
@@ -490,9 +495,9 @@ class Viewer(QWidget):
         window = QVBoxLayout(self)
         tabwizard = gf.TabWizard()
 
-        tabwizard.addPage(ImageMaskGraphViewer(), "View image, masks and/or graph")
-        tabwizard.addPage(RegistrationViewer(), "View registration matrix")
-        tabwizard.addPage(MetadataViewer(), "View metadata")
+        tabwizard.addPage(gf.Page(widget=ImageMaskGraphViewer()), "View image, masks and/or graph")
+        tabwizard.addPage(gf.Page(widget=RegistrationViewer()), "View registration matrix")
+        tabwizard.addPage(gf.Page(widget=MetadataViewer(), add_stretch=False), "View metadata")
 
         window.addWidget(tabwizard)
 

@@ -340,9 +340,9 @@ class FileTableWidget2(QWidget):
             name of the first column.
         header_2: str
             name of the second column.
-        filename_suffix_1: str
+        filenames_suffix_1: str
             filenames not ending with this text will be ignored (for column 1).
-        filename_suffix_2: str
+        filenames_suffix_2: str
             filenames not ending with this text will be ignored (for column 2).
         filenames_filter: str
             filenames not containing this text will be ignored.
@@ -954,7 +954,7 @@ class TabWizard(QTabWidget):
 class Page(QWidget):
     completeChanged = pyqtSignal()
 
-    def __init__(self, parent=None, widget=None):
+    def __init__(self, parent=None, widget=None, add_stretch=True):
         super().__init__(parent)
         self.container = QWidget()
         lay = QVBoxLayout(self)
@@ -969,7 +969,8 @@ class Page(QWidget):
             layout = QVBoxLayout(self.container)
             layout.setContentsMargins(0,0,0,0)
             layout.addWidget(widget)
-            layout.addStretch()
+            if add_stretch:
+                layout.addStretch()
 
 
 class Image:

@@ -690,7 +690,7 @@ class Align(QWidget):
         if any([len(path) == 0 for path in tmat_paths_all]):
             self.logger.error('Transformation matrix not found for the folling images\n' + "\n".join([image_path for image_path,tmat_path in zip(image_paths,tmat_paths_all) if len(tmat_path) == 0]))
             return False
-        #arbitrarily choose first path
+        #arbitrarily choose first path (shortest)
         tmat_paths =  [paths[0] for paths in tmat_paths_all]
         #check for multiple matches
         if any([len(path) > 1 for path in tmat_paths_all]):
