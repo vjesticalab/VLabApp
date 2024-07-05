@@ -503,6 +503,20 @@ class FileTableWidget2(QWidget):
     def get_file_table(self):
         return [(self.file_table.item(row, 0).text(), self.file_table.item(row, 1).text()) for row in range(self.file_table.rowCount())]
 
+    def set_file_table(self, files):
+        self.file_table.clearContents()
+        self.file_table.setRowCount(0)
+        for f1, f2 in files:
+            self.file_table.insertRow(self.file_table.rowCount())
+            item = QTableWidgetItem(f1)
+            item.setToolTip(f1)
+            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+            self.file_table.setItem(self.file_table.rowCount()-1, 0, item)
+            item = QTableWidgetItem(f2)
+            item.setToolTip(f2)
+            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+            self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
+
 
 class DropFilesListWidget(QListWidget):
     """
@@ -685,6 +699,11 @@ class FileListWidget(QWidget):
     def get_file_list(self):
         return [self.file_list.item(x).text() for x in range(self.file_list.count())]
 
+    def set_file_list(self, files):
+        self.file_list.clear()
+        for f in files:
+            self.file_list.addItem(f)
+
 
 class DropDirsListWidget(QListWidget):
     """
@@ -823,6 +842,7 @@ class DropFileLineEdit(QLineEdit):
         self.setAcceptDrops(True)
         self.setClearButtonEnabled(True)
         self.filetypes = filetypes
+        self.placeholder_text = ''
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls:
@@ -844,18 +864,22 @@ class DropFileLineEdit(QLineEdit):
                     if self.filetypes is None or len(self.filetypes) == 0 or splitext(filename)[1] in self.filetypes:
                         self.setText(filename)
 
+    def placeholderText(self):
+        return self.placeholder_text
+
+    def setPlaceholderText(self, placeholder_text):
+        self.placeholder_text = placeholder_text
+        self.update()
+
     def paintEvent(self, event):
         # reimplement paintEvent to elide placeholder text on the left instead of right.
-        placeholder_text = self.placeholderText()
-        self.setPlaceholderText('')
         super().paintEvent(event)
-        self.setPlaceholderText(placeholder_text)
-        if not self.text() and self.placeholderText():
+        if not self.text() and self.placeholder_text:
             painter = QPainter(self)
             painter.setPen(self.palette().placeholderText().color())
             font_metrics = QFontMetrics(self.font())
             rect = self.rect()
-            elided_text = font_metrics.elidedText(placeholder_text, Qt.ElideLeft, rect.width()-2)
+            elided_text = font_metrics.elidedText(self.placeholder_text, Qt.ElideLeft, rect.width()-2)
             painter.drawText(rect, Qt.AlignLeft | Qt.AlignVCenter, elided_text)
             painter.end()
 
@@ -930,7 +954,7 @@ class TabWizard(QTabWidget):
 class Page(QWidget):
     completeChanged = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, widget=None):
         super().__init__(parent)
         self.container = QWidget()
         lay = QVBoxLayout(self)
@@ -940,6 +964,12 @@ class Page(QWidget):
         scroll.setBackgroundRole(QPalette.Base)
         scroll.setFrameShape(QFrame.NoFrame)
         lay.addWidget(scroll)
+
+        if widget:
+            layout = QVBoxLayout(self.container)
+            layout.setContentsMargins(0,0,0,0)
+            layout.addWidget(widget)
+            layout.addStretch()
 
 
 class Image:

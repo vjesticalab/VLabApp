@@ -8,10 +8,12 @@ from general import general_functions as gf
 
 
 class zProjection(QWidget):
-    def __init__(self):
+    def __init__(self, pipeline_layout=False):
         super().__init__()
 
         self.output_suffix = gf.output_suffixes['zprojection']
+
+        self.pipeline_layout = pipeline_layout
 
         # Documentation
         label_documentation = QLabel()
@@ -33,7 +35,7 @@ class zProjection(QWidget):
         self.use_custom_folder.toggled.connect(self.update_output_filename_label)
         self.output_folder = gf.DropFolderLineEdit()
         self.output_folder.textChanged.connect(self.update_output_filename_label)
-        self.browse_button2 = QPushButton("Browse", self)
+        self.browse_button2 = QPushButton("Browse")
         self.browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setVisible(self.use_custom_folder.isChecked())
         self.browse_button2.setVisible(self.use_custom_folder.isChecked())
@@ -83,7 +85,7 @@ class zProjection(QWidget):
         self.projection_mode_all.setToolTip('Project all Z sections.')
         self.projection_mode_all.toggled.connect(self.update_output_filename_label)
         # Z-Projection type
-        self.projection_type = QComboBox(self)
+        self.projection_type = QComboBox()
         self.projection_type.addItem("max")
         self.projection_type.addItem("min")
         self.projection_type.addItem("mean")
@@ -94,7 +96,7 @@ class zProjection(QWidget):
         self.projection_type.currentTextChanged.connect(self.update_output_filename_label)
         self.projection_mode_bestZ.toggled.connect(self.projection_type.setDisabled)
         # Submit
-        self.submit_button = QPushButton("Submit", self)
+        self.submit_button = QPushButton("Submit")
         self.submit_button.clicked.connect(self.submit)
 
         # Layout
@@ -111,22 +113,25 @@ class zProjection(QWidget):
         layout.addWidget(groupbox)
 
         # Input images
-        groupbox = QGroupBox('Input files (images)')
-        layout2 = QVBoxLayout()
-        layout2.addWidget(self.image_list)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
+        if not self.pipeline_layout:
+            groupbox = QGroupBox('Input files (images)')
+            layout2 = QVBoxLayout()
+            layout2.addWidget(self.image_list)
+            groupbox.setLayout(layout2)
+            layout.addWidget(groupbox)
 
         # Output folders
         groupbox = QGroupBox('Output')
         layout2 = QVBoxLayout()
-        layout2.addWidget(QLabel("Folder:"))
-        layout2.addWidget(self.use_input_folder)
-        layout2.addWidget(self.use_custom_folder)
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.output_folder)
-        layout3.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
+        if not self.pipeline_layout:
+            output_path = "<output folder>"
+            layout2.addWidget(QLabel("Folder:"))
+            layout2.addWidget(self.use_input_folder)
+            layout2.addWidget(self.use_custom_folder)
+            layout3 = QHBoxLayout()
+            layout3.addWidget(self.output_folder)
+            layout3.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
+            layout2.addLayout(layout3)
         layout3 = QFormLayout()
         layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         suffix = QLineEdit(self.output_suffix+"<projection>")
@@ -181,7 +186,9 @@ class zProjection(QWidget):
         layout2.addRow("Projection type:", self.projection_type)
 
         # Submit
-        layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
+        if not self.pipeline_layout:
+            layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
+
         self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
@@ -204,7 +211,9 @@ class zProjection(QWidget):
             self.projection_mode_fixed_zmin.setValue(value)
 
     def update_output_filename_label(self):
-        if self.use_input_folder.isChecked():
+        if self.pipeline_layout:
+            output_path = "<output folder>"
+        elif self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
             output_path = self.output_folder.text().rstrip("/")
@@ -249,6 +258,37 @@ class zProjection(QWidget):
             self.logger.error('Invalid projection_zrange: %s', str(projection_zrange))
             raise TypeError(f"Invalid projection_zrange: {projection_zrange}")
         return output_suffix_reference + output_suffix_range + output_suffix_projection_type
+
+    def get_widgets_state(self):
+        widgets_state = {
+            'image_list': self.image_list.get_file_list(),
+            'use_input_folder': self.use_input_folder.isChecked(),
+            'use_custom_folder': self.use_custom_folder.isChecked(),
+            'output_folder': self.output_folder.text(),
+            'projection_mode_bestZ': self.projection_mode_bestZ.isChecked(),
+            'projection_mode_around_bestZ': self.projection_mode_around_bestZ.isChecked(),
+            'projection_mode_around_bestZ_zrange': self.projection_mode_around_bestZ_zrange.value(),
+            'projection_mode_fixed': self.projection_mode_fixed.isChecked(),
+            'projection_mode_fixed_zmin': self.projection_mode_fixed_zmin.value(),
+            'projection_mode_fixed_zmax': self.projection_mode_fixed_zmax.value(),
+            'projection_mode_all': self.projection_mode_all.isChecked(),
+            'projection_type': self.projection_type.currentText()}
+        return widgets_state
+
+    def set_widgets_state(self, widgets_state):
+        self.image_list.set_file_list(widgets_state['image_list'])
+        self.use_input_folder.setChecked(widgets_state['use_input_folder'])
+        self.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
+        self.output_folder.setText(widgets_state['output_folder'])
+        self.projection_mode_bestZ.setChecked(widgets_state['projection_mode_bestZ'])
+        self.projection_mode_around_bestZ.setChecked(widgets_state['projection_mode_around_bestZ'])
+        self.projection_mode_around_bestZ_zrange.setValue(widgets_state['projection_mode_around_bestZ_zrange'])
+        self.projection_mode_fixed.setChecked(widgets_state['projection_mode_fixed'])
+        self.projection_mode_fixed_zmin.setValue(widgets_state['projection_mode_fixed_zmin'])
+        self.projection_mode_fixed_zmax.setValue(widgets_state['projection_mode_fixed_zmax'])
+        self.projection_mode_all.setChecked(widgets_state['projection_mode_all'])
+        self.projection_type.setCurrentText(widgets_state['projection_type'])
+
 
     def submit(self):
         """

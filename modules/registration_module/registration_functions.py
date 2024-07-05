@@ -611,7 +611,7 @@ def register_stack_feature_matching(image, feature_type="ORB", blur=0, seed=7624
         shift = (0, 0)
         if len(matches) > 3:
             model_robust, inliers = ransac((points1, points2), MoveTransform, min_samples=3,
-                                           residual_threshold=2, max_trials=100,random_state=seed)
+                                           residual_threshold=2, max_trials=100,rng=seed)
             if model_robust is not None:
                 shift = -model_robust.translation
 

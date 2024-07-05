@@ -166,7 +166,7 @@ Note: $N_\text{i}$ is called "Max delta frame (interpolation)" in the GUI and `m
 
 <figure>
   <img src="images/mask_correction_1.png" alt="Mask correction"/>
-  <figcaption>Figure 8: Mask correction. A: mask (overlaid on top of bright-field image) and corresponding cell tracking graph with segmentation errors in time frames 3 and 4 (made-up example). B: distance maps for labelled region 1. All pixels of the distance map at time frame 3 (missing labelled region) are set to minus infinity. C: median distance maps for labelled region 1. D and E: same as B and C but for labelled region 2. F: updated labelled regions 1 and 2 obtained by combining median distance maps. G: original mask (A) after setting labelled regions 1 and 2 to background for selected time frames 3 and 4. H: Final mask (overlaid on top of bright-field image) and corresponding cell tracking graph after merging maks F and G.</figcaption>
+  <figcaption>Figure 8: Mask correction. A: mask (overlaid on top of bright-field image) and corresponding cell tracking graph with segmentation errors in time frames 3 and 4 (made-up example). B: distance maps for labelled region 1. All pixels of the distance map at time frame 3 (missing labelled region) are set to minus infinity. C: median distance maps for labelled region 1. D and E: same as B and C but for labelled region 2. F: updated labelled regions 1 and 2 obtained by combining median distance maps. G: original mask (A) after setting labelled regions 1 and 2 to background for selected time frames 3 and 4. H: Final mask (overlaid on top of bright-field image) and corresponding cell tracking graph after merging masks F and G.</figcaption>
 </figure>
 
 

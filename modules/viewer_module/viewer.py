@@ -490,7 +490,7 @@ class Viewer(QWidget):
         window = QVBoxLayout(self)
         tabwizard = gf.TabWizard()
 
-        tabwizard.addPage(ImageMaskGraphViewer(), "View image, maks and/or graph")
+        tabwizard.addPage(ImageMaskGraphViewer(), "View image, masks and/or graph")
         tabwizard.addPage(RegistrationViewer(), "View registration matrix")
         tabwizard.addPage(MetadataViewer(), "View metadata")
 

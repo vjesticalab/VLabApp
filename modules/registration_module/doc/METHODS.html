@@ -7,9 +7,6 @@
   <title>METHODS</title>
   <style>
 html {
-line-height: 1.5;
-font-family: Georgia, serif;
-font-size: 20px;
 color: #1a1a1a;
 background-color: #fdfdfd;
 }
@@ -28,13 +25,16 @@ font-kerning: normal;
 @media (max-width: 600px) {
 body {
 font-size: 0.9em;
-padding: 1em;
+padding: 12px;
 }
 h1 {
 font-size: 1.8em;
 }
 }
 @media print {
+html {
+background-color: white;
+}
 body {
 background-color: transparent;
 color: black;
@@ -84,9 +84,10 @@ border-left: 2px solid #e6e6e6;
 color: #606060;
 }
 code {
-font-family: Menlo, Monaco, 'Lucida Console', Consolas, monospace;
+font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
 font-size: 85%;
 margin: 0;
+hyphens: manual;
 }
 pre {
 margin: 1em 0;
@@ -151,8 +152,10 @@ span.smallcaps{font-variant: small-caps;}
 div.columns{display: flex; gap: min(4vw, 1.5em);}
 div.column{flex: auto; overflow-x: auto;}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-ul.task-list{list-style: none;}
+
+ul.task-list[class]{list-style: none;}
 ul.task-list li input[type="checkbox"] {
+font-size: inherit;
 width: 0.8em;
 margin: 0 0.8em 0.2em -1.6em;
 vertical-align: middle;
@@ -170,14 +173,14 @@ vertical-align: middle;
 <li><p><strong>StackReg</strong>: Registration using pyStackReg with
 translation transformation. pyStackReg is a Python/C++ port of the
 ImageJ extension TurboReg/StackReg written by Philippe Thevenaz/EPFL [1]
-(<a href="http://bigwww.epfl.ch/thevenaz/turboreg/"><a href="http://bigwww.epfl.ch/thevenaz/turboreg/">http://bigwww.epfl.ch/thevenaz/turboreg/</a></a>).</p></li>
+(<a href="http://bigwww.epfl.ch/thevenaz/turboreg/"><span>http://bigwww.epfl.ch/thevenaz/turboreg/</span></a>).</p></li>
 <li><p><strong>Phase correlation</strong>: Registration using the phase
 correlation method implemented in OpenCV (function
 <code>phaseCorrelate()</code>), which uses the Fourrier shift theorem to
-detect translational shift in the frequency domain (see <a href="https://en.wikipedia.org/wiki/Phase_correlation"><a href="https://en.wikipedia.org/wiki/Phase_correlation">https://en.wikipedia.org/wiki/Phase_correlation</a></a>).
+detect translational shift in the frequency domain (see <a href="https://en.wikipedia.org/wiki/Phase_correlation"><span>https://en.wikipedia.org/wiki/Phase_correlation</span></a>).
 This method fast, but tend to fail when there too many non-moving
 artefacts are present in the image (e.g. dust).</p></li>
-<li><p><strong>Feature matching</strong>: Four varians of the &quot;feature
+<li><p><strong>Feature matching</strong>: Four variants of the &quot;feature
 matching&quot; registration methods are available (ORB, BRISK, AKAZE and
 SIFT). In this method, registration is performed in three steps:</p>
 <ol type="1">
@@ -212,10 +215,10 @@ slowest: ORB, BRISK, AKAZE, SIFT.</p></li>
 </ul>
 <h2 id="implementation">Implementation</h2>
 <ul>
-<li>Python (<a href="https://www.python.org/"><a href="https://www.python.org/">https://www.python.org/</a></a>).</li>
-<li>OpenCV (<a href="https://opencv.org/"><a href="https://opencv.org/">https://opencv.org/</a></a>).</li>
-<li>pyStackReg (<a href="https://github.com/glichtner/pystackreg"><a href="https://github.com/glichtner/pystackreg">https://github.com/glichtner/pystackreg</a></a>).</li>
-<li>scikit-image (<a href="https://scikit-image.org/"><a href="https://scikit-image.org/">https://scikit-image.org/</a></a>)</li>
+<li>Python (<a href="https://www.python.org/"><span>https://www.python.org/</span></a>).</li>
+<li>OpenCV (<a href="https://opencv.org/"><span>https://opencv.org/</span></a>).</li>
+<li>pyStackReg (<a href="https://github.com/glichtner/pystackreg"><span>https://github.com/glichtner/pystackreg</span></a>).</li>
+<li>scikit-image (<a href="https://scikit-image.org/"><span>https://scikit-image.org/</span></a>)</li>
 </ul>
 <h2 id="references">References</h2>
 <p>[1] P. Thevenaz, U. E. Ruttimann and M. Unser (1998). A pyramid

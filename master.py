@@ -14,6 +14,7 @@ from modules.graph_filtering_module import graph_filtering
 from modules.events_filter_module import events_filter
 from modules.viewer_module import viewer
 from modules.file_organization_module import file_organization
+from modules.pipeline_module import pipeline
 from general import general_functions as gf
 import multiprocessing as mp
 
@@ -104,6 +105,12 @@ class FileOrganization(gf.Page):
         self.window.addWidget(file_organization.FileOrganization())
         self.window.addStretch()
 
+class Pipeline(gf.Page):
+    def __init__(self):
+        super().__init__()
+        self.window = QVBoxLayout(self.container)
+        self.window.addWidget(pipeline.Pipeline())
+        self.window.addStretch()
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -123,7 +130,6 @@ class MainWindow(QWidget):
         #page_description = 'The VLabApp is created with the aim of automating the cellular image analysis process, from the recording of the movies that come out of the microscope, to the tracking of the events within each time frame.\n\n\nThe application is in fact divided into several sub-sections that can be used consecutively or automatically:\n\n  - Image Registration\n\n  - GroundTruth Dataset Construction\n\n  - Image Segmentation\n\n  - Event Tracking'
         
         #tabwizard.addHomePage(Home(page_description))
-        tabwizard.addPage(Viewer(), "Viewers")
         tabwizard.addPage(Registration(), "Registration")
         tabwizard.addPage(zProjection(), "Z-Projection")
         tabwizard.addPage(Segmentation(), "Segmentation")
@@ -132,6 +138,8 @@ class MainWindow(QWidget):
         tabwizard.addPage(GraphEventFilter(), "Events filter")
         tabwizard.addPage(FileOrganization(), "File organization")
         tabwizard.addPage(GTGenerator(), "GroundTruth")
+        tabwizard.addPage(Pipeline(), "Pipeline")
+        tabwizard.addPage(Viewer(), "Viewers")
 
         layout = QHBoxLayout()
         self.status_line = QLineEdit()

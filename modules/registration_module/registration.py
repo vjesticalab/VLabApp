@@ -14,12 +14,13 @@ import concurrent.futures
 
 matplotlib.use("Qt5Agg")
 
-class Perform(gf.Page):
-    def __init__(self):
+class Perform(QWidget):
+    def __init__(self, pipeline_layout=False):
         super().__init__()
 
         self.output_suffix = gf.output_suffixes['registration']
 
+        self.pipeline_layout = pipeline_layout
 
         ####### Section Registration #######
         # Documentation
@@ -44,7 +45,7 @@ class Perform(gf.Page):
         self.use_custom_folder.toggled.connect(self.update_output_filename_label)
         self.output_folder = gf.DropFolderLineEdit()
         self.output_folder.textChanged.connect(self.update_output_filename_label)
-        browse_button2 = QPushButton("Browse", self)
+        browse_button2 = QPushButton("Browse")
         browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setVisible(self.use_custom_folder.isChecked())
         browse_button2.setVisible(self.use_custom_folder.isChecked())
@@ -95,7 +96,7 @@ class Perform(gf.Page):
         self.projection_mode_all.setChecked(False)
         self.projection_mode_all.setToolTip('Project all Z sections.')
         # Z-Projection type
-        self.projection_type = QComboBox(self)
+        self.projection_type = QComboBox()
         self.projection_type.addItem("max")
         self.projection_type.addItem("min")
         self.projection_type.addItem("mean")
@@ -105,7 +106,7 @@ class Perform(gf.Page):
         self.projection_type.setDisabled(self.projection_mode_bestZ.isChecked())
         self.projection_mode_bestZ.toggled.connect(self.projection_type.setDisabled)
         # registration method
-        self.registration_method = QComboBox(self)
+        self.registration_method = QComboBox()
         self.registration_method.addItem("stackreg")
         self.registration_method.addItem("phase correlation")
         self.registration_method.addItem("feature matching (ORB)")
@@ -152,21 +153,23 @@ class Perform(gf.Page):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        groupbox = QGroupBox('Input files (images)')
-        layout2 = QVBoxLayout()
-        layout2.addWidget(self.image_listA)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
+        if not self.pipeline_layout:
+            groupbox = QGroupBox('Input files (images)')
+            layout2 = QVBoxLayout()
+            layout2.addWidget(self.image_listA)
+            groupbox.setLayout(layout2)
+            layout.addWidget(groupbox)
 
         groupbox = QGroupBox("Output")
         layout2 = QVBoxLayout()
-        layout2.addWidget(QLabel("Folder:"))
-        layout2.addWidget(self.use_input_folder)
-        layout2.addWidget(self.use_custom_folder)
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.output_folder)
-        layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
+        if not self.pipeline_layout:
+            layout2.addWidget(QLabel("Folder:"))
+            layout2.addWidget(self.use_input_folder)
+            layout2.addWidget(self.use_custom_folder)
+            layout3 = QHBoxLayout()
+            layout3.addWidget(self.output_folder)
+            layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
+            layout2.addLayout(layout3)
         layout3 = QFormLayout()
         layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout4 = QHBoxLayout()
@@ -256,22 +259,71 @@ class Perform(gf.Page):
         layout3.addRow(self.coalignment_yn_A)
         layout3.addRow(self.skip_cropping_yn_A)
         groupbox.setLayout(layout3)
-
         layout.addWidget(groupbox)
-        groupbox = QGroupBox("Multi-processing")
-        layout2 = QFormLayout()
-        layout2.addRow(n_count_label,self.n_count)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
-        layout.addWidget(self.buttonA, alignment=Qt.AlignCenter)
 
-        self.window = QVBoxLayout(self.container)
-        self.window.addLayout(layout)
-        self.window.addStretch()
+        if not self.pipeline_layout:
+            groupbox = QGroupBox("Multi-processing")
+            layout2 = QFormLayout()
+            layout2.addRow(n_count_label,self.n_count)
+            groupbox.setLayout(layout2)
+            layout.addWidget(groupbox)
+            layout.addWidget(self.buttonA, alignment=Qt.AlignCenter)
+
+        self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
 
         self.update_output_filename_label()
+
+    def get_widgets_state(self):
+        widgets_state = {
+            'image_listA': self.image_listA.get_file_list(),
+            'use_input_folder': self.use_input_folder.isChecked(),
+            'use_custom_folder': self.use_custom_folder.isChecked(),
+            'output_folder': self.output_folder.text(),
+            'output_user_suffix': self.output_user_suffix.text(),
+            'channel_position': self.channel_position.text(),
+            'projection_mode_bestZ': self.projection_mode_bestZ.isChecked(),
+            'projection_mode_around_bestZ': self.projection_mode_around_bestZ.isChecked(),
+            'projection_mode_around_bestZ_zrange': self.projection_mode_around_bestZ_zrange.value(),
+            'projection_mode_fixed': self.projection_mode_fixed.isChecked(),
+            'projection_mode_fixed_zmin': self.projection_mode_fixed_zmin.value(),
+            'projection_mode_fixed_zmax': self.projection_mode_fixed_zmax.value(),
+            'projection_mode_all': self.projection_mode_all.isChecked(),
+            'projection_type': self.projection_type.currentText(),
+            'time_mode_all': self.time_mode_all.isChecked(),
+            'time_mode_fixed': self.time_mode_fixed.isChecked(),
+            'time_mode_fixed_tmin': self.time_mode_fixed_tmin.value(),
+            'time_mode_fixed_tmax': self.time_mode_fixed_tmax.value(),
+            'registration_method': self.registration_method.currentText(),
+            'coalignment_yn_A': self.coalignment_yn_A.isChecked(),
+            'skip_cropping_yn_A': self.skip_cropping_yn_A.isChecked(),
+            'n_count': self.n_count.value()}
+        return widgets_state
+
+    def set_widgets_state(self, widgets_state):
+        self.image_listA.set_file_list(widgets_state['image_listA'])
+        self.use_input_folder.setChecked(widgets_state['use_input_folder'])
+        self.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
+        self.output_folder.setText(widgets_state['output_folder'])
+        self.output_user_suffix.setText(widgets_state['output_user_suffix'])
+        self.channel_position.setText(widgets_state['channel_position'])
+        self.projection_mode_bestZ.setChecked(widgets_state['projection_mode_bestZ'])
+        self.projection_mode_around_bestZ.setChecked(widgets_state['projection_mode_around_bestZ'])
+        self.projection_mode_around_bestZ_zrange.setValue(widgets_state['projection_mode_around_bestZ_zrange'])
+        self.projection_mode_fixed.setChecked(widgets_state['projection_mode_fixed'])
+        self.projection_mode_fixed_zmin.setValue(widgets_state['projection_mode_fixed_zmin'])
+        self.projection_mode_fixed_zmax.setValue(widgets_state['projection_mode_fixed_zmax'])
+        self.projection_mode_all.setChecked(widgets_state['projection_mode_all'])
+        self.projection_type.setCurrentText(widgets_state['projection_type'])
+        self.time_mode_all.setChecked(widgets_state['time_mode_all'])
+        self.time_mode_fixed.setChecked(widgets_state['time_mode_fixed'])
+        self.time_mode_fixed_tmin.setValue(widgets_state['time_mode_fixed_tmin'])
+        self.time_mode_fixed_tmax.setValue(widgets_state['time_mode_fixed_tmax'])
+        self.registration_method.setCurrentText(widgets_state['registration_method'])
+        self.coalignment_yn_A.setChecked(widgets_state['coalignment_yn_A'])
+        self.skip_cropping_yn_A.setChecked(widgets_state['skip_cropping_yn_A'])
+        self.n_count.setValue(widgets_state['n_count'])
 
     def register(self):
         """
@@ -488,7 +540,7 @@ class Perform(gf.Page):
             self.time_mode_fixed_tmin.setValue(value)
 
 
-class Align(gf.Page):
+class Align(QWidget):
     def __init__(self):
         super().__init__()
 
@@ -581,10 +633,8 @@ class Align(gf.Page):
         layout.addWidget(groupbox)
         layout.addWidget(self.buttonB, alignment=Qt.AlignCenter)
 
-        self.window = QVBoxLayout(self.container)
-        self.window.addLayout(layout)
-        self.window.addStretch()
-
+        self.setLayout(layout)
+        
         self.logger = logging.getLogger(__name__)
 
         self.update_output_filename_label()
@@ -698,7 +748,7 @@ class Align(gf.Page):
             logging.getLogger().addHandler(messagebox_error_handler)
 
 
-class Edit(gf.Page):
+class Edit(QWidget):
     def __init__(self):
         super().__init__()
 
@@ -744,9 +794,8 @@ class Edit(gf.Page):
         layout3.addWidget(self.end_timepoint_edit, 0, 3)
         layout.addLayout(layout3)
         layout.addWidget(self.buttonC, alignment=Qt.AlignCenter)
-        self.window = QVBoxLayout(self.container)
-        self.window.addLayout(layout)
-        self.window.addStretch()
+
+        self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
 
@@ -799,7 +848,7 @@ class Edit(gf.Page):
         self.display_graph.show()
 
 
-class ManualEdit(gf.Page):
+class ManualEdit(QWidget):
     def __init__(self):
         super().__init__()
 
@@ -843,9 +892,8 @@ class ManualEdit(gf.Page):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         layout.addWidget(self.button_edit, alignment=Qt.AlignCenter)
-        self.window = QVBoxLayout(self.container)
-        self.window.addLayout(layout)
-        self.window.addStretch()
+
+        self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
 
@@ -904,10 +952,10 @@ class Registration(QWidget):
         window = QVBoxLayout(self)
         tabwizard = gf.TabWizard()
 
-        tabwizard.addPage(Perform(), "Registration")
-        tabwizard.addPage(Align(), "Alignment")
-        tabwizard.addPage(Edit(), "Editing (batch)")
-        tabwizard.addPage(ManualEdit(), "Editing (manual)")
+        tabwizard.addPage(gf.Page(widget=Perform()), "Registration")
+        tabwizard.addPage(gf.Page(widget=Align()), "Alignment")
+        tabwizard.addPage(gf.Page(widget=Edit()), "Editing (batch)")
+        tabwizard.addPage(gf.Page(widget=ManualEdit()), "Editing (manual)")
 
         window.addWidget(tabwizard)
 

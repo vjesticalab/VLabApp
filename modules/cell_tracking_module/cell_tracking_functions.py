@@ -195,7 +195,7 @@ def clean_mask(mask, cell_tracking_graph, max_delta_frame_interpolation=3, nfram
     Returns
     -------
     list of tuples
-        Each each tuple corresponds to a defect (maks_ids,frame_start,frame_end)
+        Each each tuple corresponds to a defect (masks_ids,frame_start,frame_end)
         involving a list of mask ids (mask_ids) in the frame interval [frame_start,frame_end)
     """
     logger = logging.getLogger(__name__)
@@ -709,7 +709,7 @@ class CellTrackingGraph:
         Returns
         -------
         list of tuples
-            Each each tuple corresponds to a defect (maks_ids, frame_start, frame_end) 
+            Each each tuple corresponds to a defect (masks_ids, frame_start, frame_end) 
             involving a list of mask ids (mask_ids) in the frame interval [frame_start, frame_end)
         """
 

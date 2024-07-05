@@ -10,11 +10,13 @@ from general import general_functions as gf
 
 
 class GraphFiltering(QWidget):
-    def __init__(self):
+    def __init__(self, pipeline_layout=False):
         super().__init__()
 
         self.output_suffix = gf.output_suffixes['graph_filtering']
         self.celltracking_suffix = gf.output_suffixes['cell_tracking']
+
+        self.pipeline_layout = pipeline_layout
 
         layout = QVBoxLayout()
 
@@ -35,11 +37,12 @@ class GraphFiltering(QWidget):
 
         self.mask_graph_table = gf.FileTableWidget2(header_1="Mask", header_2="Graph", filenames_suffix_1='.ome.tif', filenames_suffix_2='.graphmlz', filenames_filter=self.celltracking_suffix)
         self.mask_graph_table.file_table_changed.connect(self.mask_graph_table_changed)
-        groupbox = QGroupBox('Input files (segmentation masks and cell tracking graphs)')
-        layout2 = QVBoxLayout()
-        layout2.addWidget(self.mask_graph_table)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
+        if not self.pipeline_layout:
+            groupbox = QGroupBox('Input files (segmentation masks and cell tracking graphs)')
+            layout2 = QVBoxLayout()
+            layout2.addWidget(self.mask_graph_table)
+            groupbox.setLayout(layout2)
+            layout.addWidget(groupbox)
 
         self.use_input_folder = QRadioButton("Use input mask and graph folder")
         self.use_input_folder.setChecked(True)
@@ -49,7 +52,7 @@ class GraphFiltering(QWidget):
         self.use_custom_folder.toggled.connect(self.update_output_filename_label)
         self.output_folder = gf.DropFolderLineEdit()
         self.output_folder.textChanged.connect(self.update_output_filename_label)
-        browse_button2 = QPushButton("Browse", self)
+        browse_button2 = QPushButton("Browse")
         browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setVisible(self.use_custom_folder.isChecked())
         browse_button2.setVisible(self.use_custom_folder.isChecked())
@@ -69,13 +72,14 @@ class GraphFiltering(QWidget):
         self.output_filename_label2.textChanged.connect(self.output_filename_label2.setToolTip)
         groupbox = QGroupBox("Output")
         layout2 = QVBoxLayout()
-        layout2.addWidget(QLabel("Folder:"))
-        layout2.addWidget(self.use_input_folder)
-        layout2.addWidget(self.use_custom_folder)
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.output_folder)
-        layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
+        if not self.pipeline_layout:
+            layout2.addWidget(QLabel("Folder:"))
+            layout2.addWidget(self.use_input_folder)
+            layout2.addWidget(self.use_custom_folder)
+            layout3 = QHBoxLayout()
+            layout3.addWidget(self.output_folder)
+            layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
+            layout2.addLayout(layout3)
         layout3 = QFormLayout()
         layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout4 = QHBoxLayout()
@@ -328,20 +332,22 @@ class GraphFiltering(QWidget):
         self.display_results.setCheckable(True)
         self.display_results.setChecked(False)
         self.input_image = gf.DropFileLineEdit(filetypes=gf.imagetypes)
-        browse_button1 = QPushButton("Browse", self)
+        browse_button1 = QPushButton("Browse")
         browse_button1.clicked.connect(self.browse_image)
-        layout2 = QVBoxLayout()
-        layout2.addWidget(QLabel("Input image:"))
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.input_image)
-        layout3.addWidget(browse_button1, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
-        self.display_results.setLayout(layout2)
-        layout.addWidget(self.display_results)
+        if not self.pipeline_layout:
+            layout2 = QVBoxLayout()
+            layout2.addWidget(QLabel("Input image:"))
+            layout3 = QHBoxLayout()
+            layout3.addWidget(self.input_image)
+            layout3.addWidget(browse_button1, alignment=Qt.AlignCenter)
+            layout2.addLayout(layout3)
+            self.display_results.setLayout(layout2)
+            layout.addWidget(self.display_results)
 
-        self.submit_button = QPushButton("Submit", self)
+        self.submit_button = QPushButton("Submit")
         self.submit_button.clicked.connect(self.submit)
-        layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
+        if not self.pipeline_layout:
+            layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
 
@@ -370,6 +376,71 @@ class GraphFiltering(QWidget):
 
         self.output_filename_label1.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
         self.output_filename_label2.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".graphmlz"))
+
+    def get_widgets_state(self):
+        widgets_state = {
+            'mask_graph_table': self.mask_graph_table.get_file_table(),
+            'use_input_folder': self.use_input_folder.isChecked(),
+            'use_custom_folder': self.use_custom_folder.isChecked(),
+            'output_folder': self.output_folder.text(),
+            'output_user_suffix': self.output_user_suffix.text(),
+            'filter_border_yn': self.filter_border_yn.isChecked(),
+            'border_width': self.border_width.value(),
+            'filter_all_cells_area_yn': self.filter_all_cells_area_yn.isChecked(),
+            'all_cells_min_area': self.all_cells_min_area.value(),
+            'all_cells_max_area': self.all_cells_max_area.value(),
+            'filter_one_cell_area_yn': self.filter_one_cell_area_yn.isChecked(),
+            'one_cell_min_area': self.one_cell_min_area.value(),
+            'one_cell_max_area': self.one_cell_max_area.value(),
+            'filter_track_length_yn': self.filter_track_length_yn.isChecked(),
+            'nframes': self.nframes.value(),
+            'filter_n_missing_yn': self.filter_n_missing_yn.isChecked(),
+            'nmissing': self.nmissing.value(),
+            'filter_n_divisions_yn': self.filter_n_divisions_yn.isChecked(),
+            'min_ndivisions': self.min_ndivisions.value(),
+            'max_ndivisions': self.max_ndivisions.value(),
+            'nframes_stable_division': self.nframes_stable_division.value(),
+            'filter_n_fusions_yn': self.filter_n_fusions_yn.isChecked(),
+            'min_nfusions': self.min_nfusions.value(),
+            'max_nfusions': self.max_nfusions.value(),
+            'nframes_stable_fusion': self.nframes_stable_fusion.value(),
+            'filter_topology_yn': self.filter_topology_yn.isChecked(),
+            'topologies': [t.isChecked() for t in self.topology_yn],
+            'input_image': self.input_image.text(),
+            'display_results': self.display_results.isChecked()}
+        return widgets_state
+
+    def set_widgets_state(self, widgets_state):
+        self.mask_graph_table.set_file_table(widgets_state['mask_graph_table'])
+        self.use_input_folder.setChecked(widgets_state['use_input_folder'])
+        self.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
+        self.output_folder.setText(widgets_state['output_folder'])
+        self.output_user_suffix.setText(widgets_state['output_user_suffix'])
+        self.filter_border_yn.setChecked(widgets_state['filter_border_yn'])
+        self.border_width.setValue(widgets_state['border_width'])
+        self.filter_all_cells_area_yn.setChecked(widgets_state['filter_all_cells_area_yn'])
+        self.all_cells_min_area.setValue(widgets_state['all_cells_min_area'])
+        self.all_cells_max_area.setValue(widgets_state['all_cells_max_area'])
+        self.filter_one_cell_area_yn.setChecked(widgets_state['filter_one_cell_area_yn'])
+        self.one_cell_min_area.setValue(widgets_state['one_cell_min_area'])
+        self.one_cell_max_area.setValue(widgets_state['one_cell_max_area'])
+        self.filter_track_length_yn.setChecked(widgets_state['filter_track_length_yn'])
+        self.nframes.setValue(widgets_state['nframes'])
+        self.filter_n_missing_yn.setChecked(widgets_state['filter_n_missing_yn'])
+        self.nmissing.setValue(widgets_state['nmissing'])
+        self.filter_n_divisions_yn.setChecked(widgets_state['filter_n_divisions_yn'])
+        self.min_ndivisions.setValue(widgets_state['min_ndivisions'])
+        self.max_ndivisions.setValue(widgets_state['max_ndivisions'])
+        self.nframes_stable_division.setValue(widgets_state['nframes_stable_division'])
+        self.filter_n_fusions_yn.setChecked(widgets_state['filter_n_fusions_yn'])
+        self.min_nfusions.setValue(widgets_state['min_nfusions'])
+        self.max_nfusions.setValue(widgets_state['max_nfusions'])
+        self.nframes_stable_fusion.setValue(widgets_state['nframes_stable_fusion'])
+        self.filter_topology_yn.setChecked(widgets_state['filter_topology_yn'])
+        for i, checked in enumerate(widgets_state['topologies']):
+            self.topology_yn[i].setChecked(checked)
+        self.input_image.setText(widgets_state['input_image'])
+        self.display_results.setChecked(widgets_state['display_results'])
 
     def submit(self):
         if self.input_image.isEnabled():

@@ -7,12 +7,15 @@ from modules.segmentation_module import segmentation_functions as f
 from general import general_functions as gf
 import torch
 import concurrent
+from cellpose.core import assign_device
 
 class Segmentation(QWidget):
-    def __init__(self):
+    def __init__(self, pipeline_layout=False):
         super().__init__()
 
         self.output_suffix = gf.output_suffixes['segmentation']
+
+        self.pipeline_layout = pipeline_layout
 
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
@@ -20,12 +23,12 @@ class Segmentation(QWidget):
         label_documentation.setText('For each input image,  perform cell segmentation using <a href="https://www.cellpose.org/">cellpose</a> and save the resulting mask.<br>'+
                                     'Input images must have X and Y axes and can optionally have C, Z and/or T axes (Z axis will be projected and only the chosen channel will be selected before performing segmentation).<br>'+
                                     'A "cellpose model" can be obtained by finetuning a pretrained cellpose model on a collection of annotated images similar to the input images (see section "Training" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>).')
-
+        
         self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='_BF')
         self.image_list.file_list_changed.connect(self.image_list_changed)
 
         self.selected_model = gf.DropFileLineEdit()
-        self.browse_button = QPushButton("Browse", self)
+        self.browse_button = QPushButton("Browse")
         self.browse_button.clicked.connect(self.browse_model)
 
         self.use_input_folder = QRadioButton("Use input image folder")
@@ -36,7 +39,7 @@ class Segmentation(QWidget):
         self.use_custom_folder.toggled.connect(self.update_output_filename_label)
         self.output_folder = gf.DropFolderLineEdit()
         self.output_folder.textChanged.connect(self.update_output_filename_label)
-        self.browse_button2 = QPushButton("Browse", self)
+        self.browse_button2 = QPushButton("Browse")
         self.browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setVisible(self.use_custom_folder.isChecked())
         self.browse_button2.setVisible(self.use_custom_folder.isChecked())
@@ -87,7 +90,7 @@ class Segmentation(QWidget):
         self.projection_mode_all.setChecked(False)
         self.projection_mode_all.setToolTip('Project all Z sections.')
         # Z-Projection type
-        self.projection_type = QComboBox(self)
+        self.projection_type = QComboBox()
         self.projection_type.addItem("max")
         self.projection_type.addItem("min")
         self.projection_type.addItem("mean")
@@ -98,7 +101,9 @@ class Segmentation(QWidget):
         self.projection_mode_bestZ.toggled.connect(self.projection_type.setDisabled)
 
         self.use_gpu = QCheckBox("Activate GPU")
-        self.use_gpu.setChecked(False)
+        device, gpu = assign_device(gpu=True)
+        self.use_gpu.setChecked(gpu)
+        self.use_gpu.setEnabled(gpu)
         self.coarse_grain = QCheckBox("Activate coarse grain parallelisation")
         self.coarse_grain.setChecked(False)
         self.n_count = QSpinBox()
@@ -113,7 +118,7 @@ class Segmentation(QWidget):
 
         self.display_results = QCheckBox("Show results in napari")
         self.display_results.setChecked(False)
-        self.submit_button = QPushButton("Submit", self)
+        self.submit_button = QPushButton("Submit")
         self.submit_button.clicked.connect(self.submit)
 
         # Layout
@@ -128,11 +133,12 @@ class Segmentation(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        groupbox = QGroupBox('Input files (images)')
-        layout2 = QVBoxLayout()
-        layout2.addWidget(self.image_list)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
+        if not self.pipeline_layout:
+            groupbox = QGroupBox('Input files (images)')
+            layout2 = QVBoxLayout()
+            layout2.addWidget(self.image_list)
+            groupbox.setLayout(layout2)
+            layout.addWidget(groupbox)
 
         groupbox = QGroupBox("Cellpose model")
         layout2 = QVBoxLayout()
@@ -142,16 +148,17 @@ class Segmentation(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        
+
         groupbox = QGroupBox("Output")
         layout2 = QVBoxLayout()
-        layout2.addWidget(QLabel("Folder:"))
-        layout2.addWidget(self.use_input_folder)
-        layout2.addWidget(self.use_custom_folder)
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.output_folder)
-        layout3.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
+        if not self.pipeline_layout:
+            layout2.addWidget(QLabel("Folder:"))
+            layout2.addWidget(self.use_input_folder)
+            layout2.addWidget(self.use_custom_folder)
+            layout3 = QHBoxLayout()
+            layout3.addWidget(self.output_folder)
+            layout3.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
+            layout2.addLayout(layout3)
         layout3 = QFormLayout()
         layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout4 = QHBoxLayout()
@@ -216,17 +223,19 @@ class Segmentation(QWidget):
         groupbox.setLayout(layout3)
         layout.addWidget(groupbox)
 
-        groupbox = QGroupBox("Multi-processing")
-        layout2 = QVBoxLayout()
-        layout2.addWidget(self.use_gpu)
-        layout2.addWidget(self.coarse_grain)
-        layout3 = QFormLayout()
-        layout3.addRow(n_count_label,self.n_count)
-        layout2.addLayout(layout3)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
-        layout.addWidget(self.display_results)
-        layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
+        if not self.pipeline_layout:
+            groupbox = QGroupBox("Multi-processing")
+            layout2 = QVBoxLayout()
+            layout2.addWidget(self.use_gpu)
+            layout2.addWidget(self.coarse_grain)
+            layout3 = QFormLayout()
+            layout3.addRow(n_count_label,self.n_count)
+            layout2.addLayout(layout3)
+            groupbox.setLayout(layout2)
+            layout.addWidget(groupbox)
+            layout.addWidget(self.display_results)
+            layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
+
         self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
@@ -255,7 +264,9 @@ class Segmentation(QWidget):
         self.output_folder.setText(folder_path)
 
     def update_output_filename_label(self):
-        if self.use_input_folder.isChecked():
+        if self.pipeline_layout:
+            output_path = "<output folder>"
+        elif self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
             output_path = self.output_folder.text().rstrip("/")
@@ -269,6 +280,50 @@ class Segmentation(QWidget):
     def projection_mode_fixed_zmax_changed(self, value):
         if self.projection_mode_fixed_zmin.value() > value:
             self.projection_mode_fixed_zmin.setValue(value)
+
+    def get_widgets_state(self):
+        widgets_state = {
+            'image_list': self.image_list.get_file_list(),
+            'use_input_folder': self.use_input_folder.isChecked(),
+            'use_custom_folder': self.use_custom_folder.isChecked(),
+            'output_folder': self.output_folder.text(),
+            'selected_model': self.selected_model.text(),
+            'output_user_suffix': self.output_user_suffix.text(),
+            'channel_position': self.channel_position.text(),
+            'projection_mode_bestZ': self.projection_mode_bestZ.isChecked(),
+            'projection_mode_around_bestZ': self.projection_mode_around_bestZ.isChecked(),
+            'projection_mode_around_bestZ_zrange': self.projection_mode_around_bestZ_zrange.value(),
+            'projection_mode_fixed': self.projection_mode_fixed.isChecked(),
+            'projection_mode_fixed_zmin': self.projection_mode_fixed_zmin.value(),
+            'projection_mode_fixed_zmax': self.projection_mode_fixed_zmax.value(),
+            'projection_mode_all': self.projection_mode_all.isChecked(),
+            'projection_type': self.projection_type.currentText(),
+            'use_gpu': self.use_gpu.isChecked(),
+            'coarse_grain': self.coarse_grain.isChecked(),
+            'n_count': self.n_count.value(),
+            'display_results': self.display_results.isChecked()}
+        return widgets_state
+
+    def set_widgets_state(self, widgets_state):
+        self.image_list.set_file_list(widgets_state['image_list'])
+        self.use_input_folder.setChecked(widgets_state['use_input_folder'])
+        self.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
+        self.output_folder.setText(widgets_state['output_folder'])
+        self.selected_model.setText(widgets_state['selected_model'])
+        self.output_user_suffix.setText(widgets_state['output_user_suffix'])
+        self.channel_position.setText(widgets_state['channel_position'])
+        self.projection_mode_bestZ.setChecked(widgets_state['projection_mode_bestZ'])
+        self.projection_mode_around_bestZ.setChecked(widgets_state['projection_mode_around_bestZ'])
+        self.projection_mode_around_bestZ_zrange.setValue(widgets_state['projection_mode_around_bestZ_zrange'])
+        self.projection_mode_fixed.setChecked(widgets_state['projection_mode_fixed'])
+        self.projection_mode_fixed_zmin.setValue(widgets_state['projection_mode_fixed_zmin'])
+        self.projection_mode_fixed_zmax.setValue(widgets_state['projection_mode_fixed_zmax'])
+        self.projection_mode_all.setChecked(widgets_state['projection_mode_all'])
+        self.projection_type.setCurrentText(widgets_state['projection_type'])
+        self.use_gpu.setChecked(widgets_state['use_gpu'])
+        self.coarse_grain.setChecked(widgets_state['coarse_grain'])
+        self.n_count.setValue(widgets_state['n_count'])
+        self.display_results.setChecked(widgets_state['display_results'])
 
     def submit(self):
         """

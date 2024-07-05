@@ -9,12 +9,13 @@ from general import general_functions as gf
 
 
 class CellTracking(QWidget):
-    def __init__(self):
+    def __init__(self, pipeline_layout=False):
         super().__init__()
 
         self.output_suffix = gf.output_suffixes['cell_tracking']
         self.mask_suffix = gf.output_suffixes['segmentation']
 
+        self.pipeline_layout = pipeline_layout
 
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
@@ -34,7 +35,7 @@ class CellTracking(QWidget):
         self.use_custom_folder.toggled.connect(self.update_output_filename_label)
         self.output_folder = gf.DropFolderLineEdit()
         self.output_folder.textChanged.connect(self.update_output_filename_label)
-        browse_button2 = QPushButton("Browse", self)
+        browse_button2 = QPushButton("Browse")
         browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setVisible(self.use_custom_folder.isChecked())
         browse_button2.setVisible(self.use_custom_folder.isChecked())
@@ -105,10 +106,10 @@ class CellTracking(QWidget):
         self.display_results.setChecked(False)
 
         self.input_image = gf.DropFileLineEdit(filetypes=gf.imagetypes)
-        browse_button1 = QPushButton("Browse", self)
+        browse_button1 = QPushButton("Browse")
         browse_button1.clicked.connect(self.add_image)
 
-        self.submit_button = QPushButton("Submit", self)
+        self.submit_button = QPushButton("Submit")
         self.submit_button.clicked.connect(self.submit)
 
         layout = QVBoxLayout()
@@ -122,21 +123,23 @@ class CellTracking(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        groupbox = QGroupBox('Input files (segmentation masks)')
-        layout2 = QVBoxLayout()
-        layout2.addWidget(self.mask_list)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
+        if not self.pipeline_layout:
+            groupbox = QGroupBox('Input files (segmentation masks)')
+            layout2 = QVBoxLayout()
+            layout2.addWidget(self.mask_list)
+            groupbox.setLayout(layout2)
+            layout.addWidget(groupbox)
 
         groupbox = QGroupBox("Output")
         layout2 = QVBoxLayout()
-        layout2.addWidget(QLabel("Folder:"))
-        layout2.addWidget(self.use_input_folder)
-        layout2.addWidget(self.use_custom_folder)
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.output_folder)
-        layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
+        if not self.pipeline_layout:
+            layout2.addWidget(QLabel("Folder:"))
+            layout2.addWidget(self.use_input_folder)
+            layout2.addWidget(self.use_custom_folder)
+            layout3 = QHBoxLayout()
+            layout3.addWidget(self.output_folder)
+            layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
+            layout2.addLayout(layout3)
         layout3 = QFormLayout()
         layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout4 = QHBoxLayout()
@@ -175,16 +178,17 @@ class CellTracking(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        layout2 = QVBoxLayout()
-        layout2.addWidget(QLabel("Input image:"))
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.input_image)
-        layout3.addWidget(browse_button1, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
-        self.display_results.setLayout(layout2)
-        layout.addWidget(self.display_results)
+        if not self.pipeline_layout:
+            layout2 = QVBoxLayout()
+            layout2.addWidget(QLabel("Input image:"))
+            layout3 = QHBoxLayout()
+            layout3.addWidget(self.input_image)
+            layout3.addWidget(browse_button1, alignment=Qt.AlignCenter)
+            layout2.addLayout(layout3)
+            self.display_results.setLayout(layout2)
+            layout.addWidget(self.display_results)
+            layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
 
-        layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
@@ -235,6 +239,42 @@ class CellTracking(QWidget):
 
         self.output_filename_label1.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
         self.output_filename_label2.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".graphmlz"))
+
+    def get_widgets_state(self):
+        widgets_state = {
+            'mask_list': self.mask_list.get_file_list(),
+            'use_input_folder': self.use_input_folder.isChecked(),
+            'use_custom_folder': self.use_custom_folder.isChecked(),
+            'output_folder': self.output_folder.text(),
+            'output_user_suffix': self.output_user_suffix.text(),
+            'min_area': self.min_area.value(),
+            'max_delta_frame': self.max_delta_frame.value(),
+            'min_overlap_fraction': self.min_overlap_fraction.value(),
+            'auto_clean': self.auto_clean.isChecked(),
+            'stable_overlap_fraction': self.stable_overlap_fraction.value(),
+            'nframes_defect': self.nframes_defect.value(),
+            'max_delta_frame_interpolation': self.max_delta_frame_interpolation.value(),
+            'nframes_stable': self.nframes_stable.value(),
+            'input_image': self.input_image.text(),
+            'display_results': self.display_results.isChecked()}
+        return widgets_state
+
+    def set_widgets_state(self, widgets_state):
+        self.mask_list.set_file_list(widgets_state['mask_list'])
+        self.use_input_folder.setChecked(widgets_state['use_input_folder'])
+        self.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
+        self.output_folder.setText(widgets_state['output_folder'])
+        self.output_user_suffix.setText(widgets_state['output_user_suffix'])
+        self.min_area.setValue(widgets_state['min_area'])
+        self.max_delta_frame.setValue(widgets_state['max_delta_frame'])
+        self.min_overlap_fraction.setValue(widgets_state['min_overlap_fraction'])
+        self.auto_clean.setChecked(widgets_state['auto_clean'])
+        self.stable_overlap_fraction.setValue(widgets_state['stable_overlap_fraction'])
+        self.nframes_defect.setValue(widgets_state['nframes_defect'])
+        self.max_delta_frame_interpolation.setValue(widgets_state['max_delta_frame_interpolation'])
+        self.nframes_stable.setValue(widgets_state['nframes_stable'])
+        self.input_image.setText(widgets_state['input_image'])
+        self.display_results.setChecked(widgets_state['display_results'])
 
     def submit(self):
         """

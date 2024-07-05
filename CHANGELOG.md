@@ -13,6 +13,7 @@
 * Viewer module: new registration matrix viewer.
 * Viewer module: new metadata viewer.
 * Add a minimal documentation for all modules.
+* Add a new "pipeline" module.
 
 ### Changed
 
