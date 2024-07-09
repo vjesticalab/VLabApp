@@ -100,11 +100,16 @@ class ListView(QListView):
         dropped_item_text = source_model.data(event.source().selectionModel().selectedRows()[0], Qt.DisplayRole)
         dropped_item_data = source_model.data(event.source().selectionModel().selectedRows()[0], Qt.UserRole+1)
         self.allowed_drop_positions = []  # drop before item i (at the end if i==rowCount())
-        # check that there is not more than max_count items with same dropped_item_text
         if event.source() != self:
+            # check that there is not more than max_count items with same dropped_item_text
             if 'max_count' in dropped_item_data:
                 count = len([i for i in range(self.model().rowCount()) if self.model().data(self.model().index(i, 0), Qt.DisplayRole) == dropped_item_text])
                 if count >= dropped_item_data['max_count']:
+                    super().dragEnterEvent(event)
+                    return
+            # check that there is no conflicting module
+            if 'conflict' in dropped_item_data:
+                if any(self.model().data(self.model().index(i, 0), Qt.DisplayRole) in dropped_item_data['conflict'] for i in range(self.model().rowCount())):
                     super().dragEnterEvent(event)
                     return
 
@@ -190,8 +195,8 @@ class ItemDelegate(QStyledItemDelegate):
         self.draw_links = draw_links
         default_font_height = QFontMetrics(QFont()).height()
         self.port_types = ['image', 'mask', 'graph', 'matrix']
-        self.w = default_font_height*10
-        self.h = default_font_height*6
+        self.w = default_font_height*9
+        self.h = default_font_height*7
         self.outer_margin = round(5*default_font_height/18)
         self.inner_margin = round(5*default_font_height/18)
         self.rounding_radius = round(5*default_font_height/18)
@@ -226,7 +231,7 @@ class ItemDelegate(QStyledItemDelegate):
         rect_title = QRect(rect_item.left(),
                            rect_item.top(),
                            rect_item.width(),
-                           round(title_font_size_factor*painter.fontMetrics().height()+2*self.inner_margin))
+                           round(title_font_size_factor*1.6*painter.fontMetrics().height()+2*self.inner_margin))
         if option.state & QStyle.State_Selected:
             painter.setBrush(option.palette.highlight())
             painter.setPen(QPen(option.palette.highlight(), 1, Qt.SolidLine))
@@ -337,6 +342,9 @@ class GeneralSettings(QWidget):
         # Input masks & graph
         self.mask_graph_table = gf.FileTableWidget2(header_1="Mask", header_2="Graph", filenames_suffix_1='.ome.tif', filenames_suffix_2='.graphmlz', filenames_filter=gf.output_suffixes['cell_tracking'])
 
+        # Input masks & graph
+        self.image_matrix_table = gf.ImageMatrixTableWidget2(filenames_filter='', filenames_exclude_filter=gf.output_suffixes['registration'])
+
         # Output folders
         self.use_input_folder = QRadioButton("Use input file folder")
         self.use_input_folder.setChecked(True)
@@ -369,7 +377,6 @@ class GeneralSettings(QWidget):
         collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
         collapsible_widget.content.setLayout(QVBoxLayout())
         collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0,0,0,0)
         layout2.addWidget(collapsible_widget)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -408,6 +415,14 @@ class GeneralSettings(QWidget):
         self.input_masks_graphs_groupbox.setVisible(self.input_type == 'mask_graph')
         layout.addWidget(self.input_masks_graphs_groupbox)
 
+        # Input images & matrices
+        self.input_images_matrices_groupbox = QGroupBox('Input files (images and registration matrices)')
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.image_matrix_table)
+        self.input_images_matrices_groupbox.setLayout(layout2)
+        self.input_images_matrices_groupbox.setVisible(self.input_type == 'image_matrix')
+        layout.addWidget(self.input_images_matrices_groupbox)
+
         # Output folders
         groupbox = QGroupBox('Output')
         layout2 = QVBoxLayout()
@@ -444,6 +459,7 @@ class GeneralSettings(QWidget):
         self.input_images_groupbox.setVisible(self.input_type == 'image')
         self.input_masks_groupbox.setVisible(self.input_type == 'mask')
         self.input_masks_graphs_groupbox.setVisible(self.input_type == 'mask_graph')
+        self.input_images_matrices_groupbox.setVisible(self.input_type == 'image_matrix')
 
     def get_widgets_state(self):
         widgets_state = {
@@ -455,7 +471,8 @@ class GeneralSettings(QWidget):
             'output_folder': self.output_folder.text(),
             'image_list': self.image_list.get_file_list() if self.input_type == 'image' else [],
             'mask_list': self.mask_list.get_file_list() if self.input_type == 'mask' else [],
-            'mask_graph_list': self.mask_graph_table.get_file_table() if self.input_type == 'mask_graph' else []}
+            'mask_graph_table': self.mask_graph_table.get_file_table() if self.input_type == 'mask_graph' else [],
+            'image_matrix_table': self.image_matrix_table.get_file_table() if self.input_type == 'image_matrix' else []}
         return widgets_state
 
     def set_widgets_state(self, widgets_state):
@@ -467,7 +484,8 @@ class GeneralSettings(QWidget):
         self.output_folder.setText(widgets_state['output_folder'])
         self.image_list.set_file_list(widgets_state['image_list'])
         self.mask_list.set_file_list(widgets_state['mask_list'])
-        self.mask_graph_table.set_file_table(widgets_state['mask_graph_list'])
+        self.mask_graph_table.set_file_table(widgets_state['mask_graph_table'])
+        self.image_matrix_table.set_file_table(widgets_state['image_matrix_table'])
 
 
 class StatusTableDialog(QDialog):

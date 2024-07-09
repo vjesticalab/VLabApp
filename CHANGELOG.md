@@ -38,6 +38,7 @@
 * Reorder tabs.
 * Collapsible documentation sections.
 * Group viewer module, GroundTruth module and File organization module in a new "Tools" tab.
+* Registration module (Alignment tab): replace list of images by a table showing images and matching matrices.
 
 ### Removed
 

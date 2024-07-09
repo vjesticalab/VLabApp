@@ -1,8 +1,7 @@
 import os
 from PyQt5.QtCore import Qt, QRegExp
-from PyQt5.QtWidgets import QCheckBox, QComboBox, QFormLayout, QPushButton, QVBoxLayout, QWidget, QGridLayout, QLabel, QLineEdit, QHBoxLayout, QApplication, QSpinBox, QRadioButton, QGroupBox, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QCheckBox, QComboBox, QFormLayout, QPushButton, QVBoxLayout, QWidget, QGridLayout, QLabel, QLineEdit, QHBoxLayout, QApplication, QSpinBox, QRadioButton, QGroupBox, QFileDialog
 from PyQt5.QtGui import QCursor, QIntValidator, QRegExpValidator
-from functools import partial
 import numpy as np
 import logging
 import matplotlib
@@ -13,6 +12,7 @@ from general import general_functions as gf
 import concurrent.futures
 
 matplotlib.use("Qt5Agg")
+
 
 class Perform(QWidget):
     def __init__(self, pipeline_layout=False):
@@ -27,11 +27,11 @@ class Perform(QWidget):
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
         label_documentation.setWordWrap(True)
-        label_documentation.setText('For each input image, estimate the shift between consecutive time frames, apply the resulting transformation matrix to the input image. Save the transformation matrix and the registered image.<br>'+
-                                    'Input images must have X, Y and T axes. Images with additional Z and/or C axis are supported (Z axis will be projected and only the chosen channel will be selected before evaluating the transformation).<br><br>'+
+        label_documentation.setText('For each input image, estimate the shift between consecutive time frames, apply the resulting transformation matrix to the input image. Save the transformation matrix and the registered image.<br>' +
+                                    'Input images must have X, Y and T axes. Images with additional Z and/or C axis are supported (Z axis will be projected and only the chosen channel will be selected before evaluating the transformation).<br><br>' +
                                     'Additional information: <a href="file://' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
 
-        self.image_listA = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='_BF', filenames_exclude_filter=self.output_suffix)
+        self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='_BF', filenames_exclude_filter=self.output_suffix)
         self.channel_position = QLineEdit(placeholderText='eg. 0 (default) / 1 / ...')
         self.channel_position.setMinimumWidth(200)
         self.channel_position.setValidator(QIntValidator())
@@ -114,15 +114,15 @@ class Perform(QWidget):
         self.registration_method.addItem("feature matching (AKAZE)")
         self.registration_method.addItem("feature matching (SIFT)")
         self.registration_method.setCurrentText("feature matching (SIFT)")
-        self.coalignment_yn_A = QCheckBox("Co-align files with the same unique identifier (part of the filename before the first \"_\")")
-        self.skip_cropping_yn_A = QCheckBox("Do NOT crop aligned image")
+        self.coalignment_yn = QCheckBox("Co-align files with the same unique identifier (part of the filename before the first \"_\")")
+        self.skip_cropping_yn = QCheckBox("Do NOT crop aligned image")
         self.buttonA = QPushButton("Register")
         self.buttonA.clicked.connect(self.register)
         self.n_count = QSpinBox()
         self.n_count.setMinimum(1)
         self.n_count.setMaximum(os.cpu_count())
         self.n_count.setValue(1)
-        n_count_label=QLabel("Number of processes:")
+        n_count_label = QLabel("Number of processes:")
 
         # T-range
         # all
@@ -137,8 +137,6 @@ class Perform(QWidget):
         self.time_mode_fixed_tmax = QSpinBox()
         self.time_mode_fixed_tmax.setMinimum(0)
         self.time_mode_fixed_tmax.valueChanged.connect(self.time_mode_fixed_tmax_changed)
-        
-
 
         # Layout
         layout = QVBoxLayout()
@@ -148,7 +146,7 @@ class Perform(QWidget):
         collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
         collapsible_widget.content.setLayout(QVBoxLayout())
         collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0,0,0,0)
+        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
         layout2.addWidget(collapsible_widget)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -156,7 +154,7 @@ class Perform(QWidget):
         if not self.pipeline_layout:
             groupbox = QGroupBox('Input files (images)')
             layout2 = QVBoxLayout()
-            layout2.addWidget(self.image_listA)
+            layout2.addWidget(self.image_list)
             groupbox.setLayout(layout2)
             layout.addWidget(groupbox)
 
@@ -196,7 +194,7 @@ class Perform(QWidget):
         layout3.setFormAlignment(Qt.AlignLeft)
         groupbox2 = QGroupBox("If multiple channels:")
         layout4 = QFormLayout()
-        layout4.addRow("Channel position:",self.channel_position)
+        layout4.addRow("Channel position:", self.channel_position)
         groupbox2.setLayout(layout4)
         layout3.addRow(groupbox2)
 
@@ -212,7 +210,7 @@ class Perform(QWidget):
         groupbox3.setVisible(self.projection_mode_around_bestZ.isChecked())
         self.projection_mode_around_bestZ.toggled.connect(groupbox3.setVisible)
         layout6 = QFormLayout()
-        layout6.addRow("Range:",self.projection_mode_around_bestZ_zrange)
+        layout6.addRow("Range:", self.projection_mode_around_bestZ_zrange)
         groupbox3.setLayout(layout6)
         layout5.addWidget(groupbox3)
         layout5.addWidget(self.projection_mode_fixed)
@@ -222,17 +220,17 @@ class Perform(QWidget):
         self.projection_mode_fixed.toggled.connect(groupbox3.setVisible)
         layout6 = QHBoxLayout()
         layout7 = QFormLayout()
-        layout7.addRow("From:",self.projection_mode_fixed_zmin)
+        layout7.addRow("From:", self.projection_mode_fixed_zmin)
         layout6.addLayout(layout7)
         layout7 = QFormLayout()
-        layout7.addRow("To:",self.projection_mode_fixed_zmax)
+        layout7.addRow("To:", self.projection_mode_fixed_zmax)
         layout6.addLayout(layout7)
         groupbox3.setLayout(layout6)
         layout5.addWidget(groupbox3)
         layout5.addWidget(self.projection_mode_all)
         widget.setLayout(layout5)
-        layout4.addRow("Projection range:",widget)
-        layout4.addRow("Projection type:",self.projection_type)
+        layout4.addRow("Projection range:", widget)
+        layout4.addRow("Projection type:", self.projection_type)
         groupbox2.setLayout(layout4)
         layout3.addRow(groupbox2)
 
@@ -246,25 +244,25 @@ class Perform(QWidget):
         self.time_mode_fixed.toggled.connect(groupboxt1.setVisible)
         layout9 = QHBoxLayout()
         layout10 = QFormLayout()
-        layout10.addRow("From:",self.time_mode_fixed_tmin)
+        layout10.addRow("From:", self.time_mode_fixed_tmin)
         layout9.addLayout(layout10)
         layout10 = QFormLayout()
-        layout10.addRow("To:",self.time_mode_fixed_tmax)
+        layout10.addRow("To:", self.time_mode_fixed_tmax)
         layout9.addLayout(layout10)
         groupboxt1.setLayout(layout9)
         layout8.addWidget(groupboxt1)
         layout3.addRow(groupbox2)
 
-        layout3.addRow("Registration method:",self.registration_method)
-        layout3.addRow(self.coalignment_yn_A)
-        layout3.addRow(self.skip_cropping_yn_A)
+        layout3.addRow("Registration method:", self.registration_method)
+        layout3.addRow(self.coalignment_yn)
+        layout3.addRow(self.skip_cropping_yn)
         groupbox.setLayout(layout3)
         layout.addWidget(groupbox)
 
         if not self.pipeline_layout:
             groupbox = QGroupBox("Multi-processing")
             layout2 = QFormLayout()
-            layout2.addRow(n_count_label,self.n_count)
+            layout2.addRow(n_count_label, self.n_count)
             groupbox.setLayout(layout2)
             layout.addWidget(groupbox)
             layout.addWidget(self.buttonA, alignment=Qt.AlignCenter)
@@ -277,7 +275,7 @@ class Perform(QWidget):
 
     def get_widgets_state(self):
         widgets_state = {
-            'image_listA': self.image_listA.get_file_list(),
+            'image_list': self.image_list.get_file_list(),
             'use_input_folder': self.use_input_folder.isChecked(),
             'use_custom_folder': self.use_custom_folder.isChecked(),
             'output_folder': self.output_folder.text(),
@@ -296,13 +294,13 @@ class Perform(QWidget):
             'time_mode_fixed_tmin': self.time_mode_fixed_tmin.value(),
             'time_mode_fixed_tmax': self.time_mode_fixed_tmax.value(),
             'registration_method': self.registration_method.currentText(),
-            'coalignment_yn_A': self.coalignment_yn_A.isChecked(),
-            'skip_cropping_yn_A': self.skip_cropping_yn_A.isChecked(),
+            'coalignment_yn': self.coalignment_yn.isChecked(),
+            'skip_cropping_yn': self.skip_cropping_yn.isChecked(),
             'n_count': self.n_count.value()}
         return widgets_state
 
     def set_widgets_state(self, widgets_state):
-        self.image_listA.set_file_list(widgets_state['image_listA'])
+        self.image_list.set_file_list(widgets_state['image_list'])
         self.use_input_folder.setChecked(widgets_state['use_input_folder'])
         self.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
         self.output_folder.setText(widgets_state['output_folder'])
@@ -321,8 +319,8 @@ class Perform(QWidget):
         self.time_mode_fixed_tmin.setValue(widgets_state['time_mode_fixed_tmin'])
         self.time_mode_fixed_tmax.setValue(widgets_state['time_mode_fixed_tmax'])
         self.registration_method.setCurrentText(widgets_state['registration_method'])
-        self.coalignment_yn_A.setChecked(widgets_state['coalignment_yn_A'])
-        self.skip_cropping_yn_A.setChecked(widgets_state['skip_cropping_yn_A'])
+        self.coalignment_yn.setChecked(widgets_state['coalignment_yn'])
+        self.skip_cropping_yn.setChecked(widgets_state['skip_cropping_yn'])
         self.n_count.setValue(widgets_state['n_count'])
 
     def register(self):
@@ -343,7 +341,7 @@ class Perform(QWidget):
                     return False
             return True
 
-        image_paths = self.image_listA.get_file_list()
+        image_paths = self.image_list.get_file_list()
 
         # Arianna 26/07/23: added the three options channel_name, channel_position, projection_type
         # Arianna 06/03/24: added the time points option
@@ -357,18 +355,20 @@ class Perform(QWidget):
             projection_zrange = (self.projection_mode_fixed_zmin.value(), self.projection_mode_fixed_zmax.value())
         elif self.projection_mode_all.isChecked():
             projection_zrange = None
-        
+
         if self.time_mode_fixed.isChecked():
             timepoint_range = (self.time_mode_fixed_tmin.value(), self.time_mode_fixed_tmax.value())
         else:
             timepoint_range = None
-        
-        registration_method = self.registration_method.currentText()
-        coalignment = self.coalignment_yn_A.isChecked()
-        skip_crop_decision = self.skip_cropping_yn_A.isChecked()
 
-        if channel_position == '': channel_position = 0
-        else: channel_position = int(channel_position)
+        registration_method = self.registration_method.currentText()
+        coalignment = self.coalignment_yn.isChecked()
+        skip_crop_decision = self.skip_cropping_yn.isChecked()
+
+        if channel_position == '':
+            channel_position = 0
+        else:
+            channel_position = int(channel_position)
 
         if not check_inputs(image_paths):
             return
@@ -396,7 +396,7 @@ class Perform(QWidget):
         output_basenames = [gf.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
         for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
             # collect arguments
-            print("IMAGE=",image_path)
+            print("IMAGE=", image_path)
             arguments.append((image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, registration_method))
         if not arguments:
             return
@@ -448,11 +448,11 @@ class Perform(QWidget):
                     # keep files with same unique identifier, extension in gf.imagetypes, not already aligned (i.e. filename does not contain self.output_suffix)
                     unique_identifier = os.path.basename(image_path).split('_')[0]
                     for im in os.listdir(os.path.dirname(image_path)):
-                        if im.startswith(unique_identifier) and not self.output_suffix in im and any(im.endswith(imagetype) for imagetype in gf.imagetypes):
-                            coalign_image_path = os.path.join(os.path.dirname(image_path),im)
-                            if not coalign_image_path in image_paths:
-                                coalignment_output_basename=gf.splitext(os.path.basename(coalign_image_path))[0] + self.output_suffix + user_suffix
-                                print("IMAGE(co)=",coalign_image_path)
+                        if im.startswith(unique_identifier) and self.output_suffix not in im and any(im.endswith(imagetype) for imagetype in gf.imagetypes):
+                            coalign_image_path = os.path.join(os.path.dirname(image_path), im)
+                            if coalign_image_path not in image_paths:
+                                coalignment_output_basename = gf.splitext(os.path.basename(coalign_image_path))[0] + self.output_suffix + user_suffix
+                                print("IMAGE(co)=", coalign_image_path)
                                 map_run_to_image_no.append(n)
                                 arguments.append((coalign_image_path, tmat_path,  output_path, coalignment_output_basename, skip_crop_decision))
             if arguments:
@@ -486,7 +486,7 @@ class Perform(QWidget):
                             else:
                                 self.logger.info(f" Image: {image_path} Done")
 
-                #collect statuses and error_messages
+                # collect statuses and error_messages
                 for m, s in enumerate(status_alignment):
                     n = map_run_to_image_no[m]
                     if s != "Success":
@@ -520,8 +520,8 @@ class Perform(QWidget):
         else:
             output_path = self.output_folder.text().rstrip("/")
 
-        self.output_filename_label1.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".csv"))
-        self.output_filename_label2.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
+        self.output_filename_label1.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".csv"))
+        self.output_filename_label2.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
 
     def projection_mode_fixed_zmin_changed(self, value):
         if self.projection_mode_fixed_zmax.value() < value:
@@ -530,7 +530,7 @@ class Perform(QWidget):
     def projection_mode_fixed_zmax_changed(self, value):
         if self.projection_mode_fixed_zmin.value() > value:
             self.projection_mode_fixed_zmin.setValue(value)
-    
+
     def time_mode_fixed_tmin_changed(self, value):
         if self.time_mode_fixed_tmax.value() < value:
             self.time_mode_fixed_tmax.setValue(value)
@@ -541,21 +541,23 @@ class Perform(QWidget):
 
 
 class Align(QWidget):
-    def __init__(self):
+    def __init__(self, pipeline_layout=False):
         super().__init__()
 
         self.output_suffix = gf.output_suffixes['registration']
+
+        self.pipeline_layout = pipeline_layout
 
         ####### Section Alignment #######
         # Documentation
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
         label_documentation.setWordWrap(True)
-        label_documentation.setText('For each input image, load a pre-existing transformation matrix, apply the transformation matrix to the input image and save the resulting registered image.<br>'+
-                                    'The transformation matrix must be in the same folder as the input image. Matching between image and transformation matrix is based on the unique identifier, i.e. part of the filename before the first \"_\"<br>.'+
+        label_documentation.setText('For each input image, load a pre-existing transformation matrix, apply the transformation matrix to the input image and save the resulting registered image.<br>' +
+                                    'The transformation matrix must be in the same folder as the input image. Matching between image and transformation matrix is based on the unique identifier, i.e. part of the filename before the first \"_\".<br>' +
                                     'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
 
-        self.image_listB = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='', filenames_exclude_filter=self.output_suffix)
+        self.image_matrix_table = gf.ImageMatrixTableWidget2(filenames_filter='', filenames_exclude_filter=self.output_suffix)
 
         self.use_input_folder = QRadioButton("Use input image folder")
         self.use_input_folder.setChecked(True)
@@ -565,7 +567,7 @@ class Align(QWidget):
         self.use_custom_folder.toggled.connect(self.update_output_filename_label)
         self.output_folder = gf.DropFolderLineEdit()
         self.output_folder.textChanged.connect(self.update_output_filename_label)
-        browse_button2 = QPushButton("Browse", self)
+        browse_button2 = QPushButton("Browse")
         browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setVisible(self.use_custom_folder.isChecked())
         browse_button2.setVisible(self.use_custom_folder.isChecked())
@@ -579,11 +581,11 @@ class Align(QWidget):
         self.output_filename_label.setFrame(False)
         self.output_filename_label.setEnabled(False)
 
-        self.skip_cropping_yn_B = QCheckBox("Do NOT crop aligned image")
+        self.skip_cropping_yn = QCheckBox("Do NOT crop aligned image")
         self.buttonB = QPushButton("Align")
         self.buttonB.clicked.connect(self.align)
 
-         # Layout
+        # Layout
         layout = QVBoxLayout()
         # Documentation
         groupbox = QGroupBox("Documentation")
@@ -591,24 +593,26 @@ class Align(QWidget):
         collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
         collapsible_widget.content.setLayout(QVBoxLayout())
         collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0,0,0,0)
+        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
         layout2.addWidget(collapsible_widget)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        groupbox = QGroupBox('Images to align using pre-existing registration matrices')
-        layout2 = QVBoxLayout()
-        layout2.addWidget(self.image_listB)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
+        if not self.pipeline_layout:
+            groupbox = QGroupBox('Images to align using pre-existing registration matrices')
+            layout2 = QVBoxLayout()
+            layout2.addWidget(self.image_matrix_table)
+            groupbox.setLayout(layout2)
+            layout.addWidget(groupbox)
         groupbox = QGroupBox("Output")
         layout2 = QVBoxLayout()
-        layout2.addWidget(QLabel("Folder:"))
-        layout2.addWidget(self.use_input_folder)
-        layout2.addWidget(self.use_custom_folder)
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.output_folder)
-        layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
+        if not self.pipeline_layout:
+            layout2.addWidget(QLabel("Folder:"))
+            layout2.addWidget(self.use_input_folder)
+            layout2.addWidget(self.use_custom_folder)
+            layout3 = QHBoxLayout()
+            layout3.addWidget(self.output_folder)
+            layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
+            layout2.addLayout(layout3)
         layout3 = QFormLayout()
         layout4 = QHBoxLayout()
         layout4.setSpacing(0)
@@ -628,13 +632,14 @@ class Align(QWidget):
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Options")
         layout2 = QVBoxLayout()
-        layout2.addWidget(self.skip_cropping_yn_B)
+        layout2.addWidget(self.skip_cropping_yn)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        layout.addWidget(self.buttonB, alignment=Qt.AlignCenter)
+        if not self.pipeline_layout:
+            layout.addWidget(self.buttonB, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
-        
+
         self.logger = logging.getLogger(__name__)
 
         self.update_output_filename_label()
@@ -650,10 +655,28 @@ class Align(QWidget):
         else:
             output_path = self.output_folder.text().rstrip("/")
 
-        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
+        self.output_filename_label.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
+
+    def get_widgets_state(self):
+        widgets_state = {
+            'image_matrix_table': self.image_matrix_table.get_file_table(),
+            'use_input_folder': self.use_input_folder.isChecked(),
+            'use_custom_folder': self.use_custom_folder.isChecked(),
+            'output_folder': self.output_folder.text(),
+            'output_user_suffix': self.output_user_suffix.text(),
+            'skip_cropping_yn': self.skip_cropping_yn.isChecked()}
+        return widgets_state
+
+    def set_widgets_state(self, widgets_state):
+        self.image_matrix_table.set_file_table(widgets_state['image_matrix_table'])
+        self.use_input_folder.setChecked(widgets_state['use_input_folder'])
+        self.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
+        self.output_folder.setText(widgets_state['output_folder'])
+        self.output_user_suffix.setText(widgets_state['output_user_suffix'])
+        self.skip_cropping_yn.setChecked(widgets_state['skip_cropping_yn'])
 
     def align(self):
-        def check_inputs(image_paths):
+        def check_inputs(image_paths, matrix_paths):
             """
             Check if the inputs are valid
             Return: True if valid, False otherwise
@@ -665,17 +688,20 @@ class Align(QWidget):
                 if not os.path.isfile(path):
                     self.logger.error('Image not found\n' + path)
                     return False
+            if len(matrix_paths) == 0:
+                self.logger.error('Matrix missing')
+                return False
+            for path in matrix_paths:
+                if not os.path.isfile(path):
+                    self.logger.error('Matrix not found\n' + path)
+                    return False
             return True
 
-        def get_tmat_paths(image_path):
-            #get path with matrix filetype (self.matricestype), containing self.output_suffix and with same unique identifier
-            tmat_paths=[path for path in os.listdir(os.path.dirname(image_path)) if any(path.endswith(matricestype) for matricestype in gf.matrixtypes) and self.output_suffix in path and os.path.basename(path).split('_')[0] == os.path.basename(image_path).split('_')[0]]
-            #sort by path length
-            return [os.path.join(os.path.dirname(image_path), path) for path in sorted(tmat_paths, key=len)]
-
-        image_paths = self.image_listB.get_file_list()
-        skip_crop_decision = self.skip_cropping_yn_B.isChecked()
-        if not check_inputs(image_paths):
+        image_matrix_paths = self.image_matrix_table.get_file_table()
+        image_paths = [image_path for image_path, matrix_path in image_matrix_paths]
+        matrix_paths = [matrix_path for image_path, matrix_path in image_matrix_paths]
+        skip_crop_decision = self.skip_cropping_yn.isChecked()
+        if not check_inputs(image_paths, matrix_paths):
             return
 
         user_suffix = self.output_user_suffix.text()
@@ -684,29 +710,6 @@ class Align(QWidget):
             output_paths = [os.path.dirname(path) for path in image_paths]
         else:
             output_paths = [self.output_folder.text() for path in image_paths]
-
-        tmat_paths_all =  [get_tmat_paths(path) for path in image_paths]
-        #check if at least one matrix was found for each image
-        if any([len(path) == 0 for path in tmat_paths_all]):
-            self.logger.error('Transformation matrix not found for the folling images\n' + "\n".join([image_path for image_path,tmat_path in zip(image_paths,tmat_paths_all) if len(tmat_path) == 0]))
-            return False
-        #arbitrarily choose first path (shortest)
-        tmat_paths =  [paths[0] for paths in tmat_paths_all]
-        #check for multiple matches
-        if any([len(path) > 1 for path in tmat_paths_all]):
-            msgbox = QMessageBox()
-            msgbox.setIcon(QMessageBox.Warning)
-            msgbox.setWindowTitle("Warning")
-            msgbox.setText("Multiple transformation matrices found.");
-            msgbox.setInformativeText("For each image, one transformation matrix was arbitrarily selected.\nContinue?");
-            msgbox.setDetailedText("\n\n".join(["Image:\n - " + image + "\nSelected transformation matrix:\n - " + os.path.basename(tmat) + "\nCandidate transformation matrices:\n - "+ "\n - ".join([os.path.basename(x) for x in tmat_all]) for tmat, tmat_all, image in zip(tmat_paths,tmat_paths_all,image_paths)]));
-            btncontinue = msgbox.addButton("Continue", QMessageBox.AcceptRole)
-            btnabort = msgbox.addButton("Abort",QMessageBox.RejectRole)
-            msgbox.setDefaultButton(btnabort);
-            msgbox.exec();
-            if msgbox.clickedButton() == btnabort:
-                return False
-
 
         # disable messagebox error handler
         messagebox_error_handler = None
@@ -718,7 +721,7 @@ class Align(QWidget):
 
         status = []
         error_messages = []
-        for image_path, tmat_path, output_path, output_basename in zip(image_paths, tmat_paths, output_paths, output_basenames):
+        for image_path, matrix_path, output_path, output_basename in zip(image_paths, matrix_paths, output_paths, output_basenames):
             if os.path.isfile(image_path):
                 # Set log and cursor info
                 self.logger.info("Image %s", image_path)
@@ -726,7 +729,7 @@ class Align(QWidget):
                 QApplication.processEvents()
                 # Perform projection
                 try:
-                    f.alignment_main(image_path, tmat_path, output_path, output_basename, skip_crop_decision)
+                    f.alignment_main(image_path, matrix_path, output_path, output_basename, skip_crop_decision)
                     status.append("Success")
                     error_messages.append(None)
                 except Exception as e:
@@ -758,11 +761,10 @@ class Edit(QWidget):
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
         label_documentation.setWordWrap(True)
-        label_documentation.setText('Modify the start and end point of existing transformation matrices.<br>'+
+        label_documentation.setText('Modify the start and end point of existing transformation matrices.<br>' +
                                     'To visualize a matrix, double click on its filename in the list')
         self.matrices_list = gf.FileListWidget(filetypes=gf.matrixtypes, filenames_filter=self.output_suffix)
         self.matrices_list.file_list_double_clicked.connect(self.display_matrix)
-        #self.update_label = QLabel('After double-clicking the matrix, you can update its range', self)
         self.start_timepoint_label = QLabel('New start point:', self)
         self.start_timepoint_edit = QLineEdit(self)
         self.end_timepoint_label = QLabel('New end point:', self)
@@ -778,7 +780,7 @@ class Edit(QWidget):
         collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
         collapsible_widget.content.setLayout(QVBoxLayout())
         collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0,0,0,0)
+        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
         layout2.addWidget(collapsible_widget)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -835,16 +837,15 @@ class Edit(QWidget):
             # Create an instance of the second window
             self.display_graph = DisplayGraphWindow(self.transfmat_path)
             self.display_graph.setWindowTitle(gf.splitext(os.path.basename(self.transfmat_path))[0])
-            self.display_graph.move(700,0)
+            self.display_graph.move(700, 0)
             self.display_graph.show()
-
 
     def display_matrix(self, item):
         self.transfmat_path = item.text()
         # Display the matrix
         self.display_graph = DisplayGraphWindow(self.transfmat_path)
         self.display_graph.setWindowTitle(gf.splitext(os.path.basename(self.transfmat_path))[0])
-        self.display_graph.move(700,0)
+        self.display_graph.move(700, 0)
         self.display_graph.show()
 
 
@@ -875,7 +876,7 @@ class ManualEdit(QWidget):
         collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
         collapsible_widget.content.setLayout(QVBoxLayout())
         collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0,0,0,0)
+        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
         layout2.addWidget(collapsible_widget)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -939,7 +940,7 @@ class ManualEdit(QWidget):
         self.logger.info('Manually editing %s (image: %s', matrix_path, image_path)
         try:
             f.manual_edit_main(image_path, matrix_path)
-        except Exception as e:
+        except:
             self.logger.exception('Manual editing failed')
 
         self.logger.info("Done")
@@ -977,14 +978,14 @@ class DisplayGraphWindow(QWidget):
         if transformation_matrix is None:
             return
 
-        time = list(transformation_matrix[:,0])
-        included_x_shift = transformation_matrix[:,1]
-        included_y_shift = transformation_matrix[:,2]
-        inclusion = transformation_matrix[:,3]
-        x_shift = transformation_matrix[:,4]
-        y_shift = transformation_matrix[:,5]
-        dim_x = transformation_matrix[:,6]
-        dim_y = transformation_matrix[:,7]
+        time = list(transformation_matrix[:, 0])
+        included_x_shift = transformation_matrix[:, 1]
+        included_y_shift = transformation_matrix[:, 2]
+        inclusion = transformation_matrix[:, 3]
+        x_shift = transformation_matrix[:, 4]
+        y_shift = transformation_matrix[:, 5]
+        dim_x = transformation_matrix[:, 6]
+        dim_y = transformation_matrix[:, 7]
         dx = dim_x - abs(x_shift)
         dy = dim_y - abs(y_shift)
         included_dx = dim_x - abs(included_x_shift)
@@ -995,9 +996,9 @@ class DisplayGraphWindow(QWidget):
         included_xy_shift = []
 
         for i in range(len(time)):
-            distance = np.sqrt((dim_x[i]**2 - dx[i]**2) + (dim_y[i]**2 - dy[i]**2)) # √(x² - dx²) + (y² - dy²))
+            distance = np.sqrt((dim_x[i]**2 - dx[i]**2) + (dim_y[i]**2 - dy[i]**2))
             if inclusion[i] == 1:
-                included_distance = np.sqrt((dim_x[i]**2 - included_dx[i]**2) + (dim_y[i]**2 - included_dy[i]**2)) # √(x² - dx²) + (y² - dy²))
+                included_distance = np.sqrt((dim_x[i]**2 - included_dx[i]**2) + (dim_y[i]**2 - included_dy[i]**2))
             else:
                 included_distance = float("nan")
             max_distance = np.sqrt((dim_x[i]**2) + (dim_y[i]**2))

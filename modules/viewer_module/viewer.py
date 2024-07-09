@@ -172,20 +172,20 @@ class ImageMaskGraphViewer(QWidget):
             try:
                 mask = gf.Image(mask_path)
                 mask.imread()
-            except Exception as e:
+            except:
                 self.logger.exception('Error loading mask')
                 return
         if graph_path != '':
             try:
                 graph = gf.load_cell_tracking_graph(graph_path,mask.image.dtype)
-            except Exception as e:
+            except:
                 self.logger.exception('Error loading graph')
                 return
         if image_path != '':
             try:
                 image = gf.Image(image_path)
                 image.imread()
-            except Exception as e:
+            except:
                 self.logger.exception('Error loading image')
                 return
 
@@ -361,7 +361,7 @@ class RegistrationViewer(QWidget):
         try:
             image = gf.Image(image_path)
             image.imread()
-        except Exception as e:
+        except:
             self.logger.exception('Error loading image')
             return
 

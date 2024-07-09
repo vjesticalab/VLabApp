@@ -116,6 +116,7 @@ class Pipeline(QWidget):
         self.module_settings_widgets = dict()
         self.module_settings_widgets['Settings'] = f.GeneralSettings()
         self.module_settings_widgets['Registration'] = registration.Perform(pipeline_layout=True)
+        self.module_settings_widgets['Registration (alignment)'] = registration.Align(pipeline_layout=True)
         self.module_settings_widgets['Z-Projection'] = zprojection.zProjection(pipeline_layout=True)
         self.module_settings_widgets['Segmentation'] = segmentation.Segmentation(pipeline_layout=True)
         self.module_settings_widgets['Cell tracking'] = cell_tracking.CellTracking(pipeline_layout=True)
@@ -126,49 +127,62 @@ class Pipeline(QWidget):
         layout.addWidget(self.module_settings_groupbox)
 
         # quick and dirty hack to disable co-alignment (not yet implemented)
-        self.module_settings_widgets['Registration'].coalignment_yn_A.setChecked(False)
-        self.module_settings_widgets['Registration'].coalignment_yn_A.setEnabled(False)
+        self.module_settings_widgets['Registration'].coalignment_yn.setChecked(False)
+        self.module_settings_widgets['Registration'].coalignment_yn.setEnabled(False)
 
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
 
         # populate selected module list
         item = QStandardItem('Settings')
+        description = 'General pipeline settings (input, output, ...)'
         item.setEditable(False)
-        item.setData({'is_removable': False, 'input_types': [], 'output_types': ['image', 'mask', 'graph', 'matrix']}, Qt.UserRole+1)
-        item.setToolTip('General pipeline settings (input, output, ...)')
+        item.setData({'description': description, 'is_removable': False, 'input_types': [], 'output_types': ['image', 'mask', 'graph', 'matrix']}, Qt.UserRole+1)
+        item.setToolTip(description)
         self.selected_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
 
         # populate available_modules_list
         item = QStandardItem('Registration')
+        description = 'Input: image\nOutput: registered image and registration matrix'
         item.setEditable(False)
-        item.setData({'input_types': ['image'], 'output_types': ['image', 'matrix'], 'max_count': 1}, Qt.UserRole+1)
-        item.setToolTip('Input: image\nOutput: registered image and registration matrix')
+        item.setData({'description': description, 'input_types': ['image'], 'output_types': ['image', 'matrix'], 'max_count': 1, 'conflict': ['Registration (alignment)']}, Qt.UserRole+1)
+        item.setToolTip(description)
+        self.available_modules_list.model().appendRow(item)
+        self.store_settings_data(item.index())
+        item = QStandardItem('Registration (alignment)')
+        description = 'Input: image and registration matrix\nOutput: registered image'
+        item.setEditable(False)
+        item.setData({'description': description, 'input_types': ['image', 'matrix'], 'output_types': ['image'], 'max_count': 1, 'conflict': ['Registration']}, Qt.UserRole+1)
+        item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
         item = QStandardItem('Z-Projection')
+        description = 'Input: image\nOutput: projected image'
         item.setEditable(False)
-        item.setData({'input_types': ['image'], 'output_types': ['image']}, Qt.UserRole+1)
-        item.setToolTip('Input: image\nOutput: projected image')
+        item.setData({'description': description, 'input_types': ['image'], 'output_types': ['image']}, Qt.UserRole+1)
+        item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
         item = QStandardItem('Segmentation')
+        description = 'Input: image\nOutput: segmentation mask'
         item.setEditable(False)
-        item.setData({'input_types': ['image'], 'output_types': ['mask']}, Qt.UserRole+1)
-        item.setToolTip('Input: image\nOutput: segmentation mask')
+        item.setData({'description': description, 'input_types': ['image'], 'output_types': ['mask']}, Qt.UserRole+1)
+        item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
         item = QStandardItem('Cell tracking')
+        description = 'Input: segmentation mask\nOutput: relabelled segmentation mask and cell tracking graph'
         item.setEditable(False)
-        item.setData({'input_types': ['mask'], 'output_types': ['mask', 'graph']}, Qt.UserRole+1)
-        item.setToolTip('Input: segmentation mask\nOutput: relabelled segmentation mask and cell tracking graph')
+        item.setData({'description': description, 'input_types': ['mask'], 'output_types': ['mask', 'graph']}, Qt.UserRole+1)
+        item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
         item = QStandardItem('Graph filtering')
+        description = 'Input: segmentation mask and cell tracking graph\nOutput: filtered segmentation mask and cell tracking graph'
         item.setEditable(False)
-        item.setData({'input_types': ['mask', 'graph'], 'output_types': ['mask', 'graph']}, Qt.UserRole+1)
-        item.setToolTip('Input: segmentation mask and cell tracking graph\nOutput: filtered segmentation mask and cell tracking graph')
+        item.setData({'description': description, 'input_types': ['mask', 'graph'], 'output_types': ['mask', 'graph']}, Qt.UserRole+1)
+        item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
 
@@ -255,6 +269,8 @@ class Pipeline(QWidget):
             self.module_settings_widgets[module_name].set_input_type('mask')
         elif set(next_item_data['input_types']) == {'mask', 'graph'}:
             self.module_settings_widgets[module_name].set_input_type('mask_graph')
+        elif set(next_item_data['input_types']) == {'image', 'matrix'}:
+            self.module_settings_widgets[module_name].set_input_type('image_matrix')
         # update model
         self.store_settings_data(self.selected_modules_list.model().index(0, 0))
 
@@ -299,12 +315,14 @@ class Pipeline(QWidget):
             # hide all module settings widgets
             for module_name in self.module_settings_widgets:
                 self.module_settings_widgets[module_name].hide()
+            self.module_settings_groupbox.hide()
 
             for module_idx in range(module_count):
                 settings.beginGroup('module_'+str(module_idx))
                 item = QStandardItem(settings.value('module_name', type=str))
                 item.setEditable(False)
                 item.setData(settings.value('data'), Qt.UserRole+1)
+                item.setToolTip(item.data(Qt.UserRole+1)['description'])
                 self.selected_modules_list.model().appendRow(item)
                 self.restore_settings_data(item.index())
                 settings.endGroup()
@@ -328,6 +346,7 @@ class Pipeline(QWidget):
         input_image_paths = None
         input_mask_paths = None
         input_graph_paths = None
+        input_matrix_paths = None
         input_count = 0
         if settings['input_type'] == 'image':
             input_image_paths = settings['image_list']
@@ -372,6 +391,25 @@ class Pipeline(QWidget):
                 if not os.path.isfile(path):
                     self.logger.error('File not found: %s (module "Settings")', path)
                     return
+        elif settings['input_type'] == 'image_matrix':
+            input_image_matrix_paths = settings['image_matrix_table']
+            input_image_paths = [image_path for image_path, matrix_path in input_image_matrix_paths]
+            input_matrix_paths = [matrix_path for image_path, matrix_path in input_image_matrix_paths]
+            input_count = len(input_image_paths)
+            if settings['use_input_folder']:
+                output_paths = [os.path.dirname(path) for path in input_image_paths]
+            else:
+                output_paths = [settings['output_folder'] for path in input_image_paths]
+            # check input exists
+            for path in input_image_paths:
+                if not os.path.isfile(path):
+                    self.logger.error('File not found: %s (module "Settings")', path)
+                    return
+            # check input
+            for path in input_matrix_paths:
+                if not os.path.isfile(path):
+                    self.logger.error('File not found: %s (module "Settings")', path)
+                    return
 
         # check input
         if self.selected_modules_list.model().rowCount() < 2:
@@ -383,27 +421,27 @@ class Pipeline(QWidget):
         if input_count == 0:
             self.logger.error('Input files missing (module "Settings")')
             return
-        if settings['input_type'] == 'image':
+        if settings['input_type'] in ['image', 'image_matrix']:
             output_files = [os.path.join(d, f) for d, f in zip(output_paths, [gf.splitext(os.path.basename(path))[0] for path in input_image_paths])]
             duplicates = [x for x, y in zip(input_image_paths, output_files) if output_files.count(y) > 1]
             if len(duplicates) > 0:
                 self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input file folder as output folder or avoid processing files from different input folders.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
                 return
-        else:
+        elif settings['input_type'] in ['mask', 'mask_graph']:
             output_files = [os.path.join(d, f) for d, f in zip(output_paths, [gf.splitext(os.path.basename(path))[0] for path in input_mask_paths])]
             duplicates = [x for x, y in zip(input_mask_paths, output_files) if output_files.count(y) > 1]
             if len(duplicates) > 0:
                 self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input file folder as output folder or avoid processing files from different input folders.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
                 return
         first_module_name = self.selected_modules_list.model().item(1).data(Qt.DisplayRole)
-        if first_module_name == 'Registration':
+        if first_module_name in ['Registration', 'Registration (alignment)']:
             for path in input_image_paths:
                 try:
                     image = gf.Image(path)
                 except:
                     self.logger.exception('Error loading image:\n %s\n\nError message:', path)
                     return
-                if not (image.sizes['F'] == 1 and image.sizes['T'] > 1 and image.sizes['Y'] > 1 and image.sizes['X'] > 1 ):
+                if not (image.sizes['F'] == 1 and image.sizes['T'] > 1 and image.sizes['Y'] > 1 and image.sizes['X'] > 1):
                     self.logger.error('Invalid image:\n %s\n\nImage must have X, Y and T axes and can optionally have Z or C axes.', path)
                     return
         if first_module_name == 'Z-Projection':
@@ -413,7 +451,7 @@ class Pipeline(QWidget):
                 except:
                     self.logger.exception('Error loading image:\n %s\n\nError message:', path)
                     return
-                if not (image.sizes['F'] == 1 and image.sizes['Y'] > 1 and image.sizes['X'] > 1 ):
+                if not (image.sizes['F'] == 1 and image.sizes['Y'] > 1 and image.sizes['X'] > 1):
                     # although it does not make sense to z-project an image without z axis, the module does not crash if it is the case.
                     self.logger.error('Invalid image:\n %s\n\nImage must have X, Y axes and can optionally have T, C or Z axes.', path)
                     return
@@ -424,7 +462,7 @@ class Pipeline(QWidget):
                 except:
                     self.logger.exception('Error loading image:\n %s\n\nError message:', path)
                     return
-                if not (image.sizes['F'] == 1 and image.sizes['Y'] > 1 and image.sizes['X'] > 1 ):
+                if not (image.sizes['F'] == 1 and image.sizes['Y'] > 1 and image.sizes['X'] > 1):
                     self.logger.error('Invalid image:\n %s\n\nImage must have X and Y axes and can optionally have T, C or Z axes.', path)
                     return
         if first_module_name in ['Cell tracking', 'Graph filtering']:
@@ -434,7 +472,7 @@ class Pipeline(QWidget):
                 except:
                     self.logger.exception('Error loading mask:\n %s\n\nError message:', path)
                     return
-                if not (mask.sizes['F'] == 1 and  mask.sizes['T'] > 1 and  mask.sizes['C'] == 1 and  mask.sizes['Z'] == 1 and mask.sizes['Y'] > 1 and mask.sizes['X'] > 1 ):
+                if not (mask.sizes['F'] == 1 and mask.sizes['T'] > 1 and mask.sizes['C'] == 1 and mask.sizes['Z'] == 1 and mask.sizes['Y'] > 1 and mask.sizes['X'] > 1):
                     self.logger.error('Invalid mask:\n %s\n\nMask must have X, Y and T axes.', path)
                     return
 
@@ -443,6 +481,7 @@ class Pipeline(QWidget):
             next_image_path = input_image_paths[input_idx] if input_image_paths else None
             next_mask_path = input_mask_paths[input_idx] if input_mask_paths else None
             next_graph_path = input_graph_paths[input_idx] if input_graph_paths else None
+            next_matrix_path = input_matrix_paths[input_idx] if input_matrix_paths else None
             output_path = output_paths[input_idx]
             last_job_with_same_input_idx = None
             for module_idx in range(1, self.selected_modules_list.model().rowCount()):
@@ -469,7 +508,7 @@ class Pipeline(QWidget):
                         timepoint_range = (settings['time_mode_fixed_tmin'], settings['time_mode_fixed_tmax'])
                     else:
                         timepoint_range = None
-                    skip_crop_decision = settings['skip_cropping_yn_A']
+                    skip_crop_decision = settings['skip_cropping_yn']
                     registration_method = settings['registration_method']
                     jobs.append({'function': registration_functions.registration_main,
                                  'arguments': (image_path,
@@ -490,8 +529,33 @@ class Pipeline(QWidget):
                     next_image_path = os.path.join(output_path, output_basename+'.ome.tif')
                     next_mask_path = None
                     next_graph_path = None
+                    next_matrix_path = os.path.join(output_path, output_basename+'.csv')
                     last_job_with_same_input_idx = len(jobs) - 1
                     # TODO: deal with coalignment
+                if module_name == 'Registration (alignment)':
+                    image_path = next_image_path
+                    matrix_path = next_matrix_path
+                    output_suffix = gf.output_suffixes['registration']
+                    user_suffix = settings['output_user_suffix']
+                    output_basename = gf.splitext(os.path.basename(image_path))[0] + output_suffix + user_suffix
+                    skip_crop_decision = settings['skip_cropping_yn']
+                    jobs.append({'function': registration_functions.alignment_main,
+                                 'arguments': (image_path,
+                                               matrix_path,
+                                               output_path,
+                                               output_basename,
+                                               skip_crop_decision),
+                                 'depends': [last_job_with_same_input_idx] if last_job_with_same_input_idx is not None else [],
+                                 'module_name': module_name,
+                                 'module_idx': module_idx,
+                                 'input_idx': input_idx,
+                                 'use_gpu': False})
+                    # to be used by next module
+                    next_image_path = os.path.join(output_path, output_basename+'.ome.tif')
+                    next_mask_path = None
+                    next_graph_path = None
+                    next_matrix_path = None
+                    last_job_with_same_input_idx = len(jobs) - 1
                 elif module_name == 'Z-Projection':
                     image_path = next_image_path
                     output_suffix = gf.output_suffixes['zprojection']
@@ -520,6 +584,7 @@ class Pipeline(QWidget):
                     next_image_path = os.path.join(output_path, output_basename+'.ome.tif')
                     next_mask_path = None
                     next_graph_path = None
+                    next_matrix_path = None
                     last_job_with_same_input_idx = len(jobs) - 1
                 elif module_name == 'Segmentation':
                     image_path = next_image_path
@@ -568,6 +633,7 @@ class Pipeline(QWidget):
                     next_image_path = None
                     next_mask_path = os.path.join(output_path, output_basename+'.ome.tif')
                     next_graph_path = None
+                    next_matrix_path = None
                     last_job_with_same_input_idx = len(jobs) - 1
                 elif module_name == 'Cell tracking':
                     image_path = ''
@@ -607,6 +673,7 @@ class Pipeline(QWidget):
                     next_image_path = None
                     next_mask_path = os.path.join(output_path, output_basename+'.ome.tif')
                     next_graph_path = os.path.join(output_path, output_basename+'.graphmlz')
+                    next_matrix_path = None
                     last_job_with_same_input_idx = len(jobs) - 1
                 elif module_name == 'Graph filtering':
                     image_path = ''
@@ -656,6 +723,7 @@ class Pipeline(QWidget):
                     next_image_path = None
                     next_mask_path = os.path.join(output_path, output_basename+'.ome.tif')
                     next_graph_path = os.path.join(output_path, output_basename+'.graphmlz')
+                    next_matrix_path = None
                     last_job_with_same_input_idx = len(jobs) - 1
 
         status_dialog = f.StatusTableDialog(input_count,

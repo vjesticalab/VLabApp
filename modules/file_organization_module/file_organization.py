@@ -2,10 +2,10 @@ import logging
 import os
 import re
 import shutil
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QFileDialog, QComboBox, QSpinBox, QLabel, QFormLayout, QLineEdit, QCheckBox, QDialog, QDialogButtonBox, QTableWidget, QAbstractItemView, QTableWidgetItem, QHeaderView, QListWidget, QListWidgetItem
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QFileDialog, QLabel, QFormLayout, QLineEdit, QCheckBox, QDialog, QDialogButtonBox, QTableWidget, QAbstractItemView, QTableWidgetItem, QHeaderView, QListWidget, QListWidgetItem
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QCursor
 from general import general_functions as gf
+
 
 class ConfirmExportDialog(QDialog):
     """
@@ -19,7 +19,7 @@ class ConfirmExportDialog(QDialog):
         print("export")
     """
 
-    def __init__(self, files_to_export,log_files_to_export):
+    def __init__(self, files_to_export, log_files_to_export):
         super().__init__()
         self.setSizeGripEnabled(True)
         self.setWindowTitle('Export')
@@ -48,7 +48,7 @@ class ConfirmExportDialog(QDialog):
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         table.horizontalHeader().setStretchLastSection(True)
         layout.addWidget(table)
-        if len(log_files_to_export)>0:
+        if len(log_files_to_export) > 0:
             message = QLabel('Intermediate log files to copy:')
             message.setWordWrap(True)
             layout.addWidget(message)
@@ -133,7 +133,7 @@ class FileOrganization(QWidget):
         label_documentation.setText('For each input folder, selected files types can be exported (i.e. moved) to the specified directory or removed.')
 
         # Input folders
-        self.folder_list = gf.DirListWidget()
+        self.folder_list = gf.FolderListWidget()
 
         # Output folders (export)
         self.use_input_folder = QRadioButton("Use input folder (sub-folder <input folder basename>/)")
@@ -154,7 +154,7 @@ class FileOrganization(QWidget):
         self.output_dirname_label.setFrame(False)
         self.output_dirname_label.setEnabled(False)
 
-        #files to export
+        # files to export
         self.export_image = QCheckBox('Input image')
         self.export_zprojection = QCheckBox('Z-projection module output files (*'+gf.output_suffixes['zprojection']+')')
         self.export_groundtruth_generator = QCheckBox('GroundTruth module output files (*'+gf.output_suffixes['groundtruth_generator']+')')
@@ -171,7 +171,7 @@ class FileOrganization(QWidget):
         self.export_button = QPushButton("Export", self)
         self.export_button.clicked.connect(self.export)
 
-        #files to clean
+        # files to clean
         self.clean_zprojection = QCheckBox('Z-projection module output files (*'+gf.output_suffixes['zprojection']+')')
         self.clean_groundtruth_generator = QCheckBox('GroundTruth module output files (*'+gf.output_suffixes['groundtruth_generator']+')')
         self.clean_registration = QCheckBox('Registration module output files (*'+gf.output_suffixes['registration']+')')
@@ -196,7 +196,7 @@ class FileOrganization(QWidget):
         collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
         collapsible_widget.content.setLayout(QVBoxLayout())
         collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0,0,0,0)
+        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
         layout2.addWidget(collapsible_widget)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -208,7 +208,7 @@ class FileOrganization(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        ##export
+        # export
         groupbox = QGroupBox('Export (move files)')
         layout2 = QVBoxLayout()
 
@@ -247,7 +247,7 @@ class FileOrganization(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        ##Clean
+        # Clean
         groupbox = QGroupBox('Clean (remove files)')
         layout2 = QVBoxLayout()
 
@@ -271,7 +271,6 @@ class FileOrganization(QWidget):
 
         self.setLayout(layout)
 
-
         self.logger = logging.getLogger(__name__)
 
         self.update_output_dirname_label()
@@ -288,12 +287,12 @@ class FileOrganization(QWidget):
             output_path = "<input folder>"
         else:
             output_path = self.output_folder.text().rstrip("/")
-        self.output_dirname_label.setText(os.path.join(output_path,"<input folder basename>",""))
+        self.output_dirname_label.setText(os.path.join(output_path, "<input folder basename>", ""))
 
     def export(self):
         self.logger.info('Exporting')
 
-        input_paths = self.folder_list.get_dir_list()
+        input_paths = self.folder_list.get_folder_list()
         if len(input_paths) == 0:
             self.logger.error('Input folder missing')
             return False
@@ -321,16 +320,16 @@ class FileOrganization(QWidget):
 
         files_to_export = []
         log_files_to_export = []
-        for input_path,output_path in zip(input_paths, output_paths):
+        for input_path, output_path in zip(input_paths, output_paths):
             files_to_export_tmp = [f for f in os.listdir(input_path) if any(re.search(p, f) for p in patterns)]
-            files_to_export.extend([(os.path.join(input_path,f), os.path.join(output_path,f)) for f in files_to_export_tmp ])
+            files_to_export.extend([(os.path.join(input_path, f), os.path.join(output_path, f)) for f in files_to_export_tmp])
             if self.export_intermediate_logs.isChecked():
-                log_files_to_export_tmp = [ gf.splitext(f)[0] for f in os.listdir(input_path) if f.endswith('.log') and not f in files_to_export_tmp]
-                #keep only log_files with basename corresponding to the beginning of an exported file name
-                log_files_to_export_tmp = [ l + '.log' for l in log_files_to_export_tmp if any(f.startswith(l) for f in files_to_export_tmp)]
-                log_files_to_export.extend([(os.path.join(input_path,f), os.path.join(output_path,f)) for f in log_files_to_export_tmp ])
+                log_files_to_export_tmp = [gf.splitext(f)[0] for f in os.listdir(input_path) if f.endswith('.log') and f not in files_to_export_tmp]
+                # keep only log_files with basename corresponding to the beginning of an exported file name
+                log_files_to_export_tmp = [l + '.log' for l in log_files_to_export_tmp if any(f.startswith(l) for f in files_to_export_tmp)]
+                log_files_to_export.extend([(os.path.join(input_path, f), os.path.join(output_path, f)) for f in log_files_to_export_tmp])
 
-        msg = ConfirmExportDialog(files_to_export,log_files_to_export)
+        msg = ConfirmExportDialog(files_to_export, log_files_to_export)
         if msg.exec_() == QDialog.Accepted:
             for src, dst in set(files_to_export):
                 output_path = os.path.dirname(dst)
@@ -352,7 +351,7 @@ class FileOrganization(QWidget):
     def clean(self):
         self.logger.info('Cleaning')
 
-        input_paths = self.folder_list.get_dir_list()
+        input_paths = self.folder_list.get_folder_list()
         if len(input_paths) == 0:
             self.logger.error('Input folder missing')
             return False
@@ -379,13 +378,13 @@ class FileOrganization(QWidget):
             files_to_keep_tmp = [f for f in os.listdir(input_path) if f not in files_to_remove_tmp]
 
             if self.clean_keep_intermediate_logs.isChecked():
-                log_files_to_keep_tmp = [ gf.splitext(f)[0] for f in os.listdir(input_path) if f.endswith('.log') and not f in files_to_keep_tmp]
-                #keep only log_files with basename corresponding to the beginning of an exported file name
-                log_files_to_keep_tmp = [ l + '.log' for l in log_files_to_keep_tmp if any(f.startswith(l) for f in files_to_keep_tmp)]
-                #remove from files_to_remove_tmp
-                files_to_remove_tmp = [ f for f in files_to_remove_tmp if f not in log_files_to_keep_tmp]
+                log_files_to_keep_tmp = [gf.splitext(f)[0] for f in os.listdir(input_path) if f.endswith('.log') and f not in files_to_keep_tmp]
+                # keep only log_files with basename corresponding to the beginning of an exported file name
+                log_files_to_keep_tmp = [l + '.log' for l in log_files_to_keep_tmp if any(f.startswith(l) for f in files_to_keep_tmp)]
+                # remove from files_to_remove_tmp
+                files_to_remove_tmp = [f for f in files_to_remove_tmp if f not in log_files_to_keep_tmp]
 
-            files_to_remove.extend([os.path.join(input_path,f) for f in files_to_remove_tmp ])
+            files_to_remove.extend([os.path.join(input_path, f) for f in files_to_remove_tmp])
 
         msg = ConfirmRemoveDialog(files_to_remove)
         if msg.exec_() == QDialog.Accepted:
