@@ -34,25 +34,25 @@ class Pipeline(QWidget):
         label_documentation.setWordWrap(True)
         label_documentation.setText('Drag and drop modules in the list to create a pipeline.')
 
-        self.selected_modules_list = f.ListView(placeholder_text='Drop modules here')
-        self.selected_modules_list.setModel(f.StandardItemModel(0, 1))
-        self.selected_modules_list.setDragEnabled(True)
-        self.selected_modules_list.setDefaultDropAction(Qt.MoveAction)
-        self.selected_modules_list.setDragDropMode(QAbstractItemView.DragDrop)
-        self.selected_modules_list.setFlow(QListView.LeftToRight)
-        self.selected_modules_list.setHorizontalScrollMode(QListView.ScrollPerPixel)
-        self.selected_modules_list.setWordWrap(True)
-        self.selected_modules_list.setItemDelegate(f.ItemDelegate(numbered=True, draw_links=True))
-        self.selected_modules_list.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred))
-        self.selected_modules_list.selectionModel().selectionChanged.connect(self.selected_modules_selection_changed)
-        self.selected_modules_list.model().rowsRemoved.connect(self.update_settings_widget_input_types)
+        self.pipeline_modules_list = f.ListView(placeholder_text='Drop modules here')
+        self.pipeline_modules_list.setModel(f.StandardItemModel(0, 1))
+        self.pipeline_modules_list.setDragEnabled(True)
+        self.pipeline_modules_list.setDefaultDropAction(Qt.MoveAction)
+        self.pipeline_modules_list.setDragDropMode(QAbstractItemView.DragDrop)
+        self.pipeline_modules_list.setFlow(QListView.LeftToRight)
+        self.pipeline_modules_list.setHorizontalScrollMode(QListView.ScrollPerPixel)
+        self.pipeline_modules_list.setWordWrap(True)
+        self.pipeline_modules_list.setItemDelegate(f.ItemDelegate(numbered=True, draw_links=True))
+        self.pipeline_modules_list.setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred))
+        self.pipeline_modules_list.selectionModel().selectionChanged.connect(self.pipeline_modules_selection_changed)
+        self.pipeline_modules_list.model().rowsRemoved.connect(self.update_settings_widget_input_types)
 
-        action_delete = QAction('Delete', self.selected_modules_list)
+        action_delete = QAction('Delete', self.pipeline_modules_list)
         action_delete.setShortcut(QKeySequence.Delete)
         action_delete.setShortcutContext(Qt.WidgetWithChildrenShortcut)
-        action_delete.triggered.connect(self.selected_modules_list.delete_selection)
-        self.selected_modules_list.addAction(action_delete)
-        self.selected_modules_list.setContextMenuPolicy(Qt.ActionsContextMenu)
+        action_delete.triggered.connect(self.pipeline_modules_list.delete_selection)
+        self.pipeline_modules_list.addAction(action_delete)
+        self.pipeline_modules_list.setContextMenuPolicy(Qt.ActionsContextMenu)
 
         self.show_available_modules_button = QPushButton('+')
         self.show_available_modules_button.setStyleSheet('padding-left: 5px; padding-right: 5px;padding-top: 0px; padding-bottom: 0px;')
@@ -62,7 +62,7 @@ class Pipeline(QWidget):
         self.remove_module_button = QPushButton('-')
         self.remove_module_button.setToolTip('Remove selected module')
         self.remove_module_button.setStyleSheet('padding-left: 5px; padding-right: 5px;padding-top: 0px; padding-bottom: 0px;')
-        self.remove_module_button.clicked.connect(self.selected_modules_list.delete_selection)
+        self.remove_module_button.clicked.connect(self.pipeline_modules_list.delete_selection)
 
         self.load_settings_button = QPushButton('Load settings...')
         self.load_settings_button.clicked.connect(self.load_settings)
@@ -96,7 +96,7 @@ class Pipeline(QWidget):
 
         groupbox = QGroupBox('Modules')
         layout2 = QVBoxLayout()
-        layout2.addWidget(self.selected_modules_list)
+        layout2.addWidget(self.pipeline_modules_list)
         layout3 = QHBoxLayout()
         layout3.addWidget(self.show_available_modules_button, alignment=Qt.AlignCenter)
         layout3.addWidget(self.remove_module_button, alignment=Qt.AlignCenter)
@@ -133,13 +133,13 @@ class Pipeline(QWidget):
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
 
-        # populate selected module list
+        # populate pipeline_modules_list
         item = QStandardItem('Settings')
         description = 'General pipeline settings (input, output, ...)'
         item.setEditable(False)
         item.setData({'description': description, 'is_removable': False, 'input_types': [], 'output_types': ['image', 'mask', 'graph', 'matrix']}, Qt.UserRole+1)
         item.setToolTip(description)
-        self.selected_modules_list.model().appendRow(item)
+        self.pipeline_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
 
         # populate available_modules_list
@@ -217,7 +217,7 @@ class Pipeline(QWidget):
         self.killTimer(event.timerId())
         self.disable_show_available_modules_button = False
 
-    def selected_modules_selection_changed(self, selected, deselected):
+    def pipeline_modules_selection_changed(self, selected, deselected):
         if deselected.count() > 0:
             # at most one item can be selected: QAbstractItemView.SingleSelection
             module_name = deselected.indexes()[0].data(Qt.DisplayRole)
@@ -259,8 +259,8 @@ class Pipeline(QWidget):
     def update_settings_widget_input_types(self):
         # assuming Settings in first position in the list
         module_name = 'Settings'
-        next_index = self.selected_modules_list.model().index(1, 0)
-        next_item_data = self.selected_modules_list.model().data(next_index, Qt.UserRole+1)
+        next_index = self.pipeline_modules_list.model().index(1, 0)
+        next_item_data = self.pipeline_modules_list.model().data(next_index, Qt.UserRole+1)
         if not next_index.isValid():
             self.module_settings_widgets[module_name].set_input_type('none')
         elif set(next_item_data['input_types']) == {'image'}:
@@ -272,15 +272,15 @@ class Pipeline(QWidget):
         elif set(next_item_data['input_types']) == {'image', 'matrix'}:
             self.module_settings_widgets[module_name].set_input_type('image_matrix')
         # update model
-        self.store_settings_data(self.selected_modules_list.model().index(0, 0))
+        self.store_settings_data(self.pipeline_modules_list.model().index(0, 0))
 
     def save_settings(self):
         '''
         Save pipeline settings to file.
         '''
-        if len(self.selected_modules_list.selectionModel().selectedRows()) == 1:
+        if len(self.pipeline_modules_list.selectionModel().selectedRows()) == 1:
             # update data for currently selected module
-            self.store_settings_data(self.selected_modules_list.selectionModel().selectedRows()[0])
+            self.store_settings_data(self.pipeline_modules_list.selectionModel().selectedRows()[0])
             # update settings widget
             self.update_settings_widget_input_types()
 
@@ -289,10 +289,10 @@ class Pipeline(QWidget):
             settings = QSettings(file_path, QSettings.IniFormat)
             settings.clear()
             settings.setValue('version', vlabapp_version)
-            settings.setValue('module_count', self.selected_modules_list.model().rowCount())
+            settings.setValue('module_count', self.pipeline_modules_list.model().rowCount())
 
-            for module_idx in range(self.selected_modules_list.model().rowCount()):
-                item = self.selected_modules_list.model().item(module_idx)
+            for module_idx in range(self.pipeline_modules_list.model().rowCount()):
+                item = self.pipeline_modules_list.model().item(module_idx)
                 settings.beginGroup('module_'+str(module_idx))
                 settings.setValue('module_name', item.data(Qt.DisplayRole))
                 settings.setValue('data', item.data(Qt.UserRole+1))
@@ -309,8 +309,8 @@ class Pipeline(QWidget):
             # TODO: check version compatibility
             module_count = settings.value('module_count', type=int)
 
-            # remove all modules from self.selected_modules_list
-            self.selected_modules_list.model().clear()
+            # remove all modules from self.pipeline_modules_list
+            self.pipeline_modules_list.model().clear()
 
             # hide all module settings widgets
             for module_name in self.module_settings_widgets:
@@ -323,19 +323,19 @@ class Pipeline(QWidget):
                 item.setEditable(False)
                 item.setData(settings.value('data'), Qt.UserRole+1)
                 item.setToolTip(item.data(Qt.UserRole+1)['description'])
-                self.selected_modules_list.model().appendRow(item)
+                self.pipeline_modules_list.model().appendRow(item)
                 self.restore_settings_data(item.index())
                 settings.endGroup()
 
     def submit(self):
-        if len(self.selected_modules_list.selectionModel().selectedRows()) == 1:
+        if len(self.pipeline_modules_list.selectionModel().selectedRows()) == 1:
             # update data for currently selected module
-            self.store_settings_data(self.selected_modules_list.selectionModel().selectedRows()[0])
+            self.store_settings_data(self.pipeline_modules_list.selectionModel().selectedRows()[0])
             # update settings widget
             self.update_settings_widget_input_types()
 
         # Settings (it is always the first module)
-        item = self.selected_modules_list.model().item(0)
+        item = self.pipeline_modules_list.model().item(0)
         module_name = item.data(Qt.DisplayRole)
         module_widget = self.module_settings_widgets[module_name]
         settings = item.data(Qt.UserRole+1)['settings']
@@ -412,7 +412,7 @@ class Pipeline(QWidget):
                     return
 
         # check input
-        if self.selected_modules_list.model().rowCount() < 2:
+        if self.pipeline_modules_list.model().rowCount() < 2:
             self.logger.error('No module except "Settings".')
             return
         if not settings['use_input_folder'] and settings['output_folder'] == '':
@@ -433,7 +433,7 @@ class Pipeline(QWidget):
             if len(duplicates) > 0:
                 self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input file folder as output folder or avoid processing files from different input folders.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
                 return
-        first_module_name = self.selected_modules_list.model().item(1).data(Qt.DisplayRole)
+        first_module_name = self.pipeline_modules_list.model().item(1).data(Qt.DisplayRole)
         if first_module_name in ['Registration', 'Registration (alignment)']:
             for path in input_image_paths:
                 try:
@@ -484,8 +484,8 @@ class Pipeline(QWidget):
             next_matrix_path = input_matrix_paths[input_idx] if input_matrix_paths else None
             output_path = output_paths[input_idx]
             last_job_with_same_input_idx = None
-            for module_idx in range(1, self.selected_modules_list.model().rowCount()):
-                item = self.selected_modules_list.model().item(module_idx)
+            for module_idx in range(1, self.pipeline_modules_list.model().rowCount()):
+                item = self.pipeline_modules_list.model().item(module_idx)
                 module_name = item.data(Qt.DisplayRole)
                 module_widget = self.module_settings_widgets[module_name]
                 settings = item.data(Qt.UserRole+1)['settings']
@@ -727,7 +727,7 @@ class Pipeline(QWidget):
                     last_job_with_same_input_idx = len(jobs) - 1
 
         status_dialog = f.StatusTableDialog(input_count,
-                                            [self.selected_modules_list.model().item(i).data(Qt.DisplayRole) for i in range(1, self.selected_modules_list.model().rowCount())])
+                                            [self.pipeline_modules_list.model().item(i).data(Qt.DisplayRole) for i in range(1, self.pipeline_modules_list.model().rowCount())])
         status_dialog.ok_button.hide()
         status_dialog.abort_button.show()
         status_dialog.setModal(True)

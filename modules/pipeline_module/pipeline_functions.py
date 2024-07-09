@@ -342,7 +342,7 @@ class GeneralSettings(QWidget):
         # Input masks & graph
         self.mask_graph_table = gf.FileTableWidget2(header_1="Mask", header_2="Graph", filenames_suffix_1='.ome.tif', filenames_suffix_2='.graphmlz', filenames_filter=gf.output_suffixes['cell_tracking'])
 
-        # Input masks & graph
+        # Input image & registration matrix
         self.image_matrix_table = gf.ImageMatrixTableWidget2(filenames_filter='', filenames_exclude_filter=gf.output_suffixes['registration'])
 
         # Output folders
