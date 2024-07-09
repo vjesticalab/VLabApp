@@ -1,13 +1,14 @@
 import logging
 import os
+import concurrent
 from PyQt5.QtWidgets import QFileDialog, QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QLabel, QLineEdit, QComboBox
 from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtGui import QCursor, QIntValidator, QRegExpValidator
 from modules.segmentation_module import segmentation_functions as f
 from general import general_functions as gf
 import torch
-import concurrent
 from cellpose.core import assign_device
+
 
 class Segmentation(QWidget):
     def __init__(self, pipeline_layout=False):
@@ -20,10 +21,10 @@ class Segmentation(QWidget):
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
         label_documentation.setWordWrap(True)
-        label_documentation.setText('For each input image,  perform cell segmentation using <a href="https://www.cellpose.org/">cellpose</a> and save the resulting mask.<br>'+
-                                    'Input images must have X and Y axes and can optionally have C, Z and/or T axes (Z axis will be projected and only the chosen channel will be selected before performing segmentation).<br>'+
+        label_documentation.setText('For each input image,  perform cell segmentation using <a href="https://www.cellpose.org/">cellpose</a> and save the resulting mask.<br>' +
+                                    'Input images must have X and Y axes and can optionally have C, Z and/or T axes (Z axis will be projected and only the chosen channel will be selected before performing segmentation).<br>' +
                                     'A "cellpose model" can be obtained by finetuning a pretrained cellpose model on a collection of annotated images similar to the input images (see section "Training" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>).')
-        
+
         self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='_BF')
         self.image_list.file_list_changed.connect(self.image_list_changed)
 
@@ -110,7 +111,7 @@ class Segmentation(QWidget):
         self.n_count.setMinimum(1)
         self.n_count.setMaximum(os.cpu_count())
         self.n_count.setValue(1)
-        n_count_label=QLabel("Number of processes:")
+        n_count_label = QLabel("Number of processes:")
         self.use_gpu.toggled.connect(n_count_label.setDisabled)
         self.use_gpu.toggled.connect(self.update_coarse_grain_status)
         self.use_gpu.toggled.connect(self.n_count.setDisabled)
@@ -128,7 +129,7 @@ class Segmentation(QWidget):
         collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
         collapsible_widget.content.setLayout(QVBoxLayout())
         collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0,0,0,0)
+        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
         layout2.addWidget(collapsible_widget)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -181,7 +182,7 @@ class Segmentation(QWidget):
         layout3.setFormAlignment(Qt.AlignLeft)
         groupbox2 = QGroupBox("If multiple channels:")
         layout4 = QFormLayout()
-        layout4.addRow("Channel position:",self.channel_position)
+        layout4.addRow("Channel position:", self.channel_position)
         groupbox2.setLayout(layout4)
         layout3.addRow(groupbox2)
 
@@ -197,7 +198,7 @@ class Segmentation(QWidget):
         groupbox3.setVisible(self.projection_mode_around_bestZ.isChecked())
         self.projection_mode_around_bestZ.toggled.connect(groupbox3.setVisible)
         layout6 = QFormLayout()
-        layout6.addRow("Range:",self.projection_mode_around_bestZ_zrange)
+        layout6.addRow("Range:", self.projection_mode_around_bestZ_zrange)
         groupbox3.setLayout(layout6)
         layout5.addWidget(groupbox3)
         layout5.addWidget(self.projection_mode_fixed)
@@ -207,17 +208,17 @@ class Segmentation(QWidget):
         self.projection_mode_fixed.toggled.connect(groupbox3.setVisible)
         layout6 = QHBoxLayout()
         layout7 = QFormLayout()
-        layout7.addRow("From:",self.projection_mode_fixed_zmin)
+        layout7.addRow("From:", self.projection_mode_fixed_zmin)
         layout6.addLayout(layout7)
         layout7 = QFormLayout()
-        layout7.addRow("To:",self.projection_mode_fixed_zmax)
+        layout7.addRow("To:", self.projection_mode_fixed_zmax)
         layout6.addLayout(layout7)
         groupbox3.setLayout(layout6)
         layout5.addWidget(groupbox3)
         layout5.addWidget(self.projection_mode_all)
         widget.setLayout(layout5)
-        layout4.addRow("Projection range:",widget)
-        layout4.addRow("Projection type:",self.projection_type)
+        layout4.addRow("Projection range:", widget)
+        layout4.addRow("Projection type:", self.projection_type)
         groupbox2.setLayout(layout4)
         layout3.addRow(groupbox2)
         groupbox.setLayout(layout3)
@@ -229,7 +230,7 @@ class Segmentation(QWidget):
             layout2.addWidget(self.use_gpu)
             layout2.addWidget(self.coarse_grain)
             layout3 = QFormLayout()
-            layout3.addRow(n_count_label,self.n_count)
+            layout3.addRow(n_count_label, self.n_count)
             layout2.addLayout(layout3)
             groupbox.setLayout(layout2)
             layout.addWidget(groupbox)
@@ -271,7 +272,7 @@ class Segmentation(QWidget):
         else:
             output_path = self.output_folder.text().rstrip("/")
 
-        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
+        self.output_filename_label.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
 
     def projection_mode_fixed_zmin_changed(self, value):
         if self.projection_mode_fixed_zmax.value() < value:
@@ -437,7 +438,7 @@ class Segmentation(QWidget):
                     self.logger.exception("Segmentation failed")
         elif coarse_grain_parallelism:
             # we launch a process per video
-            self.logger.info(f"NCOUNT {n_count}")
+            self.logger.info("NCOUNT %s", n_count)
             with concurrent.futures.ProcessPoolExecutor(n_count) as executor:
                 future_reg = {
                     executor.submit(f.main, *args, run_parallel=False): args for args in arguments
@@ -452,7 +453,6 @@ class Segmentation(QWidget):
                         status.append("Failed")
                         error_messages.append(str(e))
                         self.logger.exception("Segmentation failed")
-
 
         QApplication.restoreOverrideCursor()
 

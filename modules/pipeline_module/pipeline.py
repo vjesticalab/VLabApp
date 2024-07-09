@@ -113,7 +113,7 @@ class Pipeline(QWidget):
         layout2.setContentsMargins(0, 0, 0, 0)
         self.module_settings_groupbox.setLayout(layout2)
         self.module_settings_groupbox.hide()
-        self.module_settings_widgets = dict()
+        self.module_settings_widgets = {}
         self.module_settings_widgets['Settings'] = f.GeneralSettings()
         self.module_settings_widgets['Registration'] = registration.Perform(pipeline_layout=True)
         self.module_settings_widgets['Registration (alignment)'] = registration.Align(pipeline_layout=True)
@@ -438,7 +438,7 @@ class Pipeline(QWidget):
             for path in input_image_paths:
                 try:
                     image = gf.Image(path)
-                except:
+                except Exception:
                     self.logger.exception('Error loading image:\n %s\n\nError message:', path)
                     return
                 if not (image.sizes['F'] == 1 and image.sizes['T'] > 1 and image.sizes['Y'] > 1 and image.sizes['X'] > 1):
@@ -448,7 +448,7 @@ class Pipeline(QWidget):
             for path in input_image_paths:
                 try:
                     image = gf.Image(path)
-                except:
+                except Exception:
                     self.logger.exception('Error loading image:\n %s\n\nError message:', path)
                     return
                 if not (image.sizes['F'] == 1 and image.sizes['Y'] > 1 and image.sizes['X'] > 1):
@@ -459,7 +459,7 @@ class Pipeline(QWidget):
             for path in input_image_paths:
                 try:
                     image = gf.Image(path)
-                except:
+                except Exception:
                     self.logger.exception('Error loading image:\n %s\n\nError message:', path)
                     return
                 if not (image.sizes['F'] == 1 and image.sizes['Y'] > 1 and image.sizes['X'] > 1):
@@ -469,7 +469,7 @@ class Pipeline(QWidget):
             for path in input_mask_paths:
                 try:
                     mask = gf.Image(path)
-                except:
+                except Exception:
                     self.logger.exception('Error loading mask:\n %s\n\nError message:', path)
                     return
                 if not (mask.sizes['F'] == 1 and mask.sizes['T'] > 1 and mask.sizes['C'] == 1 and mask.sizes['Z'] == 1 and mask.sizes['Y'] > 1 and mask.sizes['X'] > 1):
@@ -624,7 +624,7 @@ class Pipeline(QWidget):
                                                display_results,
                                                use_gpu,
                                                run_parallel),
-                                 'depends':  [last_job_with_same_input_idx] if last_job_with_same_input_idx is not None else [],
+                                 'depends': [last_job_with_same_input_idx] if last_job_with_same_input_idx is not None else [],
                                  'module_name': module_name,
                                  'module_idx': module_idx,
                                  'input_idx': input_idx,
@@ -756,7 +756,7 @@ class Pipeline(QWidget):
                     time.sleep(0.05)
                     if status_dialog.abort:
                         executor.shutdown(wait=False, cancel_futures=True)
-                    for n in jobs_to_submit:
+                    for n in jobs_to_submit.copy():
                         submit_job = True
                         cancel_job = False
                         for m in jobs[n]['depends']:
@@ -788,7 +788,7 @@ class Pipeline(QWidget):
                             break
                     QApplication.processEvents()
                     time.sleep(0.05)
-                    for n in jobs_submitted:
+                    for n in jobs_submitted.copy():
                         if jobs[n]['future'].running():
                             status_dialog.table.item(jobs[n]['input_idx'], jobs[n]['module_idx']-1).setText('Running')
                             status_dialog.table.item(jobs[n]['input_idx'], jobs[n]['module_idx']-1).setBackground(QBrush(QColor('#0000ff')))

@@ -19,8 +19,8 @@ class zProjection(QWidget):
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
         label_documentation.setWordWrap(True)
-        label_documentation.setText('For each input image,  perform a z-stack projection and save the z-projected image.<br>'+
-                                    'Input images must have X, Y and Z axes and can optionally have C and/or T axes.<br><br>'+
+        label_documentation.setText('For each input image,  perform a z-stack projection and save the z-projected image.<br>' +
+                                    'Input images must have X, Y and Z axes and can optionally have C and/or T axes.<br><br>' +
                                     'Additional information: <a href="file://' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
 
         # Input images
@@ -107,7 +107,7 @@ class zProjection(QWidget):
         collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
         collapsible_widget.content.setLayout(QVBoxLayout())
         collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0,0,0,0)
+        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
         layout2.addWidget(collapsible_widget)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -124,7 +124,6 @@ class zProjection(QWidget):
         groupbox = QGroupBox('Output')
         layout2 = QVBoxLayout()
         if not self.pipeline_layout:
-            output_path = "<output folder>"
             layout2.addWidget(QLabel("Folder:"))
             layout2.addWidget(self.use_input_folder)
             layout2.addWidget(self.use_custom_folder)
@@ -228,9 +227,9 @@ class zProjection(QWidget):
             projection_zrange = None
         projection_suffix = self.get_projection_suffix(None, projection_zrange, projection_type)
 
-        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + projection_suffix+".ome.tif"))
+        self.output_filename_label.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + projection_suffix+".ome.tif"))
 
-    def get_projection_suffix(self,image_path,projection_zrange,projection_type):
+    def get_projection_suffix(self, image_path, projection_zrange, projection_type):
         if projection_zrange is None:
             if image_path is not None:
                 im = gf.Image(image_path)
@@ -288,7 +287,6 @@ class zProjection(QWidget):
         self.projection_mode_fixed_zmax.setValue(widgets_state['projection_mode_fixed_zmax'])
         self.projection_mode_all.setChecked(widgets_state['projection_mode_all'])
         self.projection_type.setCurrentText(widgets_state['projection_type'])
-
 
     def submit(self):
         """

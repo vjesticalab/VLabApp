@@ -4,7 +4,6 @@ from platform import python_version, platform
 from collections import deque
 import numpy as np
 import napari
-import tifffile
 import cv2 as cv
 import igraph as ig
 from scipy.optimize import linear_sum_assignment
@@ -152,7 +151,7 @@ def interpolate_mask(mask, cell_tracking_graph, mask_ids, frame_start, frame_end
     mask_cropped1[frame_start:frame_end] = dest_mask
 
     # Clean
-    if not min_area is None:
+    if min_area is not None:
         toremove = []
         logger.debug("removing small regions")
         for frame in range(frame_start, frame_end):
@@ -168,7 +167,7 @@ def interpolate_mask(mask, cell_tracking_graph, mask_ids, frame_start, frame_end
 
 def clean_mask(mask, cell_tracking_graph, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0, min_area=300, only_missing=False):
     """
-    Search for isolated defects in the cell tracking graph and try to remove them by interpolating 
+    Search for isolated defects in the cell tracking graph and try to remove them by interpolating
     corresponding mask across neighboring frames
     Note: modify `mask` and `cell_tracking_graph` in-place
 
@@ -208,7 +207,7 @@ def clean_mask(mask, cell_tracking_graph, max_delta_frame_interpolation=3, nfram
         interpolate_mask(mask, cell_tracking_graph, mask_ids, frame_start, frame_end, max_delta_frame_interpolation=max_delta_frame_interpolation, min_area=None)  # do not filter on area (too long)
 
     # Clean
-    if not min_area is None:
+    if min_area is not None:
         toremove = []
         logger.debug("removing small regions")
         for frame in range(mask.shape[0]):
@@ -228,7 +227,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
     """
     Add two layers (with names 'Edges' and 'Vertices') to the `viewer_graph` and plot the cell tracking graph,
     existing layers  'Edges' and 'Vertices' will be cleared.
-    Setup mouse click callbacks to allow vertices selection in `viewer_graph` and centering `viewer_images` 
+    Setup mouse click callbacks to allow vertices selection in `viewer_graph` and centering `viewer_images`
     camera to specific vertex.
 
     Parameters
@@ -248,16 +247,16 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
         is it possible to select vertices?
     """
 
-    def get_YX_timeframe(mask,t):
+    def get_YX_timeframe(mask, t):
         # a function to return YX images
         T_axis_index = viewer_images.dims.axis_labels.index('T')
         Y_axis_index = viewer_images.dims.axis_labels.index('Y')
         X_axis_index = viewer_images.dims.axis_labels.index('X')
-        indYX=list(viewer_images.dims.current_step)
-        indYX[T_axis_index]=t
-        indYX[Y_axis_index]=slice(0,mask.shape[Y_axis_index])
-        indYX[X_axis_index]=slice(0,mask.shape[X_axis_index])
-        indYX=tuple(indYX)
+        indYX = list(viewer_images.dims.current_step)
+        indYX[T_axis_index] = t
+        indYX[Y_axis_index] = slice(0, mask.shape[Y_axis_index])
+        indYX[X_axis_index] = slice(0, mask.shape[X_axis_index])
+        indYX = tuple(indYX)
         return mask[indYX]
 
     layout_per_component = True
@@ -289,7 +288,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
     edge_w_max = vertex_size*0.8
 
     # Edges
-    if not 'Edges' in viewer_graph.layers:
+    if 'Edges' not in viewer_graph.layers:
         edges_layer = viewer_graph.add_shapes(name='Edges', opacity=1)
     else:
         edges_layer = viewer_graph.layers['Edges']
@@ -306,11 +305,11 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
     edges_layer.editable = False
     # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
     # This is a quick and dirty hack to force the layer to stay non-editable.
-    edges_layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
+    edges_layer.events.editable.connect(lambda e: setattr(e.source, 'editable', False))
     edges_layer.refresh()
 
     # Add vertices
-    if not 'Vertices' in viewer_graph.layers:
+    if 'Vertices' not in viewer_graph.layers:
         vertices_layer = viewer_graph.add_points(name='Vertices', opacity=1)
         if selectable:
             vertices_layer.help = "<left-click> to set view, <right-click> to select, <shift>+<right-click> to extend selection"
@@ -335,7 +334,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
     vertices_layer.editable = False
     # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
     # This is a quick and dirty hack to force the layer to stay non-editable.
-    vertices_layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
+    vertices_layer.events.editable.connect(lambda e: setattr(e.source, 'editable', False))
     vertices_layer.refresh()
 
     # Note: it would be probably better to use the already existing option to select points in the Points layer instead of using an additional 'selected' property.
@@ -356,19 +355,19 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                 if event.button == 1:  # center view (left-click)
                     # center view on corresponding vertex
                     point_id = layer.get_value(event.position)
-                    if not point_id is None:
+                    if point_id is not None:
                         frame = layer.properties['frame'][point_id]
                         mask_id = layer.properties['mask_id'][point_id]
                         # just in case mask has changed and cell_tracking graph has not been updated yet:
-                        if mask_id in get_YX_timeframe(mask_layer.data,frame):
+                        if mask_id in get_YX_timeframe(mask_layer.data, frame):
                             viewer_images.dims.set_point(viewer_images.dims.axis_labels.index('T'), frame)
                             y0, x0 = np.mean(
-                                np.where(get_YX_timeframe(mask_layer.data,frame) == mask_id), axis=1)
+                                np.where(get_YX_timeframe(mask_layer.data, frame) == mask_id), axis=1)
                             viewer_images.camera.center = (0, y0, x0)
                 elif event.button == 2 and selectable:  # selection (right-click)
                     # vertices selection (multple mask_ids, same frame range for all)
                     point_id = layer.get_value(event.position)
-                    if not point_id is None:
+                    if point_id is not None:
                         if 'Shift' in event.modifiers:
                             # add to selection
                             layer.properties['selected'][point_id] = True
@@ -387,7 +386,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                             layer.properties['selected'][layer.properties['selected']] = False
                             layer.properties['selected'][point_id] = not layer.properties['selected'][point_id]
                     else:
-                        if not 'Control' in event.modifiers and not 'Shift' in event.modifiers:
+                        if 'Control' not in event.modifiers and 'Shift' not in event.modifiers:
                             # erase selection
                             layer.properties['selected'][layer.properties['selected']] = False
                     # change style
@@ -413,7 +412,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                         # center view on corresponding vertex
                         frame = event.position[T_axis_index]
                         mask_id = layer.get_value(event.position)
-                        if not mask_id is None and mask_id > 0:
+                        if mask_id is not None and mask_id > 0:
                             idx = np.where((viewer_graph.layers['Vertices'].properties['frame'] == frame) &
                                            (viewer_graph.layers['Vertices'].properties['mask_id'] == mask_id))[0]
                             if len(idx) == 1:
@@ -424,12 +423,12 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                         frame = event.position[T_axis_index]
                         mask_id = layer.get_value(event.position)
                         point_id = None
-                        if not mask_id is None and mask_id > 0:
+                        if mask_id is not None and mask_id > 0:
                             idx = np.where((viewer_graph.layers['Vertices'].properties['frame'] == frame) &
                                            (viewer_graph.layers['Vertices'].properties['mask_id'] == mask_id))[0]
                             if len(idx) == 1:
                                 point_id = idx[0]
-                        if not point_id is None:
+                        if point_id is not None:
                             if 'Shift' in event.modifiers:
                                 # add to selection
                                 viewer_graph.layers['Vertices'].properties['selected'][point_id] = True
@@ -454,7 +453,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                                 viewer_graph.layers['Vertices'].properties['selected'][point_id] = (
                                     not viewer_graph.layers['Vertices'].properties['selected'][point_id])
                         else:
-                            if not 'Control' in event.modifiers and not 'Shift' in event.modifiers:
+                            if 'Control' not in event.modifiers and 'Shift' not in event.modifiers:
                                 # erase selection
                                 viewer_graph.layers['Vertices'].properties['selected'][
                                     viewer_graph.layers['Vertices'].properties['selected']] = False
@@ -510,11 +509,11 @@ class CellTrackingGraph:
         beta: float, >= 1
             for cell tracking, the weight of the mask overlap between frames t1 and t2 is 1/beta**(t2-t1-1)
         """
-        if not min_overlap_fraction is None:
+        if min_overlap_fraction is not None:
             self.min_overlap_fraction = min_overlap_fraction
-        if not beta is None:
+        if beta is not None:
             self.beta = beta
-        if not max_delta_frame is None:
+        if max_delta_frame is not None:
             self._max_delta_frame = max_delta_frame
 
         self._graph_full.clear()
@@ -576,7 +575,7 @@ class CellTrackingGraph:
             if len(mask_ids_missing) > 0:
                 self._graph_full.add_vertices(len(mask_ids_missing),
                                               {"frame": np.repeat(frame, len(mask_ids_missing)),
-                                               "area":  np.repeat(0, len(mask_ids_missing)),
+                                               "area": np.repeat(0, len(mask_ids_missing)),
                                                "mask_id": mask_ids_missing.astype(mask.dtype),
                                                "changed": True})
                 frame_vs = self._graph_full.vs.select(frame=frame, mask_id_lt=m)
@@ -609,9 +608,9 @@ class CellTrackingGraph:
                 # Evaluate confusion matrix for new mask (mask_cropped)
                 if frame1 in range(frame_start, frame_end) and frame2 in range(frame_start, frame_end):
                     cm_new = cv.calcHist(images=[mask_new[frame1-frame_start], mask_new[frame2-frame_start]], channels=[0, 1], mask=None, histSize=[m, m], ranges=[0, m, 0, m]).astype(np.int64)
-                elif frame1 in range(frame_start, frame_end) and not frame2 in range(frame_start, frame_end):
+                elif frame1 in range(frame_start, frame_end) and frame2 not in range(frame_start, frame_end):
                     cm_new = cv.calcHist(images=[mask_new[frame1-frame_start], mask_cropped[frame2]], channels=[0, 1], mask=None, histSize=[m, m], ranges=[0, m, 0, m]).astype(np.int64)
-                elif not frame1 in range(frame_start, frame_end) and frame2 in range(frame_start, frame_end):
+                elif frame1 not in range(frame_start, frame_end) and frame2 in range(frame_start, frame_end):
                     cm_new = cv.calcHist(images=[mask_cropped[frame1], mask_new[frame2-frame_start]], channels=[0, 1], mask=None, histSize=[m, m], ranges=[0, m, 0, m]).astype(np.int64)
                 else:
                     cm_new = cv.calcHist(images=[mask_cropped[frame1], mask_cropped[frame2]], channels=[0, 1], mask=None, histSize=[m, m], ranges=[0, m, 0, m]).astype(np.int64)
@@ -709,7 +708,7 @@ class CellTrackingGraph:
         Returns
         -------
         list of tuples
-            Each each tuple corresponds to a defect (masks_ids, frame_start, frame_end) 
+            Each each tuple corresponds to a defect (masks_ids, frame_start, frame_end)
             involving a list of mask ids (mask_ids) in the frame interval [frame_start, frame_end)
         """
 
@@ -901,7 +900,7 @@ class CellTrackingGraph:
     def _relabel(self, mask):
         """
         Using `self._graph_full`, relabel mask (modify `mask` and `self._graph_full`)
-        so as to have consistent mask ids in consecutive frames       
+        so as to have consistent mask ids in consecutive frames
 
         Parameters
         ----------
@@ -917,7 +916,7 @@ class CellTrackingGraph:
             max_mask_ids1 = np.max(mask_ids1) if len(mask_ids1) > 0 else 0
             # Check mask and self._graph_full are consistent:
             if not np.array_equal(mask_ids1, np.sort(np.unique(mask[frame1][mask[frame1] > 0]))):
-                raise Exception("not the same mask_ids in mask and self._graph_full")
+                raise ValueError("not the same mask_ids in mask and self._graph_full")
             map_id = np.repeat(-1, max_mask_ids1+1)
             if frame1 == 0:
                 # Relabel with consecutiv mask_ids
@@ -993,7 +992,7 @@ class CellTrackingGraph:
         Remove redundant edges in `self._graph` (edge attributes 'redundant')
         Redundant edges are defined as:
             - For a pair of mask_id1 mask_id2, consider all edges connecting mask_id1 to mask_id2.
-            - For each edge in this list connecting frame1 to frame2, flag all other edges in this 
+            - For each edge in this list connecting frame1 to frame2, flag all other edges in this
             list connecting frame1-n to frame2+m (with n,m>=0) as redundant
         """
         mask_id_pairs = [(self._graph.vs[e.source]['mask_id'], self._graph.vs[e.target]['mask_id']) for e in self._graph.es]
@@ -1485,14 +1484,14 @@ class CellTrackingWidget(QWidget):
         output_file1 = os.path.join(self.output_path, self.output_basename+".ome.tif")
         self.logger.info("Saving segmentation mask to %s", output_file1)
         self.mask = self.mask[:, np.newaxis, :, :]
-        ome_metadata=OmeTiffWriter.build_ome(data_shapes=[self.mask.shape],
-                                             data_types=[self.mask.dtype],
-                                             dimension_order=["TCYX"],
-                                             channel_names=[self.mask_channel_names],
-                                             physical_pixel_sizes=[PhysicalPixelSizes(X=self.mask_physical_pixel_sizes[0], Y=self.mask_physical_pixel_sizes[1], Z=self.mask_physical_pixel_sizes[2])])
-        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        ome_metadata = OmeTiffWriter.build_ome(data_shapes=[self.mask.shape],
+                                               data_types=[self.mask.dtype],
+                                               dimension_order=["TCYX"],
+                                               channel_names=[self.mask_channel_names],
+                                               physical_pixel_sizes=[PhysicalPixelSizes(X=self.mask_physical_pixel_sizes[0], Y=self.mask_physical_pixel_sizes[1], Z=self.mask_physical_pixel_sizes[2])])
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))
         for x in self.mask_metadata:
-            ome_metadata.structured_annotations.append(CommentAnnotation(value=x,namespace="VLabApp"))
+            ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
         OmeTiffWriter.save(self.mask, output_file1, ome_xml=ome_metadata)
         # output_file2 = os.path.join(self.output_path, self.output_basename+".dot")
         # self.logger.info("Saving cell tracking graph to %s", output_file2)
@@ -1501,7 +1500,7 @@ class CellTrackingWidget(QWidget):
         output_file3 = os.path.join(self.output_path, self.output_basename+".graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file3)
         g = self.cell_tracking_graph.get_graph()
-        #add metadata
+        # add metadata
         g['VLabApp:Annotation:1'] = buffered_handler.get_messages()
         for i, x in enumerate(self.mask_metadata):
             g['VLabApp:Annotation:'+str(i+2)] = x
@@ -1560,7 +1559,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
     min_overlap_fraction: float
         minimum overlap fraction (w.r.t mask area) to consider when creating edges in the cell tracking graph
     clean: bool
-        search for isolated defects in the cell tracking graph and try to remove them by interpolating 
+        search for isolated defects in the cell tracking graph and try to remove them by interpolating
         corresponding mask across neighboring frames
     max_delta_frame_interpolation: int
         number of previous and subsequent frames to consider for mask interpolation
@@ -1633,7 +1632,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         try:
             image = gf.Image(image_path)
             image.imread()
-        except:
+        except Exception:
             logging.getLogger(__name__).exception('Error loading image %s', image_path)
             # stop using logfile
             logger.removeHandler(logfile_handler)
@@ -1646,17 +1645,17 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         mask_image = gf.Image(mask_path)
         mask_image.imread()
         mask = mask_image.get_TYXarray()
-    except:
+    except Exception:
         logging.getLogger(__name__).exception('Error loading mask %s', mask_path)
         # stop using logfile
         logger.removeHandler(logfile_handler)
         logger.removeHandler(buffered_handler)
         raise
 
-    #load mask metadata
+    # load mask metadata
     mask_metadata = []
     if mask_image.ome_metadata:
-        for i,x in enumerate(mask_image.ome_metadata.structured_annotations):
+        for i, x in enumerate(mask_image.ome_metadata.structured_annotations):
             if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
                 if len(mask_metadata) == 0:
                     mask_metadata.append("Metadata for "+mask_image.path+":\n"+x.value)
@@ -1667,7 +1666,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
     # Cell tracking
     ###########################
 
-    logger.info("Creating cell tracking graph and relabelling mask: max delta frame=%s, min overlap fraction=%s%%, min area=%s",  max_delta_frame, min_overlap_fraction*100, min_area)
+    logger.info("Creating cell tracking graph and relabelling mask: max delta frame=%s, min overlap fraction=%s%%, min area=%s", max_delta_frame, min_overlap_fraction*100, min_area)
     split_regions(mask)
     remove_small_regions(mask, min_area)
     cell_tracking_graph = CellTrackingGraph(mask, max_delta_frame=max_delta_frame, min_overlap_fraction=min_overlap_fraction)
@@ -1687,7 +1686,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         logger.info("Relabelling mask and graph: max delta frame=%s, min area=%s, min overlap fraction=%s%%", max_delta_frame, min_area, min_overlap_fraction*100)
         split_regions(mask)
         remove_small_regions(mask, min_area)
-        cell_tracking_graph.reset(mask,  max_delta_frame=max_delta_frame, min_overlap_fraction=min_overlap_fraction)
+        cell_tracking_graph.reset(mask, max_delta_frame=max_delta_frame, min_overlap_fraction=min_overlap_fraction)
         cell_tracking_graph.relabel(mask)
 
     ###########################
@@ -1701,12 +1700,12 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
             viewer_images.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
             # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
             viewer_images.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
-        #broadcast TYX mask to FTZYX with F and Z axis containing shallow copies (C axis is used as channel_axis):
+        # broadcast TYX mask to FTZYX with F and Z axis containing shallow copies (C axis is used as channel_axis):
         sizeF = image.image.shape[0] if image_path != '' else 1
         sizeZ = image.image.shape[3] if image_path != '' else 1
-        mask_FTZYX=np.broadcast_to(mask[np.newaxis,:,np.newaxis,:,:], (sizeF, mask.shape[0], sizeZ, mask.shape[1], mask.shape[2]))
+        mask_FTZYX = np.broadcast_to(mask[np.newaxis, :, np.newaxis, :, :], (sizeF, mask.shape[0], sizeZ, mask.shape[1], mask.shape[2]))
         # the resulting mask_FTZYX is read only. To make it writeable:
-        mask_FTZYX.flags['WRITEABLE']=True
+        mask_FTZYX.flags['WRITEABLE'] = True
         mask_layer = viewer_images.add_labels(mask_FTZYX, name="Cell mask")
         # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
         viewer_images.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
@@ -1736,14 +1735,14 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         output_file = os.path.join(output_path, output_basename+".ome.tif")
         logger.info("Saving segmentation mask to %s", output_file)
         mask = mask[:, np.newaxis, :, :]
-        ome_metadata=OmeTiffWriter.build_ome(data_shapes=[mask.shape],
-                                             data_types=[mask.dtype],
-                                             dimension_order=["TCYX"],
-                                             channel_names=[mask_image.channel_names],
-                                             physical_pixel_sizes=[PhysicalPixelSizes(X=mask_image.physical_pixel_sizes[0],Y=mask_image.physical_pixel_sizes[1],Z=mask_image.physical_pixel_sizes[2])])
-        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        ome_metadata = OmeTiffWriter.build_ome(data_shapes=[mask.shape],
+                                               data_types=[mask.dtype],
+                                               dimension_order=["TCYX"],
+                                               channel_names=[mask_image.channel_names],
+                                               physical_pixel_sizes=[PhysicalPixelSizes(X=mask_image.physical_pixel_sizes[0], Y=mask_image.physical_pixel_sizes[1], Z=mask_image.physical_pixel_sizes[2])])
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))
         for x in mask_metadata:
-            ome_metadata.structured_annotations.append(CommentAnnotation(value=x,namespace="VLabApp"))
+            ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
         OmeTiffWriter.save(mask, output_file, ome_xml=ome_metadata)
 
         # output_file = os.path.join(output_path, output_basename+".dot")
@@ -1753,7 +1752,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         output_file = os.path.join(output_path, output_basename+".graphmlz")
         logger.info("Saving cell tracking graph to %s", output_file)
         g = cell_tracking_graph.get_graph()
-        #add metadata
+        # add metadata
         g['VLabApp:Annotation:1'] = buffered_handler.get_messages()
         for i, x in enumerate(mask_metadata):
             g['VLabApp:Annotation:'+str(i+2)] = x
@@ -1761,5 +1760,3 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         # stop using logfile
         logger.removeHandler(logfile_handler)
         logger.removeHandler(buffered_handler)
-
-

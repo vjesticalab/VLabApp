@@ -1,15 +1,15 @@
 import os
+import logging
+import concurrent.futures
 from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtWidgets import QCheckBox, QComboBox, QFormLayout, QPushButton, QVBoxLayout, QWidget, QGridLayout, QLabel, QLineEdit, QHBoxLayout, QApplication, QSpinBox, QRadioButton, QGroupBox, QFileDialog
 from PyQt5.QtGui import QCursor, QIntValidator, QRegExpValidator
 import numpy as np
-import logging
 import matplotlib
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from modules.registration_module import registration_functions as f
 from general import general_functions as gf
-import concurrent.futures
 
 matplotlib.use("Qt5Agg")
 
@@ -116,8 +116,8 @@ class Perform(QWidget):
         self.registration_method.setCurrentText("feature matching (SIFT)")
         self.coalignment_yn = QCheckBox("Co-align files with the same unique identifier (part of the filename before the first \"_\")")
         self.skip_cropping_yn = QCheckBox("Do NOT crop aligned image")
-        self.buttonA = QPushButton("Register")
-        self.buttonA.clicked.connect(self.register)
+        self.register_button = QPushButton("Register")
+        self.register_button.clicked.connect(self.register)
         self.n_count = QSpinBox()
         self.n_count.setMinimum(1)
         self.n_count.setMaximum(os.cpu_count())
@@ -265,7 +265,7 @@ class Perform(QWidget):
             layout2.addRow(n_count_label, self.n_count)
             groupbox.setLayout(layout2)
             layout.addWidget(groupbox)
-            layout.addWidget(self.buttonA, alignment=Qt.AlignCenter)
+            layout.addWidget(self.register_button, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
 
@@ -337,7 +337,7 @@ class Perform(QWidget):
                 return False
             for path in image_paths:
                 if not os.path.isfile(path):
-                    self.logger.error('Image not found\n' + path)
+                    self.logger.error('Image not found\n%s', path)
                     return False
             return True
 
@@ -401,7 +401,7 @@ class Perform(QWidget):
         if not arguments:
             return
         n_count = min(len(arguments), self.n_count.value())
-        self.logger.info(f"Using: {n_count} cores to perform registration")
+        self.logger.info("Using: %s cores to perform registration", n_count)
         # Perform projection
         if len(arguments) == 1:
             try:
@@ -428,7 +428,7 @@ class Perform(QWidget):
                         error_messages.append(str(e))
                         self.logger.exception("An exception occurred")
                     else:
-                        self.logger.info(f" Image: {image_path} Done")
+                        self.logger.info(" Image: %s Done", image_path)
 
         # second step: coalign other images
         if coalignment:
@@ -454,10 +454,10 @@ class Perform(QWidget):
                                 coalignment_output_basename = gf.splitext(os.path.basename(coalign_image_path))[0] + self.output_suffix + user_suffix
                                 print("IMAGE(co)=", coalign_image_path)
                                 map_run_to_image_no.append(n)
-                                arguments.append((coalign_image_path, tmat_path,  output_path, coalignment_output_basename, skip_crop_decision))
+                                arguments.append((coalign_image_path, tmat_path, output_path, coalignment_output_basename, skip_crop_decision))
             if arguments:
                 n_count = min(len(arguments), self.n_count.value())
-                self.logger.info(f"Using: {n_count} cores to perform alignment")
+                self.logger.info("Using: %s cores to perform alignment", n_count)
                 # Perform alignment
                 if len(arguments) == 1:
                     try:
@@ -484,7 +484,7 @@ class Perform(QWidget):
                                 error_messages_alignment.append(str(e))
                                 self.logger.exception("An exception occurred")
                             else:
-                                self.logger.info(f" Image: {image_path} Done")
+                                self.logger.info(" Image: %s Done", image_path)
 
                 # collect statuses and error_messages
                 for m, s in enumerate(status_alignment):
@@ -582,8 +582,8 @@ class Align(QWidget):
         self.output_filename_label.setEnabled(False)
 
         self.skip_cropping_yn = QCheckBox("Do NOT crop aligned image")
-        self.buttonB = QPushButton("Align")
-        self.buttonB.clicked.connect(self.align)
+        self.align_button = QPushButton("Align")
+        self.align_button.clicked.connect(self.align)
 
         # Layout
         layout = QVBoxLayout()
@@ -636,7 +636,7 @@ class Align(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         if not self.pipeline_layout:
-            layout.addWidget(self.buttonB, alignment=Qt.AlignCenter)
+            layout.addWidget(self.align_button, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
 
@@ -686,14 +686,14 @@ class Align(QWidget):
                 return False
             for path in image_paths:
                 if not os.path.isfile(path):
-                    self.logger.error('Image not found\n' + path)
+                    self.logger.error('Image not found\n%s', path)
                     return False
             if len(matrix_paths) == 0:
                 self.logger.error('Matrix missing')
                 return False
             for path in matrix_paths:
                 if not os.path.isfile(path):
-                    self.logger.error('Matrix not found\n' + path)
+                    self.logger.error('Matrix not found\n%s', path)
                     return False
             return True
 
@@ -769,8 +769,8 @@ class Edit(QWidget):
         self.start_timepoint_edit = QLineEdit(self)
         self.end_timepoint_label = QLabel('New end point:', self)
         self.end_timepoint_edit = QLineEdit(self)
-        self.buttonC = QPushButton('Edit')
-        self.buttonC.clicked.connect(self.edit)
+        self.edit_button = QPushButton('Edit')
+        self.edit_button.clicked.connect(self.edit)
 
         # Layout
         layout = QVBoxLayout()
@@ -795,7 +795,7 @@ class Edit(QWidget):
         layout3.addWidget(self.end_timepoint_label, 0, 2)
         layout3.addWidget(self.end_timepoint_edit, 0, 3)
         layout.addLayout(layout3)
-        layout.addWidget(self.buttonC, alignment=Qt.AlignCenter)
+        layout.addWidget(self.edit_button, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
 
@@ -812,7 +812,7 @@ class Edit(QWidget):
                 return False
             for path in transfmat_paths:
                 if not os.path.isfile(path):
-                    self.logger.error('Matrix not found\n' + path)
+                    self.logger.error('Matrix not found\n%s', path)
                     return False
             if len(start_timepoint) == 0:
                 self.logger.error('Start timepoint missing')
@@ -940,7 +940,7 @@ class ManualEdit(QWidget):
         self.logger.info('Manually editing %s (image: %s', matrix_path, image_path)
         try:
             f.manual_edit_main(image_path, matrix_path)
-        except:
+        except Exception:
             self.logger.exception('Manual editing failed')
 
         self.logger.info("Done")

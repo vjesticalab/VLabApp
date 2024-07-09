@@ -3,8 +3,6 @@ from platform import python_version, platform
 from general import general_functions as gf
 import numpy as np
 import os
-import time
-import re
 from pystackreg import StackReg
 from pystackreg import __version__ as StackReg_version
 import cv2 as cv
@@ -14,13 +12,14 @@ from ome_types.model import CommentAnnotation
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform
 from skimage import __version__ as skimage_version
-from PyQt5.QtWidgets import QVBoxLayout, QWidget, QPushButton, QLabel, QScrollArea, QFileDialog, QRadioButton, QGroupBox, QFormLayout, QSpinBox, QMessageBox, QApplication, QCheckBox
+from PyQt5.QtWidgets import QVBoxLayout, QWidget, QPushButton, QLabel, QScrollArea, QRadioButton, QGroupBox, QFormLayout, QSpinBox, QMessageBox, QCheckBox
 from PyQt5.QtCore import Qt, pyqtSignal
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.backend_bases import MouseButton
 from version import __version__ as vlabapp_version
 import napari
+
 
 def remove_all_log_handlers():
     # remove all handlers for this module
@@ -29,6 +28,7 @@ def remove_all_log_handlers():
     # remove all handlers for general.general_functions
     while len(logging.getLogger('general.general_functions').handlers) > 0:
         logging.getLogger('general.general_functions').removeHandler(logging.getLogger('general.general_functions').handlers[0])
+
 
 class EditTransformationMatrix(QWidget):
     """
@@ -71,12 +71,10 @@ class EditTransformationMatrix(QWidget):
         self.X_axis_index = viewer.dims.axis_labels.index('X')
         self.other_axis_indices = np.setdiff1d(range(viewer.dims.ndim), [self.T_axis_index, self.Y_axis_index, self.X_axis_index])
 
-        ## 3 columns: T, Y, X
+        # 3 columns: T, Y, X
         points_TYX = self.tmat[:, (0, 5, 4)]
         # from 1-based indexing to 0-based indexing
         points_TYX[:, 0] = points_TYX[:, 0] - 1
-        cy = (points_TYX[:, 1].min() + points_TYX[:, 1].max()) / 2
-        cx = (points_TYX[:, 2].min() + points_TYX[:, 2].max()) / 2
         # center
         shifty = np.round((points_TYX[:, 1].min() + points_TYX[:, 1].max()) / 2 - self.tmat[:, 7].mean() / 2)
         shiftx = np.round((points_TYX[:, 2].min() + points_TYX[:, 2].max()) / 2 - self.tmat[:, 6].mean() / 2)
@@ -85,11 +83,11 @@ class EditTransformationMatrix(QWidget):
 
         # add points to all dimensions (viewer.dims)
         points = np.zeros((points_TYX.shape[0], viewer.dims.ndim), dtype=points_TYX.dtype)
-        points[:,viewer.dims.axis_labels.index('T')] = points_TYX[:,0]
-        points[:,viewer.dims.axis_labels.index('Y')] = points_TYX[:,1]
-        points[:,viewer.dims.axis_labels.index('X')] = points_TYX[:,2]
-        for i,d in enumerate(viewer.dims.axis_labels):
-            if not d in ['T','Y','X']:
+        points[:, viewer.dims.axis_labels.index('T')] = points_TYX[:, 0]
+        points[:, viewer.dims.axis_labels.index('Y')] = points_TYX[:, 1]
+        points[:, viewer.dims.axis_labels.index('X')] = points_TYX[:, 2]
+        for i, d in enumerate(viewer.dims.axis_labels):
+            if d not in ['T', 'Y', 'X']:
                 range_min = np.round(viewer.dims.range[i][0])
                 range_max = np.round(viewer.dims.range[i][1])
                 values = np.arange(range_min, range_max, 1, dtype=points_TYX.dtype)
@@ -173,13 +171,13 @@ class EditTransformationMatrix(QWidget):
                 if event.button == 1:  # (left-click)
                     if 'Control' in event.modifiers or 'Shift' in event.modifiers:
                         current_frame = round(event.position[self.T_axis_index])
-                        sel=np.repeat(True,self.layer_points.data.shape[0])
+                        sel = np.repeat(True, self.layer_points.data.shape[0])
                         for i in self.other_axis_indices:
                             sel = sel & (self.layer_points.data[:, i] == self.viewer.dims.current_step[i])
                         sel = sel & (np.round(self.layer_points.data[:, self.T_axis_index]) == np.round(current_frame))
                         # note that each frame contains only one point, i.e. sel contains a unique True element
                         delta = np.round(event.position - self.layer_points.data[sel])
-                        if  'Shift' in event.modifiers or self.read_only:
+                        if 'Shift' in event.modifiers or self.read_only:
                             # move everything
                             sel = np.repeat(True, self.layer_points.data.shape[0])
                         elif self.modify_previous_frames.isChecked():
@@ -195,23 +193,23 @@ class EditTransformationMatrix(QWidget):
         self.layer_points.editable = False
         # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
         # This is a quick and dirty hack to force the layer to stay non-editable.
-        self.layer_points.events.editable.connect(lambda e: setattr(e.source,'editable',False))
+        self.layer_points.events.editable.connect(lambda e: setattr(e.source, 'editable', False))
 
         # To allow saving transformation matrix before closing (__del__ is called too late)
         # TODO: replace by proper napari close event once implemented (https://forum.image.sc/t/handle-of-close-event-in-napari/61039)
         self.viewer.window._qt_window.destroyed.connect(self.on_close)
 
         self.viewer.dims.events.current_step.connect(self.dims_current_step_changed)
-        self.dims_last_step=self.viewer.dims.current_step
+        self.dims_last_step = self.viewer.dims.current_step
 
-    def dims_current_step_changed(self,event):
+    def dims_current_step_changed(self, event):
         try:
             if self.dims_last_step[self.T_axis_index] != self.viewer.dims.current_step[self.T_axis_index]:
                 if self.shift_view.isChecked():
                     last_frame = self.dims_last_step[self.T_axis_index]
                     current_frame = self.viewer.dims.current_step[self.T_axis_index]
-                    dx = self.tmat[current_frame,4] - self.tmat[last_frame,4]
-                    dy = self.tmat[current_frame,5] - self.tmat[last_frame,5]
+                    dx = self.tmat[current_frame, 4] - self.tmat[last_frame, 4]
+                    dy = self.tmat[current_frame, 5] - self.tmat[last_frame, 5]
                     self.viewer.camera.center = (0, self.viewer.camera.center[1]+dy, self.viewer.camera.center[2]+dx)
                 self.dims_last_step = self.viewer.dims.current_step
         except IndexError:
@@ -227,7 +225,7 @@ class EditTransformationMatrix(QWidget):
         data_subset = self.layer_points.data[rows_to_keep]
 
         self.tmat[:, 3] = 0
-        self.tmat[self.start_frame.value() : self.end_frame.value() + 1, 3] = 1
+        self.tmat[self.start_frame.value():self.end_frame.value() + 1, 3] = 1
         # raw transformation
         self.tmat[:, 4] = data_subset[:, self.X_axis_index]
         self.tmat[:, 5] = data_subset[:, self.Y_axis_index]
@@ -253,14 +251,13 @@ class EditTransformationMatrix(QWidget):
         logging.getLogger(__name__).info('Done')
 
     def save(self):
-        #filename = QFileDialog.getSaveFileName(self, 'Save transformation matrix', self.input_filename)[0]
         filename = self.input_filename
         if filename != '':
             logging.getLogger(__name__).info('Saving transformation matrix to %s', filename)
             header = buffered_handler.get_messages()
             for x in self.tmat_metadata:
                 header += x
-            np.savetxt(filename, self.tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
+            np.savetxt(filename, self.tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
             self.tmat_saved_version = self.tmat.copy()
 
 
@@ -301,7 +298,7 @@ class PlotTransformation(QWidget):
         # connect a callback to update the vertical line (frame) on slider change
         self.viewer.dims.events.current_step.connect(self.update_frame)
 
-    def update_frame(self,event):
+    def update_frame(self, event):
         try:
             t = self.viewer.dims.current_step[self.T_axis_index]
             self.vline.set_xdata([t, t])
@@ -322,8 +319,8 @@ class PlotTransformation(QWidget):
         self.fig.canvas.draw()
 
 
-## create a trivial MoveTransform (only translation) that inherits from skimage.transform.ProjectiveTransform
-## the code was adapted from skimage.transform.EuclideanTransform
+# create a trivial MoveTransform (only translation) that inherits from skimage.transform.ProjectiveTransform
+# the code was adapted from skimage.transform.EuclideanTransform
 class MoveTransform(ProjectiveTransform):
     """Move transformation.
 
@@ -420,13 +417,13 @@ class MoveTransform(ProjectiveTransform):
 def read_transfMat(tmat_path):
     try:
         tmat_string = np.loadtxt(tmat_path, delimiter=",", dtype=str)
-        #read metadata
+        # read metadata
         tmat_metadata = []
-        metadata_tmp = '' 
+        metadata_tmp = ''
         with open(tmat_path) as f:
             for line in f:
                 if line.startswith('# Metadata for') and not line.startswith("# timePoint,"):
-                    if len(tmat_metadata)==0:
+                    if len(tmat_metadata) == 0:
                         tmat_metadata.append("Metadata for matrix "+tmat_path+":\n"+metadata_tmp)
                     else:
                         tmat_metadata.append(metadata_tmp)
@@ -434,17 +431,18 @@ def read_transfMat(tmat_path):
                 if line.startswith('# ') and not line.startswith("# timePoint,"):
                     metadata_tmp += line[2:]
         if metadata_tmp:
-            if len(tmat_metadata)==0:
+            if len(tmat_metadata) == 0:
                 tmat_metadata.append("Metadata for matrix "+tmat_path+":\n"+metadata_tmp)
             else:
                 tmat_metadata.append(metadata_tmp)
-    except:
+    except Exception:
         logging.getLogger(__name__).exception('Load transformation matrix failed')
         raise
 
     tmat_float = tmat_string.astype(float)
     tmat_int = tmat_float.astype(int)
     return tmat_int, tmat_metadata
+
 
 def register_stack_phase_correlation(image, blur=5):
     """
@@ -493,16 +491,15 @@ def register_stack_phase_correlation(image, blur=5):
         ymin2 = max(-lastshift[1], 0)
         ymax2 = min(h-lastshift[1], h)
 
-        ##register to previous image (shifted and cropped)
+        # register to previous image (shifted and cropped)
         shift, response = cv.phaseCorrelate(curr[ymin2:ymax2, xmin2:xmax2],
                                             prev[ymin1:ymax1, xmin1:xmax1],
                                             cv.createHanningWindow((xmax1-xmin1, ymax1-ymin1), cv.CV_32F))
 
         shifts.append((lastshift[0]+shift[0], lastshift[1]+shift[1]))
 
-        ## store shifted and cropped image as previous image
+        # store shifted and cropped image as previous image
         prev = cv.warpAffine(curr, M=np.float32([[1, 0, shifts[-1][0]], [0, 1, shifts[-1][1]]]), dsize=(w, h), borderMode=cv.BORDER_CONSTANT, borderValue=curr.max()/2)
-        #i = i+1
 
     return [(-x, -y) for x, y in shifts]
 
@@ -553,17 +550,17 @@ def register_stack_feature_matching(image, feature_type="ORB", blur=0, seed=7624
 
     cv.setRNGSeed(seed)
     # taken from https://docs.opencv.org/4.x/dc/dc3/tutorial_py_matcher.html
-    if feature_type in ["SIFT","KAZE"]:
-        ##for sift, kase
+    if feature_type in ["SIFT", "KAZE"]:
+        # for sift, kase
         FLANN_INDEX_KDTREE = 1
-        index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+        index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
     else:
-        ##for ORB, brisk, akaze
+        # for ORB, brisk, akaze
         FLANN_INDEX_LSH = 6
-        index_params = dict(algorithm = FLANN_INDEX_LSH,
-                            table_number = 6,
-                            key_size = 12,
-                            multi_probe_level = 1)
+        index_params = dict(algorithm=FLANN_INDEX_LSH,
+                            table_number=6,
+                            key_size=12,
+                            multi_probe_level=1)
     search_params = dict(checks=50)
     flann = cv.FlannBasedMatcher(index_params, search_params)
 
@@ -575,9 +572,9 @@ def register_stack_feature_matching(image, feature_type="ORB", blur=0, seed=7624
 
     for i in range(1, image.shape[0]):
         if blur > 1:
-            curr = cv.GaussianBlur(cv.normalize(image[i], None, 0,  np.iinfo('uint8').max, cv.NORM_MINMAX, dtype=cv.CV_8U), (blur, blur), 0)
+            curr = cv.GaussianBlur(cv.normalize(image[i], None, 0, np.iinfo('uint8').max, cv.NORM_MINMAX, dtype=cv.CV_8U), (blur, blur), 0)
         else:
-            curr = cv.normalize(image[i], None, 0,  np.iinfo('uint8').max, cv.NORM_MINMAX, dtype=cv.CV_8U)
+            curr = cv.normalize(image[i], None, 0, np.iinfo('uint8').max, cv.NORM_MINMAX, dtype=cv.CV_8U)
 
         lastshift = (round(shifts[-1][0]), round(shifts[-1][1]))
         # crop window prev (shifted)
@@ -596,10 +593,10 @@ def register_stack_feature_matching(image, feature_type="ORB", blur=0, seed=7624
 
         matches = flann.knnMatch(des1, des2, k=2)
 
-        ## Filter out poor matches (ratio test as per Lowe's paper)
+        # Filter out poor matches (ratio test as per Lowe's paper)
         good_matches = []
         for m in matches:
-            if len(m) >= 2 and  m[0].distance < 0.75*m[1].distance:
+            if len(m) >= 2 and m[0].distance < 0.75*m[1].distance:
                 good_matches.append(m[0])
 
         matches = good_matches
@@ -611,29 +608,28 @@ def register_stack_feature_matching(image, feature_type="ORB", blur=0, seed=7624
         shift = (0, 0)
         if len(matches) > 3:
             model_robust, inliers = ransac((points1, points2), MoveTransform, min_samples=3,
-                                           residual_threshold=2, max_trials=100,rng=seed)
+                                           residual_threshold=2, max_trials=100, rng=seed)
             if model_robust is not None:
                 shift = -model_robust.translation
 
-
         shifts.append((lastshift[0]+shift[0], lastshift[1]+shift[1]))
-        ## store shifted image as previous image
+        # store shifted image as previous image
         prev = cv.warpAffine(curr, M=np.float32([[1, 0, shifts[-1][0]], [0, 1, shifts[-1][1]]]), dsize=(w, h), borderMode=cv.BORDER_CONSTANT, borderValue=curr.max()/2)
 
     return [(-x, -y) for x, y in shifts]
 
 
-def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basename,metadata):
+def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basename, metadata):
     """
     This function uses a transformation matrix to performs registration and eventually cropping of an image
-    Note - always assuming FoV dimension of the image as empty 
+    Note - always assuming FoV dimension of the image as empty
 
     Parameters
     ---------------------
     tmat_int:
         transformation matrix
     image: Image object
-    skip_crop: boolean 
+    skip_crop: boolean
         indicates whether to crop or not the registered image
     output_path: str
         output directory
@@ -658,49 +654,50 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
             for timepoint in range(0, image.sizes['T']):
                 if tmat_int[timepoint, 3] == 1:
                     xyShift = (tmat_int[timepoint, 1]*-1, tmat_int[timepoint, 2]*-1)
-                    registered_image[0, timepoint, c, z, :, :] = np.roll(image6D[0, timepoint, c, z, :, :], xyShift, axis=(1,0))
-    
+                    registered_image[0, timepoint, c, z, :, :] = np.roll(image6D[0, timepoint, c, z, :, :], xyShift, axis=(1, 0))
+
     if skip_crop:
-        t_start = min([d[0] for d in tmat_int if d[3] == 1])
-        t_end = max([d[0] for d in tmat_int if d[3] == 1])
+        t_start = min(d[0] for d in tmat_int if d[3] == 1)
+        t_end = max(d[0] for d in tmat_int if d[3] == 1)
         registered_image = registered_image[:, t_start:t_end, :, :, :, :]
         # Save the registered and un-cropped image
         logging.getLogger(__name__).info('Saving transformed image to %s', registeredFilepath)
-        ome_metadata=OmeTiffWriter.build_ome(data_shapes=[registered_image[0,:,:,:,:,:].shape],
-                                             data_types=[registered_image[0,:,:,:,:,:].dtype],
-                                             dimension_order=["TCZYX"],
-                                             channel_names=[image.channel_names],
-                                             physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
-        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        ome_metadata = OmeTiffWriter.build_ome(data_shapes=[registered_image[0, :, :, :, :, :].shape],
+                                               data_types=[registered_image[0, :, :, :, :, :].dtype],
+                                               dimension_order=["TCZYX"],
+                                               channel_names=[image.channel_names],
+                                               physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))
         for x in metadata:
-            ome_metadata.structured_annotations.append(CommentAnnotation(value=x,namespace="VLabApp"))
-        OmeTiffWriter.save(registered_image[0,:,:,:,:,:], registeredFilepath, ome_xml=ome_metadata)
+            ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
+        OmeTiffWriter.save(registered_image[0, :, :, :, :, :], registeredFilepath, ome_xml=ome_metadata)
     else:
         logging.getLogger(__name__).info('Cropping image')
         # Crop to desired area
-        y_start = 0 - min([d[2] for d in tmat_int if d[3] == 1])
-        y_end = image.sizes['Y'] - max([d[2] for d in tmat_int if d[3] == 1])
+        y_start = 0 - min(d[2] for d in tmat_int if d[3] == 1)
+        y_end = image.sizes['Y'] - max(d[2] for d in tmat_int if d[3] == 1)
         x_start = 0 - min([d[1] for d in tmat_int if d[3] == 1])
-        x_end = image.sizes['X'] - max([d[1] for d in tmat_int if d[3] == 1])
-        t_start = min([d[0] for d in tmat_int if d[3] == 1]) - 1
-        t_end = max([d[0] for d in tmat_int if d[3] == 1])
+        x_end = image.sizes['X'] - max(d[1] for d in tmat_int if d[3] == 1)
+        t_start = min(d[0] for d in tmat_int if d[3] == 1) - 1
+        t_end = max(d[0] for d in tmat_int if d[3] == 1)
 
         # Crop along the y-axis
         image_cropped = registered_image[:, t_start:t_end, :, :, y_start:y_end, x_start:x_end]
 
         # Save the registered and cropped image
         logging.getLogger(__name__).info('Saving transformed image to %s', registeredFilepath)
-        ome_metadata=OmeTiffWriter.build_ome(data_shapes=[image_cropped[0,:,:,:,:,:].shape],
-                                             data_types=[image_cropped[0,:,:,:,:,:].dtype],
-                                             dimension_order=["TCZYX"],
-                                             channel_names=[image.channel_names],
-                                             physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
-        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        ome_metadata = OmeTiffWriter.build_ome(data_shapes=[image_cropped[0, :, :, :, :, :].shape],
+                                               data_types=[image_cropped[0, :, :, :, :, :].dtype],
+                                               dimension_order=["TCZYX"],
+                                               channel_names=[image.channel_names],
+                                               physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))
         for x in metadata:
-            ome_metadata.structured_annotations.append(CommentAnnotation(value=x,namespace="VLabApp"))
-        OmeTiffWriter.save(image_cropped[0,:,:,:,:,:], registeredFilepath, ome_xml=ome_metadata)
+            ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
+        OmeTiffWriter.save(image_cropped[0, :, :, :, :, :], registeredFilepath, ome_xml=ome_metadata)
 
-def registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method,metadata):
+
+def registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method, metadata):
     """
     This function calculates the transformation matrices from brightfield images
     Note: aligned images are NOT saved since pixels are recalculated by StackReg method
@@ -746,13 +743,13 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         try:
             logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: performing Z-projection')
             projection = image.zProjection(projection_type, projection_zrange)
-        except:
-            logging.getLogger(__name__).exception('Z-projection failed for image %s',image.basename)
+        except Exception:
+            logging.getLogger(__name__).exception('Z-projection failed for image %s', image.basename)
             remove_all_log_handlers()
             raise
         if image.sizes['C'] > channel_position:
-            logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting channel %s',channel_position)
-            image3D = projection[0,:,channel_position,0,:,:]
+            logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting channel %s', channel_position)
+            image3D = projection[0, :, channel_position, 0, :, :]
         else:
             logging.getLogger(__name__).error('Position of the channel given (%s) is out of range for image %s', channel_position, image.basename)
             remove_all_log_handlers()
@@ -761,8 +758,8 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
     else:
         if image.sizes['C'] > 1:
             if image.sizes['C'] > channel_position:
-                logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting channel %s',channel_position)
-                image3D = image.image[0,:,channel_position,0,:,:]
+                logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting channel %s', channel_position)
+                image3D = image.image[0, :, channel_position, 0, :, :]
             else:
                 logging.getLogger(__name__).error('Position of the channel given (%s) is out of range for image %s', channel_position, image.basename)
                 remove_all_log_handlers()
@@ -779,7 +776,6 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         tmats_float = sr.register_stack(image3D, reference='previous')
         # Convert tmats_float into integers
 
-
         # Transformation matrix has 6 columns:
         # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
         transformation_matrices = np.zeros((tmats_float.shape[0], 8), dtype=np.int64)
@@ -790,7 +786,7 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         transformation_matrices[:, 7] = image.sizes['Y']
     elif registration_method == "phase correlation":
         logging.getLogger(__name__).info('Evaluating transformation matrix with phase correlation')
-        shifts=register_stack_phase_correlation(image3D,blur=5)
+        shifts = register_stack_phase_correlation(image3D, blur=5)
         # Transformation matrix has 6 columns:
         # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
         transformation_matrices = np.zeros((len(shifts), 8), dtype=int)
@@ -802,16 +798,16 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
     elif registration_method.startswith("feature matching"):
         if registration_method == "feature matching (ORB)":
             logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (ORB)')
-            shifts=register_stack_feature_matching(image3D, feature_type="ORB")
+            shifts = register_stack_feature_matching(image3D, feature_type="ORB")
         elif registration_method == "feature matching (BRISK)":
             logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (BRISK)')
-            shifts=register_stack_feature_matching(image3D, feature_type="BRISK")
+            shifts = register_stack_feature_matching(image3D, feature_type="BRISK")
         elif registration_method == "feature matching (AKAZE)":
             logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (AKAZE)')
-            shifts=register_stack_feature_matching(image3D, feature_type="AKAZE")
+            shifts = register_stack_feature_matching(image3D, feature_type="AKAZE")
         elif registration_method == "feature matching (SIFT)":
             logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (SIFT)')
-            shifts=register_stack_feature_matching(image3D, feature_type="SIFT")
+            shifts = register_stack_feature_matching(image3D, feature_type="SIFT")
         else:
             logging.getLogger(__name__).error('Error unknown registration method %s', registration_method)
             remove_all_log_handlers()
@@ -835,11 +831,12 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
     header = buffered_handler.get_messages()
     for x in metadata:
         header += x
-    np.savetxt(txt_name, transformation_matrices, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
+    np.savetxt(txt_name, transformation_matrices, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
 
     return transformation_matrices
 
-def registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method,metadata):
+
+def registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method, metadata):
     """
     This function calculates the transformation matrices from brightfield images
     Note: aligned images are NOT saved since pixels are recalculated by StackReg method
@@ -886,13 +883,13 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
         try:
             logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: performing Z-projection')
             projection = image.zProjection(projection_type, projection_zrange)
-        except:
-            logging.getLogger(__name__).exception('Z-projection failed for image %s',image.basename)
+        except Exception:
+            logging.getLogger(__name__).exception('Z-projection failed for image %s', image.basename)
             remove_all_log_handlers()
             raise
         if image.sizes['C'] > channel_position:
-            logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting channel %s',channel_position)
-            image3D = projection[0,:,channel_position,0,:,:]
+            logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting channel %s', channel_position)
+            image3D = projection[0, :, channel_position, 0, :, :]
         else:
             logging.getLogger(__name__).error('Position of the channel given (%s) is out of range for image %s', channel_position, image.basename)
             remove_all_log_handlers()
@@ -901,8 +898,8 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
     else:
         if image.sizes['C'] > 1:
             if image.sizes['C'] > channel_position:
-                logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting channel %s',channel_position)
-                image3D = image.image[0,:,channel_position,0,:,:]
+                logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting channel %s', channel_position)
+                image3D = image.image[0, :, channel_position, 0, :, :]
             else:
                 logging.getLogger(__name__).error('Position of the channel given (%s) is out of range for image %s', channel_position, image.basename)
                 remove_all_log_handlers()
@@ -910,7 +907,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
         else:
             image3D = image.get_TYXarray()
 
-    logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting time frames %s<=T<%s',timepoint_range[0],timepoint_range[1])
+    logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting time frames %s<=T<%s', timepoint_range[0], timepoint_range[1])
     image3D = image3D[int(timepoint_range[0]):int(timepoint_range[1]), :, :]
 
     if registration_method == "stackreg":
@@ -928,7 +925,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
         transformation_matrices[:, 1:3] = transformation_matrices[:, 4:6] = tmats_float[:, 0:2, 2].astype(int)
     elif registration_method == "phase correlation":
         logging.getLogger(__name__).info('Evaluating transformation matrix with phase correlation')
-        shifts=register_stack_phase_correlation(image3D,blur=5)
+        shifts = register_stack_phase_correlation(image3D, blur=5)
         # Transformation matrix has 6 columns:
         # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
         transformation_matrices = np.zeros((len(shifts), 8), dtype=int)
@@ -936,16 +933,16 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
     elif registration_method.startswith("feature matching"):
         if registration_method == "feature matching (ORB)":
             logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (ORB)')
-            shifts=register_stack_feature_matching(image3D, feature_type="ORB")
+            shifts = register_stack_feature_matching(image3D, feature_type="ORB")
         elif registration_method == "feature matching (BRISK)":
             logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (BRISK)')
-            shifts=register_stack_feature_matching(image3D, feature_type="BRISK")
+            shifts = register_stack_feature_matching(image3D, feature_type="BRISK")
         elif registration_method == "feature matching (AKAZE)":
             logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (AKAZE)')
-            shifts=register_stack_feature_matching(image3D, feature_type="AKAZE")
+            shifts = register_stack_feature_matching(image3D, feature_type="AKAZE")
         elif registration_method == "feature matching (SIFT)":
             logging.getLogger(__name__).info('Evaluating transformation matrix with feature matching (SIFT)')
-            shifts=register_stack_feature_matching(image3D, feature_type="SIFT")
+            shifts = register_stack_feature_matching(image3D, feature_type="SIFT")
         else:
             logging.getLogger(__name__).error('Error unknown registration method %s', registration_method)
             remove_all_log_handlers()
@@ -973,7 +970,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
     header = buffered_handler.get_messages()
     for x in metadata:
         header += x
-    np.savetxt(txt_name, transformation_matrices_complete, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header = header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter = '\t')
+    np.savetxt(txt_name, transformation_matrices_complete, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
 
     return transformation_matrices_complete
 
@@ -1023,22 +1020,21 @@ def registration_main(image_path, output_path, output_basename, channel_position
     logger.info("Output basename: %s", output_basename)
     logger.info("Registration method: %s", registration_method)
 
-
     # Load image
     # Note: by default the image have to be ALWAYS 3D with TYX
     try:
         logger.debug('Loading %s', image_path)
         image = gf.Image(image_path)
         image.imread()
-    except:
+    except Exception:
         logger.exception('Error loading image %s', image_path)
         remove_all_log_handlers()
         raise
 
-    #load image metadata
+    # load image metadata
     image_metadata = []
     if image.ome_metadata:
-        for i,x in enumerate(image.ome_metadata.structured_annotations):
+        for x in image.ome_metadata.structured_annotations:
             if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
                 if len(image_metadata) == 0:
                     image_metadata.append("Metadata for "+image.path+":\n"+x.value)
@@ -1051,14 +1047,14 @@ def registration_main(image_path, output_path, output_basename, channel_position
         remove_all_log_handlers()
         raise TypeError(f"Image {image_path} has a F axis with size > 1")
 
-    if timepoint_range == None:
+    if timepoint_range is None:
         # Calculate transformation matrix
-        tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method,image_metadata)
+        tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method, image_metadata)
     else:
-        tmat = registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method,image_metadata)
+        tmat = registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method, image_metadata)
 
     # Align and save
-    registration_with_tmat(tmat, image, skip_crop_decision, output_path, output_basename,image_metadata)
+    registration_with_tmat(tmat, image, skip_crop_decision, output_path, output_basename, image_metadata)
 
     remove_all_log_handlers()
     return image_path
@@ -1108,14 +1104,14 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
         logger.debug('loading %s', image_path)
         image = gf.Image(image_path)
         image.imread()
-    except:
+    except Exception:
         logging.getLogger(__name__).exception('Error loading image %s', image_path)
         remove_all_log_handlers()
         raise
-    #load image metadata
+    # load image metadata
     image_metadata = []
     if image.ome_metadata:
-        for i,x in enumerate(image.ome_metadata.structured_annotations):
+        for x in image.ome_metadata.structured_annotations:
             if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
                 if len(image_metadata) == 0:
                     image_metadata.append("Metadata for "+image.path+":\n"+x.value)
@@ -1125,7 +1121,7 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
     try:
         logger.debug('loading %s', tmat_path)
         tmat_int, tmat_metadata = read_transfMat(tmat_path)
-    except:
+    except Exception:
         logging.getLogger(__name__).exception('Error loading transformation matrix for image %s', image_path)
         remove_all_log_handlers()
         raise
@@ -1137,8 +1133,8 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
 
     # Align and save - registration works with multidimensional files, as long as the TYX axes are specified
     try:
-        registration_with_tmat(tmat_int, image, skip_crop_decision, output_path, output_basename,image_metadata+tmat_metadata)
-    except:
+        registration_with_tmat(tmat_int, image, skip_crop_decision, output_path, output_basename, image_metadata+tmat_metadata)
+    except Exception:
         logging.getLogger(__name__).exception('Alignment failed for image %s', image_path)
         remove_all_log_handlers()
         raise
@@ -1149,7 +1145,7 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
 
 
 def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end):
-    log_path=gf.splitext(reference_matrix_path)[0] + '.log'
+    log_path = gf.splitext(reference_matrix_path)[0] + '.log'
 
     # Setup logging to file in output_path
     logger = logging.getLogger(__name__)
@@ -1186,13 +1182,13 @@ def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end
     tmat_int, tmat_metadata = read_transfMat(reference_matrix_path)
     # Make sure reference point is within range and update transformation matrix
     logger.info("Editing transformation matrix (Reference timepoint=%s, start=%s, end=%s)", reference_timepoint, range_start, range_end)
-    tmat_updated  = gf.update_transfMat(tmat_int, reference_timepoint-1, range_start-1, range_end-1)
+    tmat_updated = gf.update_transfMat(tmat_int, reference_timepoint-1, range_start-1, range_end-1)
     # Save the new matrix
-    logger.info("Saving transformation matrix to %s",reference_matrix_path)
+    logger.info("Saving transformation matrix to %s", reference_matrix_path)
     header = buffered_handler.get_messages()
     for x in tmat_metadata:
         header += x
-    np.savetxt(reference_matrix_path, tmat_updated, fmt = '%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
+    np.savetxt(reference_matrix_path, tmat_updated, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
 
     remove_all_log_handlers()
 
@@ -1201,7 +1197,7 @@ def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end
 
 
 def manual_edit_main(image_path, matrix_path):
-    log_path=gf.splitext(matrix_path)[0] + '.log'
+    log_path = gf.splitext(matrix_path)[0] + '.log'
 
     # Setup logging to file in output_path
     logger = logging.getLogger(__name__)
@@ -1238,7 +1234,7 @@ def manual_edit_main(image_path, matrix_path):
     try:
         image = gf.Image(image_path)
         image.imread()
-    except:
+    except Exception:
         logging.getLogger(__name__).exception('Error loading image %s', image_path)
         raise
 
@@ -1247,13 +1243,11 @@ def manual_edit_main(image_path, matrix_path):
         logging.getLogger(__name__).error('Image %s has a F axis with size > 1', str(image_path))
         raise TypeError(f"Image {image_path} has a F axis with size > 1")
 
-
     viewer = napari.Viewer()
     # assuming a FTCZYX image:
     viewer.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
     # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
     viewer.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
-
 
     logger.info("Manually editing the transformation matrix")
 
@@ -1264,9 +1258,8 @@ def manual_edit_main(image_path, matrix_path):
     viewer.window.add_dock_widget(scroll_area, area='right', name="Edit transformation matrix")
 
     plot_transformation = PlotTransformation(viewer, edit_transformation_matrix.tmat)
-    plot_transformation.fig.canvas.mpl_connect('button_press_event', lambda event: viewer.dims.set_point(1,round(event.xdata)) if event.button is event.button is MouseButton.LEFT and event.inaxes else None)
-    plot_transformation.fig.canvas.mpl_connect('motion_notify_event', lambda event: viewer.dims.set_point(1,round(event.xdata)) if event.button is MouseButton.LEFT and event.inaxes else None)
+    plot_transformation.fig.canvas.mpl_connect('button_press_event', lambda event: viewer.dims.set_point(1, round(event.xdata)) if event.button is event.button is MouseButton.LEFT and event.inaxes else None)
+    plot_transformation.fig.canvas.mpl_connect('motion_notify_event', lambda event: viewer.dims.set_point(1, round(event.xdata)) if event.button is MouseButton.LEFT and event.inaxes else None)
     viewer.window.add_dock_widget(plot_transformation, area="bottom")
 
     edit_transformation_matrix.tmat_changed.connect(plot_transformation.update)
-

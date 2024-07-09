@@ -1,6 +1,5 @@
 import os
 import logging
-import re
 import igraph as ig
 from PyQt5.QtWidgets import QFileDialog, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QLabel, QFormLayout, QSpinBox, QCheckBox, QSizePolicy, QLineEdit
 from PyQt5.QtCore import Qt, QRegExp
@@ -23,14 +22,14 @@ class GraphFiltering(QWidget):
         label_documentation = QLabel()
         label_documentation.setOpenExternalLinks(True)
         label_documentation.setWordWrap(True)
-        label_documentation.setText('For each pair of input segmentation mask and cell tracking graph, apply the selected filters and save the filtered cell tracking graph and segmentation mask.<br>'+
+        label_documentation.setText('For each pair of input segmentation mask and cell tracking graph, apply the selected filters and save the filtered cell tracking graph and segmentation mask.<br>' +
                                     'Input segmentation mask must have X, Y and T axes. The optional input image must have X, Y and T axes and can optionally have C and/or Z axes.')
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
         collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
         collapsible_widget.content.setLayout(QVBoxLayout())
         collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0,0,0,0)
+        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
         layout2.addWidget(collapsible_widget)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -374,8 +373,8 @@ class GraphFiltering(QWidget):
         else:
             output_path = self.output_folder.text().rstrip("/")
 
-        self.output_filename_label1.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
-        self.output_filename_label2.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".graphmlz"))
+        self.output_filename_label1.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
+        self.output_filename_label2.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".graphmlz"))
 
     def get_widgets_state(self):
         widgets_state = {

@@ -2,8 +2,8 @@ import os
 import sys
 import logging
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap, QFont, QIcon
-from PyQt5.QtWidgets import QApplication, QFrame, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QFormLayout, QLineEdit
+from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit
 
 from modules.registration_module import registration
 from modules.zprojection_module import zprojection
@@ -73,7 +73,7 @@ class MainWindow(QWidget):
         window.addLayout(layout)
 
         # Setup logging
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s", handlers=[logging.StreamHandler(sys.stdout)],force=True)
+        logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s", handlers=[logging.StreamHandler(sys.stdout)], force=True)
 
         # Add a handler to output messages to self.status_line
         self.qlabel_handler = gf.QLineEditHandler(self.status_line)
@@ -105,5 +105,5 @@ if __name__ == "__main__":
     app.setWindowIcon(QIcon('support_files/Vlab_icon_50x50-01.png'))
     w = MainWindow()
     w.show()
-    w.resize(900,800)
+    w.resize(900, 800)
     sys.exit(app.exec_())

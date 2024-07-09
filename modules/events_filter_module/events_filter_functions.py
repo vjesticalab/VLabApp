@@ -225,7 +225,7 @@ def save_cropped_events(events_list, n_tp, total_events_mask, marker_image, chcr
 
         # Save
         output_name=os.path.join(crop_output_path, crop_output_basename+'-'+str(n)+'.ome.tif')
-        logger.info("Saving cropped mask %d to %s",n, output_name)
+        logging.getLogger(__name__).info("Saving cropped mask %d to %s",n, output_name)
         ome_metadata=OmeTiffWriter.build_ome(data_shapes=[cropped_mask.shape],
                                              data_types=[cropped_mask.dtype],
                                              dimension_order=["TCYX"],

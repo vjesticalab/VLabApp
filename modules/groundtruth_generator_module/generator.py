@@ -1,10 +1,10 @@
 import os
+import logging
 from PyQt5.QtWidgets import QVBoxLayout, QRadioButton, QGroupBox, QHBoxLayout, QFileDialog, QPushButton, QWidget, QLineEdit, QLabel, QFormLayout
 from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtGui import QRegExpValidator
 from modules.groundtruth_generator_module import generator_functions as f
 from general import general_functions as gf
-import logging
 
 
 class Generator(QWidget):
@@ -138,8 +138,8 @@ class Generator(QWidget):
                 # Perform projection
                 try:
                     f.main(image_path, output_path, output_basename)
-                except Exception as e:
-                    self.logger.error("Generation failed.\n%s", str(e))
+                except Exception:
+                    self.logger.exception("Generation failed.")
             else:
                 self.logger.error("Unable to locate file %s", image_path)
 

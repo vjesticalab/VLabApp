@@ -1,7 +1,6 @@
 import os
 import logging
 from platform import python_version, platform
-import tifffile
 from numpy import __version__ as np_version
 from cv2 import __version__ as cv_version
 from general import general_functions as gf
@@ -9,6 +8,7 @@ from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
 from ome_types.model import CommentAnnotation
 from version import __version__ as vlabapp_version
+
 
 def main(image_path, output_path, output_basename, projection_type, projection_zrange):
     """
@@ -81,7 +81,7 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
     try:
         image = gf.Image(image_path)
         image.imread()
-    except:
+    except Exception:
         logging.getLogger(__name__).exception('Error loading image %s', image_path)
         # Close logfile
         logger.removeHandler(logfile_handler)
@@ -90,10 +90,10 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
         logging.getLogger('general.general_functions').removeHandler(buffered_handler)
         raise
 
-    #load image metadata
+    # load image metadata
     image_metadata = []
     if image.ome_metadata:
-        for i,x in enumerate(image.ome_metadata.structured_annotations):
+        for x in image.ome_metadata.structured_annotations:
             if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
                 if len(image_metadata) == 0:
                     image_metadata.append("Metadata for "+image.path+":\n"+x.value)
@@ -123,7 +123,7 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
     # Perform projection
     try:
         projected_image = image.zProjection(projection_type, projection_zrange)
-    except:
+    except Exception:
         logging.getLogger(__name__).exception('Error projecting image %s', image_path)
         # Close logfile
         logger.removeHandler(logfile_handler)
@@ -136,27 +136,18 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
     output_file_name = os.path.join(output_path, output_basename+".ome.tif")
     # TODO: properly deal with 'F' axis.
     logger.info("Saving projected image to %s", output_file_name)
-    ome_metadata=OmeTiffWriter.build_ome(data_shapes=[projected_image[0, :, :, 0, :, :].shape],
-                                         data_types=[projected_image[0, :, :, 0, :, :].dtype],
-                                         dimension_order=["TCYX"],
-                                         channel_names=[image.channel_names],
-                                         physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
-    ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+    ome_metadata = OmeTiffWriter.build_ome(data_shapes=[projected_image[0, :, :, 0, :, :].shape],
+                                           data_types=[projected_image[0, :, :, 0, :, :].dtype],
+                                           dimension_order=["TCYX"],
+                                           channel_names=[image.channel_names],
+                                           physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
+    ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))
     for x in image_metadata:
-        ome_metadata.structured_annotations.append(CommentAnnotation(value=x,namespace="VLabApp"))
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
     OmeTiffWriter.save(projected_image[0, :, :, 0, :, :], output_file_name, ome_xml=ome_metadata)
-
 
     # Close logfile
     logger.removeHandler(logfile_handler)
     logging.getLogger('general.general_functions').removeHandler(logfile_handler)
     logger.removeHandler(buffered_handler)
     logging.getLogger('general.general_functions').removeHandler(buffered_handler)
-
-
-if __name__ == "__main__":
-    image_path = '/Volumes/RECHERCHE/FAC/FBM/CIG/avjestic/zygoticfate/D2c/Lab_Data/20221111_P0001_E0008_U002/Sporulated-BF10/001_SP10.nd2'
-    output_path = '/Users/aravera/Desktop/'
-    projection_type = 'max'
-    projection_zrange = 3
-    main(image_path, output_path, projection_type, projection_zrange)

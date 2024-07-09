@@ -1,9 +1,9 @@
 import os
 import logging
+import concurrent
 from platform import python_version, platform
 import numpy as np
 import napari
-import tifffile
 from cellpose import models
 from cellpose import version as cellpose_version
 from torch import __version__ as torch_version
@@ -14,9 +14,7 @@ from PyQt5.QtWidgets import QMessageBox
 from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
 from ome_types.model import CommentAnnotation
-from concurrent.futures import ProcessPoolExecutor
 from version import __version__ as vlabapp_version
-import concurrent
 
 
 def call_evaluate(index, model, image_2D, diameter, channels):
@@ -30,7 +28,7 @@ def par_run_eval(image, mask, model, logger, tot_iterations, n_count, pbr=None):
     """
     Run model evaluation in parallel
     """
-    with ProcessPoolExecutor(max_workers=n_count) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=n_count) as executor:
         future_reg = {
             executor.submit(
                 call_evaluate,
@@ -138,7 +136,7 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
     try:
         image = gf.Image(image_path)
         image.imread()
-    except:
+    except Exception:
         logging.getLogger(__name__).exception('Error loading image %s', image_path)
         # stop using logfile
         logger.removeHandler(logfile_handler)
@@ -147,10 +145,10 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
         logging.getLogger('general.general_functions').removeHandler(buffered_handler)
         raise
 
-    #load image metadata
+    # load image metadata
     image_metadata = []
     if image.ome_metadata:
-        for i,x in enumerate(image.ome_metadata.structured_annotations):
+        for x in image.ome_metadata.structured_annotations:
             if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
                 if len(image_metadata) == 0:
                     image_metadata.append("Metadata for "+image.path+":\n"+x.value)
@@ -175,8 +173,8 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
         image3D = image.image
     # keep only selected channel ('C' axis)
     if image.sizes['C'] > channel_position:
-        logging.getLogger(__name__).info('Preparing image to segment: selecting channel %s',channel_position)
-        image3D = image3D[0,:,channel_position,0,:,:]
+        logging.getLogger(__name__).info('Preparing image to segment: selecting channel %s', channel_position)
+        image3D = image3D[0, :, channel_position, 0, :, :]
     else:
         logging.getLogger(__name__).error('Position of the channel given (%s) is out of range for image %s', channel_position, image.basename)
         # Close logfile
@@ -199,9 +197,6 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
         # TCYX
         image_napari = image_napari[:, np.newaxis, :, :]
         viewer_images.add_image(image_napari, name="Input image")
-
-        # TODO: find a way to use logging package instead?
-        # Setup logging into napari window.
 
         # Set cursor to BusyCursor
         napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
@@ -230,23 +225,19 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
             logger.debug("cellpose segmentation %s/%s", iteration, tot_iterations)
             mask[t, :, :], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
 
-
-
     # Save the mask
     output_name = os.path.join(output_path, output_basename+".ome.tif")
     mask = mask[:, np.newaxis, :, :]
     logger.info("Saving segmentation mask to %s", output_name)
-    ome_metadata=OmeTiffWriter.build_ome(data_shapes=[mask.shape],
-                                         data_types=[mask.dtype],
-                                         dimension_order=["TCYX"],
-                                         channel_names=[['Segmentation mask']],
-                                         physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
-    ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+    ome_metadata = OmeTiffWriter.build_ome(data_shapes=[mask.shape],
+                                           data_types=[mask.dtype],
+                                           dimension_order=["TCYX"],
+                                           channel_names=[['Segmentation mask']],
+                                           physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
+    ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))
     for x in image_metadata:
-        ome_metadata.structured_annotations.append(CommentAnnotation(value=x,namespace="VLabApp"))
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
     OmeTiffWriter.save(mask, output_name, ome_xml=ome_metadata)
-    #buffered_handler.reset()
-
 
     if display_results:
         # Restore cursor
@@ -261,7 +252,7 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
         layer_mask.editable = False
         # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
         # This is a quick and dirty hack to force the layer to stay non-editable.
-        layer_mask.events.editable.connect(lambda e: setattr(e.source,'editable',False))
+        layer_mask.events.editable.connect(lambda e: setattr(e.source, 'editable', False))
 
     # stop using logfile
     logger.removeHandler(logfile_handler)

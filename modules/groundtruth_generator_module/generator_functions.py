@@ -28,7 +28,7 @@ class NapariWidget(QWidget):
         self.label2 = QLabel("max threshold value")
         self.btn = QPushButton("Segment", self)
         self.btn.clicked.connect(self.button_clicked)
-        
+
         layout = QVBoxLayout()
         layout.addWidget(self.label1)
         layout.addWidget(self.lowerth)
@@ -63,7 +63,7 @@ class SaveButton(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.button)
         self.setLayout(layout)
-    
+
     def save_layer(self):
         for layer in self.viewer.layers:
             if layer in self.viewer.layers.selection:
@@ -103,7 +103,7 @@ def focal_plane(image):
     zfocus_per_channel = {}
     for c in range(image.sizes['C']):
         zfocus_per_channel[c] = -1
-        
+
     zfocus_per_time = {}
 
     for time in range(image.sizes['T']):
@@ -138,27 +138,27 @@ def tresh_mask(image, lowerTreshold, upperTreshold, viewer):
         processedImage = cv2.morphologyEx(multipliedImage, cv2.MORPH_CROSS, kernel, iterations=1)
 
         # Extract contours from thresholded image
-        contours, _ = cv2.findContours(image=processedImage, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_NONE)   
+        contours, _ = cv2.findContours(image=processedImage, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_NONE)
         fileteredOutSmallContours = [holder for holder in contours if cv2.contourArea(holder)>1000]
 
         # Dilate-Erode individual contours
         emptyImage = np.zeros(image.shape, dtype='uint8')
         addingContoursIndividually = np.copy(emptyImage)
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))  
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
         for countContour, singleContour, in enumerate(fileteredOutSmallContours):
             singleContourImage = np.copy(emptyImage)
             cv2.drawContours(image=singleContourImage, contours=fileteredOutSmallContours, contourIdx=countContour, color=(countContour, countContour, countContour), thickness=cv2.FILLED)
-            singleContourOpen = cv2.morphologyEx(singleContourImage, cv2.MORPH_CLOSE, kernel, iterations=10) 
+            singleContourOpen = cv2.morphologyEx(singleContourImage, cv2.MORPH_CLOSE, kernel, iterations=10)
             addingContoursIndividually = cv2.bitwise_or(addingContoursIndividually, singleContourOpen)
-        
-        # Draw all contours from thresholded image 
+
+        # Draw all contours from thresholded image
         image16bit = np.zeros(image.shape, dtype='uint16')
         cv2.drawContours(image=image16bit, contours=fileteredOutSmallContours, contourIdx=-1, color=(255, 255, 255), thickness=cv2.FILLED)
         print('Mask created successfully.')
         viewer.add_labels(addingContoursIndividually, name='mask')
-        
-    except Exception as e:
-        logging.getLogger(__name__).error("Error in mask generation.\n" + image_name + ' - ' + str(e))
+
+    except Exception:
+        logging.getLogger(__name__).exception('Error in mask generation.\n%s', image_name)
 
 
 def main(image_path, output_path, output_basename):
@@ -190,13 +190,13 @@ def main(image_path, output_path, output_basename):
         image.imread()
     except Exception as e:
         logging.getLogger(__name__).error('Error loading image '+image_path+'\n'+str(e))
-    
+
 
     # Check channels existance in the image
     if image.sizes['C'] < 2:
         logging.getLogger(__name__).error('Image format.\n' + image_name + ' - The image must have at least one color channel. The BF will be considered as channel 0 and excluded from the analysis.')
         return
-    
+
     z_pertime_perchannel = focal_plane(image)
 
     for t in range(image.sizes['T']):
@@ -205,7 +205,7 @@ def main(image_path, output_path, output_basename):
             z = z_pertime_perchannel[t][c]
             channel_image = image.image[0,t,c,z,:,:]
             channels_image += channel_image
-        
-        norm_channels_image = cv2.normalize(channels_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32F)  
+
+        norm_channels_image = cv2.normalize(channels_image, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         nw = NapariWindow(output_path,output_basename)
-      
+

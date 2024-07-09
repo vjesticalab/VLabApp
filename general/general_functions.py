@@ -317,17 +317,13 @@ class FileTableWidget2(QWidget):
         self.header_2 = header_2
         self.filter_name = QLineEdit(filenames_filter, placeholderText='e.g.: _BF')
         self.filter_name.setToolTip('Accept only filenames containing this text. Filtering is done only when populating the table.')
-        self.filter_name.textChanged.connect(self.filter_name_changed)
         self.filter_name_exclude = QLineEdit(filenames_exclude_filter, placeholderText='e.g.: _WL508')
         self.filter_name_exclude.setToolTip('Accept only filenames NOT containing this text. Filtering is done only when populating the table.')
-        self.filter_name_exclude.textChanged.connect(self.filter_name_exclude_changed)
 
         self.suffix_1 = QLineEdit(filenames_suffix_1, placeholderText='e.g.: _vTG.ome.tif')
         self.suffix_1.setToolTip('Accept only filenames ending with this text.')
-        self.suffix_1.textChanged.connect(self.suffix_1_changed)
         self.suffix_2 = QLineEdit(filenames_suffix_2, placeholderText='e.g.: _vTG.graphmlz')
         self.suffix_2.setToolTip('Accept only filenames ending with this text')
-        self.suffix_2.textChanged.connect(self.suffix_2_changed)
         self.file_table = DropFilesTableWidget2(self.filter_files, header_1=header_1, header_2=header_2)
         self.file_table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.file_table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -376,18 +372,6 @@ class FileTableWidget2(QWidget):
 
     def file_table_rows_removed(self):
         self.file_table_changed.emit()
-
-    def filter_name_changed(self):
-        self.file_table.filenames_filter = self.filter_name.text()
-
-    def filter_name_exclude_changed(self):
-        self.file_table.filenames_exclude_filter = self.filter_name_exclude.text()
-
-    def suffix_1_changed(self):
-        self.file_table.filenames_suffix_1 = self.suffix_1.text()
-
-    def suffix_2_changed(self):
-        self.file_table.filenames_suffix_2 = self.suffix_2.text()
 
     def add_file(self):
         type_list = ['*'+self.suffix_1.text(), '*'+self.suffix_2.text()]
@@ -472,10 +456,8 @@ class ImageMatrixTableWidget2(QWidget):
 
         self.filter_name = QLineEdit(filenames_filter, placeholderText='e.g.: _BF')
         self.filter_name.setToolTip('Accept only filenames containing this text. Filtering is done only when populating the table.')
-        self.filter_name.textChanged.connect(self.filter_name_changed)
         self.filter_name_exclude = QLineEdit(filenames_exclude_filter, placeholderText='e.g.: _WL508')
         self.filter_name_exclude.setToolTip('Accept only filenames NOT containing this text. Filtering is done only when populating the table.')
-        self.filter_name_exclude.textChanged.connect(self.filter_name_exclude_changed)
 
         self.file_table = DropFilesTableWidget2(self.filter_files, header_1='Image', header_2='Matrix')
         self.file_table.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -509,12 +491,6 @@ class ImageMatrixTableWidget2(QWidget):
         layout.addWidget(help_label)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
-
-    def filter_name_changed(self):
-        self.file_table.filenames_filter = self.filter_name.text()
-
-    def filter_name_exclude_changed(self):
-        self.file_table.filenames_exclude_filter = self.filter_name_exclude.text()
 
     def add_file(self):
         type_list = ['*'+x for x in imagetypes]
@@ -671,13 +647,10 @@ class FileListWidget(QWidget):
             filetypes = []
         self.filter_name = QLineEdit(filenames_filter, placeholderText='e.g.: _BF')
         self.filter_name.setToolTip('Accept only filenames containing this text. Filtering is done only when populating the list.')
-        self.filter_name.textChanged.connect(self.filter_name_changed)
         self.filter_name_exclude = QLineEdit(filenames_exclude_filter, placeholderText='e.g.: _WL508')
         self.filter_name_exclude.setToolTip('Accept only filenames NOT containing this text. Filtering is done only when populating the list.')
-        self.filter_name_exclude.textChanged.connect(self.filter_name_exclude_changed)
         self.filetypes = QLineEdit(' '.join(filetypes), placeholderText='e.g.: .nd2 .tif .tiff .ome.tif .ome.tiff')
         self.filetypes.setToolTip('Space separated list of accepted file extensions. Filtering is done only when populating the list.')
-        self.filetypes.textChanged.connect(self.filetypes_changed)
         self.file_list = DropFilesListWidget(self.filter_files)
         self.file_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.file_list.model().rowsInserted.connect(self.file_list_rows_inserted)
@@ -721,15 +694,6 @@ class FileListWidget(QWidget):
 
     def file_list_rows_removed(self):
         self.file_list_changed.emit()
-
-    def filter_name_changed(self):
-        self.file_list.filenames_filter = self.filter_name.text()
-
-    def filter_name_exclude_changed(self):
-        self.file_list.filenames_exclude_filter = self.filter_name_exclude.text()
-
-    def filetypes_changed(self):
-        self.file_list.filetypes = self.filetypes.text().split()
 
     def add_file(self):
         type_list = ['*'+x for x in self.filetypes.text().split()]
@@ -833,10 +797,8 @@ class FolderListWidget(QWidget):
 
         self.filter_name = QLineEdit(foldernames_filter, placeholderText='e.g.: _BF')
         self.filter_name.setToolTip('Accept only folder names containing this text. Filtering is done only when populating the list.')
-        self.filter_name.textChanged.connect(self.filter_name_changed)
         self.filter_name_exclude = QLineEdit(foldernames_exclude_filter, placeholderText='e.g.: _WL508')
         self.filter_name_exclude.setToolTip('Accept only folder names NOT containing this text. Filtering is done only when populating the list.')
-        self.filter_name_exclude.textChanged.connect(self.filter_name_exclude_changed)
         self.folder_list = DropFoldersListWidget(self.filter_folders)
         self.folder_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.folder_list.model().rowsInserted.connect(self.folder_list_rows_inserted)
@@ -874,12 +836,6 @@ class FolderListWidget(QWidget):
 
     def folder_list_rows_removed(self):
         self.folder_list_changed.emit()
-
-    def filter_name_changed(self):
-        self.folder_list.foldernames_filter = self.filter_name.text()
-
-    def filter_name_exclude_changed(self):
-        self.folder_list.foldernames_exclude_filter = self.filter_name_exclude.text()
 
     def add_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
@@ -1122,7 +1078,7 @@ class Image:
             raise TypeError('Image format not supported. Please upload a tiff, ome-tiff or nd2 image file.')
 
         self.shape = []
-        self.sizes = dict()
+        self.sizes = {}
         for a in self._axes:
             if a in axes_order:
                 self.shape.append(shape[axes_order.index(a)])
@@ -1283,7 +1239,7 @@ class Image:
                         projected_image[f, t, c, 0, :, :] = np.min(self.image[f, t, c, z_values, :, :], axis=0)
                     elif projection_type == 'std':
                         projected_image[f, t, c, 0, :, :] = np.std(self.image[f, t, c, z_values, :, :], axis=0, ddof=1)
-                    elif projection_type == 'avg' or projection_type == 'mean':
+                    elif projection_type in ['avg', 'mean']:
                         projected_image[f, t, c, 0, :, :] = np.mean(self.image[f, t, c, z_values, :, :], axis=0)
                     elif projection_type == 'median':
                         projected_image[f, t, c, 0, :, :] = np.median(self.image[f, t, c, z_values, :, :], axis=0)
@@ -1344,19 +1300,6 @@ def update_transfMat(tmat_int, reference_timepoint_index, range_start_index, ran
     return tmat_updated
 
 
-def error_empty(submission_num, widget, window):
-    """
-    Add an error line in the main application window when missing input values
-    """
-    widget.setFocus()
-    if submission_num == 1:
-        label_error = QLabel('Error : missing value')
-        label_error.setAlignment(Qt.AlignCenter)
-        label_error.setStyleSheet("color: red;")
-        window.addRow(label_error)
-        return label_error
-
-
 def load_cell_tracking_graph(graph_path, mask_dtype):
     graph = ig.Graph().Read_GraphMLz(graph_path)
     # Adjust attibute types
@@ -1411,7 +1354,7 @@ def evaluate_graph_properties(graph):
         # Number of missing mask regions (edges spanning more than 1 frame)
         n_missing = np.sum([e['frame_target'] - e['frame_source'] - 1 for e in g2.es])
         # Number fusion events with stable neighborhood
-        n_fusions = np.sum([1 if v.indegree() > 1 and min([v2['stable_component_size'] for v2 in v.neighbors()]) >= 1 else 0 for v in g2.vs])
+        n_fusions = np.sum([1 if v.indegree() > 1 and min(v2['stable_component_size'] for v2 in v.neighbors()) >= 1 else 0 for v in g2.vs])
         fusions_frames = []
         if n_fusions > 0:
             indegree = g2.vs[0].indegree()
@@ -1420,7 +1363,7 @@ def evaluate_graph_properties(graph):
                     indegree = v.indegree()
                     fusions_frames.append(v['frame'])
         # Number division events with stable neighborhood
-        n_divisions = np.sum([1 if v.outdegree() > 1 and min([v2['stable_component_size'] for v2 in v.neighbors()]) >= 1 else 0 for v in g2.vs])
+        n_divisions = np.sum([1 if v.outdegree() > 1 and min(v2['stable_component_size'] for v2 in v.neighbors()) >= 1 else 0 for v in g2.vs])
         divisions_frames = []
         if n_divisions > 0:
             outdegree = g2.vs[0].outdegree()

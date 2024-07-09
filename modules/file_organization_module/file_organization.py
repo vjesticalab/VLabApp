@@ -295,7 +295,7 @@ class FileOrganization(QWidget):
         input_paths = self.folder_list.get_folder_list()
         if len(input_paths) == 0:
             self.logger.error('Input folder missing')
-            return False
+            return
 
         if self.use_input_folder.isChecked():
             output_paths = [os.path.join(os.path.dirname(path), os.path.basename(path.rstrip('/'))) for path in input_paths]
@@ -354,7 +354,7 @@ class FileOrganization(QWidget):
         input_paths = self.folder_list.get_folder_list()
         if len(input_paths) == 0:
             self.logger.error('Input folder missing')
-            return False
+            return
 
         patterns = []
         if self.clean_zprojection.isChecked():

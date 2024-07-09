@@ -3,7 +3,6 @@ import logging
 from platform import python_version, platform
 import numpy as np
 import napari
-import tifffile
 import igraph as ig
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QWidget, QPushButton, QLabel, QSpinBox, QScrollArea, QGroupBox, QCheckBox, QMessageBox, QSizePolicy
 from PyQt5.QtCore import Qt, QPointF
@@ -433,7 +432,7 @@ class CellTracksFiltering:
                 np.unique(self.mask[:, :, :border_width]),
                 np.unique(self.mask[:, :, -border_width:])]))
         border_mask_ids = border_mask_ids[border_mask_ids > 0]
-        self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if np.isin(self.cell_tracks[i]['mask_ids'], border_mask_ids).any() == False]
+        self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if np.isin(self.cell_tracks[i]['mask_ids'], border_mask_ids).any() is False]
 
     def filter_all_cells_area(self, min_area, max_area):
         """
@@ -539,7 +538,7 @@ class CellTracksFiltering:
             indices of topologies for list self.graph_topologies.
         """
 
-        self.logger.info("filtering topology (topologies: %s)",  ", ".join([str(i) for i in selected_topologies]))
+        self.logger.info("filtering topology (topologies: %s)", ", ".join([str(i) for i in selected_topologies]))
         self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if np.isin(self.cell_tracks[i]['graph_topology'], selected_topologies).any()]
 
     def reset_filters(self):
@@ -651,20 +650,20 @@ class CellTracksFiltering:
         self.logger.info("Saving segmentation mask to %s", output_file)
         selected_mask = self.get_mask(relabel_mask_ids)
         selected_mask = selected_mask[:, np.newaxis, :, :]
-        ome_metadata=OmeTiffWriter.build_ome(data_shapes=[selected_mask.shape],
-                                             data_types=[selected_mask.dtype],
-                                             dimension_order=["TCYX"],
-                                             channel_names=[self.mask_channel_names],
-                                             physical_pixel_sizes=[PhysicalPixelSizes(X=self.mask_physical_pixel_sizes[0], Y=self.mask_physical_pixel_sizes[1], Z=self.mask_physical_pixel_sizes[2])])
-        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        ome_metadata = OmeTiffWriter.build_ome(data_shapes=[selected_mask.shape],
+                                               data_types=[selected_mask.dtype],
+                                               dimension_order=["TCYX"],
+                                               channel_names=[self.mask_channel_names],
+                                               physical_pixel_sizes=[PhysicalPixelSizes(X=self.mask_physical_pixel_sizes[0], Y=self.mask_physical_pixel_sizes[1], Z=self.mask_physical_pixel_sizes[2])])
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))
         for x in self.metadata:
-            ome_metadata.structured_annotations.append(CommentAnnotation(value=x,namespace="VLabApp"))
+            ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
         OmeTiffWriter.save(selected_mask, output_file, ome_xml=ome_metadata)
 
         output_file = os.path.join(output_path, output_basename+".graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file)
         g = self.get_graph(relabel_mask_ids)
-        #add metadata
+        # add metadata
         g['VLabApp:Annotation:1'] = buffered_handler.get_messages()
         for i, x in enumerate(self.metadata):
             g['VLabApp:Annotation:'+str(i+2)] = x
@@ -1039,7 +1038,7 @@ class GraphFilteringWidget(QWidget):
     def on_viewer_images_close(self):
         if self.mask_modified:
             if self.mask_need_filtering:
-                save = QMessageBox.question(self, 'Save changes',  "Filter and save changes before closing?", QMessageBox.Yes | QMessageBox.No)
+                save = QMessageBox.question(self, 'Save changes', "Filter and save changes before closing?", QMessageBox.Yes | QMessageBox.No)
             else:
                 save = QMessageBox.question(self, 'Save changes', "Save changes before closing?", QMessageBox.Yes | QMessageBox.No)
             if save == QMessageBox.Yes:
@@ -1148,7 +1147,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
         try:
             image = gf.Image(image_path)
             image.imread()
-        except:
+        except Exception:
             logger.exception('Error loading image %s', image_path)
             # stop using logfile
             logger.removeHandler(logfile_handler)
@@ -1160,17 +1159,17 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
     try:
         mask = gf.Image(mask_path)
         mask.imread()
-    except:
+    except Exception:
         logger.exception('Error loading mask %s', mask_path)
         # stop using logfile
         logger.removeHandler(logfile_handler)
         logger.removeHandler(buffered_handler)
         raise
 
-    #load mask metadata
+    # load mask metadata
     mask_metadata = []
     if mask.ome_metadata:
-        for i,x in enumerate(mask.ome_metadata.structured_annotations):
+        for i, x in enumerate(mask.ome_metadata.structured_annotations):
             if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
                 if len(mask_metadata) == 0:
                     mask_metadata.append("Metadata for "+mask.path+":\n"+x.value)
@@ -1179,9 +1178,9 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
 
     # Load graph
     logger.debug("loading %s", graph_path)
-    graph = gf.load_cell_tracking_graph(graph_path,mask.image.dtype)
+    graph = gf.load_cell_tracking_graph(graph_path, mask.image.dtype)
 
-    #graph metadata
+    # graph metadata
     graph_metadata = []
     for a in graph.attributes():
         if a.startswith('VLabApp:Annotation'):
@@ -1203,12 +1202,12 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
         layer.editable = False
         # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
         # This is a quick and dirty hack to force the layer to stay non-editable.
-        layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
+        layer.events.editable.connect(lambda e: setattr(e.source, 'editable', False))
         selected_mask_layer = viewer_images.add_labels(mask.get_TYXarray(), name="Selected cell mask")
         selected_mask_layer.editable = False
         # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
         # This is a quick and dirty hack to force the layer to stay non-editable.
-        selected_mask_layer.events.editable.connect(lambda e: setattr(e.source,'editable',False))
+        selected_mask_layer.events.editable.connect(lambda e: setattr(e.source, 'editable', False))
 
         # add GraphFilteringWidget to napari
         scroll_area = QScrollArea()
