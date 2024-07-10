@@ -1169,7 +1169,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
     # load mask metadata
     mask_metadata = []
     if mask.ome_metadata:
-        for i, x in enumerate(mask.ome_metadata.structured_annotations):
+        for x in mask.ome_metadata.structured_annotations:
             if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
                 if len(mask_metadata) == 0:
                     mask_metadata.append("Metadata for "+mask.path+":\n"+x.value)
