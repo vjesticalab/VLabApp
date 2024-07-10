@@ -321,15 +321,16 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
         vertices_layer.data = []
         vertices_layer_isnew = False
 
-    vertices_layer.add(np.array(layout[:graph.vcount()]))
-    vertices_layer.edge_width_is_relative = True
-    vertices_layer.edge_width = 0.0
-    vertices_layer.symbol = 'square'
-    vertices_layer.size = vertex_size
-    vertices_layer.face_color = colors[graph.vs['mask_id']]
-    vertices_layer.properties = {'frame': graph.vs['frame'],
-                                 'mask_id': graph.vs['mask_id'],
-                                 'selected': np.repeat(False, graph.vcount())}
+    if graph.vcount() > 0:
+        vertices_layer.add(np.array(layout[:graph.vcount()]))
+        vertices_layer.edge_width_is_relative = True
+        vertices_layer.edge_width = 0.0
+        vertices_layer.symbol = 'square'
+        vertices_layer.size = vertex_size
+        vertices_layer.face_color = colors[graph.vs['mask_id']]
+        vertices_layer.properties = {'frame': graph.vs['frame'],
+                                     'mask_id': graph.vs['mask_id'],
+                                     'selected': np.repeat(False, graph.vcount())}
     vertices_layer.selected_data = set()
     vertices_layer.editable = False
     # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
