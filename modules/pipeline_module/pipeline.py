@@ -114,21 +114,21 @@ class Pipeline(QWidget):
         self.module_settings_groupbox.setLayout(layout2)
         self.module_settings_groupbox.hide()
         self.module_settings_widgets = {}
-        self.module_settings_widgets['Settings'] = f.GeneralSettings()
-        self.module_settings_widgets['Registration'] = registration.Perform(pipeline_layout=True)
-        self.module_settings_widgets['Registration (alignment)'] = registration.Align(pipeline_layout=True)
-        self.module_settings_widgets['Z-Projection'] = zprojection.zProjection(pipeline_layout=True)
-        self.module_settings_widgets['Segmentation'] = segmentation.Segmentation(pipeline_layout=True)
-        self.module_settings_widgets['Cell tracking'] = cell_tracking.CellTracking(pipeline_layout=True)
-        self.module_settings_widgets['Graph filtering'] = graph_filtering.GraphFiltering(pipeline_layout=True)
+        self.module_settings_widgets['general_settings'] = f.GeneralSettings()
+        self.module_settings_widgets['registration_image'] = registration.Perform(pipeline_layout=True)
+        self.module_settings_widgets['registration_alignment_image'] = registration.Align(pipeline_layout=True)
+        self.module_settings_widgets['zprojection'] = zprojection.zProjection(pipeline_layout=True)
+        self.module_settings_widgets['segmentation'] = segmentation.Segmentation(pipeline_layout=True)
+        self.module_settings_widgets['cell_tracking'] = cell_tracking.CellTracking(pipeline_layout=True)
+        self.module_settings_widgets['graph_filtering'] = graph_filtering.GraphFiltering(pipeline_layout=True)
         for m in self.module_settings_widgets:
             self.module_settings_widgets[m].hide()
             layout2.addWidget(self.module_settings_widgets[m])
         layout.addWidget(self.module_settings_groupbox)
 
         # quick and dirty hack to disable co-alignment (not yet implemented)
-        self.module_settings_widgets['Registration'].coalignment_yn.setChecked(False)
-        self.module_settings_widgets['Registration'].coalignment_yn.setEnabled(False)
+        self.module_settings_widgets['registration_image'].coalignment_yn.setChecked(False)
+        self.module_settings_widgets['registration_image'].coalignment_yn.setEnabled(False)
 
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
@@ -137,7 +137,7 @@ class Pipeline(QWidget):
         item = QStandardItem('Settings')
         description = 'General pipeline settings (input, output, ...)'
         item.setEditable(False)
-        item.setData({'description': description, 'is_removable': False, 'input_types': [], 'output_types': ['image', 'mask', 'graph', 'matrix']}, Qt.UserRole+1)
+        item.setData({'name': 'general_settings', 'description': description, 'is_removable': False, 'input_types': [], 'output_types': ['image', 'mask', 'graph', 'matrix']}, Qt.UserRole+1)
         item.setToolTip(description)
         self.pipeline_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
@@ -146,42 +146,42 @@ class Pipeline(QWidget):
         item = QStandardItem('Registration')
         description = 'Input: image\nOutput: registered image and registration matrix'
         item.setEditable(False)
-        item.setData({'description': description, 'input_types': ['image'], 'output_types': ['image', 'matrix'], 'max_count': 1, 'conflict': ['Registration (alignment)']}, Qt.UserRole+1)
+        item.setData({'name': 'registration_image', 'description': description, 'input_types': ['image'], 'output_types': ['image', 'matrix'], 'conflicting_modules': ['registration_image','registration_alignment_image']}, Qt.UserRole+1)
         item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
         item = QStandardItem('Registration (alignment)')
         description = 'Input: image and registration matrix\nOutput: registered image'
         item.setEditable(False)
-        item.setData({'description': description, 'input_types': ['image', 'matrix'], 'output_types': ['image'], 'max_count': 1, 'conflict': ['Registration']}, Qt.UserRole+1)
+        item.setData({'name': 'registration_alignment_image', 'description': description, 'input_types': ['image', 'matrix'], 'output_types': ['image'], 'conflicting_modules': ['registration_image','registration_alignment_image']}, Qt.UserRole+1)
         item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
         item = QStandardItem('Z-Projection')
         description = 'Input: image\nOutput: projected image'
         item.setEditable(False)
-        item.setData({'description': description, 'input_types': ['image'], 'output_types': ['image']}, Qt.UserRole+1)
+        item.setData({'name': 'zprojection', 'description': description, 'input_types': ['image'], 'output_types': ['image']}, Qt.UserRole+1)
         item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
         item = QStandardItem('Segmentation')
         description = 'Input: image\nOutput: segmentation mask'
         item.setEditable(False)
-        item.setData({'description': description, 'input_types': ['image'], 'output_types': ['mask']}, Qt.UserRole+1)
+        item.setData({'name': 'segmentation', 'description': description, 'input_types': ['image'], 'output_types': ['mask']}, Qt.UserRole+1)
         item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
         item = QStandardItem('Cell tracking')
         description = 'Input: segmentation mask\nOutput: relabelled segmentation mask and cell tracking graph'
         item.setEditable(False)
-        item.setData({'description': description, 'input_types': ['mask'], 'output_types': ['mask', 'graph']}, Qt.UserRole+1)
+        item.setData({'name': 'cell_tracking', 'description': description, 'input_types': ['mask'], 'output_types': ['mask', 'graph']}, Qt.UserRole+1)
         item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
         item = QStandardItem('Graph filtering')
         description = 'Input: segmentation mask and cell tracking graph\nOutput: filtered segmentation mask and cell tracking graph'
         item.setEditable(False)
-        item.setData({'description': description, 'input_types': ['mask', 'graph'], 'output_types': ['mask', 'graph']}, Qt.UserRole+1)
+        item.setData({'name': 'graph_filtering', 'description': description, 'input_types': ['mask', 'graph'], 'output_types': ['mask', 'graph']}, Qt.UserRole+1)
         item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
@@ -220,15 +220,15 @@ class Pipeline(QWidget):
     def pipeline_modules_selection_changed(self, selected, deselected):
         if deselected.count() > 0:
             # at most one item can be selected: QAbstractItemView.SingleSelection
-            module_name = deselected.indexes()[0].data(Qt.DisplayRole)
+            module_name = deselected.indexes()[0].data(Qt.UserRole+1)['name']
             self.store_settings_data(deselected.indexes()[0])
             self.module_settings_widgets[module_name].hide()
             self.module_settings_groupbox.hide()
 
         if selected.count() > 0:
             # at most one item can be selected: QAbstractItemView.SingleSelection
-            module_name = selected.indexes()[0].data(Qt.DisplayRole)
-            if module_name == 'Settings':
+            module_name = selected.indexes()[0].data(Qt.UserRole+1)['name']
+            if module_name == 'general_settings':
                 self.update_settings_widget_input_types()
             self.restore_settings_data(selected.indexes()[0])
             self.module_settings_widgets[module_name].show()
@@ -239,7 +239,7 @@ class Pipeline(QWidget):
         Update `self.module_settings_widget` with data stored in item with index `model_index`.
         '''
         # at most one item can be selected: QAbstractItemView.SingleSelection
-        module_name = model_index.data(Qt.DisplayRole)
+        module_name = model_index.data(Qt.UserRole+1)['name']
         data = model_index.data(Qt.UserRole+1)
         module_widget = self.module_settings_widgets[module_name]
         if 'settings' in data:
@@ -249,7 +249,7 @@ class Pipeline(QWidget):
         '''
         Update the item with index `model_index` using data from `self.module_settings_widget`.
         '''
-        module_name = model_index.data(Qt.DisplayRole)
+        module_name = model_index.data(Qt.UserRole+1)['name']
         data = model_index.data(Qt.UserRole+1)
         module_widget = self.module_settings_widgets[module_name]
         # modify data
@@ -258,7 +258,7 @@ class Pipeline(QWidget):
 
     def update_settings_widget_input_types(self):
         # assuming Settings in first position in the list
-        module_name = 'Settings'
+        module_name = 'general_settings'
         next_index = self.pipeline_modules_list.model().index(1, 0)
         next_item_data = self.pipeline_modules_list.model().data(next_index, Qt.UserRole+1)
         if not next_index.isValid():
@@ -294,7 +294,7 @@ class Pipeline(QWidget):
             for module_idx in range(self.pipeline_modules_list.model().rowCount()):
                 item = self.pipeline_modules_list.model().item(module_idx)
                 settings.beginGroup('module_'+str(module_idx))
-                settings.setValue('module_name', item.data(Qt.DisplayRole))
+                settings.setValue('module_label', item.data(Qt.DisplayRole))
                 settings.setValue('data', item.data(Qt.UserRole+1))
                 settings.endGroup()
 
@@ -319,7 +319,7 @@ class Pipeline(QWidget):
 
             for module_idx in range(module_count):
                 settings.beginGroup('module_'+str(module_idx))
-                item = QStandardItem(settings.value('module_name', type=str))
+                item = QStandardItem(settings.value('module_label', type=str))
                 item.setEditable(False)
                 item.setData(settings.value('data'), Qt.UserRole+1)
                 item.setToolTip(item.data(Qt.UserRole+1)['description'])
@@ -336,7 +336,7 @@ class Pipeline(QWidget):
 
         # Settings (it is always the first module)
         item = self.pipeline_modules_list.model().item(0)
-        module_name = item.data(Qt.DisplayRole)
+        module_name = item.data(Qt.UserRole+1)['name']
         module_widget = self.module_settings_widgets[module_name]
         settings = item.data(Qt.UserRole+1)['settings']
 
@@ -433,8 +433,9 @@ class Pipeline(QWidget):
             if len(duplicates) > 0:
                 self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input file folder as output folder or avoid processing files from different input folders.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
                 return
-        first_module_name = self.pipeline_modules_list.model().item(1).data(Qt.DisplayRole)
-        if first_module_name in ['Registration', 'Registration (alignment)']:
+        # check input images/masks axes
+        first_module_name = self.pipeline_modules_list.model().item(1).data(Qt.UserRole+1)['name']
+        if first_module_name in ['registration_image', 'registration_alignment_image']:
             for path in input_image_paths:
                 try:
                     image = gf.Image(path)
@@ -444,7 +445,7 @@ class Pipeline(QWidget):
                 if not (image.sizes['F'] == 1 and image.sizes['T'] > 1 and image.sizes['Y'] > 1 and image.sizes['X'] > 1):
                     self.logger.error('Invalid image:\n %s\n\nImage must have X, Y and T axes and can optionally have Z or C axes.', path)
                     return
-        if first_module_name == 'Z-Projection':
+        if first_module_name == 'zprojection':
             for path in input_image_paths:
                 try:
                     image = gf.Image(path)
@@ -455,7 +456,7 @@ class Pipeline(QWidget):
                     # although it does not make sense to z-project an image without z axis, the module does not crash if it is the case.
                     self.logger.error('Invalid image:\n %s\n\nImage must have X, Y axes and can optionally have T, C or Z axes.', path)
                     return
-        if first_module_name == 'Segmentation':
+        if first_module_name == 'segmentation':
             for path in input_image_paths:
                 try:
                     image = gf.Image(path)
@@ -465,7 +466,7 @@ class Pipeline(QWidget):
                 if not (image.sizes['F'] == 1 and image.sizes['Y'] > 1 and image.sizes['X'] > 1):
                     self.logger.error('Invalid image:\n %s\n\nImage must have X and Y axes and can optionally have T, C or Z axes.', path)
                     return
-        if first_module_name in ['Cell tracking', 'Graph filtering']:
+        if first_module_name in ['cell_tracking', 'graph_filtering']:
             for path in input_mask_paths:
                 try:
                     mask = gf.Image(path)
@@ -486,10 +487,11 @@ class Pipeline(QWidget):
             last_job_with_same_input_idx = None
             for module_idx in range(1, self.pipeline_modules_list.model().rowCount()):
                 item = self.pipeline_modules_list.model().item(module_idx)
-                module_name = item.data(Qt.DisplayRole)
+                module_label = item.data(Qt.DisplayRole)
+                module_name = item.data(Qt.UserRole+1)['name']
                 module_widget = self.module_settings_widgets[module_name]
                 settings = item.data(Qt.UserRole+1)['settings']
-                if module_name == 'Registration':
+                if module_name == 'registration_image':
                     image_path = next_image_path
                     output_suffix = gf.output_suffixes['registration']
                     user_suffix = settings['output_user_suffix']
@@ -521,7 +523,7 @@ class Pipeline(QWidget):
                                                skip_crop_decision,
                                                registration_method),
                                  'depends': [last_job_with_same_input_idx] if last_job_with_same_input_idx is not None else [],
-                                 'module_name': module_name,
+                                 'module_label': module_label,
                                  'module_idx': module_idx,
                                  'input_idx': input_idx,
                                  'use_gpu': False})
@@ -532,7 +534,7 @@ class Pipeline(QWidget):
                     next_matrix_path = os.path.join(output_path, output_basename+'.csv')
                     last_job_with_same_input_idx = len(jobs) - 1
                     # TODO: deal with coalignment
-                if module_name == 'Registration (alignment)':
+                if module_name == 'registration_alignment_image':
                     image_path = next_image_path
                     matrix_path = next_matrix_path
                     output_suffix = gf.output_suffixes['registration']
@@ -546,7 +548,7 @@ class Pipeline(QWidget):
                                                output_basename,
                                                skip_crop_decision),
                                  'depends': [last_job_with_same_input_idx] if last_job_with_same_input_idx is not None else [],
-                                 'module_name': module_name,
+                                 'module_label': module_labe,
                                  'module_idx': module_idx,
                                  'input_idx': input_idx,
                                  'use_gpu': False})
@@ -556,7 +558,7 @@ class Pipeline(QWidget):
                     next_graph_path = None
                     next_matrix_path = None
                     last_job_with_same_input_idx = len(jobs) - 1
-                elif module_name == 'Z-Projection':
+                elif module_name == 'zprojection':
                     image_path = next_image_path
                     output_suffix = gf.output_suffixes['zprojection']
                     projection_type = settings['projection_type']
@@ -576,7 +578,7 @@ class Pipeline(QWidget):
                                                projection_type,
                                                projection_zrange),
                                  'depends': [last_job_with_same_input_idx] if last_job_with_same_input_idx is not None else [],
-                                 'module_name': module_name,
+                                 'module_label': module_label,
                                  'module_idx': module_idx,
                                  'input_idx': input_idx,
                                  'use_gpu': False})
@@ -586,7 +588,7 @@ class Pipeline(QWidget):
                     next_graph_path = None
                     next_matrix_path = None
                     last_job_with_same_input_idx = len(jobs) - 1
-                elif module_name == 'Segmentation':
+                elif module_name == 'segmentation':
                     image_path = next_image_path
                     model_path = settings['selected_model']
                     output_suffix = gf.output_suffixes['segmentation']
@@ -607,10 +609,10 @@ class Pipeline(QWidget):
                     display_results = False
                     # check input
                     if model_path == '':
-                        self.logger.error('Model missing (module "%s")', module_name)
+                        self.logger.error('Model missing (module "%s")', module_label)
                         return
                     if not os.path.isfile(model_path):
-                        self.logger.error('Model not found: %s (module "%s")', model_path, module_name)
+                        self.logger.error('Model not found: %s (module "%s")', model_path, module_label)
                         return
                     jobs.append({'function': segmentation_functions.main,
                                  'arguments': (image_path,
@@ -625,7 +627,7 @@ class Pipeline(QWidget):
                                                use_gpu,
                                                run_parallel),
                                  'depends': [last_job_with_same_input_idx] if last_job_with_same_input_idx is not None else [],
-                                 'module_name': module_name,
+                                 'module_label': module_label,
                                  'module_idx': module_idx,
                                  'input_idx': input_idx,
                                  'use_gpu': use_gpu})
@@ -635,7 +637,7 @@ class Pipeline(QWidget):
                     next_graph_path = None
                     next_matrix_path = None
                     last_job_with_same_input_idx = len(jobs) - 1
-                elif module_name == 'Cell tracking':
+                elif module_name == 'cell_tracking':
                     image_path = ''
                     mask_path = next_mask_path
                     output_suffix = gf.output_suffixes['cell_tracking']
@@ -665,7 +667,7 @@ class Pipeline(QWidget):
                                                stable_overlap_fraction,
                                                display_results),
                                  'depends': [last_job_with_same_input_idx] if last_job_with_same_input_idx is not None else [],
-                                 'module_name': module_name,
+                                 'module_label': module_label,
                                  'module_idx': module_idx,
                                  'input_idx': input_idx,
                                  'use_gpu': False})
@@ -675,7 +677,7 @@ class Pipeline(QWidget):
                     next_graph_path = os.path.join(output_path, output_basename+'.graphmlz')
                     next_matrix_path = None
                     last_job_with_same_input_idx = len(jobs) - 1
-                elif module_name == 'Graph filtering':
+                elif module_name == 'graph_filtering':
                     image_path = ''
                     mask_path = next_mask_path
                     graph_path = next_graph_path
@@ -715,7 +717,7 @@ class Pipeline(QWidget):
                                                display_results,
                                                graph_topologies),
                                  'depends': [last_job_with_same_input_idx] if last_job_with_same_input_idx is not None else [],
-                                 'module_name': module_name,
+                                 'module_label': module_label,
                                  'module_idx': module_idx,
                                  'input_idx': input_idx,
                                  'use_gpu': False})

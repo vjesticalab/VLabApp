@@ -101,15 +101,9 @@ class ListView(QListView):
         dropped_item_data = source_model.data(event.source().selectionModel().selectedRows()[0], Qt.UserRole+1)
         self.allowed_drop_positions = []  # drop before item i (at the end if i==rowCount())
         if event.source() != self:
-            # check that there is not more than max_count items with same dropped_item_text
-            if 'max_count' in dropped_item_data:
-                count = len([i for i in range(self.model().rowCount()) if self.model().data(self.model().index(i, 0), Qt.DisplayRole) == dropped_item_text])
-                if count >= dropped_item_data['max_count']:
-                    super().dragEnterEvent(event)
-                    return
             # check that there is no conflicting module
-            if 'conflict' in dropped_item_data:
-                if any(self.model().data(self.model().index(i, 0), Qt.DisplayRole) in dropped_item_data['conflict'] for i in range(self.model().rowCount())):
+            if 'conflicting_modules' in dropped_item_data:
+                if any(self.model().data(self.model().index(i, 0), Qt.UserRole+1)['name'] in dropped_item_data['conflicting_modules'] for i in range(self.model().rowCount())):
                     super().dragEnterEvent(event)
                     return
 
