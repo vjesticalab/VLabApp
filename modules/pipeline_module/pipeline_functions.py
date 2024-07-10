@@ -343,7 +343,7 @@ class GeneralSettings(QWidget):
         self.mask_graph_table = gf.FileTableWidget2(header_1="Mask", header_2="Graph", filenames_suffix_1='.ome.tif', filenames_suffix_2='.graphmlz', filenames_filter=gf.output_suffixes['cell_tracking'])
 
         # Input image & registration matrix
-        self.image_matrix_table = gf.ImageMatrixTableWidget2(filenames_filter='', filenames_exclude_filter=gf.output_suffixes['registration'])
+        self.image_matrix_table = gf.ImageMatrixTableWidget2(filetypes=gf.imagetypes, filenames_filter='', filenames_exclude_filter=gf.output_suffixes['registration'])
 
         # Output folders
         self.use_input_folder = QRadioButton("Use input file folder")

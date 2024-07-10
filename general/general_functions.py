@@ -443,10 +443,13 @@ class ImageMatrixTableWidget2(QWidget):
     If multiple registration matrices match a given image, the one with shortest filename is arbitrarily chosen.
     """
 
-    def __init__(self, parent=None, filenames_filter='', filenames_exclude_filter=''):
+    def __init__(self, parent=None, filetypes=None, filenames_filter='', filenames_exclude_filter=''):
         """
         Parameters
         ----------
+        filetypes: list of str
+            list of allowed file extensions, including the '.'. E.g. ['.tif','.nd2'].
+            If empty: allow all extensions.
         filenames_filter: str
             filenames not containing this text will be ignored.
         filenames_exclude_filter: str
@@ -454,10 +457,14 @@ class ImageMatrixTableWidget2(QWidget):
         """
         super().__init__(parent)
 
+        if filetypes is None:
+            filetypes = []
         self.filter_name = QLineEdit(filenames_filter, placeholderText='e.g.: _BF')
         self.filter_name.setToolTip('Accept only filenames containing this text. Filtering is done only when populating the table.')
         self.filter_name_exclude = QLineEdit(filenames_exclude_filter, placeholderText='e.g.: _WL508')
         self.filter_name_exclude.setToolTip('Accept only filenames NOT containing this text. Filtering is done only when populating the table.')
+        self.filetypes = QLineEdit(' '.join(filetypes), placeholderText='e.g.: .nd2 .tif .tiff .ome.tif .ome.tiff')
+        self.filetypes.setToolTip('Space separated list of accepted image file extensions. Filtering is done only when populating the list.')
 
         self.file_table = DropFilesTableWidget2(self.filter_files, header_1='Image', header_2='Matrix')
         self.file_table.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -479,6 +486,9 @@ class ImageMatrixTableWidget2(QWidget):
         layout3 = QFormLayout()
         layout3.addRow("Filename must NOT include:", self.filter_name_exclude)
         layout2.addLayout(layout3)
+        layout3 = QFormLayout()
+        layout3.addRow("Image types:", self.filetypes)
+        layout2.addLayout(layout3)
         layout.addWidget(filters)
         layout.addWidget(self.file_table)
         layout2 = QHBoxLayout()
@@ -493,7 +503,7 @@ class ImageMatrixTableWidget2(QWidget):
         self.setLayout(layout)
 
     def add_file(self):
-        type_list = ['*'+x for x in imagetypes]
+        type_list = ['*'+x for x in self.filetypes.text().split()]
         if self.filter_name.text() != '':
             type_list = ['*'+self.filter_name.text()+x for x in type_list]
         file_paths, _ = QFileDialog.getOpenFileNames(self, 'Select Files', filter='Images ('+' '.join(type_list)+')')
@@ -517,7 +527,7 @@ class ImageMatrixTableWidget2(QWidget):
         multiple_matches_candidates = []
         not_found = []
         for image_path in filenames:
-            if splitext(image_path)[1] in imagetypes:
+            if len(self.filetypes.text().split()) == 0 or splitext(image_path)[1] in self.filetypes.text().split():
                 if self.filter_name.text() in os.path.basename(image_path):
                     if self.filter_name_exclude.text() == '' or self.filter_name_exclude.text() not in os.path.basename(image_path):
                         if os.path.isfile(image_path):
@@ -719,7 +729,7 @@ class FileListWidget(QWidget):
     def filter_files(self, filenames):
         filtered_filenames = []
         for file_path in filenames:
-            if len(self.filetypes.text().split()) > 0 and splitext(file_path)[1] in self.filetypes.text().split():
+            if len(self.filetypes.text().split()) == 0 or splitext(file_path)[1] in self.filetypes.text().split():
                 if self.filter_name.text() in os.path.basename(file_path):
                     if self.filter_name_exclude.text() == '' or self.filter_name_exclude.text() not in os.path.basename(file_path):
                         if os.path.isfile(file_path):

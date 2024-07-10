@@ -557,7 +557,7 @@ class Align(QWidget):
                                     'The transformation matrix must be in the same folder as the input image. Matching between image and transformation matrix is based on the unique identifier, i.e. part of the filename before the first \"_\".<br>' +
                                     'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
 
-        self.image_matrix_table = gf.ImageMatrixTableWidget2(filenames_filter='', filenames_exclude_filter=self.output_suffix)
+        self.image_matrix_table = gf.ImageMatrixTableWidget2(filetypes=gf.imagetypes, filenames_filter='', filenames_exclude_filter=self.output_suffix)
 
         self.use_input_folder = QRadioButton("Use input image folder")
         self.use_input_folder.setChecked(True)
