@@ -432,7 +432,7 @@ class CellTracksFiltering:
                 np.unique(self.mask[:, :, :border_width]),
                 np.unique(self.mask[:, :, -border_width:])]))
         border_mask_ids = border_mask_ids[border_mask_ids > 0]
-        self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if np.isin(self.cell_tracks[i]['mask_ids'], border_mask_ids).any() is False]
+        self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if not np.isin(self.cell_tracks[i]['mask_ids'], border_mask_ids).any()]
 
     def filter_all_cells_area(self, min_area, max_area):
         """
