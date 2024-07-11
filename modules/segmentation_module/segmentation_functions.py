@@ -7,6 +7,7 @@ import napari
 from cellpose import models
 from cellpose import version as cellpose_version
 from torch import __version__ as torch_version
+from torch import cuda
 from general import general_functions as gf
 from PyQt5.QtGui import QCursor
 from PyQt5.QtCore import Qt
@@ -225,6 +226,8 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
             logger.debug("cellpose segmentation %s/%s", iteration, tot_iterations)
             mask[t, :, :], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
 
+    if use_gpu:
+        cuda.empty_cache()
     # Save the mask
     output_name = os.path.join(output_path, output_basename+".ome.tif")
     mask = mask[:, np.newaxis, :, :]
