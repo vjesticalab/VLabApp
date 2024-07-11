@@ -56,6 +56,10 @@
 * Segmentation module: fix napari progress bar when using CPU.
 * Close log file when leaving events_filter module.
 * Graph filtering module: fix evaluation of number of stable frames before/after cell divisions/fusions.
+* fix CUDA out of memory when using multiple processes.
+* fix loading empty cell tracking graph and mask in napari.
+
+
 
 
 ## [v1.5.0] 2024-03-21
