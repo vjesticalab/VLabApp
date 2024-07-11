@@ -337,7 +337,10 @@ class GeneralSettings(QWidget):
         self.mask_graph_table = gf.FileTableWidget2(header_1="Mask", header_2="Graph", filenames_suffix_1='.ome.tif', filenames_suffix_2='.graphmlz', filenames_filter=gf.output_suffixes['cell_tracking'])
 
         # Input image & registration matrix
-        self.image_matrix_table = gf.ImageMatrixTableWidget2(filetypes=gf.imagetypes, filenames_filter='', filenames_exclude_filter=gf.output_suffixes['registration'])
+        self.image_matrix_table = gf.ImageMatrixTableWidget2(filetypes=gf.imagetypes, filenames_filter='', filenames_exclude_filter=gf.output_suffixes['registration'], image_label='image')
+
+        # Input mask & registration matrix
+        self.mask_matrix_table = gf.ImageMatrixTableWidget2(filetypes=gf.imagetypes, filenames_filter=gf.output_suffixes['segmentation'], filenames_exclude_filter=gf.output_suffixes['registration'], image_label='mask')
 
         # Output folders
         self.use_input_folder = QRadioButton("Use input file folder")
@@ -417,6 +420,14 @@ class GeneralSettings(QWidget):
         self.input_images_matrices_groupbox.setVisible(self.input_type == 'image_matrix')
         layout.addWidget(self.input_images_matrices_groupbox)
 
+        # Input masks & matrices
+        self.input_masks_matrices_groupbox = QGroupBox('Input files (masks and registration matrices)')
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.mask_matrix_table)
+        self.input_masks_matrices_groupbox.setLayout(layout2)
+        self.input_masks_matrices_groupbox.setVisible(self.input_type == 'mask_matrix')
+        layout.addWidget(self.input_masks_matrices_groupbox)
+
         # Output folders
         groupbox = QGroupBox('Output')
         layout2 = QVBoxLayout()
@@ -435,7 +446,7 @@ class GeneralSettings(QWidget):
         layout2 = QVBoxLayout()
         layout2.addWidget(self.use_gpu)
         layout3 = QFormLayout()
-        layout3.addRow('Number of processes:', self.nprocesses)
+        layout3.addRow('Number of processes (CPU):', self.nprocesses)
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
@@ -454,6 +465,7 @@ class GeneralSettings(QWidget):
         self.input_masks_groupbox.setVisible(self.input_type == 'mask')
         self.input_masks_graphs_groupbox.setVisible(self.input_type == 'mask_graph')
         self.input_images_matrices_groupbox.setVisible(self.input_type == 'image_matrix')
+        self.input_masks_matrices_groupbox.setVisible(self.input_type == 'mask_matrix')
 
     def get_widgets_state(self):
         widgets_state = {
@@ -466,7 +478,8 @@ class GeneralSettings(QWidget):
             'image_list': self.image_list.get_file_list() if self.input_type == 'image' else [],
             'mask_list': self.mask_list.get_file_list() if self.input_type == 'mask' else [],
             'mask_graph_table': self.mask_graph_table.get_file_table() if self.input_type == 'mask_graph' else [],
-            'image_matrix_table': self.image_matrix_table.get_file_table() if self.input_type == 'image_matrix' else []}
+            'image_matrix_table': self.image_matrix_table.get_file_table() if self.input_type == 'image_matrix' else [],
+            'mask_matrix_table': self.mask_matrix_table.get_file_table() if self.input_type == 'mask_matrix' else []}
         return widgets_state
 
     def set_widgets_state(self, widgets_state):
@@ -480,6 +493,7 @@ class GeneralSettings(QWidget):
         self.mask_list.set_file_list(widgets_state['mask_list'])
         self.mask_graph_table.set_file_table(widgets_state['mask_graph_table'])
         self.image_matrix_table.set_file_table(widgets_state['image_matrix_table'])
+        self.mask_matrix_table.set_file_table(widgets_state['mask_matrix_table'])
 
 
 class StatusTableDialog(QDialog):

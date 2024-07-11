@@ -1,3 +1,3 @@
 
 # TODO: find a better solution
-__version__ = '1.5.0'
+__version__ = '1.5.0-devel'

@@ -438,12 +438,12 @@ class FileTableWidget2(QWidget):
 class ImageMatrixTableWidget2(QWidget):
     """
     A 2 columns table of files with filters, button to add files and folder and drag and drop support.
-    This is a special case for pairs of images and registration matrices.
-    Corresponding image and registration matrix in both columns are assumed to share a common unique identifier (part of the filename before the first "_".
-    If multiple registration matrices match a given image, the one with shortest filename is arbitrarily chosen.
+    This is a special case for pairs of images (or masks) and registration matrices.
+    Corresponding image (or mask) and registration matrix in both columns are assumed to share a common unique identifier (part of the filename before the first "_".
+    If multiple registration matrices match a given image (or mask), the one with shortest filename is arbitrarily chosen.
     """
 
-    def __init__(self, parent=None, filetypes=None, filenames_filter='', filenames_exclude_filter=''):
+    def __init__(self, parent=None, filetypes=None, filenames_filter='', filenames_exclude_filter='', image_label='image'):
         """
         Parameters
         ----------
@@ -457,6 +457,7 @@ class ImageMatrixTableWidget2(QWidget):
         """
         super().__init__(parent)
 
+        self.image_label = image_label
         if filetypes is None:
             filetypes = []
         self.filter_name = QLineEdit(filenames_filter, placeholderText='e.g.: _BF')
@@ -464,9 +465,9 @@ class ImageMatrixTableWidget2(QWidget):
         self.filter_name_exclude = QLineEdit(filenames_exclude_filter, placeholderText='e.g.: _WL508')
         self.filter_name_exclude.setToolTip('Accept only filenames NOT containing this text. Filtering is done only when populating the table.')
         self.filetypes = QLineEdit(' '.join(filetypes), placeholderText='e.g.: .nd2 .tif .tiff .ome.tif .ome.tiff')
-        self.filetypes.setToolTip('Space separated list of accepted image file extensions. Filtering is done only when populating the list.')
+        self.filetypes.setToolTip('Space separated list of accepted '+self.image_label+' file extensions. Filtering is done only when populating the list.')
 
-        self.file_table = DropFilesTableWidget2(self.filter_files, header_1='Image', header_2='Matrix')
+        self.file_table = DropFilesTableWidget2(self.filter_files, header_1=self.image_label[:1].upper()+self.image_label[1:], header_2='Matrix')
         self.file_table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.file_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.add_file_button = QPushButton("Add files", self)
@@ -487,7 +488,7 @@ class ImageMatrixTableWidget2(QWidget):
         layout3.addRow("Filename must NOT include:", self.filter_name_exclude)
         layout2.addLayout(layout3)
         layout3 = QFormLayout()
-        layout3.addRow("Image types:", self.filetypes)
+        layout3.addRow(self.image_label[:1].upper()+self.image_label[1:]+" types:", self.filetypes)
         layout2.addLayout(layout3)
         layout.addWidget(filters)
         layout.addWidget(self.file_table)
@@ -496,7 +497,7 @@ class ImageMatrixTableWidget2(QWidget):
         layout2.addWidget(self.add_folder_button)
         layout2.addWidget(self.remove_file_button)
         layout.addLayout(layout2)
-        help_label = QLabel("Add images to the list using \"Add files\", \"Add folder\" buttons or drag and drop. The corresponding matrix file must be in the same directory as the image. Their filenames must share the same unique identifier (part of the filename before the first \"_\"). If multiple matrix files correspond to an image, the matrix with shortest filename will be selected.")
+        help_label = QLabel("Add "+self.image_label+"s to the list using \"Add files\", \"Add folder\" buttons or drag and drop. The corresponding matrix file must be in the same directory as the "+self.image_label+". Their filenames must share the same unique identifier (part of the filename before the first \"_\"). If multiple matrix files correspond to an "+self.image_label+", the matrix with shortest filename will be selected.")
         help_label.setWordWrap(True)
         layout.addWidget(help_label)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -555,11 +556,11 @@ class ImageMatrixTableWidget2(QWidget):
             i = 1
             if len(not_found) > 0:
                 informative_text += str(i)+') Registration matrix not found.\n'
-                detailed_text += 'Registration matrix not found for the following image(s):\n - ' + '\n - '.join(not_found) + '\n\n'
+                detailed_text += 'Registration matrix not found for the following '+self.image_label+'(s):\n - ' + '\n - '.join(not_found) + '\n\n'
                 i += 1
             if len(multiple_matches_images) > 0:
                 informative_text += str(i)+') Multiple candidate registration matrices (matrix with shortest filename was selected).\n'
-                detailed_text += '\n\n'.join(['Image:\n - ' + image + '\nSelected registration matrix:\n - ' + os.path.basename(matrix) + '\nCandidate registration matrices:\n - ' + '\n - '.join([os.path.basename(x) for x in candidates]) for image, matrix, candidates in zip(multiple_matches_images, multiple_matches_matrix, multiple_matches_candidates)])
+                detailed_text += '\n\n'.join([self.image_label[:1].upper()+self.image_label[1:]+':\n - ' + image + '\nSelected registration matrix:\n - ' + os.path.basename(matrix) + '\nCandidate registration matrices:\n - ' + '\n - '.join([os.path.basename(x) for x in candidates]) for image, matrix, candidates in zip(multiple_matches_images, multiple_matches_matrix, multiple_matches_candidates)])
             msgbox = QMessageBox()
             msgbox.setIcon(QMessageBox.Warning)
             msgbox.setWindowTitle("Warning")
