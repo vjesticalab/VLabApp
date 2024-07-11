@@ -367,6 +367,9 @@ class GeneralSettings(QWidget):
         self.nprocesses.setMinimum(1)
         self.nprocesses.setMaximum(os.cpu_count())
         self.nprocesses.setValue(1)
+        self.coarse_grain = QCheckBox("Use coarse-grained parallelization")
+        self.coarse_grain.setToolTip("Assign each input file to own process. Use it when there are more input files than processes and enough memory (memory usage increases with the number of processes).")
+        self.coarse_grain.setChecked(False)
 
         # Documentation
         groupbox = QGroupBox("Documentation")
@@ -448,6 +451,7 @@ class GeneralSettings(QWidget):
         layout3 = QFormLayout()
         layout3.addRow('Number of processes (CPU):', self.nprocesses)
         layout2.addLayout(layout3)
+        layout2.addWidget(self.coarse_grain)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
@@ -472,6 +476,7 @@ class GeneralSettings(QWidget):
             'input_type': self.input_type,
             'use_gpu': self.use_gpu.isChecked(),
             'nprocesses': self.nprocesses.value(),
+            'coarse_grain': self.coarse_grain.isChecked(),
             'use_input_folder': self.use_input_folder.isChecked(),
             'use_custom_folder': self.use_custom_folder.isChecked(),
             'output_folder': self.output_folder.text(),
@@ -486,6 +491,7 @@ class GeneralSettings(QWidget):
         self.set_input_type(widgets_state['input_type'])
         self.use_gpu.setChecked(widgets_state['use_gpu'])
         self.nprocesses.setValue(widgets_state['nprocesses'])
+        self.coarse_grain.setChecked(widgets_state['coarse_grain'])
         self.use_input_folder.setChecked(widgets_state['use_input_folder'])
         self.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
         self.output_folder.setText(widgets_state['output_folder'])

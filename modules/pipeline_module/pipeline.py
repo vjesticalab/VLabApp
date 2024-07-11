@@ -352,6 +352,7 @@ class Pipeline(QWidget):
 
         use_gpu = settings['use_gpu']
         nprocesses = settings['nprocesses']
+        coarse_grain = settings['coarse_grain']
 
         input_image_paths = None
         input_mask_paths = None
@@ -667,8 +668,8 @@ class Pipeline(QWidget):
                         projection_zrange = (settings['projection_mode_fixed_zmin'], settings['projection_mode_fixed_zmax'])
                     elif settings['projection_mode_all']:
                         projection_zrange = None
-                    n_count = 1
-                    run_parallel = False
+                    n_count = 1 if coarse_grain or use_gpu else nprocesses
+                    run_parallel = not coarse_grain and not use_gpu
                     display_results = False
                     # check input
                     if model_path == '':
@@ -799,7 +800,7 @@ class Pipeline(QWidget):
         status_dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
         status_dialog.show()
         QApplication.processEvents()
-        time.sleep(0.05)
+        time.sleep(0.01)
 
         # disable messagebox error handler
         messagebox_error_handler = None
@@ -812,13 +813,13 @@ class Pipeline(QWidget):
 
         # start jobs multi-process
         max_gpu_job_count = 1
-        if nprocesses > 1:
+        if nprocesses > 1 and coarse_grain:
             with concurrent.futures.ProcessPoolExecutor(max_workers=nprocesses, initializer=process_initializer) as executor:
                 jobs_to_submit = list(range(len(jobs)))
                 jobs_submitted = []
                 while len(jobs_to_submit) + len(jobs_submitted) > 0:
                     QApplication.processEvents()
-                    time.sleep(0.05)
+                    time.sleep(0.01)
                     if status_dialog.abort:
                         executor.shutdown(wait=False, cancel_futures=True)
                     for n in jobs_to_submit.copy():
@@ -852,7 +853,7 @@ class Pipeline(QWidget):
                             jobs_submitted.append(n)
                             break
                     QApplication.processEvents()
-                    time.sleep(0.05)
+                    time.sleep(0.01)
                     for n in jobs_submitted.copy():
                         if jobs[n]['future'].running():
                             status_dialog.table.item(jobs[n]['input_idx'], jobs[n]['module_idx']-1).setText('Running')
@@ -893,22 +894,32 @@ class Pipeline(QWidget):
                 status_dialog.table.item(job['input_idx'], job['module_idx']-1).setBackground(QBrush(QColor('#0000ff')))
                 status_dialog.table.item(job['input_idx'], job['module_idx']-1).setForeground(QBrush(QColor('#ffffff')))
                 QApplication.processEvents()
-                try:
-                    job['function'](*job['arguments'])
-                    job['status'] = 'Success'
-                    job['error_message'] = ''
-                    status_dialog.table.item(job['input_idx'], job['module_idx']-1).setText('Success')
-                    status_dialog.table.item(job['input_idx'], job['module_idx']-1).setBackground(QBrush(QColor('#00ff00')))
+                time.sleep(0.01)
+                if status_dialog.abort:
+                    status_dialog.table.item(job['input_idx'], job['module_idx']-1).setText('Cancelled')
+                    status_dialog.table.item(job['input_idx'], job['module_idx']-1).setBackground(QBrush(QColor('#ffc8c8')))
                     status_dialog.table.item(job['input_idx'], job['module_idx']-1).setForeground(QBrush(QColor('#000000')))
                     QApplication.processEvents()
-                except Exception as e:
-                    job['status'] = 'Failed'
-                    job['error_message'] = str(e)
-                    status_dialog.table.item(job['input_idx'], job['module_idx']-1).setText('Failed')
-                    status_dialog.table.item(job['input_idx'], job['module_idx']-1).setBackground(QBrush(QColor('#ff0000')))
-                    status_dialog.table.item(job['input_idx'], job['module_idx']-1).setForeground(QBrush(QColor('#000000')))
-                    status_dialog.table.item(job['input_idx'], job['module_idx']-1).setToolTip(job['error_message'])
-                    QApplication.processEvents()
+                    time.sleep(0.01)
+                else:
+                    try:
+                        job['function'](*job['arguments'])
+                        job['status'] = 'Success'
+                        job['error_message'] = ''
+                        status_dialog.table.item(job['input_idx'], job['module_idx']-1).setText('Success')
+                        status_dialog.table.item(job['input_idx'], job['module_idx']-1).setBackground(QBrush(QColor('#00ff00')))
+                        status_dialog.table.item(job['input_idx'], job['module_idx']-1).setForeground(QBrush(QColor('#000000')))
+                        QApplication.processEvents()
+                        time.sleep(0.01)
+                    except Exception as e:
+                        job['status'] = 'Failed'
+                        job['error_message'] = str(e)
+                        status_dialog.table.item(job['input_idx'], job['module_idx']-1).setText('Failed')
+                        status_dialog.table.item(job['input_idx'], job['module_idx']-1).setBackground(QBrush(QColor('#ff0000')))
+                        status_dialog.table.item(job['input_idx'], job['module_idx']-1).setForeground(QBrush(QColor('#000000')))
+                        status_dialog.table.item(job['input_idx'], job['module_idx']-1).setToolTip(job['error_message'])
+                        QApplication.processEvents()
+                        time.sleep(0.01)
 
         status_dialog.ok_button.show()
         status_dialog.abort_button.hide()
