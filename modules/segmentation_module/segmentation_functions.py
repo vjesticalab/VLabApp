@@ -44,6 +44,7 @@ def par_run_eval(image, mask, model, logger, tot_iterations, n_count, pbr=None):
                 index, mask[index, :, :], _, _ = future.result()
             except Exception:
                 logger.exception("An exception occurred")
+                raise
             else:
                 logger.debug("cellpose segmentation %s/%s", index+1, tot_iterations)
                 if pbr is not None:
