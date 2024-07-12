@@ -2,62 +2,52 @@
 
 ### Added
 
-* Graph filtering module: add "filename must include" and "filename must NOT include" filters to table of input files (FileTableWidget2).
-* Graph filtering module: Add a "Delete" shortcut to table of input files (FileTableWidget2).
-* Segmentation module: add option to perform z-projection and select a specific channel (C axis) before segmentation.
-* Add a new "file organization" module.
-* Add metadata to .ome.tif, .graphmlz and .csv output files (with same content as in log file).
-* Add channel_names and physiscal_pixel_sizes attributes to class Image.
-* For .ome.tif output, add channel_names and physiscal_pixel_sizes to metadata.
-* Add version.py.
-* Viewer module: new registration matrix viewer.
-* Viewer module: new metadata viewer.
+* Add a new File organization module (to export or clean files in output folders).
+* Add a new Pipeline module.
+* Add a new Viewer module: images, masks and/or cell tracking graphs viewer (linked graph and mask views, accept images with more than T,Y,X axes, e.g. T,C,Z,Y,X), new registration matrix and new metatadata viewer.
 * Add a minimal documentation for all modules.
-* Add a new "pipeline" module.
+* Add version.py.
+* Add metadata to .ome.tif, .graphmlz and .csv output files (with same content as in log file).
+* Add channel_names and physiscal_pixel_sizes attributes to class Image and add it to saved images metadata.
+* Graph filtering module: add "filename must include" and "filename must NOT include" filters as well as a "Delete" shortcut to table of input files (FileTableWidget2).
+* Segmentation module: add option to perform z-projection and select a specific channel (C axis) before segmentation.
 
 ### Changed
 
-* Image class: shape and sizes attributes are populated in the constructor.
-* Z-projection module: change output file naming (do not create a zprojection/ sub-folder, add _vPR<projection> suffix, use same basename as projected file for log file).
-* GroundTruth module: change output file naming (do not create a ground_truth/ sub-folder, add _vGT suffix).
-* Segmentation module: change output file naming (do not create a segmentation_masks/ sub-folder, add _vSM suffix instead of _mask suffix).
-* Segmentation module: if input image contains multiple fields of view (F axis), raise an error instead of saving one image per field of view.
-* Cell tracking module: change output file naming (do not create a cell_tracking/ sub-folder, add _vTG suffix instead of _mask and _graph suffixes).
-* Graph filtering module: change output file naming (do not create a graph_filtering/ sub-folder, add _vGF suffix instead of _mask and _graph suffixes).
-* Registration module: the z-projected image (evaluated when the input image contains a Z-stack) is not saved anymore.
-* Registration module: save transformation matrices with .csv extension instead of .txt. Remove space character at the beginning of each field.
-* Registration module: change output file naming (do not create a registration/ nor registration/transf_matrices/ sub-folders, add _vRG suffix instead of _registered and _transformationMatrix suffixes). Add a new "Output" box in the GUI.
-* Registration module (Alignment tab): search for matching transformation matrices based on unique identifier (part of the basename before the first "_") and warn if multiple matches are found.
-* Event filter module: change output file naming (do not create a event_filter/ sub-folder, add _vEF suffix instead of _mask, _graph and _dictionary suffixes).
-* Registration module: log to file.
+* Change output file naming: directly save to output folder (without creating a sub-folder per module) and  add a per-module suffix to the input basename ("_vRG" for registration module, "_vPR<projection>" for Z-projection module, "_vSM" for segmentation module, "_vTG" for cell tracking module, "_vGF" for graph filtering module, "_vEF" for event filter module and "_GT" for groundtruth module).
 * Use .ome.tif file extension for output files instead of using .tif extension (but saving in ome-tif format).
+* Image class: shape and sizes attributes are populated in the constructor.
 * Place the "filename must include" and "filename must NOT include" filters in a collapsible widget (FileListWidget and FileTableWidget2).
 * Registration module: use "feature matching (SIFT)"  registration methods by default instead of "stackreg".
-* New viewer for images, masks and/or cell tracking graphs (allow image with more than T,Y,X axes, such as T,C,Z,Y,X).
-* Cell tracking module: when showing results in napari, images with more than T,Y,X axes are allowed (e.g. T,C,Z,Y,X).
-* Reorder tabs.
-* Collapsible documentation sections.
-* Group viewer module, GroundTruth module and File organization module in a new "Tools" tab.
+* Registration module: Add a new "Output" box in the GUI.
+* Segmentation module: if input image contains multiple fields of view (F axis), raise an error instead of saving one image per field of view.
+* Registration module: the z-projected image (evaluated when the input image contains a Z-stack) is not saved anymore.
+* Registration module: save transformation matrices with .csv extension instead of .txt. Remove space character at the beginning of each field.
+* Registration module: log to file.
+* Registration module (Alignment tab): search for matching transformation matrices based on unique identifier (part of the basename before the first "_") and warn if multiple matches are found.
 * Registration module (Alignment tab): replace list of images by a table showing images and matching matrices.
+* Z-projection module: use same basename as projected file for log file.
+* Cell tracking module: when showing results in napari, images with more than T,Y,X axes are allowed (e.g. T,C,Z,Y,X).
+* Reorder tabs (and group Viewer, GroundTruth and File organization modules in a new "Tools" tab).
+* Collapsible documentation sections.
 
 ### Removed
 
 ### Fixed
 
-* Z-projection module: check that input image does not contain multiple fields of view (axis F).
+* Fix handling of .ome.tif files (add to list of accepted image types, properly split basename/extension).
+* Force non-editable napari layers to stay non-editable (In napari v0.4.17, changing an axis value using the corresponding slider makes the layer editable).
+* Z-projection and registration modules: check that input image does not contain multiple fields of view (axis F).
+* Registration module: when coaligning files with same unique identifier, only select image files (instead of all file types) and do not select images already aligned.
+* Registration module: set random seed in "feature matching" registration methods for reproducibility.
 * Segmentation module: remove default path for Cellpose model (it was pointing to a model trained on images with only Z section with best focus, which should not be used for images obtained with another Z-projection method).
 * Segmentation module: warn that only the first channel is used for segmentation if input image contains more than one channel (axis C).
-* Image class: raise an error if get_TYXarray() is used with a non-TYX image.
-* Registration module: when coaligning files with same unique identifier, only select image files (instead of all file types) and do not select images already aligned.
-* Registration module: check that input image does not contain multiple fields of view (axis F).
-* Fix handling of .ome.tif files.
-* Force non-editable napari layers to stay non-editable (In napari v0.4.17, changing an axis value using the corresponding slider makes the layer editable).
-* Set random seed in "feature matching" registration methods for reproducibility.
 * Segmentation module: fix napari progress bar when using CPU.
-* Close log file when leaving events_filter module.
+* Segmentation module: fix CUDA out of memory when using multiple processes.
+* Cell tracking and Viewer modules: fix loading empty cell tracking graph and mask in napari.
 * Graph filtering module: fix evaluation of number of stable frames before/after cell divisions/fusions.
-* fix CUDA out of memory when using multiple processes.
-* fix loading empty cell tracking graph and mask in napari.
+* Event filter module: close log file when leaving.
+* Image class: raise an error if get_TYXarray() is used with a non-TYX image (instead of silently returning the array at position 0 for F, C and Z axes).
 
 
 
