@@ -2,6 +2,21 @@
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+
+
+
+
+
+## [v2.0.0] 2024-07-12
+
+### Added
+
 * Add a new File organization module (to export or clean files in output folders).
 * Add a new Pipeline module.
 * Add a new Viewer module: images, masks and/or cell tracking graphs viewer (linked graph and mask views, accept images with more than T,Y,X axes, e.g. T,C,Z,Y,X), new registration matrix and new metatadata viewer.
@@ -30,8 +45,6 @@
 * Cell tracking module: when showing results in napari, images with more than T,Y,X axes are allowed (e.g. T,C,Z,Y,X).
 * Reorder tabs (and group Viewer, GroundTruth and File organization modules in a new "Tools" tab).
 * Collapsible documentation sections.
-
-### Removed
 
 ### Fixed
 
