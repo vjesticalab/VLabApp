@@ -19,11 +19,11 @@ from general import general_functions as gf
 import multiprocessing as mp
 
 
-class Tools(gf.Page):
+class Tools(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.window = QVBoxLayout(self.container)
+        self.window = QVBoxLayout(self)
         tabwizard = gf.TabWizard()
         self.window.addWidget(tabwizard)
         tabwizard.addPage(gf.Page(widget=viewer.ImageMaskGraphViewer()), "View image, masks and/or graph")
