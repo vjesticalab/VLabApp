@@ -194,7 +194,7 @@ An edge is defined as stable if and only if it satisfies all the following crite
 * Its source vertex has a unique outgoing edge (this edge) and its target vertex has a unique incoming edge (this edge).
 * The overlap between labelled regions corresponding to source and target vertices is larger than a predefined fraction $f$ (90% by default) of any the labelled region area corresponding to the source or target vertices.
 
-Examples of *not stable* edges are shown in Figure 9(blue letters):
+Examples of *not stable* edges are shown in Figure 9 (blue letters):
 
 * Edge (a) is not stable because its source vertex has two outgoing edges.
 * Edge (b) is not stable because the overlap between labelled regions corresponding to source and target vertices is too low.
@@ -225,8 +225,8 @@ This initial list of candidate defects (connected components) is then filtered o
 Figure 11 and 12 show exemples of candidate defects. For $N_\text{d}=2$ and $N_\text{s}=3$, the following candidate defects would be filtered out:
 
 * Candidate defect (a): it does not have the same set of labels in first frame (blue) and in last frame (blue and green). Note that this candidate defect corresponds to a cell division (i.e. not a defect).
-* Candidate defect (d): it covers 5 frames ($>N_\text{d}+2$) and the vertex in last time frame belongs to a stable region of size 2 ($<N_\text{s}$). Note that with $N_\text{d}\geq 3$ this candidate defect would not be filtered out.
-* Candidate defect (h): it does not have the same set of labels in first frame (green and purple) and in last frame (purple) and the vertex in last time frame belongs to a stable region of size 2 ($<N_\text{s}$). Note that this candidate defect corresponds to cell fusion with a labelled region missing (green, time frame 18), which cannot be corrected by this method.
+* Candidate defect (d): it covers 5 frames ($>N_\text{d}+2$) and the vertex in last time frame belongs to a stable region of size 2 ($\lt N_\text{s}$). Note that with $N_\text{d}\geq 3$ this candidate defect would not be filtered out.
+* Candidate defect (h): it does not have the same set of labels in first frame (green and purple) and in last frame (purple) and the vertex in last time frame belongs to a stable region of size 2 ($\lt N_\text{s}$). Note that this candidate defect corresponds to cell fusion with a labelled region missing (green, time frame 18), which cannot be corrected by this method.
 
 <figure>
   <img src="images/automatic_correction_3.png" alt="Mask correction"/>
