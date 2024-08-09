@@ -13,6 +13,13 @@ class GraphEventFilter(QWidget):
 
         self.output_suffix = gf.output_suffixes['events_filter']
 
+        # Documentation
+        label_documentation = QLabel()
+        label_documentation.setOpenExternalLinks(True)
+        label_documentation.setWordWrap(True)
+        label_documentation.setText('Extracts fusion and/or division events from the segmentation mask obtained in the previous steps.<br>' +
+                                    'It takes into account the number of timepoints chosen before and after the event<br>' +
+                                    'and, in case the fusion marker image is present, adjust the real fusion time with it.')
 
         # Browse segmentation mask
         self.input_mask = gf.DropFileLineEdit(filetypes=gf.imagetypes)
@@ -109,6 +116,17 @@ class GraphEventFilter(QWidget):
 
         # Layout
         layout = QVBoxLayout()
+        # Documentation
+        groupbox = QGroupBox("Documentation")
+        layout2 = QVBoxLayout()
+        collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
+        collapsible_widget.content.setLayout(QVBoxLayout())
+        collapsible_widget.content.layout().addWidget(label_documentation)
+        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
+        layout2.addWidget(collapsible_widget)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        # Input files
         groupbox = QGroupBox("Input files")
         layout2 = QVBoxLayout()
         layout2.addWidget(QLabel("Segmentation mask:"))
@@ -123,6 +141,7 @@ class GraphEventFilter(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
+        # Output folders
         groupbox = QGroupBox("Output")
         layout2 = QVBoxLayout()
         layout2.addWidget(QLabel("Folder:"))
@@ -152,7 +171,7 @@ class GraphEventFilter(QWidget):
         layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-
+        # Options
         groupbox_options = QGroupBox("Options")
         layout_options = QVBoxLayout()
         groupbox = QGroupBox("Type of event")

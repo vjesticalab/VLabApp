@@ -13,6 +13,13 @@ class Generator(QWidget):
 
         self.output_suffix = gf.output_suffixes['groundtruth_generator']
 
+        # Documentation
+        label_documentation = QLabel()
+        label_documentation.setOpenExternalLinks(True)
+        label_documentation.setWordWrap(True)
+        label_documentation.setText('Helps in the creation of segmentation masks useful for retraining the neural network.<br>')
+
+
         # Input widgets
         self.image_list = gf.FileListWidget(filetypes=gf.imagetypes)
         # Output widgets
@@ -46,11 +53,23 @@ class Generator(QWidget):
 
         # Layout
         layout = QVBoxLayout()
+        # Documentation
+        groupbox = QGroupBox("Documentation")
+        layout2 = QVBoxLayout()
+        collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
+        collapsible_widget.content.setLayout(QVBoxLayout())
+        collapsible_widget.content.layout().addWidget(label_documentation)
+        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
+        layout2.addWidget(collapsible_widget)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        # Input files
         groupbox = QGroupBox('Input files (images)')
         layout2 = QVBoxLayout()
         layout2.addWidget(self.image_list)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
+        # Output infos
         groupbox = QGroupBox("Output")
         layout2 = QVBoxLayout()
         layout2.addWidget(QLabel("Folder:"))
