@@ -125,7 +125,7 @@ class EditTransformationMatrix(QWidget):
         self.end_frame.setMaximum(points[:, self.T_axis_index].max())
         self.end_frame.setValue(tmat_end)
         self.end_frame.valueChanged.connect(self.time_range_changed)
-        self.shift_view = QCheckBox("Move view with aligmnent point")
+        self.shift_view = QCheckBox("Move view with alignment point")
         self.shift_view.setChecked(False)
         self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self.save)
