@@ -14,6 +14,7 @@ from skimage.transform import ProjectiveTransform
 from skimage import __version__ as skimage_version
 from PyQt5.QtWidgets import QVBoxLayout, QWidget, QPushButton, QLabel, QScrollArea, QRadioButton, QGroupBox, QFormLayout, QSpinBox, QMessageBox, QCheckBox
 from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QKeySequence
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.backend_bases import MouseButton
@@ -101,12 +102,14 @@ class EditTransformationMatrix(QWidget):
 
         layout = QVBoxLayout()
 
+        shift_str = QKeySequence(Qt.ShiftModifier).toString().rstrip('+').upper()
+        ctrl_str = QKeySequence(Qt.ControlModifier).toString().rstrip('+').upper()
         if not self.read_only:
             groupbox = QGroupBox("Modify:")
-            help_label = QLabel("Use SHIFT + CLICK to define the position of the alignment point (for all frames), without modifying the transformation matrix.\nUse CTRL + CLICK to update the position of the alignment point. When modifying the position of the alignment point, apply the modification to the following frame range:")
+            help_label = QLabel("Use "+shift_str+" + CLICK to define the position of the alignment point (for all frames), without modifying the transformation matrix.\nUse "+ctrl_str+" + CLICK to update the position of the alignment point. When modifying the position of the alignment point, apply the modification to the following frame range:")
         else:
             groupbox = QGroupBox()
-            help_label = QLabel("Use SHIFT + CLICK or CTRL + CLICK to define the position of the alignment point.")
+            help_label = QLabel("Use "+shift_str+" + CLICK or "+ctrl_str+" + CLICK to define the position of the alignment point.")
         help_label.setWordWrap(True)
         help_label.setMinimumWidth(10)
         self.modify_previous_frames = QRadioButton("from first to current frame")
@@ -126,7 +129,7 @@ class EditTransformationMatrix(QWidget):
         self.end_frame.setValue(tmat_end)
         self.end_frame.valueChanged.connect(self.time_range_changed)
         self.shift_view = QCheckBox("Move view with alignment point")
-        self.shift_view.setChecked(False)
+        self.shift_view.setChecked(True)
         self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self.save)
         layout2 = QVBoxLayout()
