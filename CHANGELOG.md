@@ -4,11 +4,15 @@
 
 ### Changed
 
+* Registration matrix viewer and manual editor: "move view with alignment point" checked by default
+
 ### Removed
 
 ### Fixed
 
-
+* Cell tracking module: fix a problem with equations in METHODS.md.
+* Event filter and GroundTruth modules: add brief documentation.
+* Registration matrix viewer and manual editor: adjust text for control modifier to the OS (CTRL for Linux/Windows and CMD for Mac OS X) in the documentation.
 
 
 
