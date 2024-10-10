@@ -3,6 +3,7 @@ import os
 import sys
 import concurrent
 import time
+import numpy as np
 from PyQt5.QtWidgets import QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QAbstractItemView, QAction, QListView, QSizePolicy, QGroupBox, QApplication, QFileDialog
 from PyQt5.QtCore import Qt, QEvent, QSettings
 from PyQt5.QtGui import QKeySequence, QStandardItem, QBrush, QColor, QCursor
@@ -126,10 +127,6 @@ class Pipeline(QWidget):
             self.module_settings_widgets[m].hide()
             layout2.addWidget(self.module_settings_widgets[m])
         layout.addWidget(self.module_settings_groupbox)
-
-        # quick and dirty hack to disable co-alignment (not yet implemented)
-        self.module_settings_widgets['registration_image'].coalignment_yn.setChecked(False)
-        self.module_settings_widgets['registration_image'].coalignment_yn.setEnabled(False)
 
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
@@ -552,6 +549,17 @@ class Pipeline(QWidget):
                         timepoint_range = None
                     skip_crop_decision = settings['skip_cropping_yn']
                     registration_method = settings['registration_method']
+                    coalign_image_paths = []
+                    coalign_output_basenames = []
+                    if settings['coalignment_yn']:
+                        unique_identifier = os.path.basename(image_path).split('_')[0]
+                        for im in os.listdir(os.path.dirname(image_path)):
+                            if im.startswith(unique_identifier) and output_suffix not in im and any(im.endswith(imagetype) for imagetype in gf.imagetypes):
+                                coalign_image_path = os.path.join(os.path.dirname(image_path), im)
+                                if coalign_image_path != image_path:
+                                    coalign_output_basename = gf.splitext(os.path.basename(coalign_image_path))[0] + output_suffix + user_suffix
+                                    coalign_image_paths.append(coalign_image_path)
+                                    coalign_output_basenames.append(coalign_output_basename)
                     jobs.append({'function': registration_functions.registration_main,
                                  'arguments': (image_path,
                                                output_path,
@@ -561,19 +569,21 @@ class Pipeline(QWidget):
                                                projection_zrange,
                                                timepoint_range,
                                                skip_crop_decision,
-                                               registration_method),
+                                               registration_method,
+                                               coalign_image_paths,
+                                               coalign_output_basenames),
                                  'depends': [last_job_with_same_input_idx] if last_job_with_same_input_idx is not None else [],
                                  'module_label': module_label,
                                  'module_idx': module_idx,
                                  'input_idx': input_idx,
-                                 'use_gpu': False})
+                                 'use_gpu': False,
+                                 'output_files': [os.path.join(output_path, output_basename)] + [os.path.join(output_path, x) for x in coalign_output_basenames]})
                     # to be used by next module
                     next_image_path = os.path.join(output_path, output_basename+'.ome.tif')
                     next_mask_path = None
                     next_graph_path = None
                     next_matrix_path = os.path.join(output_path, output_basename+'.csv')
                     last_job_with_same_input_idx = len(jobs) - 1
-                    # TODO: deal with coalignment
                 if module_name == 'registration_alignment_image':
                     image_path = next_image_path
                     matrix_path = next_matrix_path
@@ -591,7 +601,8 @@ class Pipeline(QWidget):
                                  'module_label': module_label,
                                  'module_idx': module_idx,
                                  'input_idx': input_idx,
-                                 'use_gpu': False})
+                                 'use_gpu': False,
+                                 'output_files': [os.path.join(output_path, output_basename)]})
                     # to be used by next module
                     next_image_path = os.path.join(output_path, output_basename+'.ome.tif')
                     next_mask_path = None
@@ -615,7 +626,8 @@ class Pipeline(QWidget):
                                  'module_label': module_label,
                                  'module_idx': module_idx,
                                  'input_idx': input_idx,
-                                 'use_gpu': False})
+                                 'use_gpu': False,
+                                 'output_files': [os.path.join(output_path, output_basename)]})
                     # to be used by next module
                     next_image_path = None
                     next_mask_path = os.path.join(output_path, output_basename+'.ome.tif')
@@ -645,7 +657,8 @@ class Pipeline(QWidget):
                                  'module_label': module_label,
                                  'module_idx': module_idx,
                                  'input_idx': input_idx,
-                                 'use_gpu': False})
+                                 'use_gpu': False,
+                                 'output_files': [os.path.join(output_path, output_basename)]})
                     # to be used by next module
                     next_image_path = os.path.join(output_path, output_basename+'.ome.tif')
                     next_mask_path = None
@@ -694,7 +707,8 @@ class Pipeline(QWidget):
                                  'module_label': module_label,
                                  'module_idx': module_idx,
                                  'input_idx': input_idx,
-                                 'use_gpu': use_gpu})
+                                 'use_gpu': use_gpu,
+                                 'output_files': [os.path.join(output_path, output_basename)]})
                     # to be used by next module
                     next_image_path = None
                     next_mask_path = os.path.join(output_path, output_basename+'.ome.tif')
@@ -734,7 +748,8 @@ class Pipeline(QWidget):
                                  'module_label': module_label,
                                  'module_idx': module_idx,
                                  'input_idx': input_idx,
-                                 'use_gpu': False})
+                                 'use_gpu': False,
+                                 'output_files': [os.path.join(output_path, output_basename)]})
                     # to be used by next module
                     next_image_path = None
                     next_mask_path = os.path.join(output_path, output_basename+'.ome.tif')
@@ -784,13 +799,22 @@ class Pipeline(QWidget):
                                  'module_label': module_label,
                                  'module_idx': module_idx,
                                  'input_idx': input_idx,
-                                 'use_gpu': False})
+                                 'use_gpu': False,
+                                 'output_files': [os.path.join(output_path, output_basename)]})
                     # to be used by next module
                     next_image_path = None
                     next_mask_path = os.path.join(output_path, output_basename+'.ome.tif')
                     next_graph_path = os.path.join(output_path, output_basename+'.graphmlz')
                     next_matrix_path = None
                     last_job_with_same_input_idx = len(jobs) - 1
+
+        # check no duplicate output (last chance)
+        output_files = [x for job in jobs for x in job['output_files']]
+        duplicates = [input_image_paths[job['input_idx']] for job in jobs for x in job['output_files'] if output_files.count(x)>1]
+        duplicates = list(np.unique(duplicates))
+        if len(duplicates) > 0:
+            self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
+            return
 
         status_dialog = f.StatusTableDialog(input_count,
                                             [self.pipeline_modules_list.model().item(i).data(Qt.DisplayRole) for i in range(1, self.pipeline_modules_list.model().rowCount())])

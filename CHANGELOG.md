@@ -2,6 +2,8 @@
 
 ### Added
 
+* Add option to coalign files when using registration in a pipeline.
+
 ### Changed
 
 * Registration matrix viewer and manual editor: "move view with alignment point" checked by default
