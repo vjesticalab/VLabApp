@@ -421,7 +421,7 @@ class MetadataViewer(QWidget):
         self.logger = logging.getLogger(__name__)
 
     def browse_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images, cell tracking graphs or transformation matrices   ('+' '.join(['*'+x for x in gf.imagetypes])+')')
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images, cell tracking graphs or transformation matrices   ('+' '.join(['*'+x for x in gf.imagetypes+gf.graphtypes+gf.matrixtypes])+')')
         self.input_file.setText(file_path)
 
     def input_file_changed(self):
