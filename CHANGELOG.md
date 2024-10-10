@@ -13,7 +13,7 @@
 * Cell tracking module: fix a problem with equations in METHODS.md.
 * Event filter and GroundTruth modules: add brief documentation.
 * Registration matrix viewer and manual editor: adjust text for control modifier to the OS (CTRL for Linux/Windows and CMD for Mac OS X) in the documentation.
-
+* Registration module: More explicit error message when registration shift is too large resulting in an empty registered image after cropping.
 
 
 

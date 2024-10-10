@@ -687,6 +687,9 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
         # Crop along the y-axis
         image_cropped = registered_image[:, t_start:t_end, :, :, y_start:y_end, x_start:x_end]
 
+        if image_cropped.shape[4] == 0 or image_cropped.shape[5] == 0:
+            raise ValueError('Empty image after cropping (due to registration shift too large). To avoid this error: do not crop or limit the range of time frames.')
+
         # Save the registered and cropped image
         logging.getLogger(__name__).info('Saving transformed image to %s', registeredFilepath)
         ome_metadata = OmeTiffWriter.build_ome(data_shapes=[image_cropped[0, :, :, :, :, :].shape],
@@ -1057,7 +1060,12 @@ def registration_main(image_path, output_path, output_basename, channel_position
         tmat = registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method, image_metadata)
 
     # Align and save
-    registration_with_tmat(tmat, image, skip_crop_decision, output_path, output_basename, image_metadata)
+    try:
+        registration_with_tmat(tmat, image, skip_crop_decision, output_path, output_basename, image_metadata)
+    except Exception:
+        logging.getLogger(__name__).exception('Registration failed for image %s', image_path)
+        remove_all_log_handlers()
+        raise
 
     remove_all_log_handlers()
     return image_path
