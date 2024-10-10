@@ -644,7 +644,7 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
     Saves
     ---------------------
     image : ndarray
-        registered and eventually cropped image
+        registered and eventually cropped image (optional: also save co-aligned images)
     """
     logging.getLogger(__name__).info('Transforming image')
     registeredFilepath = os.path.join(output_path, output_basename+'.ome.tif')
@@ -983,7 +983,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
 ################################################################
 
 
-def registration_main(image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, registration_method):
+def registration_main(image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, registration_method, coalign_image_paths=None , coalign_output_basenames=None):
 
     # Setup logging to file in output_path
     logger = logging.getLogger(__name__)
@@ -1063,11 +1063,20 @@ def registration_main(image_path, output_path, output_basename, channel_position
     try:
         registration_with_tmat(tmat, image, skip_crop_decision, output_path, output_basename, image_metadata)
     except Exception:
-        logging.getLogger(__name__).exception('Registration failed for image %s', image_path)
+        logger.exception('Registration failed for image %s', image_path)
         remove_all_log_handlers()
         raise
 
     remove_all_log_handlers()
+
+    # Co-alignment
+    if coalign_image_paths is not None and coalign_output_basenames is not None:
+        tmat_path = os.path.join(output_path, output_basename+'.csv')
+        for coalign_image_path, coalign_output_basename in zip(coalign_image_paths, coalign_output_basenames):
+            logger.info("Co-aligning image: %s", image_path)
+            alignment_main(coalign_image_path, tmat_path, output_path, coalign_output_basename, skip_crop_decision)
+
+
     return image_path
 
 ################################################################
