@@ -2,13 +2,25 @@
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+
+
+
+
+## [v2.1.0] 2024-10-11
+
+### Added
+
 * Add option to coalign files when using registration in a pipeline.
 
 ### Changed
 
 * Registration matrix viewer and manual editor: "move view with alignment point" checked by default
-
-### Removed
 
 ### Fixed
 
@@ -17,6 +29,8 @@
 * Registration matrix viewer and manual editor: adjust text for control modifier to the OS (CTRL for Linux/Windows and CMD for Mac OS X) in the documentation.
 * Registration module: More explicit error message when registration shift is too large resulting in an empty registered image after cropping.
 * Metadata viewer: fix file type filter in file selection dialog.
+
+
 
 
 ## [v2.0.0] 2024-07-12
