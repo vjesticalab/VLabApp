@@ -1,0 +1,2 @@
+# mark all doc/ folders and their content as documentation
+**/doc/** linguist-documentation
