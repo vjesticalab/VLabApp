@@ -127,9 +127,7 @@ class FileOrganization(QWidget):
         super().__init__()
 
         # Documentation
-        label_documentation = QLabel()
-        label_documentation.setOpenExternalLinks(True)
-        label_documentation.setWordWrap(True)
+        label_documentation = gf.CollapsibleLabel('',collapsed=True)
         label_documentation.setText('For each input folder, selected files types can be exported (i.e. moved) to the specified directory or removed.')
 
         # Input folders
@@ -193,11 +191,7 @@ class FileOrganization(QWidget):
         # Documentation
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
-        collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
-        collapsible_widget.content.setLayout(QVBoxLayout())
-        collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
-        layout2.addWidget(collapsible_widget)
+        layout2.addWidget(label_documentation)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 

@@ -5,7 +5,7 @@ import nd2
 import re
 from aicsimageio.readers import OmeTiffReader
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QPalette, QBrush, QKeySequence, QPainter, QFontMetrics
+from PyQt5.QtGui import QPalette, QBrush, QKeySequence, QPainter, QFontMetrics, QDesktopServices, QTextDocument
 from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem, QDialog, QShortcut
 
 import logging
@@ -103,6 +103,55 @@ class CollapsibleWidget(QWidget):
             self.button.setText(self.expanded_icon)
         else:
             self.button.setText(self.collapsed_icon)
+
+
+class CollapsibleLabel(QLabel):
+    def __init__(self, text, parent=None, collapsed=False):
+        super().__init__(text, parent)
+        self.collapsed = collapsed
+        self.raw_text = text
+        self.setTextFormat(Qt.RichText)
+        self.linkActivated.connect(self.link_activated)
+        self.setText(text)
+        self.setWordWrap(True)
+        super().setOpenExternalLinks(False)
+
+    def setText(self, text):
+        self.raw_text = text
+        super().setText(self.elide_text(self.raw_text))
+
+    def elide_text(self, text):
+        metrics = QFontMetrics(self.font())
+        if self.collapsed:
+            #keep only first line (we force Rich Text format => split at <br>, <p>, <div>, <h1> ... or <h6>)
+            elided = re.split(r'(<br>|<p>|<div>|<h[1-6]>)', text)[0]
+            #convert to plain text to avoid problem with text length and html tags
+            document = QTextDocument()
+            document.setHtml(elided)
+            elided=document.toPlainText()
+            elided = metrics.elidedText(elided, Qt.ElideRight, self.width()-metrics.boundingRect('... [show more]').width())
+            if elided != text:
+                elided += ' <a href="_EXPAND_">[show more]</a>'
+        else:
+            #keep only first line (we force Rich Text format => split at <br>, <p>, <div>, <h1> ... or <h6>)
+            elided = re.split(r'(<br>|<p>|<div>|<h[1-6]>)', text)[0]
+            elided = metrics.elidedText(elided, Qt.ElideRight,self.width())
+            if elided != text:
+                elided = text+'<br><a href="_COLLAPSE_">[show less]</a>'
+        return elided
+
+    def resizeEvent(self, event):
+        super().setText(self.elide_text(self.raw_text))
+
+    def link_activated(self, link):
+        if link == '_EXPAND_':
+            self.collapsed = False
+            super().setText(self.elide_text(self.raw_text))
+        elif link == '_COLLAPSE_':
+            self.collapsed = True
+            super().setText(self.elide_text(self.raw_text))
+        else:
+            QDesktopServices.openUrl(QUrl(link))
 
 
 class QLineEditHandler(logging.Handler):

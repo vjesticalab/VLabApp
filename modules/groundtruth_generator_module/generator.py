@@ -14,10 +14,8 @@ class Generator(QWidget):
         self.output_suffix = gf.output_suffixes['groundtruth_generator']
 
         # Documentation
-        label_documentation = QLabel()
-        label_documentation.setOpenExternalLinks(True)
-        label_documentation.setWordWrap(True)
-        label_documentation.setText('Helps in the creation of segmentation masks useful for retraining the neural network.<br>')
+        label_documentation = gf.CollapsibleLabel('',collapsed=True)
+        label_documentation.setText('Helps in the creation of segmentation masks useful for retraining the neural network.')
 
 
         # Input widgets
@@ -56,11 +54,7 @@ class Generator(QWidget):
         # Documentation
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
-        collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
-        collapsible_widget.content.setLayout(QVBoxLayout())
-        collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
-        layout2.addWidget(collapsible_widget)
+        layout2.addWidget(label_documentation)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         # Input files

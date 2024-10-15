@@ -19,18 +19,12 @@ class GraphFiltering(QWidget):
 
         layout = QVBoxLayout()
 
-        label_documentation = QLabel()
-        label_documentation.setOpenExternalLinks(True)
-        label_documentation.setWordWrap(True)
+        label_documentation = gf.CollapsibleLabel('',collapsed=True)
         label_documentation.setText('For each pair of input segmentation mask and cell tracking graph, apply the selected filters and save the filtered cell tracking graph and segmentation mask.<br>' +
                                     'Input segmentation mask must have X, Y and T axes. The optional input image must have X, Y and T axes and can optionally have C and/or Z axes.')
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
-        collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
-        collapsible_widget.content.setLayout(QVBoxLayout())
-        collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
-        layout2.addWidget(collapsible_widget)
+        layout2.addWidget(label_documentation)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 

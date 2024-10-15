@@ -18,9 +18,7 @@ class Segmentation(QWidget):
 
         self.pipeline_layout = pipeline_layout
 
-        label_documentation = QLabel()
-        label_documentation.setOpenExternalLinks(True)
-        label_documentation.setWordWrap(True)
+        label_documentation = gf.CollapsibleLabel('',collapsed=True)
         label_documentation.setText('For each input image,  perform cell segmentation using <a href="https://www.cellpose.org/">cellpose</a> and save the resulting mask.<br>' +
                                     'Input images must have X and Y axes and can optionally have C, Z and/or T axes (Z axis will be projected and only the chosen channel will be selected before performing segmentation).<br>' +
                                     'A "cellpose model" can be obtained by finetuning a pretrained cellpose model on a collection of annotated images similar to the input images (see section "Training" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>).')
@@ -126,11 +124,7 @@ class Segmentation(QWidget):
         layout = QVBoxLayout()
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
-        collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
-        collapsible_widget.content.setLayout(QVBoxLayout())
-        collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
-        layout2.addWidget(collapsible_widget)
+        layout2.addWidget(label_documentation)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 

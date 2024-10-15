@@ -30,9 +30,7 @@ class Pipeline(QWidget):
     def __init__(self):
         super().__init__()
 
-        label_documentation = QLabel()
-        label_documentation.setOpenExternalLinks(True)
-        label_documentation.setWordWrap(True)
+        label_documentation = gf.CollapsibleLabel('',collapsed=True)
         label_documentation.setText('Drag and drop modules in the list to create a pipeline.')
 
         self.pipeline_modules_list = f.ListView(placeholder_text='Drop modules here')

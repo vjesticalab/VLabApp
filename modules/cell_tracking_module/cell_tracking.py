@@ -16,9 +16,7 @@ class CellTracking(QWidget):
 
         self.pipeline_layout = pipeline_layout
 
-        label_documentation = QLabel()
-        label_documentation.setOpenExternalLinks(True)
-        label_documentation.setWordWrap(True)
+        label_documentation = gf.CollapsibleLabel('',collapsed=True)
         label_documentation.setText('For each input segmentation mask, perform cell tracking, save the cell tracking graph and segmentation mask with relabelled cells.<br>' +
                                     'Input segmentation mask must have X, Y and T axes. The optional input image must have X, Y and T axes and can optionally have C and/or Z axes.<br><br>' +
                                     'Additional information: <a href="file://'+os.path.join(os.path.dirname(__file__), "doc", "METHODS.html")+'">Methods</a>')
@@ -114,11 +112,7 @@ class CellTracking(QWidget):
         layout = QVBoxLayout()
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
-        collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
-        collapsible_widget.content.setLayout(QVBoxLayout())
-        collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
-        layout2.addWidget(collapsible_widget)
+        layout2.addWidget(label_documentation)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 

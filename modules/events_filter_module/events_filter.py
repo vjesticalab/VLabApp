@@ -14,9 +14,7 @@ class GraphEventFilter(QWidget):
         self.output_suffix = gf.output_suffixes['events_filter']
 
         # Documentation
-        label_documentation = QLabel()
-        label_documentation.setOpenExternalLinks(True)
-        label_documentation.setWordWrap(True)
+        label_documentation = gf.CollapsibleLabel('',collapsed=True)
         label_documentation.setText('Extracts fusion and/or division events from the segmentation mask obtained in the previous steps.<br>' +
                                     'It takes into account the number of timepoints chosen before and after the event<br>' +
                                     'and, in case the fusion marker image is present, adjust the real fusion time with it.')
@@ -119,11 +117,7 @@ class GraphEventFilter(QWidget):
         # Documentation
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
-        collapsible_widget = gf.CollapsibleWidget('', collapsed_icon="▶ (show)", expanded_icon="▼ (hide)", expanded=False)
-        collapsible_widget.content.setLayout(QVBoxLayout())
-        collapsible_widget.content.layout().addWidget(label_documentation)
-        collapsible_widget.content.layout().setContentsMargins(0, 0, 0, 0)
-        layout2.addWidget(collapsible_widget)
+        layout2.addWidget(label_documentation)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         # Input files
