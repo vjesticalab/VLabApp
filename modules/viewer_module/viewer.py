@@ -271,11 +271,13 @@ class RegistrationViewer(QWidget):
 
     def browse_image(self):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
-        self.input_image.setText(file_path)
+        if file_path != '':
+            self.input_image.setText(file_path)
 
     def browse_matrix(self):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Transformation matrices ('+' '.join(['*'+x for x in gf.matrixtypes])+')')
-        self.input_matrix.setText(file_path)
+        if file_path != '':
+            self.input_matrix.setText(file_path)
 
     def input_image_changed(self):
         image_path = self.input_image.text()
@@ -309,7 +311,6 @@ class RegistrationViewer(QWidget):
                         break
 
     def open(self):
-        # EditTransformationMatrix, PlotTransformation
         matrix_path = self.input_matrix.text()
         if matrix_path == '':
             matrix_path = self.input_matrix.placeholderText()
@@ -325,11 +326,11 @@ class RegistrationViewer(QWidget):
             self.logger.error('Missing matrix path')
             self.input_matrix.setFocus()
             return
-        if image_path != '' and not os.path.isfile(image_path):
+        if not os.path.isfile(image_path):
             self.logger.error('Invalid image path')
             self.input_image.setFocus()
             return
-        if matrix_path != '' and not os.path.isfile(matrix_path):
+        if not os.path.isfile(matrix_path):
             self.logger.error('Invalid matrix path')
             self.input_matrix.setFocus()
             return

@@ -8,6 +8,8 @@
 
 ### Fixed
 
+* Registration module: In "Editing (manual)", guess image (resp. matrix) path based on the matrix (resp. image) path.
+* Do not change image or matrix path when cancelling in file selection dialog.
 
 
 

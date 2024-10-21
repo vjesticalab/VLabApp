@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import concurrent.futures
 from PyQt5.QtCore import Qt, QRegExp
@@ -841,9 +842,11 @@ class ManualEdit(QWidget):
                                     'Important: select an image that has not been registered.<br>' +
                                     'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
         self.input_image = gf.DropFileLineEdit(filetypes=gf.imagetypes)
+        self.input_image.textChanged.connect(self.input_image_changed)
         browse_image_button = QPushButton("Browse", self)
         browse_image_button.clicked.connect(self.browse_image)
         self.input_matrix = gf.DropFileLineEdit(filetypes=gf.matrixtypes)
+        self.input_matrix.textChanged.connect(self.input_matrix_changed)
         browse_matrix_button = QPushButton("Browse", self)
         browse_matrix_button.clicked.connect(self.browse_matrix)
         self.button_edit = QPushButton('Edit')
@@ -884,6 +887,37 @@ class ManualEdit(QWidget):
         if file_path != '':
             self.input_matrix.setText(file_path)
 
+    def input_image_changed(self):
+        image_path = self.input_image.text()
+        self.input_image.setPlaceholderText('')
+        self.input_image.setToolTip('')
+        self.input_matrix.setPlaceholderText('')
+        self.input_matrix.setToolTip('')
+        if os.path.isfile(image_path):
+            # get path with matrix filetype (self.matricestype), containing gf.output_suffixes['registration'] and with same unique identifier
+            matrix_paths = [path for path in os.listdir(os.path.dirname(image_path)) if any(path.endswith(matricestype) for matricestype in gf.matrixtypes) and gf.output_suffixes['registration'] in path and os.path.basename(path).split('_')[0] == os.path.basename(image_path).split('_')[0]]
+            if len(matrix_paths) > 0:
+                matrix_path = os.path.join(os.path.dirname(image_path), sorted(matrix_paths, key=len)[0])
+                if os.path.isfile(matrix_path):
+                    self.input_matrix.setPlaceholderText(matrix_path)
+                    self.input_matrix.setToolTip(matrix_path)
+
+    def input_matrix_changed(self):
+        matrix_path = self.input_matrix.text()
+        self.input_image.setPlaceholderText('')
+        self.input_image.setToolTip('')
+        self.input_matrix.setPlaceholderText('')
+        self.input_matrix.setToolTip('')
+        if os.path.isfile(matrix_path):
+            res = re.match('(.*)'+gf.output_suffixes['registration']+'.*$', os.path.basename(matrix_path))
+            if res:
+                for ext in gf.imagetypes:
+                    image_path = os.path.join(os.path.dirname(matrix_path), res.group(1)) + ext
+                    if os.path.isfile(image_path):
+                        self.input_image.setPlaceholderText(image_path)
+                        self.input_image.setToolTip(image_path)
+                        break
+
     def edit(self):
         def check_inputs(image_path, matrix_path):
             """
@@ -909,7 +943,11 @@ class ManualEdit(QWidget):
             return True
 
         image_path = self.input_image.text()
+        if image_path == '':
+            image_path = self.input_image.placeholderText()
         matrix_path = self.input_matrix.text()
+        if matrix_path == '':
+            matrix_path = self.input_matrix.placeholderText()
 
         if not check_inputs(image_path, matrix_path):
             return
