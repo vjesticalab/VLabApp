@@ -51,8 +51,10 @@ class EditTransformationMatrix(QWidget):
         """
         super().__init__()
 
-        self.point_color_active = [0, 1, 0, 1]
-        self.point_color_inactive = [1, 1, 1, 1]
+        self.point_alpha_active = 1
+        self.point_alpha_inactive = 0.5
+        self.point_color_default = [0, 1, 0]
+        self.point_color_modified = [1, 0, 0]
 
         self.viewer = viewer
         self.input_filename = input_filename
@@ -96,8 +98,8 @@ class EditTransformationMatrix(QWidget):
                 points = np.tile(points, (values.shape[0], 1))
                 points[:, i] = np.repeat(values, [points_nrow], axis=0)
 
-        edge_color = np.tile(self.point_color_inactive, (points.shape[0], 1))
-        edge_color[(tmat_start <= points[:, self.T_axis_index]) & (points[:, self.T_axis_index] <= tmat_end)] = self.point_color_active
+        edge_color = np.tile(self.point_color_default+[self.point_alpha_inactive], (points.shape[0], 1))
+        edge_color[(tmat_start <= points[:, self.T_axis_index]) & (points[:, self.T_axis_index] <= tmat_end)] = self.point_color_default+[self.point_alpha_active]
         self.layer_points = viewer.add_points(points, name='Alignment points', size=30, face_color="#00000000", edge_color=edge_color, edge_width=0.2)
 
         layout = QVBoxLayout()
@@ -191,6 +193,11 @@ class EditTransformationMatrix(QWidget):
                             sel = np.round(self.layer_points.data[:, self.T_axis_index]) >= np.round(current_frame)
                         self.layer_points.data[sel,] = self.layer_points.data[sel,] + delta
                         self.update_tmat()
+                        #update point color
+                        modified_frames = (np.abs(self.tmat_saved_version[:,(4,5)]-self.tmat[:,(4,5)])>0.0001).all(axis=1).nonzero()
+                        layer.edge_color[:,0:3] = self.point_color_default
+                        layer.edge_color[np.isin(layer.data[:, self.T_axis_index],modified_frames),0:3] = self.point_color_modified
+
                         layer.refresh()
 
         self.layer_points.editable = False
@@ -240,8 +247,9 @@ class EditTransformationMatrix(QWidget):
         self.tmat_changed.emit(self.tmat)
 
     def time_range_changed(self):
-        self.layer_points.edge_color = self.point_color_inactive
-        self.layer_points.edge_color[(self.start_frame.value() <= self.layer_points.data[:, self.T_axis_index]) & (self.layer_points.data[:, self.T_axis_index] <= self.end_frame.value())] = self.point_color_active
+        # adjust point transparency
+        self.layer_points.edge_color[:,3] = self.point_alpha_inactive
+        self.layer_points.edge_color[(self.start_frame.value() <= self.layer_points.data[:, self.T_axis_index]) & (self.layer_points.data[:, self.T_axis_index] <= self.end_frame.value()),3] = self.point_alpha_active
         self.update_tmat()
         self.layer_points.refresh()
 
@@ -262,6 +270,9 @@ class EditTransformationMatrix(QWidget):
                 header += x
             np.savetxt(filename, self.tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
             self.tmat_saved_version = self.tmat.copy()
+            #update point color
+            self.layer_points.edge_color[:,0:3] = self.point_color_default
+            self.layer_points.refresh()
 
 
 class PlotTransformation(QWidget):

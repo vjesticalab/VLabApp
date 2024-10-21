@@ -4,11 +4,13 @@
 
 ### Changed
 
+* Registration module, Editing (manual): control point color corresponds to modification status (red: modified, green: not modified) and transparency corresponds to frame range selection status (opaque: selected, semi-transparent: not selected).
+
 ### Removed
 
 ### Fixed
 
-* Registration module: In "Editing (manual)", guess image (resp. matrix) path based on the matrix (resp. image) path.
+* Registration module, Editing (manual): guess image (resp. matrix) path based on the matrix (resp. image) path.
 * Do not change image or matrix path when cancelling in file selection dialog.
 
 
