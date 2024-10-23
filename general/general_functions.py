@@ -1036,6 +1036,7 @@ class Page(QWidget):
         super().__init__(parent)
         self.container = QWidget()
         lay = QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(self.container)
