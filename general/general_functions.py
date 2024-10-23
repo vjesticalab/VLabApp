@@ -4,7 +4,7 @@ import tifffile
 import nd2
 import re
 from aicsimageio.readers import OmeTiffReader
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.QtGui import QPalette, QBrush, QKeySequence, QPainter, QFontMetrics, QDesktopServices, QTextDocument
 from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem, QDialog, QShortcut
 
