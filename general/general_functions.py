@@ -151,7 +151,7 @@ class CollapsibleLabel(QLabel):
             self.collapsed = True
             super().setText(self.elide_text(self.raw_text))
         else:
-            QDesktopServices.openUrl(QUrl(link))
+            QDesktopServices.openUrl(QUrl.fromUserInput(link))
 
 
 class QLineEditHandler(logging.Handler):
