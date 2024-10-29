@@ -191,9 +191,8 @@ class zProjection(QWidget):
     def browse_output(self):
         # Browse folders in order to choose the output one
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        self.output_folder.setText(folder_path)
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        self.output_folder.setText(folder_path)
+        if folder_path != '':
+            self.output_folder.setText(folder_path)
 
     def projection_mode_fixed_zmin_changed(self, value):
         if self.projection_mode_fixed_zmax.value() < value:

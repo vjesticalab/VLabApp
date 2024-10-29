@@ -11,8 +11,9 @@
 ### Fixed
 
 * Registration module, Editing (manual): guess image (resp. matrix) path based on the matrix (resp. image) path.
-* Do not change image or matrix path when cancelling in file selection dialog.
+* Registration matrix viewer: Do not change image or matrix path when cancelling in file selection dialog.
 * Pipeline module: fix checking of duplicated output when coaligning files during registration (on Windows).
+* All modules: do not erase previous file path when cancelling in file selection dialog.
 
 
 

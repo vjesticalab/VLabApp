@@ -100,23 +100,27 @@ class FusionCorrection(QWidget):
     def add_mask(self):
         # Add the selected mask as input
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
-        self.input_mask.setText(file_path)
-    
+        if file_path != '':
+            self.input_mask.setText(file_path)
+
     def add_chimage(self):
         # Add the selected mask as input
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in self.imagetypes])+')')
-        self.input_chimage.setText(file_path)
+        if file_path != '':
+            self.input_chimage.setText(file_path)
 
     def add_graph(self):
         # Add the selected graph as input
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Cell tracking graphs ('+' '.join(['*'+x for x in self.graphtypes])+')')
-        self.input_graph.setText(file_path)
+        if file_path != '':
+            self.input_graph.setText(file_path)
 
     def browse_output(self):
         # Browse folders in order to choose the output one
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        self.output_folder.setText(folder_path)
-    
+        if folder_path != '':
+            self.output_folder.setText(folder_path)
+
     def submit(self):
         """
         Retrieve the input parameters and process them in f.main()

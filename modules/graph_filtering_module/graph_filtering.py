@@ -355,11 +355,13 @@ class GraphFiltering(QWidget):
 
     def browse_image(self):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
-        self.input_image.setText(file_path)
+        if file_path != '':
+            self.input_image.setText(file_path)
 
     def browse_output(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        self.output_folder.setText(folder_path)
+        if folder_path != '':
+            self.output_folder.setText(folder_path)
 
     def update_output_filename_label(self):
         if self.use_input_folder.isChecked():

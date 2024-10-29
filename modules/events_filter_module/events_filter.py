@@ -222,17 +222,20 @@ class GraphEventFilter(QWidget):
     def add_mask(self):
         # Add the selected mask as input
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
-        self.input_mask.setText(file_path)
+        if file_path != '':
+            self.input_mask.setText(file_path)
 
     def add_graph(self):
         # Add the selected graph as input
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Cell tracking graphs ('+' '.join(['*'+x for x in gf.graphtypes])+')')
-        self.input_graph.setText(file_path)
+        if file_path != '':
+            self.input_graph.setText(file_path)
 
     def add_chimage(self):
         # Add the selected mask as input
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
-        self.input_chimage.setText(file_path)
+        if file_path != '':
+            self.input_chimage.setText(file_path)
 
     def update_output_filename_label(self):
         if self.use_input_folder.isChecked():
@@ -247,7 +250,8 @@ class GraphEventFilter(QWidget):
     def browse_output(self):
         # Browse folders in order to choose the output one
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        self.output_folder.setText(folder_path)
+        if folder_path != '':
+            self.output_folder.setText(folder_path)
 
     def submit(self):
         """

@@ -453,9 +453,8 @@ class GeneralSettings(QWidget):
     def browse_output(self):
         # Browse folders in order to choose the output one
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        self.output_folder.setText(folder_path)
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        self.output_folder.setText(folder_path)
+        if folder_path != '':
+            self.output_folder.setText(folder_path)
 
     def set_input_type(self, input_type):
         self.input_type = input_type

@@ -111,15 +111,18 @@ class ImageMaskGraphViewer(QWidget):
 
     def browse_graph(self):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Cell tracking graphs ('+' '.join(['*'+x for x in gf.graphtypes])+')')
-        self.input_graph.setText(file_path)
+        if file_path != '':
+            self.input_graph.setText(file_path)
 
     def browse_mask(self):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
-        self.input_mask.setText(file_path)
+        if file_path != '':
+            self.input_mask.setText(file_path)
 
     def browse_image(self):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
-        self.input_image.setText(file_path)
+        if file_path != '':
+            self.input_image.setText(file_path)
 
     def open(self):
         """
@@ -405,7 +408,8 @@ class MetadataViewer(QWidget):
 
     def browse_file(self):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images, cell tracking graphs or transformation matrices   ('+' '.join(['*'+x for x in gf.imagetypes+gf.graphtypes+gf.matrixtypes])+')')
-        self.input_file.setText(file_path)
+        if file_path != '':
+            self.input_file.setText(file_path)
 
     def input_file_changed(self):
         file_path = self.input_file.text()
