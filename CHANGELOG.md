@@ -5,6 +5,7 @@
 ### Changed
 
 * Registration module, Editing (manual): control point color corresponds to modification status (red: modified, green: not modified) and transparency corresponds to frame range selection status (opaque: selected, semi-transparent: not selected).
+* Metadata viewer: add image data type (dtype).
 
 ### Removed
 

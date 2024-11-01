@@ -434,6 +434,7 @@ class MetadataViewer(QWidget):
                 image_metadata += 'Channel names: \"' + '\", \"'.join(list(image.channel_names)) + '\"\n'
             if image.physical_pixel_sizes:
                 image_metadata += 'Physical pixel sizes: (' + ', '.join([a+': '+str(v)+' \u03bcm' for a, v in zip(("X", "Y", "Z"), image.physical_pixel_sizes)]) + ')\n'
+            image_metadata += 'Data type: ' + str(image.dtype) + '\n'
         elif gf.splitext(file_path)[1] in gf.matrixtypes:
             metadata_tmp = ''
             with open(file_path) as f:

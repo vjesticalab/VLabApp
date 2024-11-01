@@ -1074,6 +1074,8 @@ class Image:
         numpy ndarray with the image
     shape : list
         list with image shapes
+    dtype: np.dtype
+        image data type
     channel_names : list
         list with channel names. None if not available
     physical_pixel_sizes : tuple
@@ -1108,6 +1110,7 @@ class Image:
         self.sizes = None
         self.image = None
         self.shape = None
+        self.dtype = None
         self._axes = 'FTCZYX'
         self.channel_names = None
         self.physical_pixel_sizes = (None, None, None)
@@ -1119,6 +1122,7 @@ class Image:
             reader = nd2.ND2File(self.path)
             axes_order = str(''.join(list(reader.sizes.keys()))).upper()  # eg. reader.sizes = {'T': 10, 'C': 2, 'Y': 2048, 'X': 2048}
             shape = reader.shape
+            self.dtype = reader.dtype
             self.channel_names = [x.channel.name for x in reader.metadata.channels]
             self.physical_pixel_sizes = (reader.voxel_size(channel=0).x, reader.voxel_size(channel=0).y, reader.voxel_size(channel=0).z)
             reader.close()
@@ -1126,6 +1130,7 @@ class Image:
             reader = OmeTiffReader(self.path)
             axes_order = reader.dims.order.upper()
             shape = reader.shape
+            self.dtype = reader.dtype
             self.channel_names = reader.channel_names
             self.physical_pixel_sizes = (reader.physical_pixel_sizes.X, reader.physical_pixel_sizes.Y, reader.physical_pixel_sizes.Z)
             self.ome_metadata = reader.ome_metadata
@@ -1133,6 +1138,7 @@ class Image:
             reader = tifffile.TiffFile(self.path)
             axes_order = str(reader.series[0].axes).upper()
             shape = reader.series[0].shape
+            dtype = reader.series[0].shape
             reader.close()
         else:
             logging.getLogger(__name__).error('Image format not supported. Please upload a tiff, ome-tiff or nd2 image file.')
