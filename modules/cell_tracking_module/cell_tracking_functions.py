@@ -1602,6 +1602,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
     buffered_handler = gf.BufferedHandler()
     buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - cell tracking module) [%(levelname)s] %(message)s'))
     buffered_handler.setLevel(logging.INFO)
+    buffered_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
     logger.addHandler(buffered_handler)
 
     logger.info("System info:")

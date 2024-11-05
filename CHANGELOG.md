@@ -15,7 +15,7 @@
 * Registration matrix viewer: Do not change image or matrix path when cancelling in file selection dialog.
 * Pipeline module: fix checking of duplicated output when coaligning files during registration (on Windows).
 * All modules: do not erase previous file path when cancelling in file selection dialog.
-
+* Cell tracking and graph filtering modules: avoid duplicate "Manually editing mask" entries in metadata.
 
 
 

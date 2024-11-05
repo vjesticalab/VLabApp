@@ -1119,6 +1119,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
     buffered_handler = gf.BufferedHandler()
     buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - graph filtering module) [%(levelname)s] %(message)s'))
     buffered_handler.setLevel(logging.INFO)
+    buffered_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
     logger.addHandler(buffered_handler)
 
     logger.info("System info:")
