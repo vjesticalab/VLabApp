@@ -1138,7 +1138,7 @@ class Image:
             reader = tifffile.TiffFile(self.path)
             axes_order = str(reader.series[0].axes).upper()
             shape = reader.series[0].shape
-            dtype = reader.series[0].shape
+            self.dtype = reader.series[0].dtype
             reader.close()
         else:
             logging.getLogger(__name__).error('Image format not supported. Please upload a tiff, ome-tiff or nd2 image file.')
@@ -1211,7 +1211,7 @@ class Image:
             raise TypeError('Image format not supported. Please load an image with only TYX dimensions')
         return self.image[0, :, 0, 0, :, :]
 
-    def zProjection(self, projection_type, zrange, focus_method="tenengrad_var"):
+    def zProjection(self, projection_type, zrange, focus_method="tenengrad_var", z_shift=0):
         """
         Return the z-projection of the image using the selected projection type over the range of z values defined by zrange.
 
@@ -1227,9 +1227,15 @@ class Image:
             If zrange is tuple (zmin,zmax), use all z sections in the interval [zmin,zmax].
         focus_method: str
             the method used to estimate the Z corresponding to best focus (tenengrad_var, laplacian_var, std)
-             tenengrad_var: estimate the sharpness using the variance of sqrt(Gx^2+Gy^2), where Gx and Gy are the gradients in the x and y direction computed using Sobel operators.
-             laplacian_var: estimate the sharpness using the variance of the laplacian.
-             std: estimate the sharpness using the standard deviation of the image.
+            tenengrad_var: estimate the sharpness using the variance of sqrt(Gx^2+Gy^2), where Gx and Gy are the gradients in the x and y direction computed using Sobel operators.
+            laplacian_var: estimate the sharpness using the variance of the laplacian.
+            std: estimate the sharpness using the standard deviation of the image.
+        z_shift: int or list of int
+            Shift the z sections to use for projection by z_shift (per time frame), e.g. to generate out-of-focus images.
+            If `z_shift` is list of integers, it must contain one entry per time frames in the image (axis T).
+            If `z_shift` is a single integer, the same shift will be used for all time frames.
+            Not relevant when projecting all z sections.
+
         Returns
         -------
         ndarray
@@ -1238,14 +1244,17 @@ class Image:
         if focus_method not in ['tenengrad_var', 'laplacian_var', 'std']:
             raise TypeError(f"Invalid focus_method {focus_method}")
 
+        if np.ndim(z_shift) == 0:
+            z_shift = [z_shift] * self.sizes['T']
+
         if zrange is None:
             logging.getLogger(__name__).info('Z-Projection: projection type=%s, zrange=%s (All Z sections)', projection_type, zrange)
         elif isinstance(zrange, int) and zrange == 0:
-            logging.getLogger(__name__).info('Z-Projection: projection type=%s, zrange=%s (Z section with best focus), focus method=%s', projection_type, zrange, focus_method)
+            logging.getLogger(__name__).info('Z-Projection: projection type=%s, zrange=%s (Z section with best focus), focus method=%s, z shift=%s', projection_type, zrange, focus_method, z_shift)
         elif isinstance(zrange, int):
-            logging.getLogger(__name__).info('Z-Projection: projection type=%s, zrange=%s (Range %s around Z section with best focus), focus method=%s', projection_type, zrange, zrange, focus_method)
+            logging.getLogger(__name__).info('Z-Projection: projection type=%s, zrange=%s (Range %s around Z section with best focus), focus method=%s, z shift=%s', projection_type, zrange, zrange, focus_method, z_shift)
         elif isinstance(zrange, tuple) and len(zrange) == 2 and zrange[0] <= zrange[1]:
-            logging.getLogger(__name__).info('Z-Projection: projection type=%s, zrange=%s (Fixed range from %s to %s)', projection_type, zrange, zrange[0], zrange[1])
+            logging.getLogger(__name__).info('Z-Projection: projection type=%s, zrange=%s (Fixed range from %s to %s), z shift=%s', projection_type, zrange, zrange[0], zrange[1], z_shift)
         else:
             logging.getLogger(__name__).info('Z-Projection: invalid zrange')
         projected_image = np.zeros((self.sizes['F'], self.sizes['T'], self.sizes['C'], 1, self.sizes['Y'], self.sizes['X']), dtype=self.image.dtype)
@@ -1278,7 +1287,7 @@ class Image:
                         elif focus_method in ['tenengrad_var', 'laplacian_var']:
                             # smooth sharpness with running mean and choose z_best as z with maximum smoothed sharpness
                             smooth_window = 1
-                            sharpness_smoothed = sharpness/max(sharpness)
+                            sharpness_smoothed = sharpness / max(sharpness)
                             # smooth with running mean:
                             sharpness_smoothed = np.hstack((np.full(smooth_window, sharpness_smoothed[0]),
                                                             sharpness_smoothed,
@@ -1289,14 +1298,14 @@ class Image:
                             z_best = sharpness_smoothed.argmax()
 
                         # if z_best is too close to min or maz 'Z' => shift best_z so as to keep (2*zrange+1) z values (z_values).
-                        z_best_tmp = min(max(z_best, zrange), self.sizes['Z']-zrange-1)
+                        z_best_tmp = min(max(z_best+z_shift[t], zrange), self.sizes['Z']-zrange-1)
                         z_values = [z for z in range(z_best_tmp-zrange, z_best_tmp+zrange+1) if z < self.sizes['Z'] and z >= 0]
 
-                        logging.getLogger(__name__).info('Z-Projection (F: %s, T: %s, C: %s): %s over z in %s (Best z=%s)', f, t, c, projection_type, z_values, z_best)
+                        logging.getLogger(__name__).info('Z-Projection (F: %s, T: %s, C: %s): %s over z in %s (Best z=%s, z shift=%s)', f, t, c, projection_type, z_values, z_best, z_shift[t])
                     elif isinstance(zrange, tuple) and len(zrange) == 2 and zrange[0] <= zrange[1]:
                         # use fixed range
-                        z_values = [z for z in range(zrange[0], zrange[1]+1) if z < self.sizes['Z'] and z >= 0]
-                        logging.getLogger(__name__).info('Z-Projection (F: %s, T: %s, C: %s): %s over z in %s (fixed range)', f, t, c, projection_type, z_values)
+                        z_values = [z for z in range(zrange[0]+z_shift[t], zrange[1]+z_shift[t]+1) if z < self.sizes['Z'] and z >= 0]
+                        logging.getLogger(__name__).info('Z-Projection (F: %s, T: %s, C: %s): %s over z in %s (fixed range, z shift=%s)', f, t, c, projection_type, z_values, z_shift[t])
 
                     if len(z_values) == 1:
                         projected_image[f, t, c, 0, :, :] = self.image[f, t, c, z_values[0], :, :].copy()
@@ -1461,7 +1470,6 @@ class IgnoreDuplicate(logging.Filter):
     def filter(self, record):
         current = (record.module, record.levelno, record.msg)
         if self.message is None or self.message == record.msg:
-            # add other fields if you need more granular comparison, depends on your app
             if self.last is None or current != self.last:
                 self.last = current
                 return True
