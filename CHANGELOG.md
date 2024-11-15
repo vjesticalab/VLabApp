@@ -6,6 +6,7 @@
 
 * Registration module, Editing (manual): control point color corresponds to modification status (red: modified, green: not modified) and transparency corresponds to frame range selection status (opaque: selected, semi-transparent: not selected).
 * Metadata viewer: add image data type (dtype).
+* Ground truth module: input images can have T or Z axis (but no C axis), add option to export cellpose training set (with optional out-of-focus images), add option to start with an existing mask, generate logfile, save metadata.
 
 ### Removed
 
@@ -16,7 +17,7 @@
 * Pipeline module: fix checking of duplicated output when coaligning files during registration (on Windows).
 * All modules: do not erase previous file path when cancelling in file selection dialog.
 * Cell tracking and graph filtering modules: avoid duplicate "Manually editing mask" entries in metadata.
-
+* Ground truth module: fix thresholding algorithm.
 
 
 ## [v2.1.0] 2024-10-11

@@ -30,7 +30,7 @@ class Tools(QWidget):
         tabwizard.addPage(gf.Page(widget=viewer.RegistrationViewer()), "View registration matrix")
         tabwizard.addPage(gf.Page(widget=viewer.MetadataViewer(), add_stretch=False), "View metadata")
         tabwizard.addPage(gf.Page(widget=file_organization.FileOrganization()), "File organization")
-        tabwizard.addPage(gf.Page(widget=generator.Generator()), "GroundTruth")
+        tabwizard.addPage(gf.Page(widget=generator.Generator()), "Ground truth")
 
 
 class MainWindow(QWidget):

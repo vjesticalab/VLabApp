@@ -1,6 +1,6 @@
 import os
 import logging
-from PyQt5.QtWidgets import QVBoxLayout, QRadioButton, QGroupBox, QHBoxLayout, QFileDialog, QPushButton, QWidget, QLineEdit, QLabel, QFormLayout
+from PyQt5.QtWidgets import QVBoxLayout, QRadioButton, QGroupBox, QHBoxLayout, QFileDialog, QPushButton, QWidget, QLineEdit, QLabel, QFormLayout, QMessageBox
 from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtGui import QRegExpValidator
 from modules.groundtruth_generator_module import generator_functions as f
@@ -14,12 +14,29 @@ class Generator(QWidget):
         self.output_suffix = gf.output_suffixes['groundtruth_generator']
 
         # Documentation
-        label_documentation = gf.CollapsibleLabel('',collapsed=True)
-        label_documentation.setText('Helps in the creation of segmentation masks useful for retraining the neural network.')
-
+        label_documentation = gf.CollapsibleLabel('', collapsed=True)
+        label_documentation.setText('Either create a cell mask using thresholding based segmentation of fluorescent image(s) with cell marker(s) or load an existing mask. The mask can then be manually edited. The bright-field image and the mask can be exported in a format that can be directly used as a training set by <a href="https://www.cellpose.org/">cellpose</a> (one pair of bright-field image and mask in tif format per time frame) to fine-tune a segmentation model.<br>'
+                                    + 'Bright-field and fluorescent images must have X and Y axes and can optionally have T or Z (in particular, each image must correspond to a unique channel). Bright-field and fluorescent images must have same axes sizes.<br>'
+                                    + 'Input segmentation mask must have X and Y axes and can optionally have T. It must have same X, Y and T axes sizes as the bright-field image.')
 
         # Input widgets
-        self.image_list = gf.FileListWidget(filetypes=gf.imagetypes)
+        self.input_image_BF = gf.DropFileLineEdit(filetypes=gf.imagetypes)
+        self.input_image_BF.textChanged.connect(self.input_image_BF_changed)
+        browse_image_BF_button = QPushButton("Browse", self)
+        browse_image_BF_button.clicked.connect(self.browse_image_BF)
+        self.input_image_fluo1 = gf.DropFileLineEdit(filetypes=gf.imagetypes)
+        self.input_image_fluo1.textChanged.connect(self.input_image_fluo1_changed)
+        browse_image_fluo1_button = QPushButton("Browse", self)
+        browse_image_fluo1_button.clicked.connect(self.browse_image_fluo1)
+        self.input_image_fluo2 = gf.DropFileLineEdit(filetypes=gf.imagetypes)
+        self.input_image_fluo2.textChanged.connect(self.input_image_fluo2_changed)
+        browse_image_fluo2_button = QPushButton("Browse", self)
+        browse_image_fluo2_button.clicked.connect(self.browse_image_fluo2)
+        self.input_image_mask = gf.DropFileLineEdit(filetypes=gf.imagetypes)
+        self.input_image_mask.textChanged.connect(self.input_image_mask_changed)
+        browse_image_mask_button = QPushButton("Browse", self)
+        browse_image_mask_button.clicked.connect(self.browse_image_mask)
+
         # Output widgets
         self.use_input_folder = QRadioButton("Use input image folder")
         self.use_input_folder.setChecked(True)
@@ -58,9 +75,28 @@ class Generator(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         # Input files
-        groupbox = QGroupBox('Input files (images)')
+        groupbox = QGroupBox('Input files')
         layout2 = QVBoxLayout()
-        layout2.addWidget(self.image_list)
+        layout2.addWidget(QLabel("Bright-field image:"))
+        layout3 = QHBoxLayout()
+        layout3.addWidget(self.input_image_BF)
+        layout3.addWidget(browse_image_BF_button, alignment=Qt.AlignCenter)
+        layout2.addLayout(layout3)
+        layout2.addWidget(QLabel("Fluorescent image with cell marker 1 (optional):"))
+        layout3 = QHBoxLayout()
+        layout3.addWidget(self.input_image_fluo1)
+        layout3.addWidget(browse_image_fluo1_button, alignment=Qt.AlignCenter)
+        layout2.addLayout(layout3)
+        layout2.addWidget(QLabel("Fluorescent image with cell marker 2 (optional):"))
+        layout3 = QHBoxLayout()
+        layout3.addWidget(self.input_image_fluo2)
+        layout3.addWidget(browse_image_fluo2_button, alignment=Qt.AlignCenter)
+        layout2.addLayout(layout3)
+        layout2.addWidget(QLabel("Segmentation mask (optional):"))
+        layout3 = QHBoxLayout()
+        layout3.addWidget(self.input_image_mask)
+        layout3.addWidget(browse_image_mask_button, alignment=Qt.AlignCenter)
+        layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         # Output infos
@@ -79,7 +115,7 @@ class Generator(QWidget):
         layout4.setSpacing(0)
         suffix = QLineEdit(self.output_suffix)
         suffix.setDisabled(True)
-        suffix.setFixedWidth(suffix.fontMetrics().width(suffix.text()+"  "))
+        suffix.setFixedWidth(suffix.fontMetrics().width(suffix.text() + '  '))
         suffix.setAlignment(Qt.AlignRight)
         layout4.addWidget(suffix)
         layout4.addWidget(self.output_user_suffix)
@@ -95,6 +131,146 @@ class Generator(QWidget):
 
         self.update_output_filename_label()
 
+    def input_image_BF_changed(self):
+        fluo_suffix = 'WL'
+        brightfield_suffix = 'BF'
+        image_BF_path = self.input_image_BF.text()
+        self.input_image_BF.setPlaceholderText('')
+        self.input_image_BF.setToolTip('')
+        self.input_image_fluo1.setPlaceholderText('')
+        self.input_image_fluo1.setToolTip('')
+        self.input_image_fluo2.setPlaceholderText('')
+        self.input_image_fluo2.setToolTip('')
+        self.input_image_mask.setPlaceholderText('')
+        self.input_image_mask.setToolTip('')
+        if os.path.isfile(image_BF_path):
+            image_fluo_paths = [path for path in os.listdir(os.path.dirname(image_BF_path)) if any(path.endswith(imagetype) for imagetype in gf.imagetypes) and os.path.basename(path) != os.path.basename(image_BF_path) and os.path.basename(path).split('_')[0] == os.path.basename(image_BF_path).split('_')[0] and len(os.path.basename(path).split('_')) == 2 and os.path.basename(path).split('_')[1].startswith(fluo_suffix)]
+            if len(image_fluo_paths) == 1:
+                image_fluo1_path = os.path.join(os.path.dirname(image_BF_path), image_fluo_paths[0])
+                self.input_image_fluo1.setPlaceholderText(image_fluo1_path)
+                self.input_image_fluo1.setToolTip(image_fluo1_path)
+            if len(image_fluo_paths) == 2:
+                image_fluo1_path = os.path.join(os.path.dirname(image_BF_path), image_fluo_paths[0])
+                self.input_image_fluo1.setPlaceholderText(image_fluo1_path)
+                self.input_image_fluo1.setToolTip(image_fluo1_path)
+                image_fluo2_path = os.path.join(os.path.dirname(image_BF_path), image_fluo_paths[1])
+                self.input_image_fluo2.setPlaceholderText(image_fluo2_path)
+                self.input_image_fluo2.setToolTip(image_fluo2_path)
+            image_mask_paths = [path for path in os.listdir(os.path.dirname(image_BF_path)) if any(path.endswith(imagetype) for imagetype in gf.imagetypes) and self.output_suffix in os.path.basename(path) and os.path.basename(path).split('_')[0] == os.path.basename(image_BF_path).split('_')[0]]
+            if len(image_mask_paths) == 1:
+                image_mask_path = os.path.join(os.path.dirname(image_BF_path), image_mask_paths[0])
+                self.input_image_mask.setPlaceholderText(image_mask_path)
+                self.input_image_mask.setToolTip(image_mask_path)
+
+    def input_image_fluo1_changed(self):
+        fluo_suffix = 'WL'
+        brightfield_suffix = 'BF'
+        image_fluo1_path = self.input_image_fluo1.text()
+        self.input_image_BF.setPlaceholderText('')
+        self.input_image_BF.setToolTip('')
+        self.input_image_fluo1.setPlaceholderText('')
+        self.input_image_fluo1.setToolTip('')
+        self.input_image_fluo2.setPlaceholderText('')
+        self.input_image_fluo2.setToolTip('')
+        self.input_image_mask.setPlaceholderText('')
+        self.input_image_mask.setToolTip('')
+        if os.path.isfile(image_fluo1_path):
+            image_BF_paths = [path for path in os.listdir(os.path.dirname(image_fluo1_path)) if any(path.endswith(imagetype) for imagetype in gf.imagetypes) and os.path.basename(path) != os.path.basename(image_fluo1_path) and os.path.basename(path).split('_')[0] == os.path.basename(image_fluo1_path).split('_')[0] and len(os.path.basename(path).split('_')) == 2 and os.path.basename(path).split('_')[1].startswith(brightfield_suffix)]
+            if len(image_BF_paths) == 1:
+                image_BF_path = os.path.join(os.path.dirname(image_fluo1_path), image_BF_paths[0])
+                self.input_image_BF.setPlaceholderText(image_BF_path)
+                self.input_image_BF.setToolTip(image_BF_path)
+            image_fluo_paths = [path for path in os.listdir(os.path.dirname(image_fluo1_path)) if any(path.endswith(imagetype) for imagetype in gf.imagetypes) and os.path.basename(path) != os.path.basename(image_fluo1_path) and os.path.basename(path).split('_')[0] == os.path.basename(image_fluo1_path).split('_')[0] and len(os.path.basename(path).split('_')) == 2 and os.path.basename(path).split('_')[1].startswith(fluo_suffix)]
+            if len(image_fluo_paths) == 1:
+                image_fluo2_path = os.path.join(os.path.dirname(image_fluo1_path), image_fluo_paths[0])
+                self.input_image_fluo2.setPlaceholderText(image_fluo2_path)
+                self.input_image_fluo2.setToolTip(image_fluo2_path)
+            image_mask_paths = [path for path in os.listdir(os.path.dirname(image_BF_path)) if any(path.endswith(imagetype) for imagetype in gf.imagetypes) and self.output_suffix in os.path.basename(path) and os.path.basename(path).split('_')[0] == os.path.basename(image_BF_path).split('_')[0]]
+            if len(image_mask_paths) == 1:
+                image_mask_path = os.path.join(os.path.dirname(image_BF_path), image_mask_paths[0])
+                self.input_image_mask.setPlaceholderText(image_mask_path)
+                self.input_image_mask.setToolTip(image_mask_path)
+
+    def input_image_fluo2_changed(self):
+        fluo_suffix = 'WL'
+        brightfield_suffix = 'BF'
+        image_fluo2_path = self.input_image_fluo2.text()
+        self.input_image_BF.setPlaceholderText('')
+        self.input_image_BF.setToolTip('')
+        self.input_image_fluo1.setPlaceholderText('')
+        self.input_image_fluo1.setToolTip('')
+        self.input_image_fluo2.setPlaceholderText('')
+        self.input_image_fluo2.setToolTip('')
+        self.input_image_mask.setPlaceholderText('')
+        self.input_image_mask.setToolTip('')
+        if os.path.isfile(image_fluo2_path):
+            image_BF_paths = [path for path in os.listdir(os.path.dirname(image_fluo2_path)) if any(path.endswith(imagetype) for imagetype in gf.imagetypes) and os.path.basename(path) != os.path.basename(image_fluo2_path) and os.path.basename(path).split('_')[0] == os.path.basename(image_fluo2_path).split('_')[0] and len(os.path.basename(path).split('_')) == 2 and os.path.basename(path).split('_')[1].startswith(brightfield_suffix)]
+            if len(image_BF_paths) == 1:
+                image_BF_path = os.path.join(os.path.dirname(image_fluo2_path), image_BF_paths[0])
+                self.input_image_BF.setPlaceholderText(image_BF_path)
+                self.input_image_BF.setToolTip(image_BF_path)
+            image_fluo_paths = [path for path in os.listdir(os.path.dirname(image_fluo2_path)) if any(path.endswith(imagetype) for imagetype in gf.imagetypes) and os.path.basename(path) != os.path.basename(image_fluo2_path) and os.path.basename(path).split('_')[0] == os.path.basename(image_fluo2_path).split('_')[0] and len(os.path.basename(path).split('_')) == 2 and os.path.basename(path).split('_')[1].startswith(fluo_suffix)]
+            if len(image_fluo_paths) == 1:
+                image_fluo1_path = os.path.join(os.path.dirname(image_fluo2_path), image_fluo_paths[0])
+                self.input_image_fluo1.setPlaceholderText(image_fluo1_path)
+                self.input_image_fluo1.setToolTip(image_fluo1_path)
+            image_mask_paths = [path for path in os.listdir(os.path.dirname(image_BF_path)) if any(path.endswith(imagetype) for imagetype in gf.imagetypes) and self.output_suffix in os.path.basename(path) and os.path.basename(path).split('_')[0] == os.path.basename(image_BF_path).split('_')[0]]
+            if len(image_mask_paths) == 1:
+                image_mask_path = os.path.join(os.path.dirname(image_BF_path), image_mask_paths[0])
+                self.input_image_mask.setPlaceholderText(image_mask_path)
+                self.input_image_mask.setToolTip(image_mask_path)
+
+    def input_image_mask_changed(self):
+        fluo_suffix = 'WL'
+        brightfield_suffix = 'BF'
+        image_mask_path = self.input_image_mask.text()
+        self.input_image_BF.setPlaceholderText('')
+        self.input_image_BF.setToolTip('')
+        self.input_image_fluo1.setPlaceholderText('')
+        self.input_image_fluo1.setToolTip('')
+        self.input_image_fluo2.setPlaceholderText('')
+        self.input_image_fluo2.setToolTip('')
+        self.input_image_mask.setPlaceholderText('')
+        self.input_image_mask.setToolTip('')
+        if os.path.isfile(image_mask_path):
+            image_BF_paths = [path for path in os.listdir(os.path.dirname(image_mask_path)) if any(path.endswith(imagetype) for imagetype in gf.imagetypes) and os.path.basename(path) != os.path.basename(image_mask_path) and os.path.basename(path).split('_')[0] == os.path.basename(image_mask_path).split('_')[0] and len(os.path.basename(path).split('_')) == 2 and os.path.basename(path).split('_')[1].startswith(brightfield_suffix)]
+            if len(image_BF_paths) == 1:
+                image_BF_path = os.path.join(os.path.dirname(image_mask_path), image_BF_paths[0])
+                self.input_image_BF.setPlaceholderText(image_BF_path)
+                self.input_image_BF.setToolTip(image_BF_path)
+            image_fluo_paths = [path for path in os.listdir(os.path.dirname(image_mask_path)) if any(path.endswith(imagetype) for imagetype in gf.imagetypes) and os.path.basename(path) != os.path.basename(image_mask_path) and os.path.basename(path).split('_')[0] == os.path.basename(image_mask_path).split('_')[0] and len(os.path.basename(path).split('_')) == 2 and os.path.basename(path).split('_')[1].startswith(fluo_suffix)]
+            if len(image_fluo_paths) == 1:
+                image_fluo1_path = os.path.join(os.path.dirname(image_mask_path), image_fluo_paths[0])
+                self.input_image_fluo1.setPlaceholderText(image_fluo1_path)
+                self.input_image_fluo1.setToolTip(image_fluo1_path)
+            if len(image_fluo_paths) == 2:
+                image_fluo1_path = os.path.join(os.path.dirname(image_mask_path), image_fluo_paths[0])
+                self.input_image_fluo1.setPlaceholderText(image_fluo1_path)
+                self.input_image_fluo1.setToolTip(image_fluo1_path)
+                image_fluo2_path = os.path.join(os.path.dirname(image_mask_path), image_fluo_paths[1])
+                self.input_image_fluo2.setPlaceholderText(image_fluo2_path)
+                self.input_image_fluo2.setToolTip(image_fluo2_path)
+
+    def browse_image_BF(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
+        if file_path != '':
+            self.input_image_BF.setText(file_path)
+
+    def browse_image_fluo1(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
+        if file_path != '':
+            self.input_image_fluo1.setText(file_path)
+
+    def browse_image_fluo2(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
+        if file_path != '':
+            self.input_image_fluo2.setText(file_path)
+
+    def browse_image_mask(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
+        if file_path != '':
+            self.input_image_mask.setText(file_path)
+
     def browse_output(self):
         # Browse folders in order to choose the output one
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
@@ -107,54 +283,80 @@ class Generator(QWidget):
         else:
             output_path = self.output_folder.text().rstrip("/")
 
-        self.output_filename_label.setText(os.path.join(output_path,"<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
+        self.output_filename_label.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
 
     def submit(self):
-        """
-        Retrieve the input parameters
-        Iterate over the image paths given performing f.main() function
-        """
-        def check_inputs(image_paths):
-            """
-            Check if the inputs are valid
-            Return: True if valid, False otherwise
-            """
-            if len(image_paths) == 0:
-                self.logger.error('Image missing')
-                return False
-            for path in image_paths:
-                if not os.path.isfile(path):
-                    self.logger.error('Image not found %s', path)
-                    return False
-            if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
-                self.logger.error('Output folder missing')
-                self.output_folder.setFocus()
-                return False
-            return True
+        image_BF_path = self.input_image_BF.text()
+        if image_BF_path == '':
+            image_BF_path = self.input_image_BF.placeholderText()
+        image_fluo1_path = self.input_image_fluo1.text()
+        if image_fluo1_path == '':
+            image_fluo1_path = self.input_image_fluo1.placeholderText()
+        image_fluo2_path = self.input_image_fluo2.text()
+        if image_fluo2_path == '':
+            image_fluo2_path = self.input_image_fluo2.placeholderText()
+        image_mask_path = self.input_image_mask.text()
+        if image_mask_path == '':
+            image_mask_path = self.input_image_mask.placeholderText()
 
-        image_paths = self.image_list.get_file_list()
-
-        if not check_inputs(image_paths):
+        if image_BF_path == '':
+            self.logger.error('Bright-field image missing')
+            self.input_image_BF.setFocus()
+            return
+        if image_fluo1_path == '' and image_mask_path == '':
+            self.logger.error('Fluorescent image with cell marker 1 and segmentation mask missing. At least one of them must be specified.')
+            self.input_image_fluo1.setFocus()
+            return
+        if image_BF_path != '' and not os.path.isfile(image_BF_path):
+            self.logger.error('Image not found: %s', image_BF_path)
+            self.input_image_BF.setFocus()
+            return
+        if image_fluo1_path != '' and not os.path.isfile(image_fluo1_path):
+            self.logger.error('Image not found: %s', image_fluo1_path)
+            self.input_image_fluo1.setFocus()
+            return
+        if image_fluo2_path != '' and not os.path.isfile(image_fluo2_path):
+            self.logger.error('Image not found: %s', image_fluo2_path)
+            self.input_image_fluo2.setFocus()
+            return
+        if image_mask_path != '' and not os.path.isfile(image_mask_path):
+            self.logger.error('Image not found: %s', image_mask_path)
+            self.input_image_mask.setFocus()
+            return
+        if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
+            self.logger.error('Output folder missing')
+            self.output_folder.setFocus()
             return
 
-        for image_path in image_paths:
-            if os.path.isfile(image_path):
-                # Set output directory for each image path
-                if self.use_input_folder.isChecked():
-                    output_path = os.path.dirname(image_path)
-                else:
-                    output_path = self.output_folder.text()
-                if not output_path.endswith('/'): output_path += '/'
-                if not os.path.exists(output_path): os.makedirs(output_path)
-                output_basename = gf.splitext(os.path.basename(image_path))[0] + self.output_suffix + self.output_user_suffix.text()
-                # Set log and cursor info
-                self.logger.info("Image %s", image_path)
-                # Perform projection
-                try:
-                    f.main(image_path, output_path, output_basename)
-                except Exception:
-                    self.logger.exception("Generation failed.")
-            else:
-                self.logger.error("Unable to locate file %s", image_path)
+        user_suffix = self.output_user_suffix.text()
+        output_basename = gf.splitext(os.path.basename(image_BF_path))[0] + self.output_suffix + user_suffix
+        if self.use_input_folder.isChecked():
+            output_path = os.path.dirname(image_BF_path)
+        else:
+            output_path = self.output_folder.text()
+
+        if os.path.normpath(os.path.abspath(image_mask_path)) == os.path.normpath(os.path.join(output_path, output_basename+".ome.tif")):
+            res = QMessageBox.information(self, 'Information', 'The segmentation mask used as input will be overwritten by the mask generated in this module.\nOverwrite?', QMessageBox.Yes | QMessageBox.No, defaultButton=QMessageBox.Yes)
+            if res == QMessageBox.No:
+                return
+
+        # disable messagebox error handler
+        messagebox_error_handler = None
+        for h in logging.getLogger().handlers:
+            if h.get_name() == 'messagebox_error_handler':
+                messagebox_error_handler = h
+                logging.getLogger().removeHandler(messagebox_error_handler)
+                break
+
+        self.logger.info("Ground truth generation (%s, %s, %s, %s)", image_BF_path, image_fluo1_path, image_fluo2_path, image_mask_path)
+        try:
+            f.main(image_BF_path, image_fluo1_path, image_fluo2_path, image_mask_path, output_path, output_basename)
+        except Exception as e:
+            QMessageBox.critical(self, 'Error', str(e))
+            self.logger.exception("Ground truth generation failed.")
+
+        # re-enable messagebox error handler
+        if messagebox_error_handler is not None:
+            logging.getLogger().addHandler(messagebox_error_handler)
 
         self.logger.info("Done")
