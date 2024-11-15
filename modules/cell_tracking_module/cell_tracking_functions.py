@@ -1017,28 +1017,6 @@ class CellTrackingGraph:
         del self._graph.es['redundant']
 
 
-class NapariStatusBarHandler(logging.Handler):
-    """
-    Logging handler to send message to the status bar of a napari viewer.
-
-    Examples
-    --------
-    viewer=napari.viewer()
-    handler=NapariStatusBarHandler(viewer)
-    logging.getLogger().addHandler(handler)
-    """
-
-    def __init__(self, viewer):
-        logging.Handler.__init__(self)
-        self.status_bar = viewer.window._qt_window.statusBar()
-
-    def emit(self, record):
-        msg = self.format(record)
-        self.status_bar.showMessage(msg)
-        # force repainting to update message even when busy
-        self.status_bar.repaint()
-
-
 class CellTrackingWidget(QWidget):
     """
     A widget to use inside napari
@@ -1268,7 +1246,7 @@ class CellTrackingWidget(QWidget):
         self.viewer_images.window._qt_window.destroyed.connect(self.on_viewer_images_close)
 
         # Add a handler to output messages to napari status bar
-        handler = NapariStatusBarHandler(self.viewer_images)
+        handler = gf.NapariStatusBarHandler(self.viewer_images)
         handler.setFormatter(logging.Formatter('%(message)s'))
         handler.setLevel(logging.DEBUG)
         self.logger.addHandler(handler)

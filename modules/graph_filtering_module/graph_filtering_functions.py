@@ -14,28 +14,6 @@ from ome_types.model import CommentAnnotation
 from version import __version__ as vlabapp_version
 
 
-class NapariStatusBarHandler(logging.Handler):
-    """
-    logging handler to send message to the status bar of a napari viewer.
-
-    Examples
-    --------
-    viewer=napari.viewer()
-    handler=NapariStatusBarHandler(viewer)
-    logging.getLogger().addHandler(handler)
-    """
-
-    def __init__(self, viewer):
-        logging.Handler.__init__(self)
-        self.status_bar = viewer.window._qt_window.statusBar()
-
-    def emit(self, record):
-        msg = self.format(record)
-        self.status_bar.showMessage(msg)
-        # force repainting to update message even when busy
-        self.status_bar.repaint()
-
-
 def simplify_graph(g):
     """
     Simplify graph by contracting chains of vertices with indegree=1 and outdegree=1.
@@ -937,7 +915,7 @@ class GraphFilteringWidget(QWidget):
         self.viewer_images.window._qt_window.destroyed.connect(self.on_viewer_images_close)
 
         # Add a handler to output messages to napari status bar
-        handler = NapariStatusBarHandler(self.viewer_images)
+        handler = gf.NapariStatusBarHandler(self.viewer_images)
         handler.setFormatter(logging.Formatter('%(message)s'))
         handler.setLevel(logging.DEBUG)
         self.logger.addHandler(handler)

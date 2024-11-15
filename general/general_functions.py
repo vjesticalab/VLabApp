@@ -273,6 +273,28 @@ class QMessageBoxErrorHandler(logging.Handler):
         QMessageBox.critical(self.parent, 'Error', msg)
 
 
+class NapariStatusBarHandler(logging.Handler):
+    """
+    Logging handler to send message to the status bar of a napari viewer.
+
+    Examples
+    --------
+    viewer=napari.viewer()
+    handler=NapariStatusBarHandler(viewer)
+    logging.getLogger().addHandler(handler)
+    """
+
+    def __init__(self, viewer):
+        logging.Handler.__init__(self)
+        self.status_bar = viewer.window._qt_window.statusBar()
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.status_bar.showMessage(msg)
+        # force repainting to update message even when busy
+        self.status_bar.repaint()
+
+
 class DropFilesTableWidget2(QTableWidget):
     """
     A QTableWidget with drop support for files and folders with 2 columns. If a folder is dropped, all files contained in the folder are added.
