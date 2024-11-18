@@ -2,7 +2,7 @@ import logging
 import os
 import re
 import shutil
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QFileDialog, QLabel, QFormLayout, QLineEdit, QCheckBox, QDialog, QDialogButtonBox, QTableWidget, QAbstractItemView, QTableWidgetItem, QHeaderView, QListWidget, QListWidgetItem
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QFileDialog, QLabel, QFormLayout, QLineEdit, QCheckBox, QDialog, QDialogButtonBox, QTableWidget, QAbstractItemView, QTableWidgetItem, QHeaderView, QListWidget, QListWidgetItem, QMessageBox
 from PyQt5.QtCore import Qt
 from general import general_functions as gf
 
@@ -19,12 +19,18 @@ class ConfirmExportDialog(QDialog):
         print("export")
     """
 
-    def __init__(self, files_to_export, log_files_to_export):
+    def __init__(self, files_to_export, log_files_to_export, move=False):
         super().__init__()
         self.setSizeGripEnabled(True)
-        self.setWindowTitle('Export')
+        if move:
+            self.setWindowTitle('Move')
+        else:
+            self.setWindowTitle('Copy')
         layout = QVBoxLayout()
-        message = QLabel('Files to move')
+        if move:
+            message = QLabel('Files to move')
+        else:
+            message = QLabel('Files to copy')
         message.setWordWrap(True)
         layout.addWidget(message)
         table = QTableWidget()
@@ -128,12 +134,12 @@ class FileOrganization(QWidget):
 
         # Documentation
         label_documentation = gf.CollapsibleLabel('',collapsed=True)
-        label_documentation.setText('For each input folder, selected files types can be exported (i.e. moved) to the specified directory or removed.')
+        label_documentation.setText('For each input folder, selected files types can be exported (i.e. moved or copied) to the specified directory or removed.')
 
         # Input folders
         self.folder_list = gf.FolderListWidget()
 
-        # Output folders (export)
+        # Output folders
         self.use_input_folder = QRadioButton("Use input folder (sub-folder <input folder basename>/)")
         self.use_input_folder.setChecked(True)
         self.use_input_folder.toggled.connect(self.update_output_dirname_label)
@@ -152,37 +158,24 @@ class FileOrganization(QWidget):
         self.output_dirname_label.setFrame(False)
         self.output_dirname_label.setEnabled(False)
 
-        # files to export
-        self.export_image = QCheckBox('Input image')
-        self.export_registration = QCheckBox('Registration module output files (*'+gf.output_suffixes['registration']+')')
-        self.export_zprojection = QCheckBox('Z-projection module output files (*'+gf.output_suffixes['zprojection']+')')
-        self.export_segmentation = QCheckBox('Segmentation module output files (*'+gf.output_suffixes['segmentation']+')')
-        self.export_cell_tracking = QCheckBox('Cell tracking module output files (*'+gf.output_suffixes['cell_tracking']+')')
-        self.export_graph_filtering = QCheckBox('Graph filtering module output files (*'+gf.output_suffixes['graph_filtering']+')')
-        self.export_events_filter = QCheckBox('Events filter module output files (*'+gf.output_suffixes['events_filter']+')')
-        self.export_ground_truth_generator = QCheckBox('Ground truth generator module output files (*'+gf.output_suffixes['ground_truth_generator']+')')
-        self.export_intermediate_logs = QCheckBox('Copy intermediate log files')
-        self.export_intermediate_logs.setToolTip('Export all log files, including log files corresponding to intermediate files that are not moved')
-        self.export_intermediate_logs.setChecked(True)
+        # files
+        self.files_image = QCheckBox('Input image')
+        self.files_registration = QCheckBox('Registration module output files (*'+gf.output_suffixes['registration']+')')
+        self.files_zprojection = QCheckBox('Z-projection module output files (*'+gf.output_suffixes['zprojection']+')')
+        self.files_segmentation = QCheckBox('Segmentation module output files (*'+gf.output_suffixes['segmentation']+')')
+        self.files_cell_tracking = QCheckBox('Cell tracking module output files (*'+gf.output_suffixes['cell_tracking']+')')
+        self.files_graph_filtering = QCheckBox('Graph filtering module output files (*'+gf.output_suffixes['graph_filtering']+')')
+        self.files_events_filter = QCheckBox('Events filter module output files (*'+gf.output_suffixes['events_filter']+')')
+        self.files_ground_truth_generator = QCheckBox('Ground truth generator module output files (*'+gf.output_suffixes['ground_truth_generator']+')')
+        self.files_intermediate_logs = QCheckBox('Preserve intermediate log files')
+        self.files_intermediate_logs.setToolTip('Preserve all log files, including log files corresponding to intermediate files')
+        self.files_intermediate_logs.setChecked(True)
 
-        # Export
-        self.export_button = QPushButton("Export", self)
-        self.export_button.clicked.connect(self.export)
-
-        # files to clean
-        self.clean_registration = QCheckBox('Registration module output files (*'+gf.output_suffixes['registration']+')')
-        self.clean_zprojection = QCheckBox('Z-projection module output files (*'+gf.output_suffixes['zprojection']+')')
-        self.clean_segmentation = QCheckBox('Segmentation module output files (*'+gf.output_suffixes['segmentation']+')')
-        self.clean_cell_tracking = QCheckBox('Cell tracking module output files (*'+gf.output_suffixes['cell_tracking']+')')
-        self.clean_graph_filtering = QCheckBox('Graph filtering module output files (*'+gf.output_suffixes['graph_filtering']+')')
-        self.clean_events_filter = QCheckBox('Events filter module output files (*'+gf.output_suffixes['events_filter']+')')
-        self.clean_ground_truth_generator = QCheckBox('Ground truth generator  module output files (*'+gf.output_suffixes['ground_truth_generator']+')')
-        self.clean_keep_intermediate_logs = QCheckBox('Keep intermediate log files')
-        self.clean_keep_intermediate_logs.setToolTip('Kepp all log files, including log files corresponding to intermediate files that are removed.')
-        self.clean_keep_intermediate_logs.setChecked(True)
-
-        # clean
-        self.clean_button = QPushButton("Clean", self)
+        self.copy_button = QPushButton("Copy files", self)
+        self.copy_button.clicked.connect(self.copy)
+        self.move_button = QPushButton("Move files", self)
+        self.move_button.clicked.connect(self.move)
+        self.clean_button = QPushButton("Remove files", self)
         self.clean_button.clicked.connect(self.clean)
 
         # Layout
@@ -202,66 +195,44 @@ class FileOrganization(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        # export
-        groupbox = QGroupBox('Export (move files)')
-        layout2 = QVBoxLayout()
-
         # Output folders
-        groupbox2 = QGroupBox('Output')
-        layout3 = QVBoxLayout()
-        layout3.addWidget(QLabel("Folder:"))
-        layout3.addWidget(self.use_input_folder)
-        layout3.addWidget(self.use_custom_folder)
-        layout4 = QHBoxLayout()
-        layout4.addWidget(self.output_folder)
-        layout4.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
-        layout3.addLayout(layout4)
-        layout4 = QFormLayout()
-        layout4.addRow("Output:", self.output_dirname_label)
-        layout3.addLayout(layout4)
-        groupbox2.setLayout(layout3)
-        layout2.addWidget(groupbox2)
-
-        groupbox2 = QGroupBox("Files to move:")
-        layout3 = QVBoxLayout()
-        layout3.addWidget(self.export_image)
-        layout3.addWidget(self.export_registration)
-        layout3.addWidget(self.export_zprojection)
-        layout3.addWidget(self.export_segmentation)
-        layout3.addWidget(self.export_cell_tracking)
-        layout3.addWidget(self.export_graph_filtering)
-        layout3.addWidget(self.export_events_filter)
-        layout3.addWidget(self.export_ground_truth_generator)
-        layout3.addWidget(self.export_intermediate_logs)
-        groupbox2.setLayout(layout3)
-        layout2.addWidget(groupbox2)
-
-        # Export
-        layout2.addWidget(self.export_button, alignment=Qt.AlignCenter)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
-
-        # Clean
-        groupbox = QGroupBox('Clean (remove files)')
+        groupbox2 = QGroupBox('Output (when moving or copying files)')
         layout2 = QVBoxLayout()
+        layout2.addWidget(QLabel("Folder:"))
+        layout2.addWidget(self.use_input_folder)
+        layout2.addWidget(self.use_custom_folder)
+        layout3 = QHBoxLayout()
+        layout3.addWidget(self.output_folder)
+        layout3.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
+        layout2.addLayout(layout3)
+        layout3 = QFormLayout()
+        layout3.addRow("Output:", self.output_dirname_label)
+        layout2.addLayout(layout3)
+        groupbox2.setLayout(layout2)
+        layout.addWidget(groupbox2)
 
-        groupbox2 = QGroupBox("Files to remove:")
-        layout3 = QVBoxLayout()
-        layout3.addWidget(self.clean_registration)
-        layout3.addWidget(self.clean_zprojection)
-        layout3.addWidget(self.clean_segmentation)
-        layout3.addWidget(self.clean_cell_tracking)
-        layout3.addWidget(self.clean_graph_filtering)
-        layout3.addWidget(self.clean_events_filter)
-        layout3.addWidget(self.clean_ground_truth_generator)
-        layout3.addWidget(self.clean_keep_intermediate_logs)
-        groupbox2.setLayout(layout3)
-        layout2.addWidget(groupbox2)
+        groupbox2 = QGroupBox("Files selection:")
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.files_image)
+        layout2.addWidget(self.files_registration)
+        layout2.addWidget(self.files_zprojection)
+        layout2.addWidget(self.files_segmentation)
+        layout2.addWidget(self.files_cell_tracking)
+        layout2.addWidget(self.files_graph_filtering)
+        layout2.addWidget(self.files_events_filter)
+        layout2.addWidget(self.files_ground_truth_generator)
+        layout2.addWidget(self.files_intermediate_logs)
+        groupbox2.setLayout(layout2)
+        layout.addWidget(groupbox2)
 
-        # Celan
+        layout2 = QHBoxLayout()
+        layout2.addStretch()
+        layout2.addWidget(self.copy_button, alignment=Qt.AlignCenter)
+        layout2.addWidget(self.move_button, alignment=Qt.AlignCenter)
         layout2.addWidget(self.clean_button, alignment=Qt.AlignCenter)
-        groupbox.setLayout(layout2)
-        layout.addWidget(groupbox)
+        layout2.addStretch()
+        layout.addLayout(layout2)
+
 
         self.setLayout(layout)
 
@@ -282,8 +253,17 @@ class FileOrganization(QWidget):
             output_path = self.output_folder.text().rstrip("/")
         self.output_dirname_label.setText(os.path.join(output_path, "<input folder basename>", ""))
 
-    def export(self):
-        self.logger.info('Exporting')
+    def copy(self):
+        self.export(move=False)
+
+    def move(self):
+        self.export(move=True)
+
+    def export(self, move = False):
+        if move:
+            self.logger.info('Moving files')
+        else:
+            self.logger.info('Copying files')
 
         input_paths = self.folder_list.get_folder_list()
         if len(input_paths) == 0:
@@ -296,36 +276,40 @@ class FileOrganization(QWidget):
             output_paths = [os.path.join(self.output_folder.text(), os.path.basename(path.rstrip('/'))) for path in input_paths]
 
         patterns = []
-        if self.export_zprojection.isChecked():
+        if self.files_zprojection.isChecked():
             patterns.append(gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
-        if self.export_ground_truth_generator.isChecked():
+        if self.files_ground_truth_generator.isChecked():
             patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
             # exported directory
             patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*$')
             patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*'+gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*$')
-        if self.export_registration.isChecked():
+        if self.files_registration.isChecked():
             patterns.append(gf.output_suffixes['registration']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
-        if self.export_segmentation.isChecked():
+        if self.files_segmentation.isChecked():
             patterns.append(gf.output_suffixes['segmentation']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
-        if self.export_cell_tracking.isChecked():
+        if self.files_cell_tracking.isChecked():
             patterns.append(gf.output_suffixes['cell_tracking']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
-        if self.export_graph_filtering.isChecked():
+        if self.files_graph_filtering.isChecked():
             patterns.append(gf.output_suffixes['graph_filtering']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
-        if self.export_events_filter.isChecked():
+        if self.files_events_filter.isChecked():
             patterns.append(gf.output_suffixes['events_filter']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+
+        if len(patterns) == 0:
+            QMessageBox.warning(self, 'Warning', 'Please select at least one file type in the files selection box\n(in addition to log files).', buttons=QMessageBox.Ok)
+            return
 
         files_to_export = []
         log_files_to_export = []
         for input_path, output_path in zip(input_paths, output_paths):
             files_to_export_tmp = [f for f in os.listdir(input_path) if any(re.search(p, f) for p in patterns)]
             files_to_export.extend([(os.path.join(input_path, f), os.path.join(output_path, f)) for f in files_to_export_tmp])
-            if self.export_intermediate_logs.isChecked():
+            if self.files_intermediate_logs.isChecked():
                 log_files_to_export_tmp = [gf.splitext(f)[0] for f in os.listdir(input_path) if f.endswith('.log') and f not in files_to_export_tmp]
                 # keep only log_files with basename corresponding to the beginning of an exported file name
                 log_files_to_export_tmp = [l + '.log' for l in log_files_to_export_tmp if any(f.startswith(l) for f in files_to_export_tmp)]
                 log_files_to_export.extend([(os.path.join(input_path, f), os.path.join(output_path, f)) for f in log_files_to_export_tmp])
 
-        msg = ConfirmExportDialog(files_to_export, log_files_to_export)
+        msg = ConfirmExportDialog(files_to_export, log_files_to_export, move=move)
         if msg.exec_() == QDialog.Accepted:
             for src, dst in set(files_to_export):
                 output_path = os.path.dirname(dst)
@@ -333,7 +317,13 @@ class FileOrganization(QWidget):
                     self.logger.info("Creating: %s", output_path)
                     os.makedirs(output_path)
                 self.logger.info("Moving: %s to %s", src, dst)
-                os.replace(src, dst)
+                if move:
+                    shutil.move(src, dst)
+                else:
+                    if os.path.isdir(src):
+                        shutil.copytree(src, dst, dirs_exist_ok=True)
+                    else:
+                        shutil.copy(src, dst)
             for src, dst in set(log_files_to_export):
                 output_path = os.path.dirname(dst)
                 if not os.path.isdir(output_path):
@@ -353,30 +343,34 @@ class FileOrganization(QWidget):
             return
 
         patterns = []
-        if self.clean_zprojection.isChecked():
+        if self.files_zprojection.isChecked():
             patterns.append(gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
-        if self.clean_ground_truth_generator.isChecked():
+        if self.files_ground_truth_generator.isChecked():
             patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
             # exported directory
             patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*$')
             patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*'+gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*$')
-        if self.clean_registration.isChecked():
+        if self.files_registration.isChecked():
             patterns.append(gf.output_suffixes['registration']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
-        if self.clean_segmentation.isChecked():
+        if self.files_segmentation.isChecked():
             patterns.append(gf.output_suffixes['segmentation']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
-        if self.clean_cell_tracking.isChecked():
+        if self.files_cell_tracking.isChecked():
             patterns.append(gf.output_suffixes['cell_tracking']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
-        if self.clean_graph_filtering.isChecked():
+        if self.files_graph_filtering.isChecked():
             patterns.append(gf.output_suffixes['graph_filtering']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
-        if self.clean_events_filter.isChecked():
+        if self.files_events_filter.isChecked():
             patterns.append(gf.output_suffixes['events_filter']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+
+        if len(patterns) == 0:
+            QMessageBox.warning(self, 'Warning', 'Please select at least one file type in the files selection box\n(in addition to log files).', buttons=QMessageBox.Ok)
+            return
 
         files_to_remove = []
         for input_path in input_paths:
             files_to_remove_tmp = [f for f in os.listdir(input_path) if any(re.search(p, f) for p in patterns)]
             files_to_keep_tmp = [f for f in os.listdir(input_path) if f not in files_to_remove_tmp]
 
-            if self.clean_keep_intermediate_logs.isChecked():
+            if self.files_intermediate_logs.isChecked():
                 log_files_to_keep_tmp = [gf.splitext(f)[0] for f in os.listdir(input_path) if f.endswith('.log') and f not in files_to_keep_tmp]
                 # keep only log_files with basename corresponding to the beginning of an exported file name
                 log_files_to_keep_tmp = [l + '.log' for l in log_files_to_keep_tmp if any(f.startswith(l) for f in files_to_keep_tmp)]
