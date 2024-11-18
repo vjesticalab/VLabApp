@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QHBo
 
 from modules.registration_module import registration
 from modules.zprojection_module import zprojection
-from modules.groundtruth_generator_module import generator
+from modules.ground_truth_generator_module import ground_truth_generator
 from modules.segmentation_module import segmentation
 from modules.cell_tracking_module import cell_tracking
 from modules.graph_filtering_module import graph_filtering
@@ -30,7 +30,7 @@ class Tools(QWidget):
         tabwizard.addPage(gf.Page(widget=viewer.RegistrationViewer()), "View registration matrix")
         tabwizard.addPage(gf.Page(widget=viewer.MetadataViewer(), add_stretch=False), "View metadata")
         tabwizard.addPage(gf.Page(widget=file_organization.FileOrganization()), "File organization")
-        tabwizard.addPage(gf.Page(widget=generator.Generator()), "Ground truth")
+        tabwizard.addPage(gf.Page(widget=ground_truth_generator.Generator()), "Ground truth generator")
 
 
 class MainWindow(QWidget):

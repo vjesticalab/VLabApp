@@ -14,7 +14,7 @@ import cv2
 
 
 output_suffixes = {'zprojection': '_vPR',
-                   'groundtruth_generator': '_vGT',
+                   'ground_truth_generator': '_vGT',
                    'registration': '_vRG',
                    'segmentation': '_vSM',
                    'cell_tracking': '_vTG',

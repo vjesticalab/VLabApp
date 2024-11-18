@@ -3,7 +3,7 @@ import logging
 from PyQt5.QtWidgets import QVBoxLayout, QRadioButton, QGroupBox, QHBoxLayout, QFileDialog, QPushButton, QWidget, QLineEdit, QLabel, QFormLayout, QMessageBox
 from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtGui import QRegExpValidator
-from modules.groundtruth_generator_module import generator_functions as f
+from modules.ground_truth_generator_module import ground_truth_generator_functions as f
 from general import general_functions as gf
 
 
@@ -11,7 +11,7 @@ class Generator(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.output_suffix = gf.output_suffixes['groundtruth_generator']
+        self.output_suffix = gf.output_suffixes['ground_truth_generator']
 
         # Documentation
         label_documentation = gf.CollapsibleLabel('', collapsed=True)

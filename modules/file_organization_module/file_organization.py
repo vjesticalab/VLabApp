@@ -160,7 +160,7 @@ class FileOrganization(QWidget):
         self.export_cell_tracking = QCheckBox('Cell tracking module output files (*'+gf.output_suffixes['cell_tracking']+')')
         self.export_graph_filtering = QCheckBox('Graph filtering module output files (*'+gf.output_suffixes['graph_filtering']+')')
         self.export_events_filter = QCheckBox('Events filter module output files (*'+gf.output_suffixes['events_filter']+')')
-        self.export_groundtruth_generator = QCheckBox('GroundTruth module output files (*'+gf.output_suffixes['groundtruth_generator']+')')
+        self.export_ground_truth_generator = QCheckBox('Ground truth generator module output files (*'+gf.output_suffixes['ground_truth_generator']+')')
         self.export_intermediate_logs = QCheckBox('Copy intermediate log files')
         self.export_intermediate_logs.setToolTip('Export all log files, including log files corresponding to intermediate files that are not moved')
         self.export_intermediate_logs.setChecked(True)
@@ -176,7 +176,7 @@ class FileOrganization(QWidget):
         self.clean_cell_tracking = QCheckBox('Cell tracking module output files (*'+gf.output_suffixes['cell_tracking']+')')
         self.clean_graph_filtering = QCheckBox('Graph filtering module output files (*'+gf.output_suffixes['graph_filtering']+')')
         self.clean_events_filter = QCheckBox('Events filter module output files (*'+gf.output_suffixes['events_filter']+')')
-        self.clean_groundtruth_generator = QCheckBox('GroundTruth module output files (*'+gf.output_suffixes['groundtruth_generator']+')')
+        self.clean_ground_truth_generator = QCheckBox('Ground truth generator  module output files (*'+gf.output_suffixes['ground_truth_generator']+')')
         self.clean_keep_intermediate_logs = QCheckBox('Keep intermediate log files')
         self.clean_keep_intermediate_logs.setToolTip('Kepp all log files, including log files corresponding to intermediate files that are removed.')
         self.clean_keep_intermediate_logs.setChecked(True)
@@ -231,7 +231,7 @@ class FileOrganization(QWidget):
         layout3.addWidget(self.export_cell_tracking)
         layout3.addWidget(self.export_graph_filtering)
         layout3.addWidget(self.export_events_filter)
-        layout3.addWidget(self.export_groundtruth_generator)
+        layout3.addWidget(self.export_ground_truth_generator)
         layout3.addWidget(self.export_intermediate_logs)
         groupbox2.setLayout(layout3)
         layout2.addWidget(groupbox2)
@@ -253,7 +253,7 @@ class FileOrganization(QWidget):
         layout3.addWidget(self.clean_cell_tracking)
         layout3.addWidget(self.clean_graph_filtering)
         layout3.addWidget(self.clean_events_filter)
-        layout3.addWidget(self.clean_groundtruth_generator)
+        layout3.addWidget(self.clean_ground_truth_generator)
         layout3.addWidget(self.clean_keep_intermediate_logs)
         groupbox2.setLayout(layout3)
         layout2.addWidget(groupbox2)
@@ -298,11 +298,11 @@ class FileOrganization(QWidget):
         patterns = []
         if self.export_zprojection.isChecked():
             patterns.append(gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
-        if self.export_groundtruth_generator.isChecked():
-            patterns.append(gf.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+        if self.export_ground_truth_generator.isChecked():
+            patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
             # exported directory
-            patterns.append(gf.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*$')
-            patterns.append(gf.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*'+gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*$')
+            patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*$')
+            patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*'+gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*$')
         if self.export_registration.isChecked():
             patterns.append(gf.output_suffixes['registration']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.export_segmentation.isChecked():
@@ -355,11 +355,11 @@ class FileOrganization(QWidget):
         patterns = []
         if self.clean_zprojection.isChecked():
             patterns.append(gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
-        if self.clean_groundtruth_generator.isChecked():
-            patterns.append(gf.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+        if self.clean_ground_truth_generator.isChecked():
+            patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
             # exported directory
-            patterns.append(gf.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*$')
-            patterns.append(gf.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*'+gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*$')
+            patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*$')
+            patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*'+gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*$')
         if self.clean_registration.isChecked():
             patterns.append(gf.output_suffixes['registration']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.clean_segmentation.isChecked():
