@@ -1557,6 +1557,13 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         display image, mask and results in napari
     """
 
+    # This is a temporary workaround to avoid having multiple conflicting
+    # logging to metadata and log file, which could happen when a napari
+    # window is already opened.
+    # TODO: find a better solution.
+    if napari.current_viewer():
+        raise RuntimeError('Close all napari windows and try again.')
+
     ###########################
     # Setup logging
     ###########################

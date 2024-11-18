@@ -1073,6 +1073,13 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
         list of graph topologies. If None, create from graph. (only used when display_results == True)
     """
 
+    # This is a temporary workaround to avoid having multiple conflicting
+    # logging to metadata and log file, which could happen when a napari
+    # window is already opened.
+    # TODO: find a better solution.
+    if napari.current_viewer():
+        raise RuntimeError('To avoid potential logging corruption, close all napari windows and try again.')
+
     ###########################
     # Setup logging
     ###########################
