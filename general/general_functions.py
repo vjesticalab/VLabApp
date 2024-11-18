@@ -1117,7 +1117,7 @@ class Image:
     get_TYXarray()
         Return the 3D image with the dimensions T, Y and X.
         When used the other dimensions F,C,Z MUST be empty (with size = 1)
-    zProjection(projection_type, zrange,focus_method)
+    z_projection(projection_type, zrange,focus_method)
         Return the z-projection of the image using the selected projection type over the range of z values defined by zrange.
         Possible projection types: max, min, std, avg (or mean), median.
         If zrange is None, use all Z values. If zrange is an integer, use z values in [z_best-zrange,z_best+zrange],
@@ -1233,7 +1233,7 @@ class Image:
             raise TypeError('Image format not supported. Please load an image with only TYX dimensions')
         return self.image[0, :, 0, 0, :, :]
 
-    def zProjection(self, projection_type, zrange, focus_method="tenengrad_var", z_shift=0):
+    def z_projection(self, projection_type, zrange, focus_method="tenengrad_var", z_shift=0):
         """
         Return the z-projection of the image using the selected projection type over the range of z values defined by zrange.
 

@@ -170,7 +170,7 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
     # Project Z axis if needed and select channel
     if image.sizes['Z'] > 1:
         logger.info('Preparing image to segment: performing Z-projection')
-        image3D = image.zProjection(projection_type, projection_zrange)
+        image3D = image.z_projection(projection_type, projection_zrange)
     else:
         image3D = image.image
     # keep only selected channel ('C' axis)

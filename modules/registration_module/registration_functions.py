@@ -759,7 +759,7 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
     if image.sizes['Z'] > 1:
         try:
             logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: performing Z-projection')
-            projection = image.zProjection(projection_type, projection_zrange)
+            projection = image.z_projection(projection_type, projection_zrange)
         except Exception:
             logging.getLogger(__name__).exception('Z-projection failed for image %s', image.basename)
             remove_all_log_handlers()
@@ -899,7 +899,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
     if image.sizes['Z'] > 1:
         try:
             logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: performing Z-projection')
-            projection = image.zProjection(projection_type, projection_zrange)
+            projection = image.z_projection(projection_type, projection_zrange)
         except Exception:
             logging.getLogger(__name__).exception('Z-projection failed for image %s', image.basename)
             remove_all_log_handlers()

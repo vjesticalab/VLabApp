@@ -444,7 +444,7 @@ class GroundTruthWidget(QWidget):
                 m = self.zshift_max.value()
                 weights = np.array([0.5**np.abs(k) for k in range(-m, m+1)])
                 z_shift = np.random.choice(np.arange(-m, m+1), size=self.image_BF.sizes['T'], p=weights / weights.sum())
-            image_BF = self.image_BF.zProjection(projection_type, projection_zrange, z_shift=z_shift)
+            image_BF = self.image_BF.z_projection(projection_type, projection_zrange, z_shift=z_shift)
         else:
             image_BF = self.image_BF.image
 
@@ -545,7 +545,7 @@ class GroundTruthWidget(QWidget):
         if self.image_fluo1.sizes['Z'] > 1:
             # Extract the Z section with best focus
             self.logger.info('Preparing fluorescent image 1 for segmentation: performing Z-projection')
-            image1 = self.image_fluo1.zProjection('max', 0)
+            image1 = self.image_fluo1.z_projection('max', 0)
         else:
             image1 = self.image_fluo1.image.copy()
         # normalize to contrast limits
@@ -561,7 +561,7 @@ class GroundTruthWidget(QWidget):
             if self.image_fluo2.sizes['Z'] > 1:
                 # Extract the Z section with best focus
                 self.logger.info('Preparing fluorescent image 2 for segmentation: performing Z-projection')
-                image2 = self.image_fluo2.zProjection('max', 0)
+                image2 = self.image_fluo2.z_projection('max', 0)
             else:
                 image2 = self.image_fluo2.image
             # normalize to contrast limits

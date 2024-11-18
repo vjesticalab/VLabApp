@@ -122,7 +122,7 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
 
     # Perform projection
     try:
-        projected_image = image.zProjection(projection_type, projection_zrange)
+        projected_image = image.z_projection(projection_type, projection_zrange)
     except Exception:
         logging.getLogger(__name__).exception('Error projecting image %s', image_path)
         # Close logfile
