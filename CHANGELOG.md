@@ -18,6 +18,9 @@
 * All modules: do not erase previous file path when cancelling in file selection dialog.
 * Cell tracking and graph filtering modules: avoid duplicate "Manually editing mask" entries in metadata.
 * Ground truth module: fix thresholding algorithm.
+* Registration, Segmentation and Ground truth modules: open napari as a modal window to avoid potential problems with logfile when opening multiple napari windows.
+
+
 
 
 ## [v2.1.0] 2024-10-11

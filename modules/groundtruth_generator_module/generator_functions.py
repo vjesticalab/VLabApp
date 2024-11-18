@@ -770,7 +770,13 @@ def main(image_BF_path, image_fluo1_path, image_fluo2_path, image_mask_path, out
             remove_all_log_handlers()
             raise TypeError(f"Segmentation mask and bright-field image must have same X, Y and T axis sizes:\n {image_BF_path}\n{image_mask_path}")
 
-    viewer = napari.Viewer(title=image_BF_path)
+    # open a modal napari window to avoid multiple windows, with competing logging to file.
+    # TODO: find a better solution to open a modal napari window.
+    global viewer
+    viewer = napari.Viewer(show=False, title=image_BF_path)
+    viewer.window._qt_window.setWindowModality(Qt.ApplicationModal)
+    viewer.show()
+
     viewer.add_image(image_BF.image, channel_axis=2, name='Bright-field', colormap='gray')
     if image_fluo1 is not None:
         viewer.add_image(image_fluo1.image, channel_axis=2, name='Cell marker 1', colormap='magenta', blending='additive')

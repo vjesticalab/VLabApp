@@ -193,8 +193,11 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
     tot_iterations = image.sizes['T']
 
     if display_results:
-        # Open image in napari
-        viewer_images = napari.Viewer(title=image_path)
+        # TODO: find a better solution to open a modal napari window.
+        global viewer_images
+        viewer_images = napari.Viewer(show=False, title=image_path)
+        viewer_images.window._qt_window.setWindowModality(Qt.ApplicationModal)
+        viewer_images.show()
         image_napari = image3D
         # TCYX
         image_napari = image_napari[:, np.newaxis, :, :]

@@ -1274,7 +1274,13 @@ def manual_edit_main(image_path, matrix_path):
         logging.getLogger(__name__).error('Image %s has a F axis with size > 1', str(image_path))
         raise TypeError(f"Image {image_path} has a F axis with size > 1")
 
-    viewer = napari.Viewer()
+    # open a modal napari window to avoid multiple windows, with competing logging to file.
+    # TODO: find a better solution to open a modal napari window.
+    global viewer
+    viewer = napari.Viewer(show=False)
+    viewer.window._qt_window.setWindowModality(Qt.ApplicationModal)
+    viewer.show()
+
     # assuming a FTCZYX image:
     viewer.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
     # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
