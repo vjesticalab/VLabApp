@@ -20,6 +20,7 @@
 * Ground truth module: fix thresholding algorithm.
 * Registration, Segmentation and Ground truth modules: open napari as a modal window to avoid potential problems with logfile when opening multiple napari windows.
 * Cell tracking and graph filtering modules: quit if a napari window is already open to avoid potential problems with logfiles.
+* Cell tracking and graph filtering modules: restore default status bar info after displaying logging information to napari status bar.
 
 
 
