@@ -300,6 +300,9 @@ class FileOrganization(QWidget):
             patterns.append(gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.export_groundtruth_generator.isChecked():
             patterns.append(gf.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            # exported directory
+            patterns.append(gf.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*$')
+            patterns.append(gf.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*'+gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*$')
         if self.export_registration.isChecked():
             patterns.append(gf.output_suffixes['registration']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.export_segmentation.isChecked():
@@ -354,6 +357,9 @@ class FileOrganization(QWidget):
             patterns.append(gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.clean_groundtruth_generator.isChecked():
             patterns.append(gf.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            # exported directory
+            patterns.append(gf.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*$')
+            patterns.append(gf.output_suffixes['groundtruth_generator']+'[A-Za-z0-9-]*'+gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*$')
         if self.clean_registration.isChecked():
             patterns.append(gf.output_suffixes['registration']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.clean_segmentation.isChecked():
@@ -383,6 +389,9 @@ class FileOrganization(QWidget):
         if msg.exec_() == QDialog.Accepted:
             for f in set(files_to_remove):
                 self.logger.info("Removing: %s", f)
-                os.remove(f)
+                if os.path.isdir(f):
+                    shutil.rmtree(f)
+                else:
+                    os.remove(f)
 
         self.logger.info("Done")
