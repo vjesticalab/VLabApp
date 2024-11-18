@@ -1252,8 +1252,6 @@ class CellTrackingWidget(QWidget):
         self.logger.addHandler(handler)
 
         self.logger.debug("Ready")
-        # Restore status bar
-        self.viewer_images.window._status_bar.clearMessage()
 
     def paint_callback(self, event):
         self.logger.info("Manually editing mask")
@@ -1339,8 +1337,6 @@ class CellTrackingWidget(QWidget):
         self.logger.debug("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
-        # Restore status bar
-        self.viewer_images.window._status_bar.clearMessage()
 
     def interpolate_mask(self):
         # Set cursor to BusyCursor
@@ -1401,8 +1397,6 @@ class CellTrackingWidget(QWidget):
         self.logger.debug("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
-        # Restore status bar
-        self.viewer_images.window._status_bar.clearMessage()
 
     def relabel(self, closing=False):
         # Set cursor to BusyCursor
@@ -1456,8 +1450,6 @@ class CellTrackingWidget(QWidget):
         self.logger.debug("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
-        # Restore status bar
-        self.viewer_images.window._status_bar.clearMessage()
 
     def save(self, closing=False):
         # Set cursor to BusyCursor
@@ -1500,8 +1492,6 @@ class CellTrackingWidget(QWidget):
         self.logger.debug("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
-        # Restore status bar
-        self.viewer_images.window._status_bar.clearMessage()
 
         QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + output_file1 + "\n" + output_file3)
 

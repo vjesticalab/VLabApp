@@ -290,7 +290,7 @@ class NapariStatusBarHandler(logging.Handler):
 
     def emit(self, record):
         msg = self.format(record)
-        self.status_bar.showMessage(msg)
+        self.status_bar.showMessage(msg, msecs=1000)
         # force repainting to update message even when busy
         self.status_bar.repaint()
 

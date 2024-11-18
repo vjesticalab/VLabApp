@@ -921,8 +921,6 @@ class GraphFilteringWidget(QWidget):
         self.logger.addHandler(handler)
 
         self.logger.debug("Ready")
-        # Restore status bar
-        self.viewer_images.window._status_bar.clearMessage()
 
     def filters_changed(self):
         self.mask_need_filtering = True
@@ -988,8 +986,6 @@ class GraphFilteringWidget(QWidget):
         self.logger.debug("Done")
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
-        # Restore status bar
-        self.viewer_images.window._status_bar.clearMessage()
 
     def save(self, closing=False, relabel_mask_ids=True):
         """
@@ -1011,8 +1007,6 @@ class GraphFilteringWidget(QWidget):
 
         # restore cursor
         napari.qt.get_app().restoreOverrideCursor()
-        # Restore status bar
-        self.viewer_images.window._status_bar.clearMessage()
 
         QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + os.path.join(self.output_path, self.output_basename+".ome.tif") + "\n" + os.path.join(self.output_path, self.output_basename+".graphmlz"))
 
