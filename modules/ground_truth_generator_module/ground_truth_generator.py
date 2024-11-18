@@ -7,7 +7,7 @@ from modules.ground_truth_generator_module import ground_truth_generator_functio
 from general import general_functions as gf
 
 
-class Generator(QWidget):
+class GroundTruthGenerator(QWidget):
     def __init__(self):
         super().__init__()
 
