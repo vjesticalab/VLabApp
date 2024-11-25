@@ -132,9 +132,11 @@ class Perform(QWidget):
         self.time_mode_fixed.setChecked(False)
         self.time_mode_fixed_tmin = QSpinBox()
         self.time_mode_fixed_tmin.setMinimum(0)
+        self.time_mode_fixed_tmin.setMaximum(1000)
         self.time_mode_fixed_tmin.valueChanged.connect(self.time_mode_fixed_tmin_changed)
         self.time_mode_fixed_tmax = QSpinBox()
         self.time_mode_fixed_tmax.setMinimum(0)
+        self.time_mode_fixed_tmax.setMaximum(1000)
         self.time_mode_fixed_tmax.valueChanged.connect(self.time_mode_fixed_tmax_changed)
 
         # Layout
