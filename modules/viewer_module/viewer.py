@@ -16,7 +16,7 @@ class ImageMaskGraphViewer(QWidget):
     def __init__(self):
         super().__init__()
 
-        label_documentation = gf.CollapsibleLabel('',collapsed=True)
+        label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('View an image, a segmentation mask and/or a cell tracking graph in <a href="https://napari.org">napari</a>.<br>' +
                                     'Images and masks with X and Y axes and any combination of T, C and Z axes are supported.<br>' +
                                     'Image, mask and graph are optional. However, a cell tracking graph cannot be viewed without the corresponding segmentation mask.')
@@ -232,7 +232,7 @@ class RegistrationViewer(QWidget):
     def __init__(self):
         super().__init__()
 
-        label_documentation = gf.CollapsibleLabel('',collapsed=True)
+        label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('View a registration matrix in <a href="https://napari.org">napari</a>.<br>' +
                                     'Important: select an image that has not been registered.<br>' +
                                     'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
@@ -375,7 +375,7 @@ class MetadataViewer(QWidget):
         super().__init__()
         self.filetypes = gf.imagetypes + gf.graphtypes + gf.matrixtypes
 
-        label_documentation = gf.CollapsibleLabel('',collapsed=True)
+        label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('Display the VLabApp metadata for a file generated with this software. The file can be an image, a segmentation mask, a cell tracking graph or a registration matrix).')
         self.input_file = gf.DropFileLineEdit(filetypes=self.filetypes)
         self.input_file.textChanged.connect(self.input_file_changed)
@@ -461,19 +461,3 @@ class MetadataViewer(QWidget):
         text += '\n\n'.join(vlabapp_metadata)
         self.metadata_text.setPlainText(text)
         self.metadata_text.setVisible(True)
-
-
-class Viewer(QWidget):
-    def __init__(self):
-        super().__init__()
-
-        window = QVBoxLayout(self)
-        tabwizard = gf.TabWizard()
-
-        tabwizard.addPage(gf.Page(widget=ImageMaskGraphViewer()), "View image, masks and/or graph")
-        tabwizard.addPage(gf.Page(widget=RegistrationViewer()), "View registration matrix")
-        tabwizard.addPage(gf.Page(widget=MetadataViewer(), add_stretch=False), "View metadata")
-
-        window.addWidget(tabwizard)
-
-        self.logger = logging.getLogger(__name__)

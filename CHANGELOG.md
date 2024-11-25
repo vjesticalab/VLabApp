@@ -8,6 +8,7 @@
 * Metadata viewer: add image data type (dtype).
 * Ground truth module: input images can have T or Z axis (but no C axis), add option to export cellpose training set (with optional out-of-focus images), add option to start with an existing mask, generate logfile, save metadata.
 * File organization module: reorganize the GUI (only one "Files selection" box with 3 buttons "Copy files", "Move files" and "Remove files").
+* List of modules on the left (instead of tabs on top).
 
 ### Removed
 

@@ -30,7 +30,7 @@ class Pipeline(QWidget):
     def __init__(self):
         super().__init__()
 
-        label_documentation = gf.CollapsibleLabel('',collapsed=True)
+        label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('Drag and drop modules in the list to create a pipeline.')
 
         self.pipeline_modules_list = f.ListView(placeholder_text='Drop modules here')
@@ -142,21 +142,21 @@ class Pipeline(QWidget):
         item = QStandardItem('Registration')
         description = 'Input: image\nOutput: registered image and registration matrix'
         item.setEditable(False)
-        item.setData({'name': 'registration_image', 'description': description, 'input_types': ['image'], 'output_types': ['image', 'matrix'], 'conflicting_modules': ['registration_image','registration_alignment_image', 'registration_alignment_mask']}, Qt.UserRole+1)
+        item.setData({'name': 'registration_image', 'description': description, 'input_types': ['image'], 'output_types': ['image', 'matrix'], 'conflicting_modules': ['registration_image', 'registration_alignment_image', 'registration_alignment_mask']}, Qt.UserRole+1)
         item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
         item = QStandardItem('Registration (alignment)')
         description = 'Input: image and registration matrix\nOutput: registered image'
         item.setEditable(False)
-        item.setData({'name': 'registration_alignment_image', 'description': description, 'input_types': ['image', 'matrix'], 'output_types': ['image'], 'conflicting_modules': ['registration_image','registration_alignment_image', 'registration_alignment_mask']}, Qt.UserRole+1)
+        item.setData({'name': 'registration_alignment_image', 'description': description, 'input_types': ['image', 'matrix'], 'output_types': ['image'], 'conflicting_modules': ['registration_image', 'registration_alignment_image', 'registration_alignment_mask']}, Qt.UserRole+1)
         item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
         item = QStandardItem('Registration (alignment)')
         description = 'Input: mask and registration matrix\nOutput: registered mask'
         item.setEditable(False)
-        item.setData({'name': 'registration_alignment_mask', 'description': description, 'input_types': ['mask', 'matrix'], 'output_types': ['mask'], 'conflicting_modules': ['registration_image','registration_alignment_image', 'registration_alignment_mask']}, Qt.UserRole+1)
+        item.setData({'name': 'registration_alignment_mask', 'description': description, 'input_types': ['mask', 'matrix'], 'output_types': ['mask'], 'conflicting_modules': ['registration_image', 'registration_alignment_image', 'registration_alignment_mask']}, Qt.UserRole+1)
         item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())

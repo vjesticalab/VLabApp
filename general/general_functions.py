@@ -5,8 +5,8 @@ import nd2
 import re
 from aicsimageio.readers import OmeTiffReader
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
-from PyQt5.QtGui import QPalette, QBrush, QKeySequence, QPainter, QFontMetrics, QDesktopServices, QTextDocument
-from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QTabWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem, QDialog, QShortcut
+from PyQt5.QtGui import QBrush, QKeySequence, QPainter, QFontMetrics, QDesktopServices, QTextDocument
+from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem, QDialog, QShortcut
 
 import logging
 import igraph as ig
@@ -123,19 +123,19 @@ class CollapsibleLabel(QLabel):
     def elide_text(self, text):
         metrics = QFontMetrics(self.font())
         if self.collapsed:
-            #keep only first line (we force Rich Text format => split at <br>, <p>, <div>, <h1> ... or <h6>)
+            # keep only first line (we force Rich Text format => split at <br>, <p>, <div>, <h1> ... or <h6>)
             elided = re.split(r'(<br>|<p>|<div>|<h[1-6]>)', text)[0]
-            #convert to plain text to avoid problem with text length and html tags
+            # convert to plain text to avoid problem with text length and html tags
             document = QTextDocument()
             document.setHtml(elided)
-            elided=document.toPlainText()
+            elided = document.toPlainText()
             elided = metrics.elidedText(elided, Qt.ElideRight, self.width()-metrics.boundingRect('... [show more]').width())
             if elided != text:
                 elided += ' <a href="_EXPAND_">[show more]</a>'
         else:
-            #keep only first line (we force Rich Text format => split at <br>, <p>, <div>, <h1> ... or <h6>)
+            # keep only first line (we force Rich Text format => split at <br>, <p>, <div>, <h1> ... or <h6>)
             elided = re.split(r'(<br>|<p>|<div>|<h[1-6]>)', text)[0]
-            elided = metrics.elidedText(elided, Qt.ElideRight,self.width())
+            elided = metrics.elidedText(elided, Qt.ElideRight, self.width())
             if elided != text:
                 elided = text+'<br><a href="_COLLAPSE_">[show less]</a>'
         return elided
@@ -1042,19 +1042,8 @@ class DropFolderLineEdit(QLineEdit):
             painter.end()
 
 
-class TabWizard(QTabWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.tabBar().installEventFilter(self)
-
-    def addPage(self, page, title):
-        if not isinstance(page, Page):
-            raise TypeError(f"{page} must be Page object")
-        self.addTab(page, title)
-
-
 class Page(QWidget):
-    def __init__(self, parent=None, widget=None, add_stretch=True):
+    def __init__(self, parent=None, widget=None):
         super().__init__(parent)
         self.container = QWidget()
         lay = QVBoxLayout(self)
@@ -1062,16 +1051,13 @@ class Page(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(self.container)
-        scroll.setBackgroundRole(QPalette.Base)
-        scroll.setFrameShape(QFrame.NoFrame)
         lay.addWidget(scroll)
 
         if widget:
             layout = QVBoxLayout(self.container)
             layout.setContentsMargins(0, 0, 0, 0)
             layout.addWidget(widget)
-            if add_stretch:
-                layout.addStretch()
+            layout.addStretch()
 
 
 class Image:

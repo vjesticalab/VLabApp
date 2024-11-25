@@ -16,7 +16,7 @@ class zProjection(QWidget):
         self.pipeline_layout = pipeline_layout
 
         # Documentation
-        label_documentation = gf.CollapsibleLabel('',collapsed=True)
+        label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('For each input image,  perform a z-stack projection and save the z-projected image.<br>' +
                                     'Input images must have X, Y and Z axes and can optionally have C and/or T axes.<br><br>' +
                                     'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')

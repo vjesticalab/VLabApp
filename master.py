@@ -1,9 +1,11 @@
 import os
 import sys
 import logging
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit
+import multiprocessing as mp
+from functools import partial
+from PyQt5.QtCore import Qt, QSize, QTimer
+from PyQt5.QtGui import QPixmap, QIcon, QFontMetrics
+from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QTreeWidget, QAbstractItemView, QSplitter, QStackedWidget, QTreeWidgetItem, QTreeWidgetItemIterator
 
 from modules.registration_module import registration
 from modules.zprojection_module import zprojection
@@ -16,21 +18,6 @@ from modules.viewer_module import viewer
 from modules.file_organization_module import file_organization
 from modules.pipeline_module import pipeline
 from general import general_functions as gf
-import multiprocessing as mp
-
-
-class Tools(QWidget):
-    def __init__(self):
-        super().__init__()
-
-        self.window = QVBoxLayout(self)
-        tabwizard = gf.TabWizard()
-        self.window.addWidget(tabwizard)
-        tabwizard.addPage(gf.Page(widget=viewer.ImageMaskGraphViewer()), "View image, masks and/or graph")
-        tabwizard.addPage(gf.Page(widget=viewer.RegistrationViewer()), "View registration matrix")
-        tabwizard.addPage(gf.Page(widget=viewer.MetadataViewer(), add_stretch=False), "View metadata")
-        tabwizard.addPage(gf.Page(widget=file_organization.FileOrganization()), "File organization")
-        tabwizard.addPage(gf.Page(widget=ground_truth_generator.GroundTruthGenerator()), "Ground truth generator")
 
 
 class MainWindow(QWidget):
@@ -44,18 +31,121 @@ class MainWindow(QWidget):
         self.image = QLabel()
         self.image.setPixmap(QPixmap("support_files/Vlab_icon_50x50-01.png"))
         self.image.setAlignment(Qt.AlignCenter)
-        window.addWidget(self.image)
-        tabwizard = gf.TabWizard()
-        window.addWidget(tabwizard)
 
-        tabwizard.addPage(gf.Page(widget=registration.Registration(), add_stretch=False), "Registration")
-        tabwizard.addPage(gf.Page(widget=zprojection.zProjection()), "Z-Projection")
-        tabwizard.addPage(gf.Page(widget=segmentation.Segmentation()), "Segmentation")
-        tabwizard.addPage(gf.Page(widget=cell_tracking.CellTracking()), "Cell tracking")
-        tabwizard.addPage(gf.Page(widget=graph_filtering.GraphFiltering()), "Graph filtering")
-        tabwizard.addPage(gf.Page(widget=events_filter.GraphEventFilter()), "Events filter")
-        tabwizard.addPage(gf.Page(widget=pipeline.Pipeline()), "Pipeline")
-        tabwizard.addPage(gf.Page(widget=Tools(), add_stretch=False), "Tools")
+        self.module_list = QTreeWidget()
+        self.module_list.setColumnCount(1)
+        self.module_list.setSortingEnabled(False)
+        self.module_list.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.module_list.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
+        self.module_list.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.module_list.setHeaderHidden(True)
+
+        self.right_panel = QStackedWidget()
+
+        splitter = QSplitter()
+        self.left_panel = QWidget()
+        self.left_panel.setLayout(QVBoxLayout())
+        self.left_panel.layout().setContentsMargins(0, 0, 0, 0)
+        if not self.image.pixmap().isNull():
+            self.left_panel.layout().addWidget(self.image)
+        self.left_panel.layout().addWidget(self.module_list)
+        splitter.addWidget(self.left_panel)
+        splitter.addWidget(self.right_panel)
+        splitter.setCollapsible(1, False)
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 5)
+        window.addWidget(splitter)
+
+        item = QTreeWidgetItem(self.module_list, ["Registration"])
+        item.setData(0, Qt.UserRole, self.right_panel.count())
+        item.setFlags(item.flags() & ~Qt.ItemIsSelectable)
+        self.right_panel.addWidget(gf.Page(widget=QWidget()))
+
+        subitem = QTreeWidgetItem(item, ["Registration"])
+        subitem.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=registration.Perform()))
+
+        subitem = QTreeWidgetItem(item, ["Alignment"])
+        subitem.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=registration.Align()))
+
+        subitem = QTreeWidgetItem(item, ["Editing (batch)"])
+        subitem.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=registration.Edit()))
+
+        subitem = QTreeWidgetItem(item, ["Editing (manual)"])
+        subitem.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=registration.ManualEdit()))
+
+        item = QTreeWidgetItem(self.module_list, ["Z-Projection"])
+        item.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=zprojection.zProjection()))
+
+        item = QTreeWidgetItem(self.module_list, ["Segmentation"])
+        item.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=segmentation.Segmentation()))
+
+        item = QTreeWidgetItem(self.module_list, ["Cell tracking"])
+        item.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=cell_tracking.CellTracking()))
+
+        item = QTreeWidgetItem(self.module_list, ["Graph filtering"])
+        item.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=graph_filtering.GraphFiltering()))
+
+        item = QTreeWidgetItem(self.module_list, ["Events filter"])
+        item.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=events_filter.GraphEventFilter()))
+
+        item = QTreeWidgetItem(self.module_list, ["Pipeline"])
+        item.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=pipeline.Pipeline()))
+
+        item = QTreeWidgetItem(self.module_list, ["Tools"])
+        item.setData(0, Qt.UserRole, self.right_panel.count())
+        item.setFlags(item.flags() & ~Qt.ItemIsSelectable)
+        self.right_panel.addWidget(gf.Page(widget=QWidget()))
+
+        subitem = QTreeWidgetItem(item, ["View image, mask and graph"])
+        subitem.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=viewer.ImageMaskGraphViewer()))
+
+        subitem = QTreeWidgetItem(item, ["View registration matrix"])
+        subitem.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=viewer.RegistrationViewer()))
+
+        subitem = QTreeWidgetItem(item, ["View metadata"])
+        subitem.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=viewer.MetadataViewer()))
+
+        subitem = QTreeWidgetItem(item, ["File organization"])
+        subitem.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=file_organization.FileOrganization()))
+
+        subitem = QTreeWidgetItem(item, ["Ground truth generator"])
+        subitem.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=ground_truth_generator.GroundTruthGenerator()))
+
+        w = self.module_list.sizeHintForColumn(0)
+        h = round(1.5*self.module_list.sizeHintForRow(0))
+        max_text_width = 0
+        font_metric = QFontMetrics(self.module_list.font())
+        iterator = QTreeWidgetItemIterator(self.module_list)
+        while iterator.value():
+            item = iterator.value()
+            text = item.text(0)
+            item.setSizeHint(0, QSize(w, h))
+            level = 1
+            parent = item.parent()
+            while parent:
+                level += 1
+                parent = parent.parent()
+            max_text_width = max(max_text_width, font_metric.boundingRect(text).width()+level*self.module_list.indentation())
+            iterator += 1
+        self.module_list.setMinimumWidth(max_text_width+15)
+
+        self.module_list.currentItemChanged.connect(self.module_list_current_item_changed)
+        self.module_list.setCurrentItem(self.module_list.topLevelItem(0))
 
         layout = QHBoxLayout()
         self.status_line = QLineEdit()
@@ -87,6 +177,13 @@ class MainWindow(QWidget):
         self.qmessagebox_handler.name = 'messagebox_error_handler'
         logging.getLogger().addHandler(self.qmessagebox_handler)
 
+    def module_list_current_item_changed(self, current, previous):
+        self.right_panel.setCurrentIndex(current.data(0, Qt.UserRole))
+        if current.childCount():
+            current.setExpanded(True)
+            self.module_list.setCurrentItem(current.child(0))
+            QTimer.singleShot(0, partial(self.module_list.setCurrentItem, current.child(0)))
+
     def __del__(self):
         # Remove handler to avoid problems after self and self.status_line are destroyed
         logging.getLogger().removeHandler(self.qlabel_handler)
@@ -105,5 +202,5 @@ if __name__ == "__main__":
     app.setWindowIcon(QIcon('support_files/Vlab_icon_50x50-01.png'))
     w = MainWindow()
     w.show()
-    w.resize(900, 800)
+    w.resize(1000, 800)
     sys.exit(app.exec_())

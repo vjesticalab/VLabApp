@@ -23,9 +23,8 @@ class Perform(QWidget):
 
         self.pipeline_layout = pipeline_layout
 
-        ####### Section Registration #######
         # Documentation
-        label_documentation = gf.CollapsibleLabel('',collapsed=True)
+        label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('For each input image, estimate the shift between consecutive time frames, apply the resulting transformation matrix to the input image. Save the transformation matrix and the registered image.<br>' +
                                     'Input images must have X, Y and T axes. Images with additional Z and/or C axis are supported (Z axis will be projected and only the chosen channel will be selected before evaluating the transformation).<br><br>' +
                                     'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
@@ -546,9 +545,8 @@ class Align(QWidget):
 
         self.pipeline_layout = pipeline_layout
 
-        ####### Section Alignment #######
         # Documentation
-        label_documentation = gf.CollapsibleLabel('',collapsed=True)
+        label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('For each input image, load a pre-existing transformation matrix, apply the transformation matrix to the input image and save the resulting registered image.<br>' +
                                     'The transformation matrix must be in the same folder as the input image. Matching between image and transformation matrix is based on the unique identifier, i.e. part of the filename before the first \"_\".<br>' +
                                     'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
@@ -750,8 +748,7 @@ class Edit(QWidget):
 
         self.output_suffix = gf.output_suffixes['registration']
 
-        ####### Section Editing #######
-        label_documentation = gf.CollapsibleLabel('',collapsed=True)
+        label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('Modify the start and end point of existing transformation matrices.<br>' +
                                     'To visualize a matrix, double click on its filename in the list')
         self.matrices_list = gf.FileListWidget(filetypes=gf.matrixtypes, filenames_filter=self.output_suffix)
@@ -840,8 +837,7 @@ class ManualEdit(QWidget):
     def __init__(self):
         super().__init__()
 
-        ####### Section Manual Editing #######
-        label_documentation = gf.CollapsibleLabel('',collapsed=True)
+        label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('View and modify an existing transformation matrix in <a href="https://napari.org">napari</a>.<br>' +
                                     'Important: select an image that has not been registered.<br>' +
                                     'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
@@ -962,21 +958,6 @@ class ManualEdit(QWidget):
             self.logger.exception('Manual editing failed')
 
         self.logger.info("Done")
-
-
-class Registration(QWidget):
-    def __init__(self):
-        super().__init__()
-
-        window = QVBoxLayout(self)
-        tabwizard = gf.TabWizard()
-
-        tabwizard.addPage(gf.Page(widget=Perform()), "Registration")
-        tabwizard.addPage(gf.Page(widget=Align()), "Alignment")
-        tabwizard.addPage(gf.Page(widget=Edit()), "Editing (batch)")
-        tabwizard.addPage(gf.Page(widget=ManualEdit()), "Editing (manual)")
-
-        window.addWidget(tabwizard)
 
 
 class DisplayGraphWindow(QWidget):

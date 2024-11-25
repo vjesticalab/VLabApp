@@ -319,7 +319,7 @@ class GeneralSettings(QWidget):
         self.setLayout(layout)
 
         # Documentation
-        label_documentation = gf.CollapsibleLabel('',collapsed=True)
+        label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('General settings for the pipeline.<br>' +
                                     'Input files options will change to match the requirements of the connected module.')
 

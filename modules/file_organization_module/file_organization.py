@@ -133,7 +133,7 @@ class FileOrganization(QWidget):
         super().__init__()
 
         # Documentation
-        label_documentation = gf.CollapsibleLabel('',collapsed=True)
+        label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('For each input folder, selected files types can be exported (i.e. moved or copied) to the specified directory or removed.')
 
         # Input folders
