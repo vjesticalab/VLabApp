@@ -24,6 +24,7 @@
 * Cell tracking and graph filtering modules: quit if a napari window is already open to avoid potential problems with logfiles.
 * Cell tracking and graph filtering modules: restore default status bar info after displaying logging information to napari status bar.
 * Registration module: set maximum for time point range to 1000 (instead of 100).
+* Events filter module: fix "Attribute does not exist" error.
 
 
 

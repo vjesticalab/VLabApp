@@ -168,11 +168,10 @@ def event_filter(mask, graph, event, timecorrection, magn_image, tp_before, tp_a
                     writer.writerow([min(tp_to_check), real_event_tp, max(tp_to_check), ids_before, ids_after])
                     events_list.append((min(tp_to_check), real_event_tp, max(tp_to_check), ids_before, ids_after))
 
-    
-    subgraph_vs = (graph.vs(id=v['id'])[0].index for v in events_vertices)
+    subgraph_vs = (graph.vs(frame=v['frame'],mask_id=v['mask_id'])[0].index for v in events_vertices)
     events_graph = graph.subgraph(subgraph_vs)
     ## TODO : MODIFY THIS GRAPH WITH THE NEW TIMEPOINTS
-    
+
     # Save the mask with the detected events
     events_mask = events_mask.astype(mask.dtype)
     events_mask = events_mask[:, np.newaxis, : ,:]
