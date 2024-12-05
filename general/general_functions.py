@@ -1396,7 +1396,8 @@ def load_cell_tracking_graph(graph_path, mask_dtype):
     graph.es['mask_id_source'] = np.array(graph.es['mask_id_source'], dtype=mask_dtype)
     graph.es['mask_id_target'] = np.array(graph.es['mask_id_target'], dtype=mask_dtype)
     # Remove useless attribute
-    del graph.vs['id']
+    # TODO: uncomment next line, and adapt creation of subgraph_vs in modules/events_filter_module/events_filter_functions.py.
+    #del graph.vs['id']
 
     return graph
 
