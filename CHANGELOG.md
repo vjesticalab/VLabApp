@@ -12,6 +12,8 @@
 
 ### Removed
 
+* Remove fusion_correction_module.
+
 ### Fixed
 
 * Registration module, Editing (manual): guess image (resp. matrix) path based on the matrix (resp. image) path.
