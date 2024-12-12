@@ -632,167 +632,173 @@ def main(image_BF_path, image_fluo1_path, image_fluo2_path, image_mask_path, out
 
     """
 
-    # Setup logging to file in output_path
-    logger = logging.getLogger(__name__)
-    logger.info("GROUND TRUTH MODULE")
-    if not os.path.isdir(output_path):
-        logger.debug("creating: %s", output_path)
-        os.makedirs(output_path)
-
-    # Log to file
-    logfile = os.path.join(output_path, output_basename+".log")
-    logger.setLevel(logging.DEBUG)
-    logger.debug("writing log output to: %s", logfile)
-    logfile_handler = logging.FileHandler(logfile, mode='w')
-    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-    logfile_handler.setLevel(logging.INFO)
-    logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
-    logger.addHandler(logfile_handler)
-    # Also save general.general_functions logger to the same file (to log information on z-projection)
-    logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
-    logging.getLogger('general.general_functions').addHandler(logfile_handler)
-
-    # Log to memory
-    global buffered_handler
-    buffered_handler = gf.BufferedHandler()
-    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - segmentation module) [%(levelname)s] %(message)s'))
-    buffered_handler.setLevel(logging.INFO)
-    buffered_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
-    logger.addHandler(buffered_handler)
-    # Also save general.general_functions logger to the same file (to log information on z-projection)
-    logging.getLogger('general.general_functions').addHandler(buffered_handler)
-
-    logger.info("System info:")
-    logger.info("- platform: %s", platform())
-    logger.info("- python version: %s", python_version())
-    logger.info("- VLabApp version: %s", vlabapp_version)
-    logger.info("- numpy version: %s", np.__version__)
-    logger.info("- opencv version: %s", cv.__version__)
-    logger.info("- napari version: %s", napari.__version__)
-
-    logger.info("Input bright-field image path: %s", image_BF_path)
-    if image_fluo1_path is not None and image_fluo1_path != '':
-        logger.info("Input fluorescent image 1 path: %s", image_fluo1_path)
-    if image_fluo2_path is not None and image_fluo2_path != '':
-        logger.info("Input fluorescent image 2 path: %s", image_fluo2_path)
-    if image_mask_path is not None and image_mask_path != '':
-        logger.info("Input segmentation mask path: %s", image_mask_path)
-    logger.info("Output path: %s", output_path)
-    logger.info("Output basename: %s", output_basename)
-
-    # Load image
-    logger.debug("loading %s", image_BF_path)
     try:
-        image_BF = gf.Image(image_BF_path)
-        image_BF.imread()
+        # Setup logging to file in output_path
+        logger = logging.getLogger(__name__)
+        logger.info("GROUND TRUTH MODULE")
+        if not os.path.isdir(output_path):
+            logger.debug("creating: %s", output_path)
+            os.makedirs(output_path)
+
+        # Log to file
+        logfile = os.path.join(output_path, output_basename+".log")
+        logger.setLevel(logging.DEBUG)
+        logger.debug("writing log output to: %s", logfile)
+        logfile_handler = logging.FileHandler(logfile, mode='w')
+        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        logfile_handler.setLevel(logging.INFO)
+        logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
+        logger.addHandler(logfile_handler)
+        # Also save general.general_functions logger to the same file (to log information on z-projection)
+        logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
+        logging.getLogger('general.general_functions').addHandler(logfile_handler)
+
+        # Log to memory
+        global buffered_handler
+        buffered_handler = gf.BufferedHandler()
+        buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - segmentation module) [%(levelname)s] %(message)s'))
+        buffered_handler.setLevel(logging.INFO)
+        buffered_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
+        logger.addHandler(buffered_handler)
+        # Also save general.general_functions logger to the same file (to log information on z-projection)
+        logging.getLogger('general.general_functions').addHandler(buffered_handler)
+
+        logger.info("System info:")
+        logger.info("- platform: %s", platform())
+        logger.info("- python version: %s", python_version())
+        logger.info("- VLabApp version: %s", vlabapp_version)
+        logger.info("- numpy version: %s", np.__version__)
+        logger.info("- opencv version: %s", cv.__version__)
+        logger.info("- napari version: %s", napari.__version__)
+
+        logger.info("Input bright-field image path: %s", image_BF_path)
+        if image_fluo1_path is not None and image_fluo1_path != '':
+            logger.info("Input fluorescent image 1 path: %s", image_fluo1_path)
+        if image_fluo2_path is not None and image_fluo2_path != '':
+            logger.info("Input fluorescent image 2 path: %s", image_fluo2_path)
+        if image_mask_path is not None and image_mask_path != '':
+            logger.info("Input segmentation mask path: %s", image_mask_path)
+        logger.info("Output path: %s", output_path)
+        logger.info("Output basename: %s", output_basename)
+
+        # Load image
+        logger.debug("loading %s", image_BF_path)
+        try:
+            image_BF = gf.Image(image_BF_path)
+            image_BF.imread()
+        except Exception:
+            logging.getLogger(__name__).exception('Error loading image %s', image_BF_path)
+            # stop using logfile
+            remove_all_log_handlers()
+            raise
+
+        if image_fluo1_path is not None and image_fluo1_path != '':
+            logger.debug("loading %s", image_fluo1_path)
+            try:
+                image_fluo1 = gf.Image(image_fluo1_path)
+                image_fluo1.imread()
+            except Exception:
+                logging.getLogger(__name__).exception('Error loading image %s', image_fluo1_path)
+                # stop using logfile
+                remove_all_log_handlers()
+                raise
+        else:
+            image_fluo1 = None
+
+        if image_fluo2_path is not None and image_fluo2_path != '':
+            logger.debug("loading %s", image_fluo2_path)
+            try:
+                image_fluo2 = gf.Image(image_fluo2_path)
+                image_fluo2.imread()
+            except Exception:
+                logging.getLogger(__name__).exception('Error loading image %s', image_fluo2_path)
+                # stop using logfile
+                remove_all_log_handlers()
+                raise
+        else:
+            image_fluo2 = None
+
+        if image_mask_path is not None and image_mask_path != '':
+            logger.debug("loading %s", image_mask_path)
+            try:
+                image_mask = gf.Image(image_mask_path)
+                image_mask.imread()
+            except Exception:
+                logging.getLogger(__name__).exception('Error loading image %s', image_mask_path)
+                # stop using logfile
+                remove_all_log_handlers()
+                raise
+        else:
+            image_mask = None
+
+        # Check images sizes
+        if not (image_BF.sizes['F'] == 1 and image_BF.sizes['C'] == 1 and image_BF.sizes['Y'] > 1 and image_BF.sizes['X'] > 1):
+            logger.error('Invalid image:\n %s\n\nImage must have X and Y axes and can optionally have T or Z axis.', image_BF_path)
+            # Close logfile
+            remove_all_log_handlers()
+            raise TypeError(f"Invalid image:\n {image_BF_path}\nImage must have X and Y axes and can optionally have T or Z axis.")
+        if image_fluo1 is not None:
+            if not (image_fluo1.sizes['F'] == 1 and image_fluo1.sizes['C'] == 1 and image_fluo1.sizes['Y'] > 1 and image_fluo1.sizes['X'] > 1):
+                logger.error('Invalid image:\n %s\n\nImage must have X and Y axes and can optionally have T or Z axis.', image_fluo1_path)
+                # Close logfile
+                remove_all_log_handlers()
+                raise TypeError(f"Invalid image:\n {image_fluo1_path}\nImage must have X and Y axes and can optionally have T or Z axis.")
+            if not (image_fluo1.sizes['T'] == image_BF.sizes['T'] and image_fluo1.sizes['Z'] == image_BF.sizes['Z'] and image_fluo1.sizes['Y'] == image_BF.sizes['Y'] and image_fluo1.sizes['X'] == image_BF.sizes['X']):
+                logger.error('Images must have same X, Y, Z and T axis sizes:\n %s\n %s', image_BF_path, image_fluo1_path)
+                # Close logfile
+                remove_all_log_handlers()
+                raise TypeError(f"Images must have same X, Y, Z and T axis sizes:\n {image_BF_path}\n{image_fluo1_path}")
+        if image_fluo2 is not None:
+            if not (image_fluo2.sizes['F'] == 1 and image_fluo2.sizes['C'] == 1 and image_fluo2.sizes['Y'] > 1 and image_fluo2.sizes['X'] > 1):
+                logger.error('Invalid image:\n %s\n\nImage must have X and Y axes and can optionally have T or Z axis.', image_fluo2_path)
+                # Close logfile
+                remove_all_log_handlers()
+                raise TypeError(f"Invalid image:\n {image_fluo2_path}\nImage must have X and Y axes and can optionally have T or Z axis.")
+            if not (image_fluo2.sizes['T'] == image_BF.sizes['T'] and image_fluo2.sizes['Z'] == image_BF.sizes['Z'] and image_fluo2.sizes['Y'] == image_BF.sizes['Y'] and image_fluo2.sizes['X'] == image_BF.sizes['X']):
+                logger.error('Images must have same X, Y, Z and T axis sizes:\n %s\n %s', image_BF_path, image_fluo2_path)
+                # Close logfile
+                remove_all_log_handlers()
+                raise TypeError(f"Images must have same X, Y, Z and T axis sizes:\n {image_BF_path}\n{image_fluo2_path}")
+        if image_mask is not None:
+            if not (image_mask.sizes['F'] == 1 and image_mask.sizes['C'] == 1 and image_mask.sizes['Z'] == 1 and image_mask.sizes['Y'] > 1 and image_mask.sizes['X'] > 1):
+                logger.error('Invalid image:\n %s\n\nSegmentation mask must have X and Y axes and can optionally have T axis.', image_mask_path)
+                # Close logfile
+                remove_all_log_handlers()
+                raise TypeError(f"Invalid image:\n {image_mask_path}\nImage must have X and Y axes and can optionally have T or Z axis.")
+            if not (image_mask.sizes['T'] == image_BF.sizes['T'] and image_mask.sizes['Y'] == image_BF.sizes['Y'] and image_mask.sizes['X'] == image_BF.sizes['X']):
+                logger.error('Segmentation mask and bright-field image must have same X, Y and T axis sizes:\n %s\n %s', image_BF_path, image_mask_path)
+                # Close logfile
+                remove_all_log_handlers()
+                raise TypeError(f"Segmentation mask and bright-field image must have same X, Y and T axis sizes:\n {image_BF_path}\n{image_mask_path}")
+
+        # open a modal napari window to avoid multiple windows, with competing logging to file.
+        # TODO: find a better solution to open a modal napari window.
+        global viewer
+        viewer = napari.Viewer(show=False, title=image_BF_path)
+        viewer.window._qt_window.setWindowModality(Qt.ApplicationModal)
+        viewer.show()
+
+        viewer.add_image(image_BF.image, channel_axis=2, name='Bright-field', colormap='gray')
+        if image_fluo1 is not None:
+            viewer.add_image(image_fluo1.image, channel_axis=2, name='Cell marker 1', colormap='magenta', blending='additive')
+        if image_fluo2 is not None:
+            viewer.add_image(image_fluo2.image, channel_axis=2, name='Cell marker 2', colormap='yellow', blending='additive')
+        if image_mask is not None:
+            mask = image_mask.get_TYXarray()
+            # broadcast mask to FTZYX, with broadcastedd axis containing shallow copies (C axis is used as channel_axis)
+            tmp = np.broadcast_to(mask[np.newaxis, :, np.newaxis, :, :], (image_BF.shape[0], image_BF.shape[1], image_BF.shape[3], image_BF.shape[4], image_BF.shape[5]))
+            # the resulting tmp is read only. To make it writeable:
+            tmp.flags['WRITEABLE'] = True
+            viewer.add_labels(tmp, name='Mask')
+        viewer.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
+
+        # Add CellTrackingWidget to napari
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(GroundTruthWidget(image_BF, image_fluo1, image_fluo2, image_mask, viewer, output_path, output_basename))
+        viewer.window.add_dock_widget(scroll_area, area='right', name="Ground truth")
+
     except Exception:
-        logging.getLogger(__name__).exception('Error loading image %s', image_BF_path)
-        # stop using logfile
+        # Remove all handlers for this module
         remove_all_log_handlers()
         raise
-
-    if image_fluo1_path is not None and image_fluo1_path != '':
-        logger.debug("loading %s", image_fluo1_path)
-        try:
-            image_fluo1 = gf.Image(image_fluo1_path)
-            image_fluo1.imread()
-        except Exception:
-            logging.getLogger(__name__).exception('Error loading image %s', image_fluo1_path)
-            # stop using logfile
-            remove_all_log_handlers()
-            raise
-    else:
-        image_fluo1 = None
-
-    if image_fluo2_path is not None and image_fluo2_path != '':
-        logger.debug("loading %s", image_fluo2_path)
-        try:
-            image_fluo2 = gf.Image(image_fluo2_path)
-            image_fluo2.imread()
-        except Exception:
-            logging.getLogger(__name__).exception('Error loading image %s', image_fluo2_path)
-            # stop using logfile
-            remove_all_log_handlers()
-            raise
-    else:
-        image_fluo2 = None
-
-    if image_mask_path is not None and image_mask_path != '':
-        logger.debug("loading %s", image_mask_path)
-        try:
-            image_mask = gf.Image(image_mask_path)
-            image_mask.imread()
-        except Exception:
-            logging.getLogger(__name__).exception('Error loading image %s', image_mask_path)
-            # stop using logfile
-            remove_all_log_handlers()
-            raise
-    else:
-        image_mask = None
-
-    # Check images sizes
-    if not (image_BF.sizes['F'] == 1 and image_BF.sizes['C'] == 1 and image_BF.sizes['Y'] > 1 and image_BF.sizes['X'] > 1):
-        logger.error('Invalid image:\n %s\n\nImage must have X and Y axes and can optionally have T or Z axis.', image_BF_path)
-        # Close logfile
-        remove_all_log_handlers()
-        raise TypeError(f"Invalid image:\n {image_BF_path}\nImage must have X and Y axes and can optionally have T or Z axis.")
-    if image_fluo1 is not None:
-        if not (image_fluo1.sizes['F'] == 1 and image_fluo1.sizes['C'] == 1 and image_fluo1.sizes['Y'] > 1 and image_fluo1.sizes['X'] > 1):
-            logger.error('Invalid image:\n %s\n\nImage must have X and Y axes and can optionally have T or Z axis.', image_fluo1_path)
-            # Close logfile
-            remove_all_log_handlers()
-            raise TypeError(f"Invalid image:\n {image_fluo1_path}\nImage must have X and Y axes and can optionally have T or Z axis.")
-        if not (image_fluo1.sizes['T'] == image_BF.sizes['T'] and image_fluo1.sizes['Z'] == image_BF.sizes['Z'] and image_fluo1.sizes['Y'] == image_BF.sizes['Y'] and image_fluo1.sizes['X'] == image_BF.sizes['X']):
-            logger.error('Images must have same X, Y, Z and T axis sizes:\n %s\n %s', image_BF_path, image_fluo1_path)
-            # Close logfile
-            remove_all_log_handlers()
-            raise TypeError(f"Images must have same X, Y, Z and T axis sizes:\n {image_BF_path}\n{image_fluo1_path}")
-    if image_fluo2 is not None:
-        if not (image_fluo2.sizes['F'] == 1 and image_fluo2.sizes['C'] == 1 and image_fluo2.sizes['Y'] > 1 and image_fluo2.sizes['X'] > 1):
-            logger.error('Invalid image:\n %s\n\nImage must have X and Y axes and can optionally have T or Z axis.', image_fluo2_path)
-            # Close logfile
-            remove_all_log_handlers()
-            raise TypeError(f"Invalid image:\n {image_fluo2_path}\nImage must have X and Y axes and can optionally have T or Z axis.")
-        if not (image_fluo2.sizes['T'] == image_BF.sizes['T'] and image_fluo2.sizes['Z'] == image_BF.sizes['Z'] and image_fluo2.sizes['Y'] == image_BF.sizes['Y'] and image_fluo2.sizes['X'] == image_BF.sizes['X']):
-            logger.error('Images must have same X, Y, Z and T axis sizes:\n %s\n %s', image_BF_path, image_fluo2_path)
-            # Close logfile
-            remove_all_log_handlers()
-            raise TypeError(f"Images must have same X, Y, Z and T axis sizes:\n {image_BF_path}\n{image_fluo2_path}")
-    if image_mask is not None:
-        if not (image_mask.sizes['F'] == 1 and image_mask.sizes['C'] == 1 and image_mask.sizes['Z'] == 1 and image_mask.sizes['Y'] > 1 and image_mask.sizes['X'] > 1):
-            logger.error('Invalid image:\n %s\n\nSegmentation mask must have X and Y axes and can optionally have T axis.', image_mask_path)
-            # Close logfile
-            remove_all_log_handlers()
-            raise TypeError(f"Invalid image:\n {image_mask_path}\nImage must have X and Y axes and can optionally have T or Z axis.")
-        if not (image_mask.sizes['T'] == image_BF.sizes['T'] and image_mask.sizes['Y'] == image_BF.sizes['Y'] and image_mask.sizes['X'] == image_BF.sizes['X']):
-            logger.error('Segmentation mask and bright-field image must have same X, Y and T axis sizes:\n %s\n %s', image_BF_path, image_mask_path)
-            # Close logfile
-            remove_all_log_handlers()
-            raise TypeError(f"Segmentation mask and bright-field image must have same X, Y and T axis sizes:\n {image_BF_path}\n{image_mask_path}")
-
-    # open a modal napari window to avoid multiple windows, with competing logging to file.
-    # TODO: find a better solution to open a modal napari window.
-    global viewer
-    viewer = napari.Viewer(show=False, title=image_BF_path)
-    viewer.window._qt_window.setWindowModality(Qt.ApplicationModal)
-    viewer.show()
-
-    viewer.add_image(image_BF.image, channel_axis=2, name='Bright-field', colormap='gray')
-    if image_fluo1 is not None:
-        viewer.add_image(image_fluo1.image, channel_axis=2, name='Cell marker 1', colormap='magenta', blending='additive')
-    if image_fluo2 is not None:
-        viewer.add_image(image_fluo2.image, channel_axis=2, name='Cell marker 2', colormap='yellow', blending='additive')
-    if image_mask is not None:
-        mask = image_mask.get_TYXarray()
-        # broadcast mask to FTZYX, with broadcastedd axis containing shallow copies (C axis is used as channel_axis)
-        tmp = np.broadcast_to(mask[np.newaxis, :, np.newaxis, :, :], (image_BF.shape[0], image_BF.shape[1], image_BF.shape[3], image_BF.shape[4], image_BF.shape[5]))
-        # the resulting tmp is read only. To make it writeable:
-        tmp.flags['WRITEABLE'] = True
-        viewer.add_labels(tmp, name='Mask')
-    viewer.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
-
-    # Add CellTrackingWidget to napari
-    scroll_area = QScrollArea()
-    scroll_area.setWidgetResizable(True)
-    scroll_area.setWidget(GroundTruthWidget(image_BF, image_fluo1, image_fluo2, image_mask, viewer, output_path, output_basename))
-    viewer.window.add_dock_widget(scroll_area, area='right', name="Ground truth")

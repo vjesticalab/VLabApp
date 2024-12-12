@@ -14,6 +14,12 @@ from ome_types.model import CommentAnnotation
 from version import __version__ as vlabapp_version
 
 
+def remove_all_log_handlers():
+    # remove all handlers for this module
+    while len(logging.getLogger(__name__).handlers) > 0:
+        logging.getLogger(__name__).removeHandler(logging.getLogger(__name__).handlers[0])
+
+
 def simplify_graph(g):
     """
     Simplify graph by contracting chains of vertices with indegree=1 and outdegree=1.
@@ -1027,14 +1033,12 @@ class GraphFilteringWidget(QWidget):
                 if save == QMessageBox.Yes:
                     self.save(closing=True)
         # Remove all handlers for this module
-        while len(self.logger.handlers) > 0:
-            self.logger.removeHandler(self.logger.handlers[0])
+        remove_all_log_handlers()
         self.logger.debug("Done")
 
     def __del__(self):
         # Remove all handlers for this module
-        while len(self.logger.handlers) > 0:
-            self.logger.removeHandler(self.logger.handlers[0])
+        remove_all_log_handlers()
         self.logger.debug("Done")
 
 
@@ -1080,187 +1084,190 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
     if napari.current_viewer():
         raise RuntimeError('To avoid potential logging corruption, close all napari windows and try again.')
 
-    ###########################
-    # Setup logging
-    ###########################
-    logger = logging.getLogger(__name__)
-    logger.info("GRAPH FILTERING MODULE")
-    if not os.path.isdir(output_path):
-        logger.debug("creating: %s", output_path)
-        os.makedirs(output_path)
+    try:
+        ###########################
+        # Setup logging
+        ###########################
+        logger = logging.getLogger(__name__)
+        logger.info("GRAPH FILTERING MODULE")
+        if not os.path.isdir(output_path):
+            logger.debug("creating: %s", output_path)
+            os.makedirs(output_path)
 
-    # Log to file
-    logfile = os.path.join(output_path, output_basename+".log")
-    logger.setLevel(logging.DEBUG)
-    logger.debug("writing log output to: %s", logfile)
-    logfile_handler = logging.FileHandler(logfile, mode='w')
-    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-    logfile_handler.setLevel(logging.INFO)
-    logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
-    logger.addHandler(logfile_handler)
+        # Log to file
+        logfile = os.path.join(output_path, output_basename+".log")
+        logger.setLevel(logging.DEBUG)
+        logger.debug("writing log output to: %s", logfile)
+        logfile_handler = logging.FileHandler(logfile, mode='w')
+        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        logfile_handler.setLevel(logging.INFO)
+        logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
+        logger.addHandler(logfile_handler)
 
-    # Log to memory
-    global buffered_handler
-    buffered_handler = gf.BufferedHandler()
-    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - graph filtering module) [%(levelname)s] %(message)s'))
-    buffered_handler.setLevel(logging.INFO)
-    buffered_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
-    logger.addHandler(buffered_handler)
+        # Log to memory
+        global buffered_handler
+        buffered_handler = gf.BufferedHandler()
+        buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - graph filtering module) [%(levelname)s] %(message)s'))
+        buffered_handler.setLevel(logging.INFO)
+        buffered_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
+        logger.addHandler(buffered_handler)
 
-    logger.info("System info:")
-    logger.info("- platform: %s", platform())
-    logger.info("- python version: %s", python_version())
-    logger.info("- VLabApp version: %s", vlabapp_version)
-    logger.info("- numpy version: %s", np.__version__)
-    logger.info("- igraph version: %s", ig.__version__)
-    if display_results:
-        logger.info("- napari version: %s", napari.__version__)
+        logger.info("System info:")
+        logger.info("- platform: %s", platform())
+        logger.info("- python version: %s", python_version())
+        logger.info("- VLabApp version: %s", vlabapp_version)
+        logger.info("- numpy version: %s", np.__version__)
+        logger.info("- igraph version: %s", ig.__version__)
+        if display_results:
+            logger.info("- napari version: %s", napari.__version__)
 
-    if image_path:
-        logger.info("Input image path: %s", image_path)
-    logger.info("Input mask path: %s", mask_path)
-    logger.info("Input graph path: %s", graph_path)
-    logger.info("Output path: %s", output_path)
-    logger.info("Output basename: %s", output_basename)
+        if image_path:
+            logger.info("Input image path: %s", image_path)
+        logger.info("Input mask path: %s", mask_path)
+        logger.info("Input graph path: %s", graph_path)
+        logger.info("Output path: %s", output_path)
+        logger.info("Output basename: %s", output_basename)
 
-    ###########################
-    # Load image, mask and graph
-    ###########################
+        ###########################
+        # Load image, mask and graph
+        ###########################
 
-    # Load image
-    if image_path != '':
-        logger.debug("loading %s", image_path)
+        # Load image
+        if image_path != '':
+            logger.debug("loading %s", image_path)
+            try:
+                image = gf.Image(image_path)
+                image.imread()
+            except Exception:
+                logger.exception('Error loading image %s', image_path)
+                # Remove all handlers for this module
+                remove_all_log_handlers()
+                raise
+
+        # Load mask
+        logger.debug("loading %s", mask_path)
         try:
-            image = gf.Image(image_path)
-            image.imread()
+            mask = gf.Image(mask_path)
+            mask.imread()
         except Exception:
-            logger.exception('Error loading image %s', image_path)
-            # stop using logfile
-            logger.removeHandler(logfile_handler)
-            logger.removeHandler(buffered_handler)
+            logger.exception('Error loading mask %s', mask_path)
+            # Remove all handlers for this module
+            remove_all_log_handlers()
             raise
 
-    # Load mask
-    logger.debug("loading %s", mask_path)
-    try:
-        mask = gf.Image(mask_path)
-        mask.imread()
+        # load mask metadata
+        mask_metadata = []
+        if mask.ome_metadata:
+            for x in mask.ome_metadata.structured_annotations:
+                if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
+                    if len(mask_metadata) == 0:
+                        mask_metadata.append("Metadata for "+mask.path+":\n"+x.value)
+                    else:
+                        mask_metadata.append(x.value)
+
+        # Load graph
+        logger.debug("loading %s", graph_path)
+        graph = gf.load_cell_tracking_graph(graph_path, mask.image.dtype)
+
+        # graph metadata
+        graph_metadata = []
+        for a in graph.attributes():
+            if a.startswith('VLabApp:Annotation'):
+                if len(graph_metadata) == 0:
+                    graph_metadata.append("Metadata for "+graph_path+":\n"+graph[a])
+                else:
+                    graph_metadata.append(graph[a])
+
+        ###########################
+        # filter
+        ###########################
+
+        if display_results:
+            logger.debug("displaying image and mask")
+            viewer_images = napari.Viewer(title=image_path)
+            if image_path != '':
+                viewer_images.add_image(image.get_TYXarray(), name="Image")
+            layer = viewer_images.add_labels(mask.get_TYXarray(), name="Cell mask", visible=False)
+            layer.editable = False
+            # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
+            # This is a quick and dirty hack to force the layer to stay non-editable.
+            layer.events.editable.connect(lambda e: setattr(e.source, 'editable', False))
+            selected_mask_layer = viewer_images.add_labels(mask.get_TYXarray(), name="Selected cell mask")
+            selected_mask_layer.editable = False
+            # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
+            # This is a quick and dirty hack to force the layer to stay non-editable.
+            selected_mask_layer.events.editable.connect(lambda e: setattr(e.source, 'editable', False))
+
+            # add GraphFilteringWidget to napari
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            graph_filtering_widget = GraphFilteringWidget(mask, graph, viewer_images, image_path, output_path, output_basename, graph_topologies=graph_topologies, mask_physical_pixel_sizes=mask.physical_pixel_sizes, mask_channel_names=mask.channel_names, metadata=mask_metadata+graph_metadata)
+            scroll_area.setWidget(graph_filtering_widget)
+            viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
+            if len(filters) > 0:
+                for filter_name, *filter_params in filters:
+                    if filter_name == 'filter_border':
+                        graph_filtering_widget.filter_border_yn.setChecked(True)
+                        graph_filtering_widget.border_width.setValue(filter_params[0])
+                    elif filter_name == 'filter_all_cells_area':
+                        graph_filtering_widget.filter_all_cells_area_yn.setChecked(True)
+                        graph_filtering_widget.all_cells_min_area.setValue(filter_params[0])
+                        graph_filtering_widget.all_cells_max_area.setValue(filter_params[1])
+                    elif filter_name == 'filter_one_cell_area':
+                        graph_filtering_widget.filter_one_cell_area_yn.setChecked(True)
+                        graph_filtering_widget.one_cell_min_area.setValue(filter_params[0])
+                        graph_filtering_widget.one_cell_max_area.setValue(filter_params[1])
+                    elif filter_name == 'filter_track_length':
+                        graph_filtering_widget.filter_track_length_yn.setChecked(True)
+                        graph_filtering_widget.nframes.setValue(min(mask.sizes['T'], filter_params[0]))
+                    elif filter_name == 'filter_n_missing':
+                        graph_filtering_widget.filter_n_missing_yn.setChecked(True)
+                        graph_filtering_widget.nmissing.setValue(filter_params[0])
+                    elif filter_name == 'filter_n_divisions':
+                        graph_filtering_widget.filter_n_divisions_yn.setChecked(True)
+                        graph_filtering_widget.min_ndivisions.setValue(filter_params[0])
+                        graph_filtering_widget.max_ndivisions.setValue(filter_params[1])
+                        graph_filtering_widget.nframes_stable_division.setValue(filter_params[2])
+                    elif filter_name == 'filter_n_fusions':
+                        graph_filtering_widget.filter_n_fusions_yn.setChecked(True)
+                        graph_filtering_widget.min_nfusions.setValue(filter_params[0])
+                        graph_filtering_widget.max_nfusions.setValue(filter_params[1])
+                        graph_filtering_widget.nframes_stable_fusion.setValue(filter_params[2])
+                    elif filter_name == 'filter_topology':
+                        graph_filtering_widget.filter_topology_yn.setChecked(True)
+                        for i in filter_params[0]:
+                            graph_filtering_widget.topology_yn[i].setChecked(True)
+                    else:
+                        logger.error("ignoring unknown filter %s.", filter_name)
+                graph_filtering_widget.filter()
+        else:
+            cell_tracks_filtering = CellTracksFiltering(mask.get_TYXarray(), graph, graph_topologies=graph_topologies, mask_physical_pixel_sizes=mask.physical_pixel_sizes, mask_channel_names=mask.channel_names, metadata=mask_metadata+graph_metadata)
+            if len(filters) > 0:
+                for filter_name, *filter_params in filters:
+                    if filter_name == 'filter_border':
+                        cell_tracks_filtering.filter_border(filter_params[0])
+                    elif filter_name == 'filter_all_cells_area':
+                        cell_tracks_filtering.filter_all_cells_area(filter_params[0], filter_params[1])
+                    elif filter_name == 'filter_one_cell_area':
+                        cell_tracks_filtering.filter_one_cell_area(filter_params[0], filter_params[1])
+                    elif filter_name == 'filter_track_length':
+                        cell_tracks_filtering.filter_track_length(min(mask.sizes['T'], filter_params[0]))
+                    elif filter_name == 'filter_n_missing':
+                        cell_tracks_filtering.filter_n_missing(filter_params[0])
+                    elif filter_name == 'filter_n_divisions':
+                        cell_tracks_filtering.filter_n_divisions(filter_params[0], filter_params[1], filter_params[2], filter_params[3])
+                    elif filter_name == 'filter_n_fusions':
+                        cell_tracks_filtering.filter_n_fusions(filter_params[0], filter_params[1], filter_params[2], filter_params[3])
+                    elif filter_name == 'filter_topology':
+                        cell_tracks_filtering.filter_topology(filter_params[0])
+                    else:
+                        logger.error("ignoring unknown filter %s.", filter_name)
+
+            cell_tracks_filtering.save(output_path, output_basename, relabel_mask_ids=True)
+            # Remove all handlers for this module
+            remove_all_log_handlers()
+
     except Exception:
-        logger.exception('Error loading mask %s', mask_path)
-        # stop using logfile
-        logger.removeHandler(logfile_handler)
-        logger.removeHandler(buffered_handler)
+        # Remove all handlers for this module
+        remove_all_log_handlers()
         raise
-
-    # load mask metadata
-    mask_metadata = []
-    if mask.ome_metadata:
-        for x in mask.ome_metadata.structured_annotations:
-            if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
-                if len(mask_metadata) == 0:
-                    mask_metadata.append("Metadata for "+mask.path+":\n"+x.value)
-                else:
-                    mask_metadata.append(x.value)
-
-    # Load graph
-    logger.debug("loading %s", graph_path)
-    graph = gf.load_cell_tracking_graph(graph_path, mask.image.dtype)
-
-    # graph metadata
-    graph_metadata = []
-    for a in graph.attributes():
-        if a.startswith('VLabApp:Annotation'):
-            if len(graph_metadata) == 0:
-                graph_metadata.append("Metadata for "+graph_path+":\n"+graph[a])
-            else:
-                graph_metadata.append(graph[a])
-
-    ###########################
-    # filter
-    ###########################
-
-    if display_results:
-        logger.debug("displaying image and mask")
-        viewer_images = napari.Viewer(title=image_path)
-        if image_path != '':
-            viewer_images.add_image(image.get_TYXarray(), name="Image")
-        layer = viewer_images.add_labels(mask.get_TYXarray(), name="Cell mask", visible=False)
-        layer.editable = False
-        # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
-        # This is a quick and dirty hack to force the layer to stay non-editable.
-        layer.events.editable.connect(lambda e: setattr(e.source, 'editable', False))
-        selected_mask_layer = viewer_images.add_labels(mask.get_TYXarray(), name="Selected cell mask")
-        selected_mask_layer.editable = False
-        # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
-        # This is a quick and dirty hack to force the layer to stay non-editable.
-        selected_mask_layer.events.editable.connect(lambda e: setattr(e.source, 'editable', False))
-
-        # add GraphFilteringWidget to napari
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        graph_filtering_widget = GraphFilteringWidget(mask, graph, viewer_images, image_path, output_path, output_basename, graph_topologies=graph_topologies, mask_physical_pixel_sizes=mask.physical_pixel_sizes, mask_channel_names=mask.channel_names, metadata=mask_metadata+graph_metadata)
-        scroll_area.setWidget(graph_filtering_widget)
-        viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
-        if len(filters) > 0:
-            for filter_name, *filter_params in filters:
-                if filter_name == 'filter_border':
-                    graph_filtering_widget.filter_border_yn.setChecked(True)
-                    graph_filtering_widget.border_width.setValue(filter_params[0])
-                elif filter_name == 'filter_all_cells_area':
-                    graph_filtering_widget.filter_all_cells_area_yn.setChecked(True)
-                    graph_filtering_widget.all_cells_min_area.setValue(filter_params[0])
-                    graph_filtering_widget.all_cells_max_area.setValue(filter_params[1])
-                elif filter_name == 'filter_one_cell_area':
-                    graph_filtering_widget.filter_one_cell_area_yn.setChecked(True)
-                    graph_filtering_widget.one_cell_min_area.setValue(filter_params[0])
-                    graph_filtering_widget.one_cell_max_area.setValue(filter_params[1])
-                elif filter_name == 'filter_track_length':
-                    graph_filtering_widget.filter_track_length_yn.setChecked(True)
-                    graph_filtering_widget.nframes.setValue(min(mask.sizes['T'], filter_params[0]))
-                elif filter_name == 'filter_n_missing':
-                    graph_filtering_widget.filter_n_missing_yn.setChecked(True)
-                    graph_filtering_widget.nmissing.setValue(filter_params[0])
-                elif filter_name == 'filter_n_divisions':
-                    graph_filtering_widget.filter_n_divisions_yn.setChecked(True)
-                    graph_filtering_widget.min_ndivisions.setValue(filter_params[0])
-                    graph_filtering_widget.max_ndivisions.setValue(filter_params[1])
-                    graph_filtering_widget.nframes_stable_division.setValue(filter_params[2])
-                elif filter_name == 'filter_n_fusions':
-                    graph_filtering_widget.filter_n_fusions_yn.setChecked(True)
-                    graph_filtering_widget.min_nfusions.setValue(filter_params[0])
-                    graph_filtering_widget.max_nfusions.setValue(filter_params[1])
-                    graph_filtering_widget.nframes_stable_fusion.setValue(filter_params[2])
-                elif filter_name == 'filter_topology':
-                    graph_filtering_widget.filter_topology_yn.setChecked(True)
-                    for i in filter_params[0]:
-                        graph_filtering_widget.topology_yn[i].setChecked(True)
-                else:
-                    logger.error("ignoring unknown filter %s.", filter_name)
-            graph_filtering_widget.filter()
-    else:
-        cell_tracks_filtering = CellTracksFiltering(mask.get_TYXarray(), graph, graph_topologies=graph_topologies, mask_physical_pixel_sizes=mask.physical_pixel_sizes, mask_channel_names=mask.channel_names, metadata=mask_metadata+graph_metadata)
-        if len(filters) > 0:
-            for filter_name, *filter_params in filters:
-                if filter_name == 'filter_border':
-                    cell_tracks_filtering.filter_border(filter_params[0])
-                elif filter_name == 'filter_all_cells_area':
-                    cell_tracks_filtering.filter_all_cells_area(filter_params[0], filter_params[1])
-                elif filter_name == 'filter_one_cell_area':
-                    cell_tracks_filtering.filter_one_cell_area(filter_params[0], filter_params[1])
-                elif filter_name == 'filter_track_length':
-                    cell_tracks_filtering.filter_track_length(min(mask.sizes['T'], filter_params[0]))
-                elif filter_name == 'filter_n_missing':
-                    cell_tracks_filtering.filter_n_missing(filter_params[0])
-                elif filter_name == 'filter_n_divisions':
-                    cell_tracks_filtering.filter_n_divisions(filter_params[0], filter_params[1], filter_params[2], filter_params[3])
-                elif filter_name == 'filter_n_fusions':
-                    cell_tracks_filtering.filter_n_fusions(filter_params[0], filter_params[1], filter_params[2], filter_params[3])
-                elif filter_name == 'filter_topology':
-                    cell_tracks_filtering.filter_topology(filter_params[0])
-                else:
-                    logger.error("ignoring unknown filter %s.", filter_name)
-
-        cell_tracks_filtering.save(output_path, output_basename, relabel_mask_ids=True)
-        # stop using logfile
-        logger.removeHandler(logfile_handler)
-        logger.removeHandler(buffered_handler)

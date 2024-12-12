@@ -267,147 +267,153 @@ def main(mask_path, graph_path, event, timecorrection, magn_image_path, tp_befor
 
     """
 
-    ###########################
-    # Setup logging
-    ###########################
-
-    logger = logging.getLogger(__name__)
-    logger.info("GRAPH EVENT FILTER MODULE")
-    if not os.path.isdir(output_path):
-        logger.debug("creating: %s", output_path)
-        os.makedirs(output_path)
-
-    logfile = os.path.join(output_path, output_basename+'.log')
-    logger.setLevel(logging.DEBUG)
-    logger.debug("writing log output to: %s", logfile)
-    logfile_handler = logging.FileHandler(logfile, mode='w')
-    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-    logfile_handler.setLevel(logging.INFO)
-    logger.addHandler(logfile_handler)
-
-    # Log to memory
-    global buffered_handler
-    buffered_handler = gf.BufferedHandler()
-    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - events filter module) [%(levelname)s] %(message)s'))
-    buffered_handler.setLevel(logging.INFO)
-    logger.addHandler(buffered_handler)
-
-    logger.info("System info:")
-    logger.info("- platform: %s", platform())
-    logger.info("- python version: %s", python_version())
-    logger.info("- VLabApp version: %s", vlabapp_version)
-    logger.info("- numpy version: %s", np.__version__)
-    logger.info("- igraph version: %s", ig.__version__)
-
-    logger.info("Input mask path: %s", mask_path)
-    logger.info("Input graph path: %s", graph_path)
-    logger.info("Output path: %s", output_path)
-    logger.info("Output basename: %s", output_basename)
-    logger.info("Event: %s - with %d timepoints before and %d after", event, tp_before, tp_after)
-
-    ###########################
-    # Load mask and graph
-    ###########################
-
-    # Load mask
-    logger.debug("loading %s", mask_path)
     try:
-        mask = gf.Image(mask_path)
-        mask.imread()
-    except Exception as e:
-        logging.getLogger(__name__).exception('Error loading mask %s',mask_path)
-        remove_all_log_handlers()
-        raise
+        ###########################
+        # Setup logging
+        ###########################
 
-    #load mask metadata
-    mask_metadata = []
-    if mask.ome_metadata:
-        for i,x in enumerate(mask.ome_metadata.structured_annotations):
-            if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
-                if len(mask_metadata) == 0:
-                    mask_metadata.append("Metadata for "+mask.path+":\n"+x.value)
-                else:
-                    mask_metadata.append(x.value)
+        logger = logging.getLogger(__name__)
+        logger.info("GRAPH EVENT FILTER MODULE")
+        if not os.path.isdir(output_path):
+            logger.debug("creating: %s", output_path)
+            os.makedirs(output_path)
 
-    # Load graph
-    logger.debug("loading %s", graph_path)
-    graph = gf.load_cell_tracking_graph(graph_path,mask.image.dtype)
+        logfile = os.path.join(output_path, output_basename+'.log')
+        logger.setLevel(logging.DEBUG)
+        logger.debug("writing log output to: %s", logfile)
+        logfile_handler = logging.FileHandler(logfile, mode='w')
+        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        logfile_handler.setLevel(logging.INFO)
+        logger.addHandler(logfile_handler)
 
-    #graph metadata
-    graph_metadata = []
-    for a in graph.attributes():
-        if a.startswith('VLabApp:Annotation'):
-            if len(graph_metadata) == 0:
-                graph_metadata.append("Metadata for "+graph_path+":\n"+graph[a])
-            else:
-                graph_metadata.append(graph[a])
+        # Log to memory
+        global buffered_handler
+        buffered_handler = gf.BufferedHandler()
+        buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - events filter module) [%(levelname)s] %(message)s'))
+        buffered_handler.setLevel(logging.INFO)
+        logger.addHandler(buffered_handler)
 
-    if event == 'fusion' and timecorrection: 
+        logger.info("System info:")
+        logger.info("- platform: %s", platform())
+        logger.info("- python version: %s", python_version())
+        logger.info("- VLabApp version: %s", vlabapp_version)
+        logger.info("- numpy version: %s", np.__version__)
+        logger.info("- igraph version: %s", ig.__version__)
+
+        logger.info("Input mask path: %s", mask_path)
+        logger.info("Input graph path: %s", graph_path)
+        logger.info("Output path: %s", output_path)
+        logger.info("Output basename: %s", output_basename)
+        logger.info("Event: %s - with %d timepoints before and %d after", event, tp_before, tp_after)
+
+        ###########################
+        # Load mask and graph
+        ###########################
+
+        # Load mask
+        logger.debug("loading %s", mask_path)
         try:
-            magn_image = gf.Image(magn_image_path) #
-            magn_image.imread()
-            # load magn_image metdata
-            magn_image_metadata = []
-            if magn_image.ome_metadata:
-                for i,x in enumerate(magn_image.ome_metadata.structured_annotations):
-                    if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
-                        if len(magn_image_metadata) == 0:
-                            magn_image_metadata.append("Metadata for "+magn_image.path+":\n"+x.value)
-                        else:
-                            magn_image_metadata.append(x.value)
-
-            magn_image = magn_image.get_TYXarray()
+            mask = gf.Image(mask_path)
+            mask.imread()
         except Exception as e:
-            logging.getLogger(__name__).exception('Error loading magnified image %s',magn_image_path)
+            logging.getLogger(__name__).exception('Error loading mask %s',mask_path)
             remove_all_log_handlers()
             raise
-    else:
-        magn_image = None
-        magn_image_metadata = []
 
-    total_events_mask, total_events_graph, events_list = event_filter(mask.get_TYXarray(), graph, event, timecorrection, magn_image, tp_before, tp_after, output_path, output_basename)
+        #load mask metadata
+        mask_metadata = []
+        if mask.ome_metadata:
+            for i,x in enumerate(mask.ome_metadata.structured_annotations):
+                if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
+                    if len(mask_metadata) == 0:
+                        mask_metadata.append("Metadata for "+mask.path+":\n"+x.value)
+                    else:
+                        mask_metadata.append(x.value)
 
-    # Save mask and graph
-    output_name=os.path.join(output_path, output_basename+'.ome.tif')
-    logger.info("Saving mask to %s", output_name)
-    ome_metadata=OmeTiffWriter.build_ome(data_shapes=[total_events_mask.shape],
-                                         data_types=[total_events_mask.dtype],
-                                         dimension_order=["TCYX"],
-                                         channel_names=[mask.channel_names],
-                                         physical_pixel_sizes=[PhysicalPixelSizes(X=mask.physical_pixel_sizes[0],Y=mask.physical_pixel_sizes[1],Z=mask.physical_pixel_sizes[2])])
-    ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
-    for x in mask_metadata + graph_metadata + magn_image_metadata:
-        ome_metadata.structured_annotations.append(CommentAnnotation(value=x,namespace="VLabApp"))
-    OmeTiffWriter.save(total_events_mask, output_name, ome_xml=ome_metadata)
+        # Load graph
+        logger.debug("loading %s", graph_path)
+        graph = gf.load_cell_tracking_graph(graph_path,mask.image.dtype)
 
-    output_name=os.path.join(output_path, output_basename+'.graphmlz')
-    logger.info("Saving cell tracking graph to %s", output_name)
-    #add metadata
-    total_events_graph['VLabApp:Annotation:1'] = buffered_handler.get_messages()
-    for i, x in enumerate(mask_metadata + graph_metadata + magn_image_metadata):
-        total_events_graph['VLabApp:Annotation:'+str(i+2)] = x
-    total_events_graph.write_graphmlz(output_name)
+        #graph metadata
+        graph_metadata = []
+        for a in graph.attributes():
+            if a.startswith('VLabApp:Annotation'):
+                if len(graph_metadata) == 0:
+                    graph_metadata.append("Metadata for "+graph_path+":\n"+graph[a])
+                else:
+                    graph_metadata.append(graph[a])
 
-    # If required, save cropped events
-    # Note: currently it is possible only with fusions
-    if cropsave:
-        if magn_image_path:
-            magn_image = gf.Image(magn_image_path) #
-            magn_image.imread()
-            # load magn_image metdata
-            magn_image_metadata = []
-            if magn_image.ome_metadata:
-                for i,x in enumerate(magn_image.ome_metadata.structured_annotations):
-                    if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
-                        if len(magn_image_metadata) == 0:
-                            magn_image_metadata.append("Metadata for "+magn_image.path+":\n"+x.value)
-                        else:
-                            magn_image_metadata.append(x.value)
-            magn_image = magn_image.get_TYXarray()
+        if event == 'fusion' and timecorrection: 
+            try:
+                magn_image = gf.Image(magn_image_path) #
+                magn_image.imread()
+                # load magn_image metdata
+                magn_image_metadata = []
+                if magn_image.ome_metadata:
+                    for i,x in enumerate(magn_image.ome_metadata.structured_annotations):
+                        if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
+                            if len(magn_image_metadata) == 0:
+                                magn_image_metadata.append("Metadata for "+magn_image.path+":\n"+x.value)
+                            else:
+                                magn_image_metadata.append(x.value)
+
+                magn_image = magn_image.get_TYXarray()
+            except Exception as e:
+                logging.getLogger(__name__).exception('Error loading magnified image %s',magn_image_path)
+                remove_all_log_handlers()
+                raise
         else:
             magn_image = None
-        save_cropped_events(events_list, mask.get_TYXarray().shape[0], total_events_mask, magn_image, chcropimage_path, BFimage_path, output_path, output_basename, mask_physical_pixel_sizes=mask.physical_pixel_sizes, metadata=mask_metadata + graph_metadata + magn_image_metadata)
+            magn_image_metadata = []
+
+        total_events_mask, total_events_graph, events_list = event_filter(mask.get_TYXarray(), graph, event, timecorrection, magn_image, tp_before, tp_after, output_path, output_basename)
+
+        # Save mask and graph
+        output_name=os.path.join(output_path, output_basename+'.ome.tif')
+        logger.info("Saving mask to %s", output_name)
+        ome_metadata=OmeTiffWriter.build_ome(data_shapes=[total_events_mask.shape],
+                                             data_types=[total_events_mask.dtype],
+                                             dimension_order=["TCYX"],
+                                             channel_names=[mask.channel_names],
+                                             physical_pixel_sizes=[PhysicalPixelSizes(X=mask.physical_pixel_sizes[0],Y=mask.physical_pixel_sizes[1],Z=mask.physical_pixel_sizes[2])])
+        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(),namespace="VLabApp"))
+        for x in mask_metadata + graph_metadata + magn_image_metadata:
+            ome_metadata.structured_annotations.append(CommentAnnotation(value=x,namespace="VLabApp"))
+        OmeTiffWriter.save(total_events_mask, output_name, ome_xml=ome_metadata)
+
+        output_name=os.path.join(output_path, output_basename+'.graphmlz')
+        logger.info("Saving cell tracking graph to %s", output_name)
+        #add metadata
+        total_events_graph['VLabApp:Annotation:1'] = buffered_handler.get_messages()
+        for i, x in enumerate(mask_metadata + graph_metadata + magn_image_metadata):
+            total_events_graph['VLabApp:Annotation:'+str(i+2)] = x
+        total_events_graph.write_graphmlz(output_name)
+
+        # If required, save cropped events
+        # Note: currently it is possible only with fusions
+        if cropsave:
+            if magn_image_path:
+                magn_image = gf.Image(magn_image_path) #
+                magn_image.imread()
+                # load magn_image metdata
+                magn_image_metadata = []
+                if magn_image.ome_metadata:
+                    for i,x in enumerate(magn_image.ome_metadata.structured_annotations):
+                        if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
+                            if len(magn_image_metadata) == 0:
+                                magn_image_metadata.append("Metadata for "+magn_image.path+":\n"+x.value)
+                            else:
+                                magn_image_metadata.append(x.value)
+                magn_image = magn_image.get_TYXarray()
+            else:
+                magn_image = None
+            save_cropped_events(events_list, mask.get_TYXarray().shape[0], total_events_mask, magn_image, chcropimage_path, BFimage_path, output_path, output_basename, mask_physical_pixel_sizes=mask.physical_pixel_sizes, metadata=mask_metadata + graph_metadata + magn_image_metadata)
 
 
-    remove_all_log_handlers()
-    logger.info("Done!\n")
+        remove_all_log_handlers()
+        logger.info("Done!\n")
+
+    except Exception:
+        # Remove all handlers for this module
+        remove_all_log_handlers()
+        raise

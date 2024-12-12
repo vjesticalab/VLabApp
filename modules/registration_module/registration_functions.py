@@ -274,6 +274,11 @@ class EditTransformationMatrix(QWidget):
             self.layer_points.edge_color[:,0:3] = self.point_color_default
             self.layer_points.refresh()
 
+    def __del__(self):
+        # Remove all handlers for this module
+        remove_all_log_handlers()
+        logging.getLogger(__name__).info('Done')
+
 
 class PlotTransformation(QWidget):
     """
@@ -996,307 +1001,334 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
 
 def registration_main(image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, registration_method, coalign_image_paths=None , coalign_output_basenames=None):
 
-    # Setup logging to file in output_path
-    logger = logging.getLogger(__name__)
-    logger.info("REGISTRATION MODULE (registration)")
-    if not os.path.isdir(output_path):
-        logger.debug("creating: %s", output_path)
-        os.makedirs(output_path)
-
-    logfile = os.path.join(output_path, output_basename+".log")
-    logger.setLevel(logging.DEBUG)
-    logger.debug("writing log output to: %s", logfile)
-    logfile_handler = logging.FileHandler(logfile, mode='w')
-    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-    logfile_handler.setLevel(logging.INFO)
-    logger.addHandler(logfile_handler)
-    # Also save general.general_functions logger to the same file (to log information on z-projection)
-    logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
-    logging.getLogger('general.general_functions').addHandler(logfile_handler)
-
-    # Log to memory
-    global buffered_handler
-    buffered_handler = gf.BufferedHandler()
-    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
-    buffered_handler.setLevel(logging.INFO)
-    logger.addHandler(buffered_handler)
-    # Also save general.general_functions logger to the same file (to log information on z-projection)
-    logging.getLogger('general.general_functions').addHandler(buffered_handler)
-
-    logger.info("System info:")
-    logger.info("- platform: %s", platform())
-    logger.info("- python version: %s", python_version())
-    logger.info("- VLabApp version: %s", vlabapp_version)
-    logger.info("- numpy version: %s", np.__version__)
-    logger.info("- pystackreg version: %s", StackReg_version)
-    logger.info("- opencv version: %s", cv.__version__)
-    logger.info("- skimage version: %s", skimage_version)
-
-    logger.info("Input image path: %s", image_path)
-    logger.info("Output path: %s", output_path)
-    logger.info("Output basename: %s", output_basename)
-    logger.info("Registration method: %s", registration_method)
-
-    # Load image
-    # Note: by default the image have to be ALWAYS 3D with TYX
     try:
-        logger.debug('Loading %s', image_path)
-        image = gf.Image(image_path)
-        image.imread()
+        # Setup logging to file in output_path
+        logger = logging.getLogger(__name__)
+        logger.info("REGISTRATION MODULE (registration)")
+        if not os.path.isdir(output_path):
+            logger.debug("creating: %s", output_path)
+            os.makedirs(output_path)
+
+        logfile = os.path.join(output_path, output_basename+".log")
+        logger.setLevel(logging.DEBUG)
+        logger.debug("writing log output to: %s", logfile)
+        logfile_handler = logging.FileHandler(logfile, mode='w')
+        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        logfile_handler.setLevel(logging.INFO)
+        logger.addHandler(logfile_handler)
+        # Also save general.general_functions logger to the same file (to log information on z-projection)
+        logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
+        logging.getLogger('general.general_functions').addHandler(logfile_handler)
+
+        # Log to memory
+        global buffered_handler
+        buffered_handler = gf.BufferedHandler()
+        buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
+        buffered_handler.setLevel(logging.INFO)
+        logger.addHandler(buffered_handler)
+        # Also save general.general_functions logger to the same file (to log information on z-projection)
+        logging.getLogger('general.general_functions').addHandler(buffered_handler)
+
+        logger.info("System info:")
+        logger.info("- platform: %s", platform())
+        logger.info("- python version: %s", python_version())
+        logger.info("- VLabApp version: %s", vlabapp_version)
+        logger.info("- numpy version: %s", np.__version__)
+        logger.info("- pystackreg version: %s", StackReg_version)
+        logger.info("- opencv version: %s", cv.__version__)
+        logger.info("- skimage version: %s", skimage_version)
+
+        logger.info("Input image path: %s", image_path)
+        logger.info("Output path: %s", output_path)
+        logger.info("Output basename: %s", output_basename)
+        logger.info("Registration method: %s", registration_method)
+
+        # Load image
+        # Note: by default the image have to be ALWAYS 3D with TYX
+        try:
+            logger.debug('Loading %s', image_path)
+            image = gf.Image(image_path)
+            image.imread()
+        except Exception:
+            logger.exception('Error loading image %s', image_path)
+            remove_all_log_handlers()
+            raise
+
+        # load image metadata
+        image_metadata = []
+        if image.ome_metadata:
+            for x in image.ome_metadata.structured_annotations:
+                if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
+                    if len(image_metadata) == 0:
+                        image_metadata.append("Metadata for "+image.path+":\n"+x.value)
+                    else:
+                        image_metadata.append(x.value)
+
+        # Check 'F' axis has size 1
+        if image.sizes['F'] != 1:
+            logger.error('Image %s has a F axis with size > 1', str(image_path))
+            remove_all_log_handlers()
+            raise TypeError(f"Image {image_path} has a F axis with size > 1")
+
+        if timepoint_range is None:
+            # Calculate transformation matrix
+            tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method, image_metadata)
+        else:
+            tmat = registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method, image_metadata)
+
+        # Align and save
+        try:
+            registration_with_tmat(tmat, image, skip_crop_decision, output_path, output_basename, image_metadata)
+        except Exception:
+            logger.exception('Registration failed for image %s', image_path)
+            remove_all_log_handlers()
+            raise
+
+        remove_all_log_handlers()
+
+        # Co-alignment
+        if coalign_image_paths is not None and coalign_output_basenames is not None:
+            tmat_path = os.path.join(output_path, output_basename+'.csv')
+            for coalign_image_path, coalign_output_basename in zip(coalign_image_paths, coalign_output_basenames):
+                logger.info("Co-aligning image: %s", image_path)
+                alignment_main(coalign_image_path, tmat_path, output_path, coalign_output_basename, skip_crop_decision)
+
+
+        return image_path
+
     except Exception:
-        logger.exception('Error loading image %s', image_path)
+        # Remove all handlers for this module
         remove_all_log_handlers()
         raise
-
-    # load image metadata
-    image_metadata = []
-    if image.ome_metadata:
-        for x in image.ome_metadata.structured_annotations:
-            if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
-                if len(image_metadata) == 0:
-                    image_metadata.append("Metadata for "+image.path+":\n"+x.value)
-                else:
-                    image_metadata.append(x.value)
-
-    # Check 'F' axis has size 1
-    if image.sizes['F'] != 1:
-        logger.error('Image %s has a F axis with size > 1', str(image_path))
-        remove_all_log_handlers()
-        raise TypeError(f"Image {image_path} has a F axis with size > 1")
-
-    if timepoint_range is None:
-        # Calculate transformation matrix
-        tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method, image_metadata)
-    else:
-        tmat = registration_values_trange(image, timepoint_range, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method, image_metadata)
-
-    # Align and save
-    try:
-        registration_with_tmat(tmat, image, skip_crop_decision, output_path, output_basename, image_metadata)
-    except Exception:
-        logger.exception('Registration failed for image %s', image_path)
-        remove_all_log_handlers()
-        raise
-
-    remove_all_log_handlers()
-
-    # Co-alignment
-    if coalign_image_paths is not None and coalign_output_basenames is not None:
-        tmat_path = os.path.join(output_path, output_basename+'.csv')
-        for coalign_image_path, coalign_output_basename in zip(coalign_image_paths, coalign_output_basenames):
-            logger.info("Co-aligning image: %s", image_path)
-            alignment_main(coalign_image_path, tmat_path, output_path, coalign_output_basename, skip_crop_decision)
-
-
-    return image_path
 
 ################################################################
 
 
 def alignment_main(image_path, tmat_path, output_path, output_basename, skip_crop_decision):
-    # Setup logging to file in output_path
-    logger = logging.getLogger(__name__)
-    logger.info("REGISTRATION MODULE (alignment)")
-    if not os.path.isdir(output_path):
-        logger.debug("creating: %s", output_path)
-        os.makedirs(output_path)
-
-    logfile = os.path.join(output_path, output_basename+".log")
-    logger.setLevel(logging.DEBUG)
-    logger.debug("writing log output to: %s", logfile)
-    logfile_handler = logging.FileHandler(logfile, mode='w')
-    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-    logfile_handler.setLevel(logging.INFO)
-    logger.addHandler(logfile_handler)
-
-    # Log to memory
-    global buffered_handler
-    buffered_handler = gf.BufferedHandler()
-    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
-    buffered_handler.setLevel(logging.INFO)
-    logger.addHandler(buffered_handler)
-
-    logger.info("System info:")
-    logger.info("- platform: %s", platform())
-    logger.info("- python version: %s", python_version())
-    logger.info("- VLabApp version: %s", vlabapp_version)
-    logger.info("- numpy version: %s", np.__version__)
-    logger.info("- pystackreg version: %s", StackReg_version)
-    logger.info("- opencv version: %s", cv.__version__)
-    logger.info("- skimage version: %s", skimage_version)
-
-    logger.info("Input image path: %s", image_path)
-    logger.info("Input transformation matrix path: %s", tmat_path)
-    logger.info("Output path: %s", output_path)
-    logger.info("Output basename: %s", output_basename)
-
-    # Load image and matrix
     try:
-        logger.debug('loading %s', image_path)
-        image = gf.Image(image_path)
-        image.imread()
+        # Setup logging to file in output_path
+        logger = logging.getLogger(__name__)
+        logger.info("REGISTRATION MODULE (alignment)")
+        if not os.path.isdir(output_path):
+            logger.debug("creating: %s", output_path)
+            os.makedirs(output_path)
+
+        logfile = os.path.join(output_path, output_basename+".log")
+        logger.setLevel(logging.DEBUG)
+        logger.debug("writing log output to: %s", logfile)
+        logfile_handler = logging.FileHandler(logfile, mode='w')
+        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        logfile_handler.setLevel(logging.INFO)
+        logger.addHandler(logfile_handler)
+
+        # Log to memory
+        global buffered_handler
+        buffered_handler = gf.BufferedHandler()
+        buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
+        buffered_handler.setLevel(logging.INFO)
+        logger.addHandler(buffered_handler)
+
+        logger.info("System info:")
+        logger.info("- platform: %s", platform())
+        logger.info("- python version: %s", python_version())
+        logger.info("- VLabApp version: %s", vlabapp_version)
+        logger.info("- numpy version: %s", np.__version__)
+        logger.info("- pystackreg version: %s", StackReg_version)
+        logger.info("- opencv version: %s", cv.__version__)
+        logger.info("- skimage version: %s", skimage_version)
+
+        logger.info("Input image path: %s", image_path)
+        logger.info("Input transformation matrix path: %s", tmat_path)
+        logger.info("Output path: %s", output_path)
+        logger.info("Output basename: %s", output_basename)
+
+        # Load image and matrix
+        try:
+            logger.debug('loading %s', image_path)
+            image = gf.Image(image_path)
+            image.imread()
+        except Exception:
+            logging.getLogger(__name__).exception('Error loading image %s', image_path)
+            remove_all_log_handlers()
+            raise
+        # load image metadata
+        image_metadata = []
+        if image.ome_metadata:
+            for x in image.ome_metadata.structured_annotations:
+                if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
+                    if len(image_metadata) == 0:
+                        image_metadata.append("Metadata for "+image.path+":\n"+x.value)
+                    else:
+                        image_metadata.append(x.value)
+
+        try:
+            logger.debug('loading %s', tmat_path)
+            tmat_int, tmat_metadata = read_transfMat(tmat_path)
+        except Exception:
+            logging.getLogger(__name__).exception('Error loading transformation matrix for image %s', image_path)
+            remove_all_log_handlers()
+            raise
+        # Check 'F' axis has size 1
+        if image.sizes['F'] != 1:
+            logging.getLogger(__name__).error('Image %s has a F axis with size > 1', str(image_path))
+            remove_all_log_handlers()
+            raise TypeError(f"Image {image_path} has a F axis with size > 1")
+
+        # Align and save - registration works with multidimensional files, as long as the TYX axes are specified
+        try:
+            registration_with_tmat(tmat_int, image, skip_crop_decision, output_path, output_basename, image_metadata+tmat_metadata)
+        except Exception:
+            logging.getLogger(__name__).exception('Alignment failed for image %s', image_path)
+            remove_all_log_handlers()
+            raise
+
+        remove_all_log_handlers()
+
     except Exception:
-        logging.getLogger(__name__).exception('Error loading image %s', image_path)
+        # Remove all handlers for this module
         remove_all_log_handlers()
         raise
-    # load image metadata
-    image_metadata = []
-    if image.ome_metadata:
-        for x in image.ome_metadata.structured_annotations:
-            if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
-                if len(image_metadata) == 0:
-                    image_metadata.append("Metadata for "+image.path+":\n"+x.value)
-                else:
-                    image_metadata.append(x.value)
 
-    try:
-        logger.debug('loading %s', tmat_path)
-        tmat_int, tmat_metadata = read_transfMat(tmat_path)
-    except Exception:
-        logging.getLogger(__name__).exception('Error loading transformation matrix for image %s', image_path)
-        remove_all_log_handlers()
-        raise
-    # Check 'F' axis has size 1
-    if image.sizes['F'] != 1:
-        logging.getLogger(__name__).error('Image %s has a F axis with size > 1', str(image_path))
-        remove_all_log_handlers()
-        raise TypeError(f"Image {image_path} has a F axis with size > 1")
-
-    # Align and save - registration works with multidimensional files, as long as the TYX axes are specified
-    try:
-        registration_with_tmat(tmat_int, image, skip_crop_decision, output_path, output_basename, image_metadata+tmat_metadata)
-    except Exception:
-        logging.getLogger(__name__).exception('Alignment failed for image %s', image_path)
-        remove_all_log_handlers()
-        raise
-
-    remove_all_log_handlers()
 
 ################################################################
 
 
 def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end):
-    log_path = gf.splitext(reference_matrix_path)[0] + '.log'
+    try:
+        log_path = gf.splitext(reference_matrix_path)[0] + '.log'
 
-    # Setup logging to file in output_path
-    logger = logging.getLogger(__name__)
-    logger.info("REGISTRATION MODULE (editing)")
+        # Setup logging to file in output_path
+        logger = logging.getLogger(__name__)
+        logger.info("REGISTRATION MODULE (editing)")
 
-    logfile = os.path.join(log_path)
-    logger.setLevel(logging.DEBUG)
-    logger.debug("writing log output to: %s", logfile)
-    logfile_handler = logging.FileHandler(logfile, mode='a')
-    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-    logfile_handler.setLevel(logging.INFO)
-    logger.addHandler(logfile_handler)
+        logfile = os.path.join(log_path)
+        logger.setLevel(logging.DEBUG)
+        logger.debug("writing log output to: %s", logfile)
+        logfile_handler = logging.FileHandler(logfile, mode='a')
+        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        logfile_handler.setLevel(logging.INFO)
+        logger.addHandler(logfile_handler)
 
-    # Log to memory
-    global buffered_handler
-    buffered_handler = gf.BufferedHandler()
-    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
-    buffered_handler.setLevel(logging.INFO)
-    logger.addHandler(buffered_handler)
+        # Log to memory
+        global buffered_handler
+        buffered_handler = gf.BufferedHandler()
+        buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
+        buffered_handler.setLevel(logging.INFO)
+        logger.addHandler(buffered_handler)
 
-    logger.info("System info:")
-    logger.info("- platform: %s", platform())
-    logger.info("- python version: %s", python_version())
-    logger.info("- VLabApp version: %s", vlabapp_version)
-    logger.info("- numpy version: %s", np.__version__)
-    logger.info("- pystackreg version: %s", StackReg_version)
-    logger.info("- opencv version: %s", cv.__version__)
-    logger.info("- skimage version: %s", skimage_version)
+        logger.info("System info:")
+        logger.info("- platform: %s", platform())
+        logger.info("- python version: %s", python_version())
+        logger.info("- VLabApp version: %s", vlabapp_version)
+        logger.info("- numpy version: %s", np.__version__)
+        logger.info("- pystackreg version: %s", StackReg_version)
+        logger.info("- opencv version: %s", cv.__version__)
+        logger.info("- skimage version: %s", skimage_version)
 
-    logger.info("Input transformation matrix path: %s", reference_matrix_path)
+        logger.info("Input transformation matrix path: %s", reference_matrix_path)
 
-    # Load the transformation matrix
-    logger.debug("loading: %s", reference_matrix_path)
-    tmat_int, tmat_metadata = read_transfMat(reference_matrix_path)
-    # Make sure reference point is within range and update transformation matrix
-    logger.info("Editing transformation matrix (Reference timepoint=%s, start=%s, end=%s)", reference_timepoint, range_start, range_end)
-    tmat_updated = gf.update_transfMat(tmat_int, reference_timepoint-1, range_start-1, range_end-1)
-    # Save the new matrix
-    logger.info("Saving transformation matrix to %s", reference_matrix_path)
-    header = buffered_handler.get_messages()
-    for x in tmat_metadata:
-        header += x
-    np.savetxt(reference_matrix_path, tmat_updated, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
+        # Load the transformation matrix
+        logger.debug("loading: %s", reference_matrix_path)
+        tmat_int, tmat_metadata = read_transfMat(reference_matrix_path)
+        # Make sure reference point is within range and update transformation matrix
+        logger.info("Editing transformation matrix (Reference timepoint=%s, start=%s, end=%s)", reference_timepoint, range_start, range_end)
+        tmat_updated = gf.update_transfMat(tmat_int, reference_timepoint-1, range_start-1, range_end-1)
+        # Save the new matrix
+        logger.info("Saving transformation matrix to %s", reference_matrix_path)
+        header = buffered_handler.get_messages()
+        for x in tmat_metadata:
+            header += x
+        np.savetxt(reference_matrix_path, tmat_updated, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
 
-    remove_all_log_handlers()
+        remove_all_log_handlers()
+
+    except Exception:
+        # Remove all handlers for this module
+        remove_all_log_handlers()
+        raise
+
 
 
 ################################################################
 
 
 def manual_edit_main(image_path, matrix_path):
-    log_path = gf.splitext(matrix_path)[0] + '.log'
-
-    # Setup logging to file in output_path
-    logger = logging.getLogger(__name__)
-    logger.info("REGISTRATION MODULE (manual editing)")
-
-    logfile = os.path.join(log_path)
-    logger.setLevel(logging.DEBUG)
-    logger.debug("writing log output to: %s", logfile)
-    logfile_handler = logging.FileHandler(logfile, mode='a')
-    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-    logfile_handler.setLevel(logging.INFO)
-    logger.addHandler(logfile_handler)
-
-    # Log to memory
-    global buffered_handler
-    buffered_handler = gf.BufferedHandler()
-    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
-    buffered_handler.setLevel(logging.INFO)
-    logger.addHandler(buffered_handler)
-
-    logger.info("System info:")
-    logger.info("- platform: %s", platform())
-    logger.info("- python version: %s", python_version())
-    logger.info("- VLabApp version: %s", vlabapp_version)
-    logger.info("- numpy version: %s", np.__version__)
-    logger.info("- pystackreg version: %s", StackReg_version)
-    logger.info("- opencv version: %s", cv.__version__)
-    logger.info("- skimage version: %s", skimage_version)
-    logger.info("- napari version: %s", napari.__version__)
-
-    logger.info("Input image path: %s", image_path)
-    logger.info("Input transformation matrix path: %s", matrix_path)
-
     try:
-        image = gf.Image(image_path)
-        image.imread()
+        log_path = gf.splitext(matrix_path)[0] + '.log'
+
+        # Setup logging to file in output_path
+        logger = logging.getLogger(__name__)
+        logger.info("REGISTRATION MODULE (manual editing)")
+
+        logfile = os.path.join(log_path)
+        logger.setLevel(logging.DEBUG)
+        logger.debug("writing log output to: %s", logfile)
+        logfile_handler = logging.FileHandler(logfile, mode='a')
+        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        logfile_handler.setLevel(logging.INFO)
+        logger.addHandler(logfile_handler)
+
+        # Log to memory
+        global buffered_handler
+        buffered_handler = gf.BufferedHandler()
+        buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
+        buffered_handler.setLevel(logging.INFO)
+        logger.addHandler(buffered_handler)
+
+        logger.info("System info:")
+        logger.info("- platform: %s", platform())
+        logger.info("- python version: %s", python_version())
+        logger.info("- VLabApp version: %s", vlabapp_version)
+        logger.info("- numpy version: %s", np.__version__)
+        logger.info("- pystackreg version: %s", StackReg_version)
+        logger.info("- opencv version: %s", cv.__version__)
+        logger.info("- skimage version: %s", skimage_version)
+        logger.info("- napari version: %s", napari.__version__)
+
+        logger.info("Input image path: %s", image_path)
+        logger.info("Input transformation matrix path: %s", matrix_path)
+
+        try:
+            image = gf.Image(image_path)
+            image.imread()
+        except Exception:
+            logging.getLogger(__name__).exception('Error loading image %s', image_path)
+            raise
+
+        # Check 'F' axis has size 1
+        if image.sizes['F'] != 1:
+            logging.getLogger(__name__).error('Image %s has a F axis with size > 1', str(image_path))
+            raise TypeError(f"Image {image_path} has a F axis with size > 1")
+
+        # open a modal napari window to avoid multiple windows, with competing logging to file.
+        # TODO: find a better solution to open a modal napari window.
+        global viewer
+        viewer = napari.Viewer(show=False)
+        viewer.window._qt_window.setWindowModality(Qt.ApplicationModal)
+        viewer.show()
+
+        # assuming a FTCZYX image:
+        viewer.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+        # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
+        viewer.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
+
+        logger.info("Manually editing the transformation matrix")
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        edit_transformation_matrix = EditTransformationMatrix(viewer, matrix_path)
+        scroll_area.setWidget(edit_transformation_matrix)
+        viewer.window.add_dock_widget(scroll_area, area='right', name="Edit transformation matrix")
+
+        plot_transformation = PlotTransformation(viewer, edit_transformation_matrix.tmat)
+        plot_transformation.fig.canvas.mpl_connect('button_press_event', lambda event: viewer.dims.set_point(1, round(event.xdata)) if event.button is event.button is MouseButton.LEFT and event.inaxes else None)
+        plot_transformation.fig.canvas.mpl_connect('motion_notify_event', lambda event: viewer.dims.set_point(1, round(event.xdata)) if event.button is MouseButton.LEFT and event.inaxes else None)
+        viewer.window.add_dock_widget(plot_transformation, area="bottom")
+
+        edit_transformation_matrix.tmat_changed.connect(plot_transformation.update)
+
     except Exception:
-        logging.getLogger(__name__).exception('Error loading image %s', image_path)
+        # Remove all handlers for this module
+        remove_all_log_handlers()
         raise
 
-    # Check 'F' axis has size 1
-    if image.sizes['F'] != 1:
-        logging.getLogger(__name__).error('Image %s has a F axis with size > 1', str(image_path))
-        raise TypeError(f"Image {image_path} has a F axis with size > 1")
-
-    # open a modal napari window to avoid multiple windows, with competing logging to file.
-    # TODO: find a better solution to open a modal napari window.
-    global viewer
-    viewer = napari.Viewer(show=False)
-    viewer.window._qt_window.setWindowModality(Qt.ApplicationModal)
-    viewer.show()
-
-    # assuming a FTCZYX image:
-    viewer.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
-    # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
-    viewer.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
-
-    logger.info("Manually editing the transformation matrix")
-
-    scroll_area = QScrollArea()
-    scroll_area.setWidgetResizable(True)
-    edit_transformation_matrix = EditTransformationMatrix(viewer, matrix_path)
-    scroll_area.setWidget(edit_transformation_matrix)
-    viewer.window.add_dock_widget(scroll_area, area='right', name="Edit transformation matrix")
-
-    plot_transformation = PlotTransformation(viewer, edit_transformation_matrix.tmat)
-    plot_transformation.fig.canvas.mpl_connect('button_press_event', lambda event: viewer.dims.set_point(1, round(event.xdata)) if event.button is event.button is MouseButton.LEFT and event.inaxes else None)
-    plot_transformation.fig.canvas.mpl_connect('motion_notify_event', lambda event: viewer.dims.set_point(1, round(event.xdata)) if event.button is MouseButton.LEFT and event.inaxes else None)
-    viewer.window.add_dock_widget(plot_transformation, area="bottom")
-
-    edit_transformation_matrix.tmat_changed.connect(plot_transformation.update)

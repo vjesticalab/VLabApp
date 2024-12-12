@@ -17,6 +17,12 @@ from ome_types.model import CommentAnnotation
 from version import __version__ as vlabapp_version
 
 
+def remove_all_log_handlers():
+    # remove all handlers for this module
+    while len(logging.getLogger(__name__).handlers) > 0:
+        logging.getLogger(__name__).removeHandler(logging.getLogger(__name__).handlers[0])
+
+
 def split_regions(mask):
     """
     Split disconnected regions by assigning different mask ids to connected components with same mask id
@@ -1509,9 +1515,8 @@ class CellTrackingWidget(QWidget):
                 self.save(closing=True)
 
     def __del__(self):
-        # remove all handlers for this module
-        while len(self.logger.handlers) > 0:
-            self.logger.removeHandler(self.logger.handlers[0])
+        # Remove all handlers for this module
+        remove_all_log_handlers()
         self.logger.debug("Done")
 
 
@@ -1557,193 +1562,196 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         display image, mask and results in napari
     """
 
-    # This is a temporary workaround to avoid having multiple conflicting
-    # logging to metadata and log file, which could happen when a napari
-    # window is already opened.
-    # TODO: find a better solution.
-    if napari.current_viewer():
-        raise RuntimeError('Close all napari windows and try again.')
+    try:
+        # This is a temporary workaround to avoid having multiple conflicting
+        # logging to metadata and log file, which could happen when a napari
+        # window is already opened.
+        # TODO: find a better solution.
+        if napari.current_viewer():
+            raise RuntimeError('Close all napari windows and try again.')
 
-    ###########################
-    # Setup logging
-    ###########################
-    logger = logging.getLogger(__name__)
-    logger.info("CELL TRACKING MODULE")
-    if not os.path.isdir(output_path):
-        logger.debug("creating: %s", output_path)
-        os.makedirs(output_path)
+        ###########################
+        # Setup logging
+        ###########################
+        logger = logging.getLogger(__name__)
+        logger.info("CELL TRACKING MODULE")
+        if not os.path.isdir(output_path):
+            logger.debug("creating: %s", output_path)
+            os.makedirs(output_path)
 
-    logfile = os.path.join(output_path, output_basename+".log")
-    logger.setLevel(logging.DEBUG)
-    logger.debug("writing log output to: %s", logfile)
-    logfile_handler = logging.FileHandler(logfile, mode='w')
-    logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-    logfile_handler.setLevel(logging.INFO)
-    logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
-    logger.addHandler(logfile_handler)
+        logfile = os.path.join(output_path, output_basename+".log")
+        logger.setLevel(logging.DEBUG)
+        logger.debug("writing log output to: %s", logfile)
+        logfile_handler = logging.FileHandler(logfile, mode='w')
+        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        logfile_handler.setLevel(logging.INFO)
+        logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
+        logger.addHandler(logfile_handler)
 
-    # Log to memory
-    global buffered_handler
-    buffered_handler = gf.BufferedHandler()
-    buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - cell tracking module) [%(levelname)s] %(message)s'))
-    buffered_handler.setLevel(logging.INFO)
-    buffered_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
-    logger.addHandler(buffered_handler)
+        # Log to memory
+        global buffered_handler
+        buffered_handler = gf.BufferedHandler()
+        buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - cell tracking module) [%(levelname)s] %(message)s'))
+        buffered_handler.setLevel(logging.INFO)
+        buffered_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
+        logger.addHandler(buffered_handler)
 
-    logger.info("System info:")
-    logger.info("- platform: %s", platform())
-    logger.info("- python version: %s", python_version())
-    logger.info("- VLabApp version: %s", vlabapp_version)
-    logger.info("- numpy version: %s", np.__version__)
-    logger.info("- opencv version: %s", cv.__version__)
-    logger.info("- igraph version: %s", ig.__version__)
-    if display_results:
-        logger.info("- napari version: %s", napari.__version__)
+        logger.info("System info:")
+        logger.info("- platform: %s", platform())
+        logger.info("- python version: %s", python_version())
+        logger.info("- VLabApp version: %s", vlabapp_version)
+        logger.info("- numpy version: %s", np.__version__)
+        logger.info("- opencv version: %s", cv.__version__)
+        logger.info("- igraph version: %s", ig.__version__)
+        if display_results:
+            logger.info("- napari version: %s", napari.__version__)
 
-    if image_path:
-        logger.info("Input image path: %s", image_path)
-    logger.info("Input mask path: %s", mask_path)
-    logger.info("Output path: %s", output_path)
-    logger.info("Output basename: %s", output_basename)
-    logger.debug("min area: %s", min_area)
-    logger.debug("max delta frame: %s", max_delta_frame)
-    logger.debug("min overlap fraction: %s%%", min_overlap_fraction*100)
+        if image_path:
+            logger.info("Input image path: %s", image_path)
+        logger.info("Input mask path: %s", mask_path)
+        logger.info("Output path: %s", output_path)
+        logger.info("Output basename: %s", output_basename)
+        logger.debug("min area: %s", min_area)
+        logger.debug("max delta frame: %s", max_delta_frame)
+        logger.debug("min overlap fraction: %s%%", min_overlap_fraction*100)
 
-    ###########################
-    # Load image and mask
-    ###########################
+        ###########################
+        # Load image and mask
+        ###########################
 
-    # Load image
-    if image_path != '':
-        logger.debug("loading %s", image_path)
+        # Load image
+        if image_path != '':
+            logger.debug("loading %s", image_path)
+            try:
+                image = gf.Image(image_path)
+                image.imread()
+            except Exception:
+                logging.getLogger(__name__).exception('Error loading image %s', image_path)
+                # Remove all handlers for this module
+                remove_all_log_handlers()
+                raise
+
+        # Load mask
+        logger.debug("loading %s", mask_path)
         try:
-            image = gf.Image(image_path)
-            image.imread()
+            mask_image = gf.Image(mask_path)
+            mask_image.imread()
+            mask = mask_image.get_TYXarray()
         except Exception:
-            logging.getLogger(__name__).exception('Error loading image %s', image_path)
-            # stop using logfile
-            logger.removeHandler(logfile_handler)
-            logger.removeHandler(buffered_handler)
+            logging.getLogger(__name__).exception('Error loading mask %s', mask_path)
+            # Remove all handlers for this module
+            remove_all_log_handlers()
             raise
 
-    # Load mask
-    logger.debug("loading %s", mask_path)
-    try:
-        mask_image = gf.Image(mask_path)
-        mask_image.imread()
-        mask = mask_image.get_TYXarray()
-    except Exception:
-        logging.getLogger(__name__).exception('Error loading mask %s', mask_path)
-        # stop using logfile
-        logger.removeHandler(logfile_handler)
-        logger.removeHandler(buffered_handler)
-        raise
+        # load mask metadata
+        mask_metadata = []
+        if mask_image.ome_metadata:
+            for x in mask_image.ome_metadata.structured_annotations:
+                if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
+                    if len(mask_metadata) == 0:
+                        mask_metadata.append("Metadata for "+mask_image.path+":\n"+x.value)
+                    else:
+                        mask_metadata.append(x.value)
 
-    # load mask metadata
-    mask_metadata = []
-    if mask_image.ome_metadata:
-        for x in mask_image.ome_metadata.structured_annotations:
-            if isinstance(x, CommentAnnotation) and x.namespace == "VLabApp":
-                if len(mask_metadata) == 0:
-                    mask_metadata.append("Metadata for "+mask_image.path+":\n"+x.value)
-                else:
-                    mask_metadata.append(x.value)
+        ###########################
+        # Cell tracking
+        ###########################
 
-    ###########################
-    # Cell tracking
-    ###########################
-
-    logger.info("Creating cell tracking graph and relabelling mask: max delta frame=%s, min overlap fraction=%s%%, min area=%s", max_delta_frame, min_overlap_fraction*100, min_area)
-    split_regions(mask)
-    remove_small_regions(mask, min_area)
-    cell_tracking_graph = CellTrackingGraph(mask, max_delta_frame=max_delta_frame, min_overlap_fraction=min_overlap_fraction)
-    cell_tracking_graph.relabel(mask)
-
-    ###########################
-    # Automatic cleaning
-    ###########################
-
-    if clean:
-        logger.info("Automatic cleaning: max delta frame=%s, max defect size=%s, min stable size=%s, stable overlap fraction=%s%%, min area=%s, clean missing mask only=%s", max_delta_frame_interpolation, nframes_defect, nframes_stable, stable_overlap_fraction*100, min_area, False)
-        clean_mask(mask, cell_tracking_graph, max_delta_frame_interpolation=max_delta_frame_interpolation,
-                   nframes_defect=nframes_defect, nframes_stable=nframes_stable,
-                   stable_overlap_fraction=stable_overlap_fraction, min_area=min_area, only_missing=False)
-
-        # relabel (to avoid problem with splitted mask regions)
-        logger.info("Relabelling mask and graph: max delta frame=%s, min area=%s, min overlap fraction=%s%%", max_delta_frame, min_area, min_overlap_fraction*100)
+        logger.info("Creating cell tracking graph and relabelling mask: max delta frame=%s, min overlap fraction=%s%%, min area=%s", max_delta_frame, min_overlap_fraction*100, min_area)
         split_regions(mask)
         remove_small_regions(mask, min_area)
-        cell_tracking_graph.reset(mask, max_delta_frame=max_delta_frame, min_overlap_fraction=min_overlap_fraction)
+        cell_tracking_graph = CellTrackingGraph(mask, max_delta_frame=max_delta_frame, min_overlap_fraction=min_overlap_fraction)
         cell_tracking_graph.relabel(mask)
 
-    ###########################
-    # Napari
-    ###########################
+        ###########################
+        # Automatic cleaning
+        ###########################
 
-    if display_results:
-        logger.debug("displaying image and mask")
-        viewer_images = napari.Viewer(title=mask_path)
-        if image_path != '':
-            viewer_images.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+        if clean:
+            logger.info("Automatic cleaning: max delta frame=%s, max defect size=%s, min stable size=%s, stable overlap fraction=%s%%, min area=%s, clean missing mask only=%s", max_delta_frame_interpolation, nframes_defect, nframes_stable, stable_overlap_fraction*100, min_area, False)
+            clean_mask(mask, cell_tracking_graph, max_delta_frame_interpolation=max_delta_frame_interpolation,
+                       nframes_defect=nframes_defect, nframes_stable=nframes_stable,
+                       stable_overlap_fraction=stable_overlap_fraction, min_area=min_area, only_missing=False)
+
+            # relabel (to avoid problem with splitted mask regions)
+            logger.info("Relabelling mask and graph: max delta frame=%s, min area=%s, min overlap fraction=%s%%", max_delta_frame, min_area, min_overlap_fraction*100)
+            split_regions(mask)
+            remove_small_regions(mask, min_area)
+            cell_tracking_graph.reset(mask, max_delta_frame=max_delta_frame, min_overlap_fraction=min_overlap_fraction)
+            cell_tracking_graph.relabel(mask)
+
+        ###########################
+        # Napari
+        ###########################
+
+        if display_results:
+            logger.debug("displaying image and mask")
+            viewer_images = napari.Viewer(title=mask_path)
+            if image_path != '':
+                viewer_images.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+                # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
+                viewer_images.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
+            # broadcast TYX mask to FTZYX with F and Z axis containing shallow copies (C axis is used as channel_axis):
+            sizeF = image.image.shape[0] if image_path != '' else 1
+            sizeZ = image.image.shape[3] if image_path != '' else 1
+            mask_FTZYX = np.broadcast_to(mask[np.newaxis, :, np.newaxis, :, :], (sizeF, mask.shape[0], sizeZ, mask.shape[1], mask.shape[2]))
+            # the resulting mask_FTZYX is read only. To make it writeable:
+            mask_FTZYX.flags['WRITEABLE'] = True
+            mask_layer = viewer_images.add_labels(mask_FTZYX, name="Cell mask")
             # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
             viewer_images.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
-        # broadcast TYX mask to FTZYX with F and Z axis containing shallow copies (C axis is used as channel_axis):
-        sizeF = image.image.shape[0] if image_path != '' else 1
-        sizeZ = image.image.shape[3] if image_path != '' else 1
-        mask_FTZYX = np.broadcast_to(mask[np.newaxis, :, np.newaxis, :, :], (sizeF, mask.shape[0], sizeZ, mask.shape[1], mask.shape[2]))
-        # the resulting mask_FTZYX is read only. To make it writeable:
-        mask_FTZYX.flags['WRITEABLE'] = True
-        mask_layer = viewer_images.add_labels(mask_FTZYX, name="Cell mask")
-        # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
-        viewer_images.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
 
-        logger.debug("displaying cell tracking graph")
-        viewer_graph = napari.Viewer(title='Cell tracking graph')
-        # Hide "layer controls" and "layer list" docks
-        viewer_graph.window._qt_viewer.dockLayerControls.toggleViewAction().trigger()
-        viewer_graph.window._qt_viewer.dockLayerList.toggleViewAction().trigger()
-        logger.debug("Plotting cell tracking graph")
-        plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, cell_tracking_graph.get_graph(), mask_layer.get_color(range(mask.max()+1)))
+            logger.debug("displaying cell tracking graph")
+            viewer_graph = napari.Viewer(title='Cell tracking graph')
+            # Hide "layer controls" and "layer list" docks
+            viewer_graph.window._qt_viewer.dockLayerControls.toggleViewAction().trigger()
+            viewer_graph.window._qt_viewer.dockLayerList.toggleViewAction().trigger()
+            logger.debug("Plotting cell tracking graph")
+            plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, cell_tracking_graph.get_graph(), mask_layer.get_color(range(mask.max()+1)))
 
-        # Add CellTrackingWidget to napari
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setWidget(CellTrackingWidget(mask, cell_tracking_graph, viewer_graph, viewer_images, image_path, output_path, output_basename,
-                                                 min_area=min_area, max_delta_frame=max_delta_frame,
-                                                 min_overlap_fraction=min_overlap_fraction, max_delta_frame_interpolation=max_delta_frame_interpolation,
-                                                 nframes_defect=nframes_defect, nframes_stable=nframes_stable,
-                                                 stable_overlap_fraction=stable_overlap_fraction,
-                                                 mask_physical_pixel_sizes=mask_image.physical_pixel_sizes,
-                                                 mask_channel_names=mask_image.channel_names,
-                                                 mask_metadata=mask_metadata))
-        viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
+            # Add CellTrackingWidget to napari
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setWidget(CellTrackingWidget(mask, cell_tracking_graph, viewer_graph, viewer_images, image_path, output_path, output_basename,
+                                                     min_area=min_area, max_delta_frame=max_delta_frame,
+                                                     min_overlap_fraction=min_overlap_fraction, max_delta_frame_interpolation=max_delta_frame_interpolation,
+                                                     nframes_defect=nframes_defect, nframes_stable=nframes_stable,
+                                                     stable_overlap_fraction=stable_overlap_fraction,
+                                                     mask_physical_pixel_sizes=mask_image.physical_pixel_sizes,
+                                                     mask_channel_names=mask_image.channel_names,
+                                                     mask_metadata=mask_metadata))
+            viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
 
-    else:
-        output_file = os.path.join(output_path, output_basename+".ome.tif")
-        logger.info("Saving segmentation mask to %s", output_file)
-        mask = mask[:, np.newaxis, :, :]
-        ome_metadata = OmeTiffWriter.build_ome(data_shapes=[mask.shape],
-                                               data_types=[mask.dtype],
-                                               dimension_order=["TCYX"],
-                                               channel_names=[mask_image.channel_names],
-                                               physical_pixel_sizes=[PhysicalPixelSizes(X=mask_image.physical_pixel_sizes[0], Y=mask_image.physical_pixel_sizes[1], Z=mask_image.physical_pixel_sizes[2])])
-        ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))
-        for x in mask_metadata:
-            ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
-        OmeTiffWriter.save(mask, output_file, ome_xml=ome_metadata)
+        else:
+            output_file = os.path.join(output_path, output_basename+".ome.tif")
+            logger.info("Saving segmentation mask to %s", output_file)
+            mask = mask[:, np.newaxis, :, :]
+            ome_metadata = OmeTiffWriter.build_ome(data_shapes=[mask.shape],
+                                                   data_types=[mask.dtype],
+                                                   dimension_order=["TCYX"],
+                                                   channel_names=[mask_image.channel_names],
+                                                   physical_pixel_sizes=[PhysicalPixelSizes(X=mask_image.physical_pixel_sizes[0], Y=mask_image.physical_pixel_sizes[1], Z=mask_image.physical_pixel_sizes[2])])
+            ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))
+            for x in mask_metadata:
+                ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
+            OmeTiffWriter.save(mask, output_file, ome_xml=ome_metadata)
 
-        # output_file = os.path.join(output_path, output_basename+".dot")
-        # logger.info("Saving cell tracking graph to %s", output_file)
-        # cell_tracking_graph.write_dot(output_file)
+            # output_file = os.path.join(output_path, output_basename+".dot")
+            # logger.info("Saving cell tracking graph to %s", output_file)
+            # cell_tracking_graph.write_dot(output_file)
 
-        output_file = os.path.join(output_path, output_basename+".graphmlz")
-        logger.info("Saving cell tracking graph to %s", output_file)
-        g = cell_tracking_graph.get_graph()
-        # add metadata
-        g['VLabApp:Annotation:1'] = buffered_handler.get_messages()
-        for i, x in enumerate(mask_metadata):
-            g['VLabApp:Annotation:'+str(i+2)] = x
-        g.write_graphmlz(output_file)
-        # stop using logfile
-        logger.removeHandler(logfile_handler)
-        logger.removeHandler(buffered_handler)
+            output_file = os.path.join(output_path, output_basename+".graphmlz")
+            logger.info("Saving cell tracking graph to %s", output_file)
+            g = cell_tracking_graph.get_graph()
+            # add metadata
+            g['VLabApp:Annotation:1'] = buffered_handler.get_messages()
+            for i, x in enumerate(mask_metadata):
+                g['VLabApp:Annotation:'+str(i+2)] = x
+            g.write_graphmlz(output_file)
+            # Remove all handlers for this module
+            remove_all_log_handlers()
+
+    except Exception:
+        # Remove all handlers for this module
+        remove_all_log_handlers()
+        raise

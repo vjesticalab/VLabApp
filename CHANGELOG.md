@@ -28,6 +28,7 @@
 * Registration module: set maximum for time point range to 1000 (instead of 100).
 * Events filter module: fix "Attribute does not exist" error.
 * Fix file paths on Windows (use '\' instead of '/' everywhere).
+* Always close log files on error.
 
 
 
