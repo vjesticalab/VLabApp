@@ -31,14 +31,10 @@ class zProjection(QWidget):
         self.use_custom_folder = QRadioButton("Use custom folder (same for all the input files)")
         self.use_custom_folder.setChecked(False)
         self.use_custom_folder.toggled.connect(self.update_output_filename_label)
-        self.output_folder = gf.DropFolderLineEdit()
+        self.output_folder = gf.FolderLineEdit()
         self.output_folder.textChanged.connect(self.update_output_filename_label)
-        self.browse_button2 = QPushButton("Browse")
-        self.browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setVisible(self.use_custom_folder.isChecked())
-        self.browse_button2.setVisible(self.use_custom_folder.isChecked())
         self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
-        self.use_custom_folder.toggled.connect(self.browse_button2.setVisible)
         self.output_filename_label = QLineEdit()
         self.output_filename_label.setFrame(False)
         self.output_filename_label.setEnabled(False)
@@ -121,10 +117,7 @@ class zProjection(QWidget):
             layout2.addWidget(QLabel("Folder:"))
             layout2.addWidget(self.use_input_folder)
             layout2.addWidget(self.use_custom_folder)
-            layout3 = QHBoxLayout()
-            layout3.addWidget(self.output_folder)
-            layout3.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
-            layout2.addLayout(layout3)
+            layout2.addWidget(self.output_folder)
         layout3 = QFormLayout()
         layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         suffix = QLineEdit(self.output_suffix+"<projection>")
@@ -188,12 +181,6 @@ class zProjection(QWidget):
 
         self.update_output_filename_label()
 
-    def browse_output(self):
-        # Browse folders in order to choose the output one
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path != '':
-            self.output_folder.setText(folder_path)
-
     def projection_mode_fixed_zmin_changed(self, value):
         if self.projection_mode_fixed_zmax.value() < value:
             self.projection_mode_fixed_zmax.setValue(value)
@@ -208,7 +195,7 @@ class zProjection(QWidget):
         elif self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
-            output_path = self.output_folder.text().rstrip("/")
+            output_path = self.output_folder.text()
         projection_type = self.projection_type.currentText()
         if self.projection_mode_bestZ.isChecked():
             projection_zrange = 0
@@ -220,7 +207,7 @@ class zProjection(QWidget):
             projection_zrange = None
         projection_suffix = self.get_projection_suffix(None, projection_zrange, projection_type)
 
-        self.output_filename_label.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + projection_suffix+".ome.tif"))
+        self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + projection_suffix + ".ome.tif")))
 
     def get_projection_suffix(self, image_path, projection_zrange, projection_type):
         if projection_zrange is None:
@@ -341,11 +328,6 @@ class zProjection(QWidget):
         status = []
         error_messages = []
         for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
-            # Set output directory for each image path
-            if not output_path.endswith('/'):
-                output_path += '/'
-            if not os.path.exists(output_path):
-                os.makedirs(output_path)
             # Set log and cursor info
             self.logger.info("Image %s", image_path)
             QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))

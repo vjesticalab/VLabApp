@@ -20,22 +20,14 @@ class GroundTruthGenerator(QWidget):
                                     + 'Input segmentation mask must have X and Y axes and can optionally have T. It must have same X, Y and T axes sizes as the bright-field image.')
 
         # Input widgets
-        self.input_image_BF = gf.DropFileLineEdit(filetypes=gf.imagetypes)
+        self.input_image_BF = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
         self.input_image_BF.textChanged.connect(self.input_image_BF_changed)
-        browse_image_BF_button = QPushButton("Browse", self)
-        browse_image_BF_button.clicked.connect(self.browse_image_BF)
-        self.input_image_fluo1 = gf.DropFileLineEdit(filetypes=gf.imagetypes)
+        self.input_image_fluo1 = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
         self.input_image_fluo1.textChanged.connect(self.input_image_fluo1_changed)
-        browse_image_fluo1_button = QPushButton("Browse", self)
-        browse_image_fluo1_button.clicked.connect(self.browse_image_fluo1)
-        self.input_image_fluo2 = gf.DropFileLineEdit(filetypes=gf.imagetypes)
+        self.input_image_fluo2 = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
         self.input_image_fluo2.textChanged.connect(self.input_image_fluo2_changed)
-        browse_image_fluo2_button = QPushButton("Browse", self)
-        browse_image_fluo2_button.clicked.connect(self.browse_image_fluo2)
-        self.input_image_mask = gf.DropFileLineEdit(filetypes=gf.imagetypes)
+        self.input_image_mask = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
         self.input_image_mask.textChanged.connect(self.input_image_mask_changed)
-        browse_image_mask_button = QPushButton("Browse", self)
-        browse_image_mask_button.clicked.connect(self.browse_image_mask)
 
         # Output widgets
         self.use_input_folder = QRadioButton("Use input image folder")
@@ -44,14 +36,10 @@ class GroundTruthGenerator(QWidget):
         self.use_custom_folder = QRadioButton("Use custom folder")
         self.use_custom_folder.setChecked(False)
         self.use_custom_folder.toggled.connect(self.update_output_filename_label)
-        self.output_folder = gf.DropFolderLineEdit()
+        self.output_folder = gf.FolderLineEdit()
         self.output_folder.textChanged.connect(self.update_output_filename_label)
-        self.browse_button2 = QPushButton("Browse", self)
-        self.browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setVisible(self.use_custom_folder.isChecked())
-        self.browse_button2.setVisible(self.use_custom_folder.isChecked())
         self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
-        self.use_custom_folder.toggled.connect(self.browse_button2.setVisible)
         self.output_user_suffix = QLineEdit()
         self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
         self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
@@ -78,25 +66,13 @@ class GroundTruthGenerator(QWidget):
         groupbox = QGroupBox('Input files')
         layout2 = QVBoxLayout()
         layout2.addWidget(QLabel("Bright-field image:"))
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.input_image_BF)
-        layout3.addWidget(browse_image_BF_button, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
+        layout2.addWidget(self.input_image_BF)
         layout2.addWidget(QLabel("Fluorescent image with cell marker 1 (optional):"))
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.input_image_fluo1)
-        layout3.addWidget(browse_image_fluo1_button, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
+        layout2.addWidget(self.input_image_fluo1)
         layout2.addWidget(QLabel("Fluorescent image with cell marker 2 (optional):"))
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.input_image_fluo2)
-        layout3.addWidget(browse_image_fluo2_button, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
+        layout2.addWidget(self.input_image_fluo2)
         layout2.addWidget(QLabel("Segmentation mask (optional):"))
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.input_image_mask)
-        layout3.addWidget(browse_image_mask_button, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
+        layout2.addWidget(self.input_image_mask)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         # Output infos
@@ -105,10 +81,7 @@ class GroundTruthGenerator(QWidget):
         layout2.addWidget(QLabel("Folder:"))
         layout2.addWidget(self.use_input_folder)
         layout2.addWidget(self.use_custom_folder)
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.output_folder)
-        layout3.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
+        layout2.addWidget(self.output_folder)
         layout3 = QFormLayout()
         layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout4 = QHBoxLayout()
@@ -251,39 +224,13 @@ class GroundTruthGenerator(QWidget):
                 self.input_image_fluo2.setPlaceholderText(image_fluo2_path)
                 self.input_image_fluo2.setToolTip(image_fluo2_path)
 
-    def browse_image_BF(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
-        if file_path != '':
-            self.input_image_BF.setText(file_path)
-
-    def browse_image_fluo1(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
-        if file_path != '':
-            self.input_image_fluo1.setText(file_path)
-
-    def browse_image_fluo2(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
-        if file_path != '':
-            self.input_image_fluo2.setText(file_path)
-
-    def browse_image_mask(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
-        if file_path != '':
-            self.input_image_mask.setText(file_path)
-
-    def browse_output(self):
-        # Browse folders in order to choose the output one
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path != '':
-            self.output_folder.setText(folder_path)
-
     def update_output_filename_label(self):
         if self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
-            output_path = self.output_folder.text().rstrip("/")
+            output_path = self.output_folder.text()
 
-        self.output_filename_label.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
+        self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif")))
 
     def submit(self):
         image_BF_path = self.input_image_BF.text()

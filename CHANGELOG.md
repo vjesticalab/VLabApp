@@ -27,6 +27,7 @@
 * Cell tracking and graph filtering modules: restore default status bar info after displaying logging information to napari status bar.
 * Registration module: set maximum for time point range to 1000 (instead of 100).
 * Events filter module: fix "Attribute does not exist" error.
+* Fix file paths on Windows (use '\' instead of '/' everywhere).
 
 
 

@@ -30,14 +30,10 @@ class CellTracking(QWidget):
         self.use_custom_folder = QRadioButton("Use custom folder")
         self.use_custom_folder.setChecked(False)
         self.use_custom_folder.toggled.connect(self.update_output_filename_label)
-        self.output_folder = gf.DropFolderLineEdit()
+        self.output_folder = gf.FolderLineEdit()
         self.output_folder.textChanged.connect(self.update_output_filename_label)
-        browse_button2 = QPushButton("Browse")
-        browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setVisible(self.use_custom_folder.isChecked())
-        browse_button2.setVisible(self.use_custom_folder.isChecked())
         self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
-        self.use_custom_folder.toggled.connect(browse_button2.setVisible)
         self.output_user_suffix = QLineEdit()
         self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
         self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
@@ -102,9 +98,7 @@ class CellTracking(QWidget):
         self.display_results.setCheckable(True)
         self.display_results.setChecked(False)
 
-        self.input_image = gf.DropFileLineEdit(filetypes=gf.imagetypes)
-        browse_button1 = QPushButton("Browse")
-        browse_button1.clicked.connect(self.add_image)
+        self.input_image = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
 
         self.submit_button = QPushButton("Submit")
         self.submit_button.clicked.connect(self.submit)
@@ -129,10 +123,7 @@ class CellTracking(QWidget):
             layout2.addWidget(QLabel("Folder:"))
             layout2.addWidget(self.use_input_folder)
             layout2.addWidget(self.use_custom_folder)
-            layout3 = QHBoxLayout()
-            layout3.addWidget(self.output_folder)
-            layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
-            layout2.addLayout(layout3)
+            layout2.addWidget(self.output_folder)
         layout3 = QFormLayout()
         layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout4 = QHBoxLayout()
@@ -174,10 +165,7 @@ class CellTracking(QWidget):
         if not self.pipeline_layout:
             layout2 = QVBoxLayout()
             layout2.addWidget(QLabel("Input image:"))
-            layout3 = QHBoxLayout()
-            layout3.addWidget(self.input_image)
-            layout3.addWidget(browse_button1, alignment=Qt.AlignCenter)
-            layout2.addLayout(layout3)
+            layout2.addWidget(self.input_image)
             self.display_results.setLayout(layout2)
             layout.addWidget(self.display_results)
             layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
@@ -192,12 +180,6 @@ class CellTracking(QWidget):
         if self.mask_list.count() > 1:
             self.display_results.setChecked(False)
         self.display_results.setEnabled(self.mask_list.count() <= 1)
-
-    def browse_output(self):
-        # Browse folders in order to choose the output one
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path != '':
-            self.output_folder.setText(folder_path)
 
     def nframes_defect_changed(self, value):
         # Set nframes_defect <= max_delta_frame_interpolation <= nframes_stable
@@ -220,20 +202,14 @@ class CellTracking(QWidget):
         if self.max_delta_frame_interpolation.value() > value:
             self.max_delta_frame_interpolation.setValue(value)
 
-    def add_image(self):
-        # Add the selected image as input
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
-        if file_path != '':
-            self.input_image.setText(file_path)
-
     def update_output_filename_label(self):
         if self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
-            output_path = self.output_folder.text().rstrip("/")
+            output_path = self.output_folder.text()
 
-        self.output_filename_label1.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
-        self.output_filename_label2.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".graphmlz"))
+        self.output_filename_label1.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif")))
+        self.output_filename_label2.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".graphmlz")))
 
     def get_widgets_state(self):
         widgets_state = {

@@ -20,17 +20,11 @@ class ImageMaskGraphViewer(QWidget):
         label_documentation.setText('View an image, a segmentation mask and/or a cell tracking graph in <a href="https://napari.org">napari</a>.<br>' +
                                     'Images and masks with X and Y axes and any combination of T, C and Z axes are supported.<br>' +
                                     'Image, mask and graph are optional. However, a cell tracking graph cannot be viewed without the corresponding segmentation mask.')
-        self.input_image = gf.DropFileLineEdit(filetypes=gf.imagetypes)
-        browse_image_button = QPushButton("Browse", self)
-        browse_image_button.clicked.connect(self.browse_image)
-        self.input_mask = gf.DropFileLineEdit(filetypes=gf.imagetypes)
+        self.input_image = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
+        self.input_mask = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
         self.input_mask.textChanged.connect(self.input_mask_changed)
-        browse_mask_button = QPushButton("Browse", self)
-        browse_mask_button.clicked.connect(self.browse_mask)
-        self.input_graph = gf.DropFileLineEdit(filetypes=gf.graphtypes)
+        self.input_graph = gf.FileLineEdit(label='Cell tracking graphs', filetypes=gf.graphtypes)
         self.input_graph.textChanged.connect(self.input_graph_changed)
-        browse_graph_button = QPushButton("Browse", self)
-        browse_graph_button.clicked.connect(self.browse_graph)
         self.open_button = QPushButton("Open napari", self)
         self.open_button.clicked.connect(self.open)
 
@@ -41,21 +35,18 @@ class ImageMaskGraphViewer(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Image")
-        layout2 = QHBoxLayout()
+        layout2 = QVBoxLayout()
         layout2.addWidget(self.input_image)
-        layout2.addWidget(browse_image_button, alignment=Qt.AlignCenter)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Segmentation mask")
-        layout2 = QHBoxLayout()
+        layout2 = QVBoxLayout()
         layout2.addWidget(self.input_mask)
-        layout2.addWidget(browse_mask_button, alignment=Qt.AlignCenter)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Cell tracking graph")
-        layout2 = QHBoxLayout()
+        layout2 = QVBoxLayout()
         layout2.addWidget(self.input_graph)
-        layout2.addWidget(browse_graph_button, alignment=Qt.AlignCenter)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
@@ -108,21 +99,6 @@ class ImageMaskGraphViewer(QWidget):
                         self.input_image.setPlaceholderText(image_path)
                         self.input_image.setToolTip(image_path)
                         break
-
-    def browse_graph(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Cell tracking graphs ('+' '.join(['*'+x for x in gf.graphtypes])+')')
-        if file_path != '':
-            self.input_graph.setText(file_path)
-
-    def browse_mask(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
-        if file_path != '':
-            self.input_mask.setText(file_path)
-
-    def browse_image(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
-        if file_path != '':
-            self.input_image.setText(file_path)
 
     def open(self):
         """
@@ -236,14 +212,10 @@ class RegistrationViewer(QWidget):
         label_documentation.setText('View a registration matrix in <a href="https://napari.org">napari</a>.<br>' +
                                     'Important: select an image that has not been registered.<br>' +
                                     'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
-        self.input_image = gf.DropFileLineEdit(filetypes=gf.imagetypes)
+        self.input_image = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
         self.input_image.textChanged.connect(self.input_image_changed)
-        browse_image_button = QPushButton("Browse", self)
-        browse_image_button.clicked.connect(self.browse_image)
-        self.input_matrix = gf.DropFileLineEdit(filetypes=gf.matrixtypes)
+        self.input_matrix = gf.FileLineEdit(label='Transformation matrices', filetypes=gf.matrixtypes)
         self.input_matrix.textChanged.connect(self.input_matrix_changed)
-        browse_matrix_button = QPushButton("Browse", self)
-        browse_matrix_button.clicked.connect(self.browse_matrix)
         self.open_button = QPushButton("Open napari", self)
         self.open_button.clicked.connect(self.open)
 
@@ -254,15 +226,13 @@ class RegistrationViewer(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Image (before registration)")
-        layout2 = QHBoxLayout()
+        layout2 = QVBoxLayout()
         layout2.addWidget(self.input_image)
-        layout2.addWidget(browse_image_button, alignment=Qt.AlignCenter)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Registration matrix")
-        layout2 = QHBoxLayout()
+        layout2 = QVBoxLayout()
         layout2.addWidget(self.input_matrix)
-        layout2.addWidget(browse_matrix_button, alignment=Qt.AlignCenter)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
@@ -271,16 +241,6 @@ class RegistrationViewer(QWidget):
         self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
-
-    def browse_image(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images ('+' '.join(['*'+x for x in gf.imagetypes])+')')
-        if file_path != '':
-            self.input_image.setText(file_path)
-
-    def browse_matrix(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Transformation matrices ('+' '.join(['*'+x for x in gf.matrixtypes])+')')
-        if file_path != '':
-            self.input_matrix.setText(file_path)
 
     def input_image_changed(self):
         image_path = self.input_image.text()
@@ -377,10 +337,8 @@ class MetadataViewer(QWidget):
 
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('Display the VLabApp metadata for a file generated with this software. The file can be an image, a segmentation mask, a cell tracking graph or a registration matrix).')
-        self.input_file = gf.DropFileLineEdit(filetypes=self.filetypes)
+        self.input_file = gf.FileLineEdit(label='Images, cell tracking graphs or transformation matrices', filetypes=self.filetypes)
         self.input_file.textChanged.connect(self.input_file_changed)
-        browse_file_button = QPushButton("Browse", self)
-        browse_file_button.clicked.connect(self.browse_file)
 
         layout = QVBoxLayout()
         groupbox = QGroupBox("Documentation")
@@ -389,9 +347,8 @@ class MetadataViewer(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("File")
-        layout2 = QHBoxLayout()
+        layout2 = QVBoxLayout()
         layout2.addWidget(self.input_file)
-        layout2.addWidget(browse_file_button, alignment=Qt.AlignCenter)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
@@ -405,11 +362,6 @@ class MetadataViewer(QWidget):
         self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
-
-    def browse_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images, cell tracking graphs or transformation matrices   ('+' '.join(['*'+x for x in gf.imagetypes+gf.graphtypes+gf.matrixtypes])+')')
-        if file_path != '':
-            self.input_file.setText(file_path)
 
     def input_file_changed(self):
         file_path = self.input_file.text()

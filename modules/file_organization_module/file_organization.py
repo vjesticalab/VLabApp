@@ -146,14 +146,10 @@ class FileOrganization(QWidget):
         self.use_custom_folder = QRadioButton("Use custom folder (sub-folder <input folder basename>/)")
         self.use_custom_folder.setChecked(False)
         self.use_custom_folder.toggled.connect(self.update_output_dirname_label)
-        self.output_folder = gf.DropFolderLineEdit()
+        self.output_folder = gf.FolderLineEdit()
         self.output_folder.textChanged.connect(self.update_output_dirname_label)
-        self.browse_button2 = QPushButton("Browse", self)
-        self.browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setVisible(self.use_custom_folder.isChecked())
-        self.browse_button2.setVisible(self.use_custom_folder.isChecked())
         self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
-        self.use_custom_folder.toggled.connect(self.browse_button2.setVisible)
         self.output_dirname_label = QLineEdit()
         self.output_dirname_label.setFrame(False)
         self.output_dirname_label.setEnabled(False)
@@ -201,10 +197,7 @@ class FileOrganization(QWidget):
         layout2.addWidget(QLabel("Folder:"))
         layout2.addWidget(self.use_input_folder)
         layout2.addWidget(self.use_custom_folder)
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.output_folder)
-        layout3.addWidget(self.browse_button2, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
+        layout2.addWidget(self.output_folder)
         layout3 = QFormLayout()
         layout3.addRow("Output:", self.output_dirname_label)
         layout2.addLayout(layout3)
@@ -240,18 +233,12 @@ class FileOrganization(QWidget):
 
         self.update_output_dirname_label()
 
-    def browse_output(self):
-        # Browse folders in order to choose the output one
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path != '':
-            self.output_folder.setText(folder_path)
-
     def update_output_dirname_label(self):
         if self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
-            output_path = self.output_folder.text().rstrip("/")
-        self.output_dirname_label.setText(os.path.join(output_path, "<input folder basename>", ""))
+            output_path = self.output_folder.text()
+        self.output_dirname_label.setText(os.path.join(os.path.normpath(output_path), "<input folder basename>", ""))
 
     def copy(self):
         self.export(move=False)
@@ -271,9 +258,9 @@ class FileOrganization(QWidget):
             return
 
         if self.use_input_folder.isChecked():
-            output_paths = [os.path.join(os.path.dirname(path), os.path.basename(path.rstrip('/'))) for path in input_paths]
+            output_paths = [os.path.join(os.path.dirname(path), os.path.basename(os.path.normpath(path))) for path in input_paths]
         else:
-            output_paths = [os.path.join(self.output_folder.text(), os.path.basename(path.rstrip('/'))) for path in input_paths]
+            output_paths = [os.path.join(self.output_folder.text(), os.path.basename(os.path.normpath(path))) for path in input_paths]
 
         patterns = []
         if self.files_zprojection.isChecked():

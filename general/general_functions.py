@@ -347,12 +347,12 @@ class DropFilesTableWidget2(QTableWidget):
         filenames = self.filter_files_callback(filenames)
         for path_1, path_2 in filenames:
             self.insertRow(self.rowCount())
-            item = QTableWidgetItem(path_1)
-            item.setToolTip(path_1)
+            item = QTableWidgetItem(os.path.normpath(path_1))
+            item.setToolTip(os.path.normpath(path_1))
             item.setFlags(item.flags() ^ Qt.ItemIsEditable)
             self.setItem(self.rowCount()-1, 0, item)
-            item = QTableWidgetItem(path_2)
-            item.setToolTip(path_2)
+            item = QTableWidgetItem(os.path.normpath(path_2))
+            item.setToolTip(os.path.normpath(path_2))
             item.setFlags(item.flags() ^ Qt.ItemIsEditable)
             self.setItem(self.rowCount()-1, 1, item)
 
@@ -470,15 +470,15 @@ class FileTableWidget2(QWidget):
             re_pattern = self.suffix_1.text() + '$'
             if re.search(re_pattern, file_path):
                 basename = re.sub(re_pattern, '', file_path)
-                path_1 = file_path
+                path_1 = os.path.normpath(file_path)
                 if os.path.isfile(basename + self.suffix_2.text()):
-                    path_2 = basename + self.suffix_2.text()
+                    path_2 = os.path.normpath(basename + self.suffix_2.text())
             re_pattern = self.suffix_2.text() + '$'
             if re.search(re_pattern, file_path):
                 basename = re.sub(re_pattern, '', file_path)
-                path_2 = file_path
+                path_2 = os.path.normpath(file_path)
                 if os.path.isfile(basename + self.suffix_1.text()):
-                    path_1 = basename + self.suffix_1.text()
+                    path_1 = os.path.normpath(basename + self.suffix_1.text())
             if path_1 is not None and path_2 is not None:
                 if self.filter_name.text() in os.path.basename(path_1) and self.filter_name.text() in os.path.basename(path_2):
                     if self.filter_name_exclude.text() == '' or (not self.filter_name_exclude.text() in os.path.basename(path_1) and self.filter_name_exclude.text() not in os.path.basename(path_2)):
@@ -496,12 +496,12 @@ class FileTableWidget2(QWidget):
         self.file_table.setRowCount(0)
         for f1, f2 in files:
             self.file_table.insertRow(self.file_table.rowCount())
-            item = QTableWidgetItem(f1)
-            item.setToolTip(f1)
+            item = QTableWidgetItem(os.path.normpath(f1))
+            item.setToolTip(os.path.normpath(f1))
             item.setFlags(item.flags() ^ Qt.ItemIsEditable)
             self.file_table.setItem(self.file_table.rowCount()-1, 0, item)
-            item = QTableWidgetItem(f2)
-            item.setToolTip(f2)
+            item = QTableWidgetItem(os.path.normpath(f2))
+            item.setToolTip(os.path.normpath(f2))
             item.setFlags(item.flags() ^ Qt.ItemIsEditable)
             self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
 
@@ -599,6 +599,7 @@ class ImageMatrixTableWidget2(QWidget):
         multiple_matches_candidates = []
         not_found = []
         for image_path in filenames:
+            image_path = os.path.normpath(image_path)
             if len(self.filetypes.text().split()) == 0 or splitext(image_path)[1] in self.filetypes.text().split():
                 if self.filter_name.text() in os.path.basename(image_path):
                     if self.filter_name_exclude.text() == '' or self.filter_name_exclude.text() not in os.path.basename(image_path):
@@ -607,7 +608,7 @@ class ImageMatrixTableWidget2(QWidget):
                                 # search for candidate registration matrix paths
                                 candidate_paths = [path for path in os.listdir(os.path.dirname(image_path)) if any(path.endswith(matricestype) for matricestype in matrixtypes) and output_suffixes['registration'] in path and os.path.basename(path).split('_')[0] == os.path.basename(image_path).split('_')[0]]
                                 # sort by path length
-                                candidate_paths = [os.path.join(os.path.dirname(image_path), path) for path in sorted(candidate_paths, key=len)]
+                                candidate_paths = [os.path.normpath(os.path.join(os.path.dirname(image_path), path)) for path in sorted(candidate_paths, key=len)]
                                 if len(candidate_paths) == 0:
                                     not_found.append(image_path)
                                 else:
@@ -650,12 +651,12 @@ class ImageMatrixTableWidget2(QWidget):
         self.file_table.setRowCount(0)
         for f1, f2 in files:
             self.file_table.insertRow(self.file_table.rowCount())
-            item = QTableWidgetItem(f1)
-            item.setToolTip(f1)
+            item = QTableWidgetItem(os.path.normpath(f1))
+            item.setToolTip(os.path.normpath(f1))
             item.setFlags(item.flags() ^ Qt.ItemIsEditable)
             self.file_table.setItem(self.file_table.rowCount()-1, 0, item)
-            item = QTableWidgetItem(f2)
-            item.setToolTip(f2)
+            item = QTableWidgetItem(os.path.normpath(f2))
+            item.setToolTip(os.path.normpath(f2))
             item.setFlags(item.flags() ^ Qt.ItemIsEditable)
             self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
 
@@ -701,7 +702,7 @@ class DropFilesListWidget(QListWidget):
 
     def add_files(self, filenames):
         filenames = self.filter_files_callback(filenames)
-        self.addItems(filenames)
+        self.addItems([os.path.normpath(f) for f in filenames])
 
 
 class FileListWidget(QWidget):
@@ -801,6 +802,7 @@ class FileListWidget(QWidget):
     def filter_files(self, filenames):
         filtered_filenames = []
         for file_path in filenames:
+            file_path = os.path.normpath(file_path)
             if len(self.filetypes.text().split()) == 0 or splitext(file_path)[1] in self.filetypes.text().split():
                 if self.filter_name.text() in os.path.basename(file_path):
                     if self.filter_name_exclude.text() == '' or self.filter_name_exclude.text() not in os.path.basename(file_path):
@@ -816,7 +818,7 @@ class FileListWidget(QWidget):
     def set_file_list(self, files):
         self.file_list.clear()
         for f in files:
-            self.file_list.addItem(f)
+            self.file_list.addItem(os.path.normpath(f))
 
 
 class DropFoldersListWidget(QListWidget):
@@ -856,7 +858,7 @@ class DropFoldersListWidget(QListWidget):
 
     def add_folders(self, foldernames):
         foldernames = self.filter_folders_callback(foldernames)
-        self.addItems([d.rstrip('/')+'/' for d in foldernames])
+        self.addItems([os.path.join(os.path.normpath(d),'') for d in foldernames])
 
 
 class FolderListWidget(QWidget):
@@ -933,9 +935,9 @@ class FolderListWidget(QWidget):
     def filter_folders(self, foldernames):
         filtered_foldernames = []
         for folder_path in foldernames:
-            folder_path = folder_path.rstrip('/') + '/'
-            if self.filter_name.text() in os.path.basename(folder_path.rstrip('/')):
-                if self.filter_name_exclude.text() == '' or self.filter_name_exclude.text() not in os.path.basename(folder_path.rstrip('/')):
+            folder_path = os.path.join(os.path.normpath(folder_path),'')
+            if self.filter_name.text() in os.path.basename(os.path.normpath(folder_path)):
+                if self.filter_name_exclude.text() == '' or self.filter_name_exclude.text() not in os.path.basename(os.path.normpath(folder_path)):
                     if os.path.isdir(folder_path):
                         if folder_path and len(self.folder_list.findItems(folder_path, Qt.MatchExactly)) == 0:
                             if folder_path not in filtered_foldernames:
@@ -944,6 +946,11 @@ class FolderListWidget(QWidget):
 
     def get_folder_list(self):
         return [self.folder_list.item(x).text() for x in range(self.folder_list.count())]
+
+    def set_folder_list(self, folders):
+        self.folder_list.clear()
+        for f in folders:
+            self.folder_list.addItem(os.path.join(os.path.normpath(f),''))
 
 
 class DropFileLineEdit(QLineEdit):
@@ -976,7 +983,7 @@ class DropFileLineEdit(QLineEdit):
                 if os.path.isfile(url.toLocalFile()):
                     filename = url.toLocalFile()
                     if self.filetypes is None or len(self.filetypes) == 0 or splitext(filename)[1] in self.filetypes:
-                        self.setText(filename)
+                        self.setText(os.path.normpath(filename))
 
     def placeholderText(self):
         return self.placeholder_text
@@ -996,6 +1003,78 @@ class DropFileLineEdit(QLineEdit):
             elided_text = font_metrics.elidedText(self.placeholder_text, Qt.ElideLeft, rect.width()-2)
             painter.drawText(rect, Qt.AlignLeft | Qt.AlignVCenter, elided_text)
             painter.end()
+
+
+class FileLineEdit(QWidget):
+    """
+    A DropFileLineEdit with drag and drop support and a browse button.
+    """
+    textChanged = pyqtSignal(str)
+
+    def __init__(self, parent=None, label=None, filetypes=None):
+        """
+        Parameters
+        ----------
+        label: str
+            File type label. E.g. 'Images', 'Cell tracking graphs'.
+        filetypes: list of str
+            list of allowed file extensions, including the '.'. E.g. ['.tif','.nd2'].
+            If empty: allow all extensions.
+        """
+
+        super().__init__(parent)
+
+        if filetypes is None:
+            filetypes = []
+        self.filetypes = filetypes
+        self.label = label
+
+        self.line_edit = DropFileLineEdit(filetypes=filetypes)
+        self.browse_button = QPushButton("Browse")
+        self.browse_button.clicked.connect(self.browse)
+        self.line_edit.textChanged.connect(self.textChanged.emit)
+
+        self.setFocusProxy(self.line_edit)
+
+        layout = QHBoxLayout()
+        layout.addWidget(self.line_edit)
+        layout.addWidget(self.browse_button, alignment=Qt.AlignCenter)
+
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(layout)
+
+    def browse(self):
+        filter = ''
+        if len(self.filetypes) > 0:
+            if self.label:
+                filter = self.label + ' '
+            filter += '(' + ' '.join(['*' + x for x in self.filetypes]) + ')'
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Select File', filter=filter)
+        if file_path != '':
+            self.line_edit.setText(os.path.normpath(file_path))
+
+    def setToolTip(self, text):
+        self.line_edit.setToolTip(text)
+
+    def toolTip(self):
+        return self.line_edit.toolTip()
+
+    def setPlaceholderText(self, text):
+        self.line_edit.setPlaceholderText(text)
+
+    def placeholderText(self):
+        return self.line_edit.placeholderText()
+
+    def text(self):
+        if self.line_edit.text() == '':
+            return ''
+        return os.path.normpath(self.line_edit.text())
+
+    def setText(self, file):
+        if file == '':
+            self.line_edit.setText('')
+        else:
+            self.line_edit.setText(os.path.normpath(file))
 
 
 class DropFolderLineEdit(QLineEdit):
@@ -1024,7 +1103,7 @@ class DropFolderLineEdit(QLineEdit):
         for url in event.mimeData().urls():
             if url.isLocalFile():
                 if os.path.isdir(url.toLocalFile()):
-                    self.setText(url.toLocalFile())
+                    self.setText(os.path.join(os.path.normpath(url.toLocalFile()), ''))
 
     def paintEvent(self, event):
         # reimplement paintEvent to elide placeholder text on the left instead of right.
@@ -1040,6 +1119,46 @@ class DropFolderLineEdit(QLineEdit):
             elided_text = font_metrics.elidedText(placeholder_text, Qt.ElideLeft, rect.width()-2)
             painter.drawText(rect, Qt.AlignLeft | Qt.AlignVCenter, elided_text)
             painter.end()
+
+
+class FolderLineEdit(QWidget):
+    """
+    A DropFolderLineEdit with drag and drop support and a browse button.
+    """
+    textChanged = pyqtSignal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.line_edit = DropFolderLineEdit()
+        self.browse_button = QPushButton("Browse")
+        self.browse_button.clicked.connect(self.browse)
+        self.line_edit.textChanged.connect(self.textChanged.emit)
+
+        self.setFocusProxy(self.line_edit)
+
+        layout = QHBoxLayout()
+        layout.addWidget(self.line_edit)
+        layout.addWidget(self.browse_button, alignment=Qt.AlignCenter)
+
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(layout)
+
+    def browse(self):
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
+        if folder_path != '':
+            self.line_edit.setText(os.path.join(os.path.normpath(folder_path), ''))
+
+    def text(self):
+        if self.line_edit.text() == '':
+            return ''
+        return os.path.join(os.path.normpath(self.line_edit.text()), '')
+
+    def setText(self, folder):
+        if folder == '':
+            self.line_edit.setText(folder)
+        else:
+            self.line_edit.setText(os.path.join(os.path.normpath(folder), ''))
 
 
 class Page(QWidget):

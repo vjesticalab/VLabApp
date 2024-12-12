@@ -41,14 +41,10 @@ class Perform(QWidget):
         self.use_custom_folder = QRadioButton("Use custom folder")
         self.use_custom_folder.setChecked(False)
         self.use_custom_folder.toggled.connect(self.update_output_filename_label)
-        self.output_folder = gf.DropFolderLineEdit()
+        self.output_folder = gf.FolderLineEdit()
         self.output_folder.textChanged.connect(self.update_output_filename_label)
-        browse_button2 = QPushButton("Browse")
-        browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setVisible(self.use_custom_folder.isChecked())
-        browse_button2.setVisible(self.use_custom_folder.isChecked())
         self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
-        self.use_custom_folder.toggled.connect(browse_button2.setVisible)
         self.output_user_suffix = QLineEdit()
         self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
         self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
@@ -160,10 +156,7 @@ class Perform(QWidget):
             layout2.addWidget(QLabel("Folder:"))
             layout2.addWidget(self.use_input_folder)
             layout2.addWidget(self.use_custom_folder)
-            layout3 = QHBoxLayout()
-            layout3.addWidget(self.output_folder)
-            layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
-            layout2.addLayout(layout3)
+            layout2.addWidget(self.output_folder)
         layout3 = QFormLayout()
         layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout4 = QHBoxLayout()
@@ -505,20 +498,14 @@ class Perform(QWidget):
 
         self.logger.info("Done")
 
-    def browse_output(self):
-        # Browse folders in order to choose the output one
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path != '':
-            self.output_folder.setText(folder_path)
-
     def update_output_filename_label(self):
         if self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
-            output_path = self.output_folder.text().rstrip("/")
+            output_path = self.output_folder.text()
 
-        self.output_filename_label1.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".csv"))
-        self.output_filename_label2.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
+        self.output_filename_label1.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".csv")))
+        self.output_filename_label2.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif")))
 
     def projection_mode_fixed_zmin_changed(self, value):
         if self.projection_mode_fixed_zmax.value() < value:
@@ -559,14 +546,10 @@ class Align(QWidget):
         self.use_custom_folder = QRadioButton("Use custom folder")
         self.use_custom_folder.setChecked(False)
         self.use_custom_folder.toggled.connect(self.update_output_filename_label)
-        self.output_folder = gf.DropFolderLineEdit()
+        self.output_folder = gf.FolderLineEdit()
         self.output_folder.textChanged.connect(self.update_output_filename_label)
-        browse_button2 = QPushButton("Browse")
-        browse_button2.clicked.connect(self.browse_output)
         self.output_folder.setVisible(self.use_custom_folder.isChecked())
-        browse_button2.setVisible(self.use_custom_folder.isChecked())
         self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
-        self.use_custom_folder.toggled.connect(browse_button2.setVisible)
         self.output_user_suffix = QLineEdit()
         self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
         self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
@@ -599,10 +582,7 @@ class Align(QWidget):
             layout2.addWidget(QLabel("Folder:"))
             layout2.addWidget(self.use_input_folder)
             layout2.addWidget(self.use_custom_folder)
-            layout3 = QHBoxLayout()
-            layout3.addWidget(self.output_folder)
-            layout3.addWidget(browse_button2, alignment=Qt.AlignCenter)
-            layout2.addLayout(layout3)
+            layout2.addWidget(self.output_folder)
         layout3 = QFormLayout()
         layout4 = QHBoxLayout()
         layout4.setSpacing(0)
@@ -634,19 +614,13 @@ class Align(QWidget):
 
         self.update_output_filename_label()
 
-    def browse_output(self):
-        # Browse folders in order to choose the output one
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path != '':
-            self.output_folder.setText(folder_path)
-
     def update_output_filename_label(self):
         if self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
-            output_path = self.output_folder.text().rstrip("/")
+            output_path = self.output_folder.text()
 
-        self.output_filename_label.setText(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif"))
+        self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif")))
 
     def get_widgets_state(self):
         widgets_state = {
@@ -841,14 +815,10 @@ class ManualEdit(QWidget):
         label_documentation.setText('View and modify an existing transformation matrix in <a href="https://napari.org">napari</a>.<br>' +
                                     'Important: select an image that has not been registered.<br>' +
                                     'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
-        self.input_image = gf.DropFileLineEdit(filetypes=gf.imagetypes)
+        self.input_image = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
         self.input_image.textChanged.connect(self.input_image_changed)
-        browse_image_button = QPushButton("Browse", self)
-        browse_image_button.clicked.connect(self.browse_image)
-        self.input_matrix = gf.DropFileLineEdit(filetypes=gf.matrixtypes)
+        self.input_matrix = gf.FileLineEdit(label='Transformation matrices', filetypes=gf.matrixtypes)
         self.input_matrix.textChanged.connect(self.input_matrix_changed)
-        browse_matrix_button = QPushButton("Browse", self)
-        browse_matrix_button.clicked.connect(self.browse_matrix)
         self.button_edit = QPushButton('Edit')
         self.button_edit.clicked.connect(self.edit)
 
@@ -860,15 +830,13 @@ class ManualEdit(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Input image (before registration)")
-        layout2 = QHBoxLayout()
+        layout2 = QVBoxLayout()
         layout2.addWidget(self.input_image)
-        layout2.addWidget(browse_image_button, alignment=Qt.AlignCenter)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         groupbox = QGroupBox("Matrix to edit")
-        layout2 = QHBoxLayout()
+        layout2 = QVBoxLayout()
         layout2.addWidget(self.input_matrix)
-        layout2.addWidget(browse_matrix_button, alignment=Qt.AlignCenter)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         layout.addWidget(self.button_edit, alignment=Qt.AlignCenter)
@@ -876,16 +844,6 @@ class ManualEdit(QWidget):
         self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
-
-    def browse_image(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Images (' + ' '.join(['*' + x for x in gf.imagetypes]) + ')')
-        if file_path != '':
-            self.input_image.setText(file_path)
-
-    def browse_matrix(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Select Files', filter='Transformation matrices (' + ' '.join(['*' + x for x in gf.matrixtypes]) + ')')
-        if file_path != '':
-            self.input_matrix.setText(file_path)
 
     def input_image_changed(self):
         image_path = self.input_image.text()

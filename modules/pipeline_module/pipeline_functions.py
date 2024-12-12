@@ -345,13 +345,9 @@ class GeneralSettings(QWidget):
         self.use_input_folder.setChecked(True)
         self.use_custom_folder = QRadioButton("Use custom folder (same for all the input files)")
         self.use_custom_folder.setChecked(False)
-        self.output_folder = gf.DropFolderLineEdit()
-        self.brows_output_button = QPushButton("Browse")
-        self.brows_output_button.clicked.connect(self.browse_output)
+        self.output_folder = gf.FolderLineEdit()
         self.output_folder.setVisible(self.use_custom_folder.isChecked())
-        self.brows_output_button.setVisible(self.use_custom_folder.isChecked())
         self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
-        self.use_custom_folder.toggled.connect(self.brows_output_button.setVisible)
         self.output_filename_label = QLineEdit()
         self.output_filename_label.setFrame(False)
         self.output_filename_label.setEnabled(False)
@@ -432,10 +428,7 @@ class GeneralSettings(QWidget):
         layout2.addWidget(QLabel("Folder:"))
         layout2.addWidget(self.use_input_folder)
         layout2.addWidget(self.use_custom_folder)
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.output_folder)
-        layout3.addWidget(self.brows_output_button, alignment=Qt.AlignCenter)
-        layout2.addLayout(layout3)
+        layout2.addWidget(self.output_folder)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
@@ -449,12 +442,6 @@ class GeneralSettings(QWidget):
         layout2.addWidget(self.coarse_grain)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-
-    def browse_output(self):
-        # Browse folders in order to choose the output one
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path != '':
-            self.output_folder.setText(folder_path)
 
     def set_input_type(self, input_type):
         self.input_type = input_type
