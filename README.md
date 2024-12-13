@@ -117,7 +117,7 @@ Distributed under the ... License. See `support_files/LICENSE.txt` for more info
 
 ## Credits
 
-Arianna Ravera (ariannaravera22@gmail.com) - Scientific Computing and Research Support Unit, [University of Lausanne](https://www.unil.ch).
+Arianna Ravera - Scientific Computing and Research Support Unit, [University of Lausanne](https://www.unil.ch).
 
 Julien Dorier - Bioinformatics Competence Center, [University of Lausanne](https://www.unil.ch).
 
