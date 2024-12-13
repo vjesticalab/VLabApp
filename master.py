@@ -116,7 +116,7 @@ class MainWindow(QWidget):
 
         subitem = QTreeWidgetItem(item, ["View metadata"])
         subitem.setData(0, Qt.UserRole, self.right_panel.count())
-        self.right_panel.addWidget(gf.Page(widget=viewer.MetadataViewer()))
+        self.right_panel.addWidget(gf.Page(widget=viewer.MetadataViewer(), add_stretch=False))
 
         subitem = QTreeWidgetItem(item, ["File organization"])
         subitem.setData(0, Qt.UserRole, self.right_panel.count())

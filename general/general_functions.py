@@ -1162,7 +1162,7 @@ class FolderLineEdit(QWidget):
 
 
 class Page(QWidget):
-    def __init__(self, parent=None, widget=None):
+    def __init__(self, parent=None, widget=None, add_stretch=True):
         super().__init__(parent)
         self.container = QWidget()
         lay = QVBoxLayout(self)
@@ -1176,7 +1176,8 @@ class Page(QWidget):
             layout = QVBoxLayout(self.container)
             layout.setContentsMargins(0, 0, 0, 0)
             layout.addWidget(widget)
-            layout.addStretch()
+            if add_stretch:
+                layout.addStretch()
 
 
 class Image:
