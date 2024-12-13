@@ -203,7 +203,9 @@ class CellTracking(QWidget):
             self.max_delta_frame_interpolation.setValue(value)
 
     def update_output_filename_label(self):
-        if self.use_input_folder.isChecked():
+        if self.pipeline_layout:
+            output_path = "<output folder>"
+        elif self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
             output_path = os.path.abspath(self.output_folder.text())

@@ -342,7 +342,9 @@ class GraphFiltering(QWidget):
         self.display_results.setEnabled(self.mask_graph_table.rowCount() <= 1)
 
     def update_output_filename_label(self):
-        if self.use_input_folder.isChecked():
+        if self.pipeline_layout:
+            output_path = "<output folder>"
+        elif self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
             output_path = os.path.abspath(self.output_folder.text())

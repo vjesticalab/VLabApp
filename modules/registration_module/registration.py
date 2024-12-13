@@ -499,7 +499,9 @@ class Perform(QWidget):
         self.logger.info("Done")
 
     def update_output_filename_label(self):
-        if self.use_input_folder.isChecked():
+        if self.pipeline_layout:
+            output_path = "<output folder>"
+        elif self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
             output_path = os.path.abspath(self.output_folder.text())
@@ -615,7 +617,9 @@ class Align(QWidget):
         self.update_output_filename_label()
 
     def update_output_filename_label(self):
-        if self.use_input_folder.isChecked():
+        if self.pipeline_layout:
+            output_path = "<output folder>"
+        elif self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
             output_path = os.path.abspath(self.output_folder.text())
