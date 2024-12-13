@@ -32,6 +32,7 @@
 * Restore cursor when closing napari window.
 * File organization module: fix crash and show dialog with error messages.
 * Show absolute path for the output filename when using custom output folder.
+* To avoid problems with GraphML support in igraph on Windows: add a comment in README.md to install igraph using conda instead of pip.
 
 
 

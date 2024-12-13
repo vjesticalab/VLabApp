@@ -111,6 +111,17 @@ Now you have everything you need to use the Application!
   `python3 master.py`
 
 
+### On Windows
+
+To avoid problems with GraphML support in igraph, uninstall the `pip` package:
+```
+pip uninstall python-igraph
+```
+and install via conda
+```
+conda install -c conda-forge  python-igraph
+```
+
 ### On Linux
 
 Be careful on the limit of files that you are allowed to open. The parallelisation of some modules could open up to 1000 files per process. 
