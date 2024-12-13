@@ -33,6 +33,7 @@
 * File organization module: fix crash and show dialog with error messages.
 * Show absolute path for the output filename when using custom output folder.
 * To avoid problems with GraphML support in igraph on Windows: add a comment in README.md to install igraph using conda instead of pip.
+* Ground truth module: input segmentation mask in a collapsible widget.
 
 
 
