@@ -27,7 +27,7 @@ class CellTracking(QWidget):
         self.use_input_folder = QRadioButton("Use input mask folder")
         self.use_input_folder.setChecked(True)
         self.use_input_folder.toggled.connect(self.update_output_filename_label)
-        self.use_custom_folder = QRadioButton("Use custom folder")
+        self.use_custom_folder = QRadioButton("Use custom folder (same for all the input files)")
         self.use_custom_folder.setChecked(False)
         self.use_custom_folder.toggled.connect(self.update_output_filename_label)
         self.output_folder = gf.FolderLineEdit()
