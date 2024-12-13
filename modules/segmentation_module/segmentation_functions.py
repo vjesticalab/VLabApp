@@ -271,6 +271,9 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
         if display_results:
             # Restore cursor
             napari.qt.get_app().restoreOverrideCursor()
-            # close napari window
-            viewer_images.close()
+            try:
+                # close napari window
+                viewer_images.close()
+            except:
+                pass
         raise

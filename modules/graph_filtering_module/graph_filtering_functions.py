@@ -1083,7 +1083,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
     # window is already opened.
     # TODO: find a better solution.
     if napari.current_viewer():
-        raise RuntimeError('To avoid potential logging corruption, close all napari windows and try again.')
+        raise RuntimeError('To avoid potential log file corruption, close all napari windows and try again.')
 
     try:
         ###########################
@@ -1274,6 +1274,9 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
         if display_results:
             # Restore cursor
             napari.qt.get_app().restoreOverrideCursor()
-            # close napari window
-            viewer_images.close()
+            try:
+                # close napari window
+                viewer_images.close()
+            except:
+                pass
         raise

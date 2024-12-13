@@ -1333,7 +1333,10 @@ def manual_edit_main(image_path, matrix_path):
         remove_all_log_handlers()
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
-        # close napari window
-        viewer.close()
+        try:
+            # close napari window
+            viewer.close()
+        except:
+            pass
         raise
 

@@ -205,7 +205,6 @@ def clean_mask(mask, cell_tracking_graph, max_delta_frame_interpolation=3, nfram
     """
     logger = logging.getLogger(__name__)
     logger.debug("cleaning mask")
-
     defects = cell_tracking_graph.get_isolated_defects(nframes_defect, nframes_stable, stable_overlap_fraction, only_missing)
 
     # Clean
@@ -1563,14 +1562,14 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         display image, mask and results in napari
     """
 
-    try:
-        # This is a temporary workaround to avoid having multiple conflicting
-        # logging to metadata and log file, which could happen when a napari
-        # window is already opened.
-        # TODO: find a better solution.
-        if napari.current_viewer():
-            raise RuntimeError('Close all napari windows and try again.')
+    # This is a temporary workaround to avoid having multiple conflicting
+    # logging to metadata and log file, which could happen when a napari
+    # window is already opened.
+    # TODO: find a better solution.
+    if napari.current_viewer():
+        raise RuntimeError('To avoid potential log file corruption, close all napari windows and try again.')
 
+    try:
         ###########################
         # Setup logging
         ###########################
@@ -1684,7 +1683,6 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         ###########################
         # Napari
         ###########################
-
         if display_results:
             logger.debug("displaying image and mask")
             viewer_images = napari.Viewer(title=mask_path)
@@ -1759,7 +1757,10 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         if display_results:
             # Restore cursor
             napari.qt.get_app().restoreOverrideCursor()
-            # close napari window
-            viewer_images.close()
-            viewer_graph.close()
+            try:
+                # close napari window
+                viewer_images.close()
+                viewer_graph.close()
+            except:
+                pass
         raise

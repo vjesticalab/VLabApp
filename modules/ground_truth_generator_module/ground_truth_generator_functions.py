@@ -804,6 +804,9 @@ def main(image_BF_path, image_fluo1_path, image_fluo2_path, image_mask_path, out
         remove_all_log_handlers()
         # Restore cursor
         napari.qt.get_app().restoreOverrideCursor()
-        # close napari window
-        viewer.close()
+        try:
+            # close napari window
+            viewer.close()
+        except:
+            pass
         raise
