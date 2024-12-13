@@ -29,6 +29,7 @@
 * Events filter module: fix "Attribute does not exist" error.
 * Fix file paths on Windows (use '\' instead of '/' everywhere).
 * Always close log files on error.
+* Restore cursor when closing napari window.
 
 
 

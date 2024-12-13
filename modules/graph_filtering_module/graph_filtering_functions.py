@@ -1020,6 +1020,8 @@ class GraphFilteringWidget(QWidget):
         self.viewer_images.close()
 
     def on_viewer_images_close(self):
+        # Restore cursor
+        napari.qt.get_app().restoreOverrideCursor()
         if self.mask_modified:
             if self.mask_need_filtering:
                 save = QMessageBox.question(self, 'Save changes', "Filter and save changes before closing?", QMessageBox.Yes | QMessageBox.No)
@@ -1039,7 +1041,6 @@ class GraphFilteringWidget(QWidget):
     def __del__(self):
         # Remove all handlers for this module
         remove_all_log_handlers()
-        self.logger.debug("Done")
 
 
 def main(image_path, mask_path, graph_path, output_path, output_basename, filters, display_results=True, graph_topologies=None):
@@ -1270,4 +1271,9 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
     except Exception:
         # Remove all handlers for this module
         remove_all_log_handlers()
+        if display_results:
+            # Restore cursor
+            napari.qt.get_app().restoreOverrideCursor()
+            # close napari window
+            viewer_images.close()
         raise

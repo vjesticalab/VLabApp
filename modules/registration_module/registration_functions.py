@@ -254,6 +254,8 @@ class EditTransformationMatrix(QWidget):
         self.layer_points.refresh()
 
     def on_close(self):
+        # Restore cursor
+        napari.qt.get_app().restoreOverrideCursor()
         if not np.array_equal(self.tmat, self.tmat_saved_version) and not self.read_only:
             save = QMessageBox.question(self, 'Save changes', "Save transformation matrix before closing?", QMessageBox.Yes | QMessageBox.No)
             if save == QMessageBox.Yes:
@@ -277,7 +279,6 @@ class EditTransformationMatrix(QWidget):
     def __del__(self):
         # Remove all handlers for this module
         remove_all_log_handlers()
-        logging.getLogger(__name__).info('Done')
 
 
 class PlotTransformation(QWidget):
@@ -1330,5 +1331,9 @@ def manual_edit_main(image_path, matrix_path):
     except Exception:
         # Remove all handlers for this module
         remove_all_log_handlers()
+        # Restore cursor
+        napari.qt.get_app().restoreOverrideCursor()
+        # close napari window
+        viewer.close()
         raise
 

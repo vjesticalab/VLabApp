@@ -1506,6 +1506,8 @@ class CellTrackingWidget(QWidget):
         self.viewer_graph.close()
 
     def on_viewer_images_close(self):
+        # Restore cursor
+        napari.qt.get_app().restoreOverrideCursor()
         if self.mask_modified:
             if self.mask_need_relabelling:
                 save = QMessageBox.question(self, 'Save changes', "Relabel and save changes before closing?", QMessageBox.Yes | QMessageBox.No)
@@ -1517,7 +1519,6 @@ class CellTrackingWidget(QWidget):
     def __del__(self):
         # Remove all handlers for this module
         remove_all_log_handlers()
-        self.logger.debug("Done")
 
 
 def main(image_path, mask_path, output_path, output_basename, min_area=300, max_delta_frame=5, min_overlap_fraction=0.2, clean=False, max_delta_frame_interpolation=3, nframes_defect=2, nframes_stable=3, stable_overlap_fraction=0, display_results=True):
@@ -1754,4 +1755,11 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
     except Exception:
         # Remove all handlers for this module
         remove_all_log_handlers()
+        remove_all_log_handlers()
+        if display_results:
+            # Restore cursor
+            napari.qt.get_app().restoreOverrideCursor()
+            # close napari window
+            viewer_images.close()
+            viewer_graph.close()
         raise

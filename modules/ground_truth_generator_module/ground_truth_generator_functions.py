@@ -515,6 +515,8 @@ class GroundTruthWidget(QWidget):
         self.viewer.close()
 
     def on_viewer_close(self):
+        # Restore cursor
+        napari.qt.get_app().restoreOverrideCursor()
         if self.mask_modified:
             save = QMessageBox.question(self, 'Save changes', "Save mask before closing?", QMessageBox.Yes | QMessageBox.No)
             if save == QMessageBox.Yes:
@@ -523,7 +525,6 @@ class GroundTruthWidget(QWidget):
 
     def __del__(self):
         remove_all_log_handlers()
-        self.logger.debug("Done")
 
     def segment(self):
 
@@ -801,4 +802,8 @@ def main(image_BF_path, image_fluo1_path, image_fluo2_path, image_mask_path, out
     except Exception:
         # Remove all handlers for this module
         remove_all_log_handlers()
+        # Restore cursor
+        napari.qt.get_app().restoreOverrideCursor()
+        # close napari window
+        viewer.close()
         raise
