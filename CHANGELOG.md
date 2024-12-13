@@ -31,6 +31,8 @@
 * Always close log files on error.
 * Restore cursor when closing napari window.
 * File organization module: fix crash and show dialog with error messages.
+* Show absolute path for the output filename when using custom output folder.
+
 
 
 

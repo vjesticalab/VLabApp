@@ -195,7 +195,7 @@ class zProjection(QWidget):
         elif self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
-            output_path = self.output_folder.text()
+            output_path = os.path.abspath(self.output_folder.text())
         projection_type = self.projection_type.currentText()
         if self.projection_mode_bestZ.isChecked():
             projection_zrange = 0

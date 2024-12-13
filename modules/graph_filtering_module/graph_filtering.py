@@ -345,7 +345,7 @@ class GraphFiltering(QWidget):
         if self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
-            output_path = self.output_folder.text()
+            output_path = os.path.abspath(self.output_folder.text())
 
         self.output_filename_label1.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif")))
         self.output_filename_label2.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".graphmlz")))

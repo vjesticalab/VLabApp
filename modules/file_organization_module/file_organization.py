@@ -237,7 +237,7 @@ class FileOrganization(QWidget):
         if self.use_input_folder.isChecked():
             output_path = "<input folder>"
         else:
-            output_path = self.output_folder.text()
+            output_path = os.path.abspath(self.output_folder.text())
         self.output_dirname_label.setText(os.path.join(os.path.normpath(output_path), "<input folder basename>", ""))
 
     def copy(self):
