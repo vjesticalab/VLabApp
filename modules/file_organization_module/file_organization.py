@@ -241,10 +241,16 @@ class FileOrganization(QWidget):
         self.output_dirname_label.setText(os.path.join(os.path.normpath(output_path), "<input folder basename>", ""))
 
     def copy(self):
-        self.export(move=False)
+        try:
+            self.export(move=False)
+        except Exception:
+            self.logger.exception("Error")
 
     def move(self):
-        self.export(move=True)
+        try:
+            self.export(move=True)
+        except Exception:
+            self.logger.exception("Error")
 
     def export(self, move = False):
         if move:
@@ -370,9 +376,12 @@ class FileOrganization(QWidget):
         if msg.exec_() == QDialog.Accepted:
             for f in set(files_to_remove):
                 self.logger.info("Removing: %s", f)
-                if os.path.isdir(f):
-                    shutil.rmtree(f)
-                else:
-                    os.remove(f)
+                try:
+                    if os.path.isdir(f):
+                        shutil.rmtree(f)
+                    else:
+                        os.remove(f)
+                except Exception:
+                    self.logger.exception("Error when removing %s", f)
 
         self.logger.info("Done")
