@@ -227,7 +227,7 @@ def write_dot(filename, graph):
         f.write('}')
 
 
-def convert_mask_and_graph(mask_path, graph_path, output_path, output_basename, output_mask_format=None, output_graph_format=None):
+def convert_mask_and_graph(mask_path, graph_path, output_path, output_basename, output_mask_format=None, output_graph_format=None, one_file_per_cell_track=False):
     """
     Load mask (`mask_path`), cell tracking graph (`graph_path`).
     Save the selected mask and cell tracking graph into `output_path` directory.
@@ -252,6 +252,8 @@ def convert_mask_and_graph(mask_path, graph_path, output_path, output_basename, 
             'tsv': save as tab-separated value format (.tsv).
             'dot': save as graphviz dot format (.dot).
             'graphml': save as graphml format (.graphml).
+    one_file_per_cell_track: bool
+        output one file per cell track if True or one file with all cell tracks otherwise.
     """
 
     ###########################
@@ -305,46 +307,102 @@ def convert_mask_and_graph(mask_path, graph_path, output_path, output_basename, 
     for i, cmp in enumerate(components):
         graph.vs[cmp]['cell_track'] = i
 
-    ###########################
-    # save graph
-    ###########################
-    if output_graph_format:
-        if output_graph_format == 'tsv':
-            output_file = os.path.join(output_path, output_basename+'.tsv')
-            logger.info('Saving cell tracking graph to %s', output_file)
-            write_edge_list(output_file, graph)
-        elif output_graph_format == 'dot':
-            output_file = os.path.join(output_path, output_basename+'.dot')
-            write_dot(output_file, graph)
-        elif output_graph_format == 'graphml':
-            # adjust attributes
-            graph2 = graph.copy()
-            for a in graph2.attributes():
-                if a.startswith('VLabApp:Annotation'):
-                    del graph2[a]
-            del graph2.es['overlap_fraction_source']
-            del graph2.es['overlap_fraction_target']
-            del graph2.es['frame_source']
-            del graph2.es['frame_target']
-            del graph2.es['mask_id_source']
-            del graph2.es['mask_id_target']
-            graph2.vs['name'] = [str(track)+'_'+str(frame)+'_'+str(mask_id) for track, frame, mask_id in zip(graph.vs['cell_track'], graph.vs['frame'], graph.vs['mask_id'])]
+    if not one_file_per_cell_track:
+        ###########################
+        # save all
+        ###########################
+        # save graph
+        if output_graph_format:
+            if output_graph_format == 'tsv':
+                output_file = os.path.join(output_path, output_basename+'.tsv')
+                write_edge_list(output_file, graph)
+            elif output_graph_format == 'dot':
+                output_file = os.path.join(output_path, output_basename+'.dot')
+                write_dot(output_file, graph)
+            elif output_graph_format == 'graphml':
+                # adjust attributes
+                graph2 = graph.copy()
+                for a in graph2.attributes():
+                    if a.startswith('VLabApp:Annotation'):
+                        del graph2[a]
+                for a in graph2.es.attributes():
+                    if not a in ['overlap_area']:
+                        del graph2.es[a]
+                for a in graph2.vs.attributes():
+                    if not a in ['frame', 'mask_id', 'area', 'cell_track']:
+                        del graph2.vs[a]
+                graph2.vs['name'] = [str(track)+'_'+str(frame)+'_'+str(mask_id) for track, frame, mask_id in zip(graph2.vs['cell_track'], graph2.vs['frame'], graph2.vs['mask_id'])]
+                output_file = os.path.join(output_path, output_basename+'.graphml')
+                logger.info('Saving cell tracking graph to %s', output_file)
+                graph2.write_graphml(output_file)
 
-            output_file = os.path.join(output_path, output_basename+'.graphml')
-            logger.info('Saving cell tracking graph to %s', output_file)
-            graph2.write_graphml(output_file)
+        # save mask
+        error_message = ''
+        if output_mask_format:
+            output_file = os.path.join(output_path, output_basename+'.zip')
+            holes, multicomponents = write_ImagejRoi(output_file, mask, graph)
+            if holes:
+                error_message += 'Regions in the segmentation mask contain holes, which cannot be exported to ImageJ ROI file format. Only outer boundaries were saved (holes were ignored). '
+            if multicomponents:
+                error_message += 'Regions in the segmentation mask consist in multiple disconnected components. For each region, all components will be saved with same ROI name, which may generate undefined behavior in ImageJ. '
 
-    ###########################
-    # Save mask
-    ###########################
-    error_message = ''
-    if output_mask_format:
-        output_file = os.path.join(output_path, output_basename+'.zip')
-        holes, multicomponents = write_ImagejRoi(output_file, mask, graph)
+        if error_message:
+            raise ValueError(error_message.strip())
+
+    else:
+        ###########################
+        # save one file per cell track
+        ###########################
+        holes = False
+        multicomponents = False
+        for i, cmp in enumerate(components):
+            logger.info('Filtering graph and mask (cell track $s)', i)
+            output_basename_ct =  f"{output_basename}_{i:04d}"
+            # filter graph
+            graph_ct = graph.subgraph(cmp)
+            # filter mask
+            mask_ct = mask.copy()
+            for t in range(mask_ct.shape[0]):
+                mask_ct[t][np.logical_not(np.isin(mask_ct[t], graph_ct.vs.select(frame=t)['mask_id']))] = 0
+
+            # save graph
+            if output_graph_format:
+                if output_graph_format == 'tsv':
+                    output_file = os.path.join(output_path, output_basename_ct+'.tsv')
+                    write_edge_list(output_file, graph_ct)
+                elif output_graph_format == 'dot':
+                    output_file = os.path.join(output_path, output_basename_ct+'.dot')
+                    write_dot(output_file, graph_ct)
+                elif output_graph_format == 'graphml':
+                    # adjust attributes
+                    graph_ct2 = graph_ct.copy()
+                    for a in graph_ct2.attributes():
+                        if a.startswith('VLabApp:Annotation'):
+                            del graph_ct2[a]
+                    for a in graph_ct2.es.attributes():
+                        if not a in ['overlap_area']:
+                            del graph_ct2.es[a]
+                    for a in graph_ct2.vs.attributes():
+                        if not a in ['frame', 'mask_id', 'area', 'cell_track']:
+                            del graph_ct2.vs[a]
+                    graph_ct2.vs['name'] = [str(track)+'_'+str(frame)+'_'+str(mask_id) for track, frame, mask_id in zip(graph_ct2.vs['cell_track'], graph_ct2.vs['frame'], graph_ct2.vs['mask_id'])]
+
+                    output_file = os.path.join(output_path, output_basename_ct+'.graphml')
+                    logger.info('Saving cell tracking graph to %s', output_file)
+                    graph_ct2.write_graphml(output_file)
+
+            # save mask
+            if output_mask_format:
+                output_file = os.path.join(output_path, output_basename_ct+'.zip')
+                h, m = write_ImagejRoi(output_file, mask_ct, graph_ct)
+                holes = holes or h
+                multicomponents = multicomponents or m
+
+        error_message = ''
         if holes:
             error_message += 'Regions in the segmentation mask contain holes, which cannot be exported to ImageJ ROI file format. Only outer boundaries were saved (holes were ignored). '
         if multicomponents:
             error_message += 'Regions in the segmentation mask consist in multiple disconnected components. For each region, all components will be saved with same ROI name, which may generate undefined behavior in ImageJ. '
+        if error_message:
+            raise ValueError(error_message.strip())
 
-    if error_message:
-        raise ValueError(error_message.strip())

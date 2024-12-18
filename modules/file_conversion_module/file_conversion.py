@@ -1,6 +1,6 @@
 import logging
 import os
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QWidget, QGroupBox, QRadioButton, QLabel, QFormLayout, QLineEdit, QComboBox, QApplication
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QWidget, QGroupBox, QRadioButton, QLabel, QFormLayout, QLineEdit, QComboBox, QApplication, QCheckBox
 from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtGui import QCursor, QRegExpValidator
 from modules.file_conversion_module import file_conversion_functions as f
@@ -124,6 +124,10 @@ class MaskGraphConversion(QWidget):
         layout3.addRow(self.label_documentation_graph)
         self.convert_graph.setLayout(layout3)
         layout2.addWidget(self.convert_graph)
+        self.output_per_celltrack = QCheckBox('Output one file per cell track')
+        self.output_per_celltrack.setChecked(False)
+        self.output_per_celltrack.toggled.connect(self.update_output_filename_label)
+        layout2.addWidget(self.output_per_celltrack)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
@@ -160,8 +164,13 @@ class MaskGraphConversion(QWidget):
         elif self.output_graph_format.currentText() == 'GraphML format (.graphml)':
             graph_ext = '.graphml'
 
-        self.output_filename_label_mask.setText(os.path.normpath(os.path.join(output_path, '<input basename>' + self.output_user_suffix.text() + mask_ext)))
-        self.output_filename_label_graph.setText(os.path.normpath(os.path.join(output_path, '<input basename>' + self.output_user_suffix.text() + graph_ext)))
+        if self.output_per_celltrack.isChecked():
+            celltrack_suffix = '_<cell track id>'
+        else:
+            celltrack_suffix = ''
+
+        self.output_filename_label_mask.setText(os.path.normpath(os.path.join(output_path, '<input basename>' + self.output_user_suffix.text() + celltrack_suffix + mask_ext)))
+        self.output_filename_label_graph.setText(os.path.normpath(os.path.join(output_path, '<input basename>' + self.output_user_suffix.text() + celltrack_suffix + graph_ext)))
 
     def submit(self):
 
@@ -228,7 +237,13 @@ class MaskGraphConversion(QWidget):
             QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
             QApplication.processEvents()
             try:
-                f.convert_mask_and_graph(mask_path, graph_path, output_path, output_basename, output_mask_format, output_graph_format)
+                f.convert_mask_and_graph(mask_path,
+                                         graph_path,
+                                         output_path,
+                                         output_basename,
+                                         output_mask_format,
+                                         output_graph_format,
+                                         self.output_per_celltrack.isChecked())
                 status.append('Success')
                 error_messages.append(None)
             except Exception as e:
