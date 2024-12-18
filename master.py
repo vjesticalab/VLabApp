@@ -16,6 +16,7 @@ from modules.graph_filtering_module import graph_filtering
 from modules.events_filter_module import events_filter
 from modules.viewer_module import viewer
 from modules.file_organization_module import file_organization
+from modules.file_conversion_module import file_conversion
 from modules.pipeline_module import pipeline
 from general import general_functions as gf
 
@@ -121,6 +122,10 @@ class MainWindow(QWidget):
         subitem = QTreeWidgetItem(item, ["File organization"])
         subitem.setData(0, Qt.UserRole, self.right_panel.count())
         self.right_panel.addWidget(gf.Page(widget=file_organization.FileOrganization()))
+
+        subitem = QTreeWidgetItem(item, ["File conversion (mask and graph)"])
+        subitem.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=file_conversion.MaskGraphConversion()))
 
         subitem = QTreeWidgetItem(item, ["Ground truth generator"])
         subitem.setData(0, Qt.UserRole, self.right_panel.count())

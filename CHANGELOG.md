@@ -2,6 +2,8 @@
 
 ### Added
 
+* Add a new File conversion module (to convert masks and graphs to various file formats).
+
 ### Changed
 
 * Registration module, Editing (manual): control point color corresponds to modification status (red: modified, green: not modified) and transparency corresponds to frame range selection status (opaque: selected, semi-transparent: not selected).
