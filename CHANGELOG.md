@@ -2,6 +2,20 @@
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+
+
+
+
+## [v2.2.0] 2024-12-23
+
+### Added
+
 * Add a new File conversion module (to convert masks and graphs to various file formats and images and masks to mp4 movies).
 
 ### Changed
