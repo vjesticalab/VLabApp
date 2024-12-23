@@ -133,21 +133,13 @@ class MainWindow(QWidget):
 
         w = self.module_list.sizeHintForColumn(0)
         h = round(1.5*self.module_list.sizeHintForRow(0))
-        max_text_width = 0
         font_metric = QFontMetrics(self.module_list.font())
         iterator = QTreeWidgetItemIterator(self.module_list)
         while iterator.value():
             item = iterator.value()
-            text = item.text(0)
             item.setSizeHint(0, QSize(w, h))
-            level = 1
-            parent = item.parent()
-            while parent:
-                level += 1
-                parent = parent.parent()
-            max_text_width = max(max_text_width, font_metric.boundingRect(text).width()+level*self.module_list.indentation())
             iterator += 1
-        self.module_list.setMinimumWidth(max_text_width+15)
+        self.module_list.setMinimumWidth(font_metric.width('a')*25)
 
         self.module_list.currentItemChanged.connect(self.module_list_current_item_changed)
         self.module_list.setCurrentItem(self.module_list.topLevelItem(0))
