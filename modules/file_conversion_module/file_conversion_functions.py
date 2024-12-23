@@ -6,6 +6,10 @@ import cv2 as cv
 import numpy as np
 import igraph as ig
 import pandas as pd
+import imageio.v3 as iio
+import imageio.config as iio_config
+from imageio import __version__ as imageio_version
+from imageio_ffmpeg import __version__ as imageioffmpeg_version
 from general import general_functions as gf
 from version import __version__ as vlabapp_version
 
@@ -241,7 +245,7 @@ def convert_mask_and_graph(mask_path, graph_path, output_path, output_basename, 
     output_path: str
         output directory.
     output_basename: str
-        output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif, `output_path`/`output_basename`.graphmlz and `output_path`/`output_basename`.log.
+        output basename. Output file will be saved as `output_path`/`output_basename`.`extension`, with extension determined by the output format.
     output_mask_format: str
         output format for mask. Possible values for `output_mask_format`:
             None or '': do not save mask.
@@ -326,10 +330,10 @@ def convert_mask_and_graph(mask_path, graph_path, output_path, output_basename, 
                     if a.startswith('VLabApp:Annotation'):
                         del graph2[a]
                 for a in graph2.es.attributes():
-                    if not a in ['overlap_area']:
+                    if a not in ['overlap_area']:
                         del graph2.es[a]
                 for a in graph2.vs.attributes():
-                    if not a in ['frame', 'mask_id', 'area', 'cell_track']:
+                    if a not in ['frame', 'mask_id', 'area', 'cell_track']:
                         del graph2.vs[a]
                 graph2.vs['name'] = [str(track)+'_'+str(frame)+'_'+str(mask_id) for track, frame, mask_id in zip(graph2.vs['cell_track'], graph2.vs['frame'], graph2.vs['mask_id'])]
                 output_file = os.path.join(output_path, output_basename+'.graphml')
@@ -357,7 +361,7 @@ def convert_mask_and_graph(mask_path, graph_path, output_path, output_basename, 
         multicomponents = False
         for i, cmp in enumerate(components):
             logger.info('Filtering graph and mask (cell track $s)', i)
-            output_basename_ct =  f"{output_basename}_{i:04d}"
+            output_basename_ct = f"{output_basename}_{i:04d}"
             # filter graph
             graph_ct = graph.subgraph(cmp)
             # filter mask
@@ -380,10 +384,10 @@ def convert_mask_and_graph(mask_path, graph_path, output_path, output_basename, 
                         if a.startswith('VLabApp:Annotation'):
                             del graph_ct2[a]
                     for a in graph_ct2.es.attributes():
-                        if not a in ['overlap_area']:
+                        if a not in ['overlap_area']:
                             del graph_ct2.es[a]
                     for a in graph_ct2.vs.attributes():
-                        if not a in ['frame', 'mask_id', 'area', 'cell_track']:
+                        if a not in ['frame', 'mask_id', 'area', 'cell_track']:
                             del graph_ct2.vs[a]
                     graph_ct2.vs['name'] = [str(track)+'_'+str(frame)+'_'+str(mask_id) for track, frame, mask_id in zip(graph_ct2.vs['cell_track'], graph_ct2.vs['frame'], graph_ct2.vs['mask_id'])]
 
@@ -406,3 +410,162 @@ def convert_mask_and_graph(mask_path, graph_path, output_path, output_basename, 
         if error_message:
             raise ValueError(error_message.strip())
 
+
+def convert_image_mask_to_movie(image_path, output_path, output_basename, projection_type, projection_zrange, input_is_mask, colors, autocontrast, quality, fps):
+    """
+    Load image or mask (`image_path`).
+    Save as mp4 movie into `output_path` directory.
+
+    Parameters
+    ----------
+    image_path: str
+        input image or mask path. Should be ome-tiff or nd2 image.
+    output_path: str
+        output directory.
+    output_basename: str
+        output basename. Output file will be saved as `output_path`/`output_basename`.mp4.
+    projection_type : str
+        type of projection to perform if the image is a z-stack
+    projection_zrange: int or (int,int) or None
+        the range of z sections to use for projection.
+        If zrange is None, use all z sections.
+        If zrange is an integer, use all z sections in the interval [z_best-zrange,z_best+zrange]
+        where z_best is the Z corresponding to best focus.
+        If zrange is tuple (zmin,zmax), use all z sections in the interval [zmin,zmax].
+    input_is_mask: bool
+        consider input as segmentation mask (True), image (False), or try to detect automatically (None)
+    colors: list of (r, g, b) tuples
+        colors to use when combining channels.
+    autocontrast: bool
+        rescale image intensities to maximize contrast.
+    quality: int
+        output quality. Lowest quality is 0, highest is 10.
+    fps: int
+        output number of frames per seconds.
+    """
+
+    ###########################
+    # Setup logging
+    ###########################
+    logger = logging.getLogger(__name__)
+    logger.info('FILe CONVERSION MODULE')
+    if not os.path.isdir(output_path):
+        logger.debug('creating: %s', output_path)
+        os.makedirs(output_path)
+
+    logger.setLevel(logging.DEBUG)
+
+    logger.info('System info:')
+    logger.info('- platform: %s', platform())
+    logger.info('- python version: %s', python_version())
+    logger.info('- VLabApp version: %s', vlabapp_version)
+    logger.info('- numpy version: %s', np.__version__)
+    logger.info('- imageio version: %s', imageio_version)
+    logger.info('- imageio-ffmpeg version: %s', imageioffmpeg_version)
+
+    logger.info('Input image/mask path: %s', image_path)
+    logger.info('Output path: %s', output_path)
+    logger.info('Output basename: %s', output_basename)
+
+    if 'FFMPEG' not in iio_config.known_plugins:
+        logger.error('imageio ffmpeg plugin missing. Install imageio with ffmpeg plugin using `pip install imageio[ffmpeg]`')
+        raise RuntimeError('imageio ffmpeg plugin missing. Install imageio with ffmpeg plugin using `pip install imageio[ffmpeg]`')
+
+    ###########################
+    # Load image or mask
+    ###########################
+
+    # Load mask
+    logger.debug('loading %s', image_path)
+    try:
+        image = gf.Image(image_path)
+        image.imread()
+    except Exception:
+        logger.exception('Error loading %s', image_path)
+        raise
+
+    # Check 'F' axis has size 1
+    if image.sizes['F'] != 1:
+        logger.error('Image %s has a F axis with size > 1', str(image_path))
+        # Remove all handlers for this module
+        raise TypeError(f"Image {image_path} has a F axis with size > 1")
+
+    ###########################
+    # Prepare image
+    ###########################
+    # Project Z axis if needed and select channel
+    if image.sizes['Z'] > 1:
+        logger.info('Preparing image to segment: performing Z-projection')
+        image_processed = image.z_projection(projection_type, projection_zrange)
+    else:
+        image_processed = image.image
+
+    if input_is_mask is None:
+        # auto-detect input image type
+        logger.debug('Input file type auto-detection')
+        if image.sizes['C'] > 1:
+            input_is_mask = False
+        elif image.dtype.char not in np.typecodes['AllInteger']:
+            input_is_mask = False
+        elif len(np.unique(image_processed)) > 4096:
+            input_is_mask = False
+        else:
+            input_is_mask = True
+            for t in range(image.sizes['T']):
+                # estimate fraction of image which is constant
+                n_nonzero = np.count_nonzero(cv.Laplacian(image_processed[0, t, 0, 0, :, :], cv.CV_32F, ksize=1))
+                fraction_const = 1 - n_nonzero / (image.sizes['X'] * image.sizes['Y'])
+                if fraction_const < 0.8:
+                    input_is_mask = False
+                    break
+        if input_is_mask:
+            logger.debug('Input file type: segmentation mask')
+        else:
+            logger.debug('Input file type: image')
+
+    # set output size to next multiple of 16 (will pad with 0)
+    mbs = 16
+    size_x = round(np.ceil(image.sizes['X'] / mbs) * mbs)
+    size_y = round(np.ceil(image.sizes['Y'] / mbs) * mbs)
+
+    if input_is_mask:
+        ncolors = image_processed.max() + 2
+        L = int(np.ceil(ncolors**(1/3)))
+        colors = np.zeros((L**3, 3), np.uint8)
+        for R in range(L):
+            for G in range(L):
+                for B in range(L):
+                    colors[R+G*L+B*L*L] = np.array(((R*255)/(L-1), (G*255)/(L-1), (B*255)/(L-1))).astype(np.uint8)
+        # shuffle colors (keep black in first position)
+        rng = np.random.default_rng(85246)
+        idx = list(range(1, colors.shape[0]))
+        rng.shuffle(idx)
+        idx.insert(0, 0)
+        colors = colors[idx, :]
+
+        image_output = np.zeros((image.sizes['T'], size_y, size_x, 3), dtype='uint8')
+        image_output[:, :image.sizes['Y'], :image.sizes['X']] = colors[image_processed[0, :, 0, 0, :, :]]
+    else:
+        image_output = np.zeros((image.sizes['T'], size_y, size_x, 3), dtype='uint8')
+        image_output_frame = np.zeros((size_y, size_x), dtype='uint8')
+        max_per_channel = image_processed.max(axis=(0, 1, 3, 4, 5))
+        min_per_channel = image_processed.min(axis=(0, 1, 3, 4, 5))
+        for t in range(image.sizes['T']):
+            logger.debug('Processing frame %s/%s', t, image.sizes['T'])
+            image_input_frame = np.round(image_processed[0, t, :, 0, :, :]*(np.iinfo('uint8').max/(np.iinfo(image_processed.dtype).max))).astype('uint8')
+            if autocontrast:
+                for channel in range(image.sizes['C']):
+                    image_input_frame[channel] = np.round((image_processed[0, t, channel, 0, :, :]-min_per_channel[channel])*(np.iinfo('uint8').max/(max_per_channel[channel]-min_per_channel[channel]))).astype('uint8')
+            for color in range(3):  # RGB
+                image_output_frame.fill(0)
+                for channel in range(image.sizes['C']):
+                    image_output_frame[:image.sizes['Y'], :image.sizes['X']] = cv.addWeighted(src1=image_output_frame[:image.sizes['Y'], :image.sizes['X']],
+                                                                                              alpha=1.0,
+                                                                                              src2=image_input_frame[channel],
+                                                                                              beta=colors[channel][color]/255.0,
+                                                                                              gamma=0)
+                image_output[t, :, :, color] = image_output_frame
+
+    output_name = os.path.join(output_path, output_basename+'.mp4')
+    logger.info('Saving movie to %s', output_name)
+    iio.imwrite(output_name, image_output, extension='.mp4', fps=fps, quality=quality, macro_block_size=mbs)

@@ -123,9 +123,13 @@ class MainWindow(QWidget):
         subitem.setData(0, Qt.UserRole, self.right_panel.count())
         self.right_panel.addWidget(gf.Page(widget=file_organization.FileOrganization()))
 
-        subitem = QTreeWidgetItem(item, ["File conversion (mask and graph)"])
+        subitem = QTreeWidgetItem(item, ["File conversion (masks and graphs)"])
         subitem.setData(0, Qt.UserRole, self.right_panel.count())
         self.right_panel.addWidget(gf.Page(widget=file_conversion.MaskGraphConversion()))
+
+        subitem = QTreeWidgetItem(item, ["File conversion (to mp4 movies)"])
+        subitem.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=file_conversion.ImageMaskConversion()))
 
         subitem = QTreeWidgetItem(item, ["Ground truth generator"])
         subitem.setData(0, Qt.UserRole, self.right_panel.count())

@@ -2,7 +2,7 @@
 
 ### Added
 
-* Add a new File conversion module (to convert masks and graphs to various file formats).
+* Add a new File conversion module (to convert masks and graphs to various file formats and images and masks to mp4 movies).
 
 ### Changed
 

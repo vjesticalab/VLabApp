@@ -1,8 +1,8 @@
 import logging
 import os
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QWidget, QGroupBox, QRadioButton, QLabel, QFormLayout, QLineEdit, QComboBox, QApplication, QCheckBox
-from PyQt5.QtCore import Qt, QRegExp
-from PyQt5.QtGui import QCursor, QRegExpValidator
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QLabel, QFormLayout, QLineEdit, QComboBox, QApplication, QCheckBox, QSpinBox, QColorDialog
+from PyQt5.QtCore import Qt, QRegExp, QEvent
+from PyQt5.QtGui import QCursor, QRegExpValidator, QColor, QPixmap, QFontMetrics
 from modules.file_conversion_module import file_conversion_functions as f
 from general import general_functions as gf
 
@@ -262,3 +262,323 @@ class MaskGraphConversion(QWidget):
 
         self.logger.info('Done')
 
+
+class ImageMaskConversion(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.celltracking_suffix = gf.output_suffixes['cell_tracking']
+        layout = QVBoxLayout()
+
+        # Documentation
+        label_documentation = gf.CollapsibleLabel('', collapsed=True)
+        label_documentation.setText('Convert images and masks to mp4 movie. The resulting mp4 movies are encoded using lossy compression, which results in data loss and distortion. These movies should not be used for scientific applications. In addition, X and Y axes are resized to the nearest multiple of 16.')
+        groupbox = QGroupBox('Documentation')
+        layout2 = QVBoxLayout()
+        layout2.addWidget(label_documentation)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
+        self.image_list = gf.FileListWidget(filetypes=gf.imagetypes)
+        groupbox = QGroupBox('Input files (images or masks)')
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.image_list)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
+        self.use_input_folder = QRadioButton('Use input image/mask folder')
+        self.use_input_folder.setChecked(True)
+        self.use_input_folder.toggled.connect(self.update_output_filename_label)
+        self.use_custom_folder = QRadioButton('Use custom folder (same for all the input files)')
+        self.use_custom_folder.setChecked(False)
+        self.use_custom_folder.toggled.connect(self.update_output_filename_label)
+        self.output_folder = gf.FolderLineEdit()
+        self.output_folder.textChanged.connect(self.update_output_filename_label)
+        self.output_folder.setVisible(self.use_custom_folder.isChecked())
+        self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
+        self.output_user_suffix = QLineEdit()
+        self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
+        self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('_?[A-Za-z0-9-]*')))
+        self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
+        self.output_filename_label = QLineEdit()
+        self.output_filename_label.setFrame(False)
+        self.output_filename_label.setEnabled(False)
+        self.output_filename_label.textChanged.connect(self.output_filename_label.setToolTip)
+        groupbox = QGroupBox('Output')
+        layout2 = QVBoxLayout()
+        layout2.addWidget(QLabel('Folder:'))
+        layout2.addWidget(self.use_input_folder)
+        layout2.addWidget(self.use_custom_folder)
+        layout2.addWidget(self.output_folder)
+        layout3 = QFormLayout()
+        layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        layout3.addRow('Suffix:', self.output_user_suffix)
+        layout4 = QVBoxLayout()
+        layout4.setSpacing(0)
+        layout4.addWidget(self.output_filename_label)
+        layout3.addRow('Filename:', layout4)
+        layout2.addLayout(layout3)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
+        groupbox = QGroupBox('Options')
+        layout2 = QVBoxLayout()
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        # input type
+        groupbox2 = QGroupBox('Input type:')
+        layout3 = QVBoxLayout()
+        self.input_type_auto = QRadioButton('Auto-detect')
+        self.input_type_auto.setToolTip('Try to detect input file types using a heuristic.')
+        self.input_type_auto.setChecked(True)
+        layout3.addWidget(self.input_type_auto)
+        self.input_type_image = QRadioButton('Images')
+        self.input_type_image.setToolTip('Consider all input files as images')
+        layout3.addWidget(self.input_type_image)
+        self.input_type_mask = QRadioButton('Segmentation masks')
+        self.input_type_mask.setToolTip('Consider all input files as segmentation masks')
+        layout3.addWidget(self.input_type_mask)
+        groupbox2.setLayout(layout3)
+        layout2.addWidget(groupbox2)
+        # channels
+        groupbox2 = QGroupBox('Channels:')
+        layout3 = QFormLayout()
+        self.autocontrast = QCheckBox('Auto-contrast')
+        self.autocontrast.setChecked(True)
+        layout3.addRow(self.autocontrast)
+        label = QLabel('Channel colors:')
+        label.setWordWrap(True)
+        layout3.addRow(label)
+        colors = ['#FFFFFF', '#FF0000', '#00FF00', '#0000FF', '#00FFFF', '#FF00FF', '#FFFF00']
+        self.channel_colors = []
+        h = QFontMetrics(self.font()).height()
+        for i, color in enumerate(colors):
+            pixmap = QPixmap(2*h, h)
+            pixmap.fill(QColor(color))
+            label = QLabel()
+            label.setPixmap(pixmap)
+            label.installEventFilter(self)
+            self.channel_colors.append(label)
+            layout3.addRow('Channel '+str(i)+':', label)
+        groupbox2.setLayout(layout3)
+        layout2.addWidget(groupbox2)
+
+        groupbox2 = QGroupBox('If multiple z:')
+        layout3 = QFormLayout()
+        # Z-Projection range
+        # only bestZ
+        self.projection_mode_bestZ = QRadioButton('Z section with best focus')
+        self.projection_mode_bestZ.setChecked(True)
+        self.projection_mode_bestZ.setToolTip('Keep only Z section with best focus.')
+        # around bestZ
+        self.projection_mode_around_bestZ = QRadioButton('Range around Z section with best focus')
+        self.projection_mode_around_bestZ.setChecked(False)
+        self.projection_mode_around_bestZ.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
+        self.projection_mode_around_bestZ_zrange = QSpinBox()
+        self.projection_mode_around_bestZ_zrange.setMinimum(0)
+        self.projection_mode_around_bestZ_zrange.setMaximum(20)
+        self.projection_mode_around_bestZ_zrange.setValue(3)
+        # fixed range
+        self.projection_mode_fixed = QRadioButton('Fixed range')
+        self.projection_mode_fixed.setChecked(False)
+        self.projection_mode_fixed.setToolTip('Project all Z sections with Z in the interval [from,to].')
+        self.projection_mode_fixed_zmin = QSpinBox()
+        self.projection_mode_fixed_zmin.setMinimum(0)
+        self.projection_mode_fixed_zmin.setMaximum(20)
+        self.projection_mode_fixed_zmin.setValue(4)
+        self.projection_mode_fixed_zmin.valueChanged.connect(self.projection_mode_fixed_zmin_changed)
+        self.projection_mode_fixed_zmax = QSpinBox()
+        self.projection_mode_fixed_zmax.setMinimum(0)
+        self.projection_mode_fixed_zmax.setMaximum(20)
+        self.projection_mode_fixed_zmax.setValue(6)
+        self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
+        # all
+        self.projection_mode_all = QRadioButton('All Z sections')
+        self.projection_mode_all.setChecked(False)
+        self.projection_mode_all.setToolTip('Project all Z sections.')
+        widget = QWidget()
+        layout4 = QVBoxLayout()
+        layout4.addWidget(self.projection_mode_bestZ)
+        layout4.addWidget(self.projection_mode_around_bestZ)
+        groupbox3 = QGroupBox()
+        groupbox3.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
+        groupbox3.setVisible(self.projection_mode_around_bestZ.isChecked())
+        self.projection_mode_around_bestZ.toggled.connect(groupbox3.setVisible)
+        layout5 = QFormLayout()
+        layout5.addRow('Range:', self.projection_mode_around_bestZ_zrange)
+        groupbox3.setLayout(layout5)
+        layout4.addWidget(groupbox3)
+        layout4.addWidget(self.projection_mode_fixed)
+        groupbox3 = QGroupBox()
+        groupbox3.setToolTip('Project all Z sections with Z in the interval [from,to].')
+        groupbox3.setVisible(self.projection_mode_fixed.isChecked())
+        self.projection_mode_fixed.toggled.connect(groupbox3.setVisible)
+        layout5 = QHBoxLayout()
+        layout6 = QFormLayout()
+        layout6.addRow('From:', self.projection_mode_fixed_zmin)
+        layout5.addLayout(layout6)
+        layout6 = QFormLayout()
+        layout6.addRow('To:', self.projection_mode_fixed_zmax)
+        layout5.addLayout(layout6)
+        groupbox3.setLayout(layout5)
+        layout4.addWidget(groupbox3)
+        layout4.addWidget(self.projection_mode_all)
+        widget.setLayout(layout4)
+        layout3.addRow('Projection range:', widget)
+        # Z-Projection type
+        self.projection_type = QComboBox()
+        self.projection_type.addItem('max')
+        self.projection_type.addItem('min')
+        self.projection_type.addItem('mean')
+        self.projection_type.addItem('median')
+        self.projection_type.addItem('std')
+        self.projection_type.setCurrentText('mean')
+        self.projection_type.setDisabled(self.projection_mode_bestZ.isChecked())
+        self.projection_mode_bestZ.toggled.connect(self.projection_type.setDisabled)
+        layout3.addRow('Projection type:', self.projection_type)
+        groupbox2.setLayout(layout3)
+        layout2.addWidget(groupbox2)
+
+        # movie option
+        groupbox2 = QGroupBox('Output movie options:')
+        layout3 = QFormLayout()
+        self.output_quality = QSpinBox()
+        self.output_quality.setMinimum(0)
+        self.output_quality.setMaximum(10)
+        self.output_quality.setValue(5)
+        layout3.addRow('Quality:', self.output_quality)
+        self.output_fps = QSpinBox()
+        self.output_fps.setMinimum(0)
+        self.output_fps.setMaximum(30)
+        self.output_fps.setValue(10)
+        layout3.addRow('Frames per second:', self.output_fps)
+        groupbox2.setLayout(layout3)
+        layout2.addWidget(groupbox2)
+
+        self.submit_button = QPushButton('Submit')
+        self.submit_button.clicked.connect(self.submit)
+        layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
+
+        self.setLayout(layout)
+
+        self.logger = logging.getLogger(__name__)
+
+        self.update_output_filename_label()
+
+    def update_output_filename_label(self):
+        if self.use_input_folder.isChecked():
+            output_path = '<input folder>'
+        else:
+            output_path = os.path.abspath(self.output_folder.text())
+
+        self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, '<input basename>' + self.output_user_suffix.text() + '.mp4')))
+
+    def projection_mode_fixed_zmin_changed(self, value):
+        if self.projection_mode_fixed_zmax.value() < value:
+            self.projection_mode_fixed_zmax.setValue(value)
+
+    def projection_mode_fixed_zmax_changed(self, value):
+        if self.projection_mode_fixed_zmin.value() > value:
+            self.projection_mode_fixed_zmin.setValue(value)
+
+    def eventFilter(self, target, event):
+        if target in self.channel_colors and event.type() == QEvent.MouseButtonRelease:
+            color = QColorDialog.getColor(initial=target.pixmap().toImage().pixelColor(0, 0))
+            if color.isValid():
+                print(color.name(QColor.HexRgb))
+                target.pixmap().fill(QColor(color))
+                target.repaint()
+            return True
+        return False
+
+    def submit(self):
+        projection_type = self.projection_type.currentText()
+        if self.projection_mode_bestZ.isChecked():
+            projection_zrange = 0
+        elif self.projection_mode_around_bestZ.isChecked():
+            projection_zrange = self.projection_mode_around_bestZ_zrange.value()
+        elif self.projection_mode_fixed.isChecked():
+            projection_zrange = (self.projection_mode_fixed_zmin.value(), self.projection_mode_fixed_zmax.value())
+        elif self.projection_mode_all.isChecked():
+            projection_zrange = None
+
+        colors = [x.pixmap().toImage().pixelColor(0, 0) for x in self.channel_colors]
+        colors = [(x.red(), x.green(), x.blue()) for x in colors]
+
+        if self.input_type_mask.isChecked():
+            input_is_mask = True
+        elif self.input_type_image.isChecked():
+            input_is_mask = False
+        else:
+            input_is_mask = None
+
+        image_paths = self.image_list.get_file_list()
+        user_suffix = self.output_user_suffix.text()
+        output_basenames = [gf.splitext(os.path.basename(image_path))[0] + user_suffix for image_path in image_paths]
+        if self.use_input_folder.isChecked():
+            output_paths = [os.path.dirname(image_path) for image_path in image_paths]
+        else:
+            output_paths = [self.output_folder.text() for path in image_paths]
+
+        # check input
+        if len(image_paths) == 0:
+            self.logger.error('Image or mask missing')
+            return
+        for image_path in image_paths:
+            if not os.path.isfile(image_path):
+                self.logger.error('Image or mask not found: %s', image_path)
+                return
+        if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
+            self.logger.error('Output folder missing')
+            self.output_folder.setFocus()
+            return
+
+        output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]
+        duplicates = [x for x, y in zip(image_paths, output_files) if output_files.count(y) > 1]
+        if len(duplicates) > 0:
+            self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input image/mask folder as output folder or avoid processing image or masks from different input folders.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
+            return
+
+        # disable messagebox error handler
+        messagebox_error_handler = None
+        for h in logging.getLogger().handlers:
+            if h.get_name() == 'messagebox_error_handler':
+                messagebox_error_handler = h
+                logging.getLogger().removeHandler(messagebox_error_handler)
+                break
+
+        status = []
+        error_messages = []
+        for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
+            self.logger.info('File conversion (image/mask %s)', image_path)
+
+            QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+            QApplication.processEvents()
+            try:
+                f.convert_image_mask_to_movie(image_path,
+                                              output_path,
+                                              output_basename,
+                                              projection_type,
+                                              projection_zrange,
+                                              input_is_mask,
+                                              colors,
+                                              self.autocontrast.isChecked(),
+                                              quality=self.output_quality.value(),
+                                              fps=self.output_fps.value())
+                status.append('Success')
+                error_messages.append(None)
+            except Exception as e:
+                status.append('Failed')
+                error_messages.append(str(e))
+                self.logger.exception('Conversion failed')
+            QApplication.restoreOverrideCursor()
+
+        if any(s != 'Success' for s in status):
+            msg = gf.StatusTableDialog('Warning', status, error_messages, image_paths)
+            msg.exec_()
+
+        # re-enable messagebox error handler
+        if messagebox_error_handler is not None:
+            logging.getLogger().addHandler(messagebox_error_handler)
+
+        self.logger.info('Done')
