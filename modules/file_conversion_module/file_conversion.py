@@ -272,7 +272,7 @@ class ImageMaskConversion(QWidget):
 
         # Documentation
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
-        label_documentation.setText('Convert images and masks to mp4 movie. The resulting mp4 movies are encoded using lossy compression, which results in data loss and distortion. These movies should not be used for scientific applications. In addition, X and Y axes are resized to the nearest multiple of 16.')
+        label_documentation.setText('Convert images and masks to mp4 movies. The resulting mp4 movies are encoded using lossy compression, which results in data loss and distortion. These movies should not be used for scientific applications. In addition, X and Y axes are resized to the nearest multiple of 16.')
         groupbox = QGroupBox('Documentation')
         layout2 = QVBoxLayout()
         layout2.addWidget(label_documentation)
