@@ -145,8 +145,8 @@ class EditTransformationMatrix(QWidget):
 
             groupbox = QGroupBox("Transformation range (frames)")
             layout2 = QFormLayout()
-            layout2.addRow("Start:", self.start_frame)
-            layout2.addRow("End:", self.end_frame)
+            layout2.addRow("From:", self.start_frame)
+            layout2.addRow("To:", self.end_frame)
             groupbox.setLayout(layout2)
             layout.addWidget(groupbox)
 
@@ -930,8 +930,8 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
         else:
             image3D = image.get_TYXarray()
 
-    logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting time frames %s<=T<%s', timepoint_range[0], timepoint_range[1])
-    image3D = image3D[int(timepoint_range[0]):int(timepoint_range[1]), :, :]
+    logging.getLogger(__name__).info('Preparing image to evaluate transformation matrix: selecting time frames %s<=T<=%s', timepoint_range[0], timepoint_range[1])
+    image3D = image3D[int(timepoint_range[0]):int(timepoint_range[1]+1), :, :]
 
     if registration_method == "stackreg":
         logging.getLogger(__name__).info('Evaluating transformation matrix with stackreg')
@@ -982,10 +982,10 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
     # Save the txt file with the translation matrix
     txt_name = os.path.join(output_path, output_basename+'.csv')
     transformation_matrices_complete = np.zeros([image.sizes['T'], 8], dtype=np.int64)
-    transformation_matrices_complete[timepoint_range[0]-1:timepoint_range[1]-1] = transformation_matrices.astype(int)
+    transformation_matrices_complete[timepoint_range[0]:(timepoint_range[1]+1)] = transformation_matrices.astype(int)
 
     transformation_matrices_complete[:, 0] = np.arange(1, image.sizes['T']+1)
-    transformation_matrices_complete[timepoint_range[0]-1:timepoint_range[1]-1, 3] = 1
+    transformation_matrices_complete[timepoint_range[0]:(timepoint_range[1]+1), 3] = 1
     transformation_matrices_complete[:, 6] = image.sizes['X']
     transformation_matrices_complete[:, 7] = image.sizes['Y']
 
