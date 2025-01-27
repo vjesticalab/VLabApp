@@ -8,6 +8,8 @@
 
 ### Fixed
 
+* Registration module with "timepoint range" option: mark timepoints outside of the selected range as ignored in the transformation matrix (set column align_0_1 to 0). For the registered image, save only only time frames within the selected range.
+
 
 
 

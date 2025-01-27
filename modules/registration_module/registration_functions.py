@@ -985,7 +985,7 @@ def registration_values_trange(image, timepoint_range, projection_type, projecti
     transformation_matrices_complete[timepoint_range[0]-1:timepoint_range[1]-1] = transformation_matrices.astype(int)
 
     transformation_matrices_complete[:, 0] = np.arange(1, image.sizes['T']+1)
-    transformation_matrices_complete[:, 3] = 1
+    transformation_matrices_complete[timepoint_range[0]-1:timepoint_range[1]-1, 3] = 1
     transformation_matrices_complete[:, 6] = image.sizes['X']
     transformation_matrices_complete[:, 7] = image.sizes['Y']
 
