@@ -732,9 +732,11 @@ class Edit(QWidget):
         self.matrices_list = gf.FileListWidget(filetypes=gf.matrixtypes, filenames_filter=self.output_suffix)
         self.matrices_list.file_list_double_clicked.connect(self.display_matrix)
         self.start_timepoint_label = QLabel('New start point:', self)
-        self.start_timepoint_edit = QLineEdit(self)
+        self.start_timepoint_edit = QLineEdit(placeholderText='eg. 0, 1, 2, ...')
+        self.start_timepoint_edit.setValidator(QIntValidator(bottom=0))
         self.end_timepoint_label = QLabel('New end point:', self)
-        self.end_timepoint_edit = QLineEdit(self)
+        self.end_timepoint_edit = QLineEdit(placeholderText='eg. 0, 1, 2, ...')
+        self.end_timepoint_edit.setValidator(QIntValidator(bottom=0))
         self.edit_button = QPushButton('Edit')
         self.edit_button.clicked.connect(self.edit)
 
@@ -784,6 +786,10 @@ class Edit(QWidget):
                 self.logger.error('End timepoint missing')
                 self.end_timepoint_edit.setFocus()
                 return False
+            if int(start_timepoint) > int(end_timepoint):
+                self.logger.error('End timepoint must be larger or equal to start timepoint')
+                self.end_timepoint_edit.setFocus()
+                return False
             return True
 
         transfmat_paths = self.matrices_list.get_file_list()
@@ -795,7 +801,7 @@ class Edit(QWidget):
         for transfmat_path in transfmat_paths:
             self.transfmat_path = transfmat_path
             # Update the transformation matrix with indicated values
-            f.edit_main(self.transfmat_path, int(start_timepoint), int(start_timepoint), int(end_timepoint))
+            f.edit_main(self.transfmat_path, int(start_timepoint), int(end_timepoint))
             # Create an instance of the second window
             self.display_graph = DisplayGraphWindow(self.transfmat_path)
             self.display_graph.setWindowTitle(gf.splitext(os.path.basename(self.transfmat_path))[0])

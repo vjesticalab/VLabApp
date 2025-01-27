@@ -1194,7 +1194,7 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
 ################################################################
 
 
-def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end):
+def edit_main(reference_matrix_path, range_start, range_end):
     try:
         log_path = gf.splitext(reference_matrix_path)[0] + '.log'
 
@@ -1230,16 +1230,21 @@ def edit_main(reference_matrix_path, reference_timepoint, range_start, range_end
 
         # Load the transformation matrix
         logger.debug("loading: %s", reference_matrix_path)
-        tmat_int, tmat_metadata = read_transfMat(reference_matrix_path)
-        # Make sure reference point is within range and update transformation matrix
-        logger.info("Editing transformation matrix (Reference timepoint=%s, start=%s, end=%s)", reference_timepoint, range_start, range_end)
-        tmat_updated = gf.update_transfMat(tmat_int, reference_timepoint-1, range_start-1, range_end-1)
+        tmat, tmat_metadata = read_transfMat(reference_matrix_path)
+
+        # Update transformation matrix
+        logger.info("Editing transformation matrix (start=%s, end=%s)", range_start, range_end)
+        tmat[:, 3] = 0
+        tmat[range_start:(range_end+1), 3] = 1
+        tmat[:, 1] = tmat[:, 4] - tmat[range_start, 4]
+        tmat[:, 2] = tmat[:, 5] - tmat[range_start, 5]
+
         # Save the new matrix
         logger.info("Saving transformation matrix to %s", reference_matrix_path)
         header = buffered_handler.get_messages()
         for x in tmat_metadata:
             header += x
-        np.savetxt(reference_matrix_path, tmat_updated, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
+        np.savetxt(reference_matrix_path, tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
 
         remove_all_log_handlers()
 

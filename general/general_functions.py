@@ -1454,56 +1454,6 @@ class Image:
         return projected_image
 
 
-def update_transfMat(tmat_int, reference_timepoint_index, range_start_index, range_end_index):
-    """
-    Update the transformation matrix
-
-    Parameters
-    ----------
-        tmat_int :
-            original matrix
-        reference_timepoint_index :
-            index of the new reference point
-        range_start_index :
-            index of the starting timepoint (included)
-        range_end_index :
-            index of the ending timepoint (included)
-    """
-
-    # Step 1:
-    # get x- and y- offset values for the reference timepoint
-    min_timepoint = min(tmat_int[:, 0]) - 1
-    max_timepoint = max(tmat_int[:, 0]) - 1
-
-    exc1 = reference_timepoint_index < range_start_index
-    exc2 = reference_timepoint_index > range_end_index
-    exc3 = range_start_index < min_timepoint
-    exc4 = range_end_index > max_timepoint
-
-    if exc1 or exc2 or exc3 or exc4:
-        logging.getLogger(__name__).error('Values out of range')
-        return tmat_int
-
-    reference_rawXoffset = tmat_int[reference_timepoint_index, 4]
-    reference_rawYoffset = tmat_int[reference_timepoint_index, 5]
-
-    # Step 2:
-    # subtract reference point offset values from all other timepoints and write them to 2nd and 3rd columns,
-    # which will are used for registration from transformation matrices
-    tmat_updated = np.copy(tmat_int)
-    for counter in range(0, len(tmat_int)):
-        tmat_updated[counter, 1] = tmat_int[counter, 4] - reference_rawXoffset
-        tmat_updated[counter, 2] = tmat_int[counter, 5] - reference_rawYoffset
-        tmat_updated[counter, 3] = 0
-
-    # Step 3:
-    # write in 4th column whether the timepoint is included in the registration (value = 1)
-    # or excluded from registration (value = 0)
-    for counter in range(range_start_index, range_end_index+1):
-        tmat_updated[counter, 3] = 1
-    return tmat_updated
-
-
 def load_cell_tracking_graph(graph_path, mask_dtype):
     graph = ig.Graph().Read_GraphMLz(graph_path)
     # Adjust attibute types
