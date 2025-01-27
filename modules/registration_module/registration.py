@@ -761,12 +761,6 @@ class Edit(QWidget):
         layout2.addWidget(self.end_timepoint_edit)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        #layout3 = QGridLayout()
-        #layout3.addWidget(self.start_timepoint_label, 0, 0)
-        #layout3.addWidget(self.start_timepoint_edit, 0, 1)
-        #layout3.addWidget(self.end_timepoint_label, 0, 2)
-        #layout3.addWidget(self.end_timepoint_edit, 0, 3)
-        #layout.addLayout(layout3)
         layout.addWidget(self.edit_button, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
