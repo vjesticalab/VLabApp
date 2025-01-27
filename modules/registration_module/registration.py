@@ -32,7 +32,7 @@ class Perform(QWidget):
         self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='_BF', filenames_exclude_filter=self.output_suffix)
         self.channel_position = QLineEdit(placeholderText='eg. 0 (default) / 1 / ...')
         self.channel_position.setMinimumWidth(200)
-        self.channel_position.setValidator(QIntValidator())
+        self.channel_position.setValidator(QIntValidator(bottom=0))
         self.channel_position.setText("0")
 
         self.use_input_folder = QRadioButton("Use input image folder")
