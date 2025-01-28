@@ -727,10 +727,8 @@ class Edit(QWidget):
         self.output_suffix = gf.output_suffixes['registration']
 
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
-        label_documentation.setText('Modify the start and end point of existing transformation matrices.<br>' +
-                                    'To visualize a matrix, double click on its filename in the list')
+        label_documentation.setText('Modify the start and end point of existing transformation matrices.')
         self.matrices_list = gf.FileListWidget(filetypes=gf.matrixtypes, filenames_filter=self.output_suffix)
-        self.matrices_list.file_list_double_clicked.connect(self.display_matrix)
         self.start_timepoint_label = QLabel('From:', self)
         self.start_timepoint_edit = QLineEdit(placeholderText='eg. 0, 1, 2, ...')
         self.start_timepoint_edit.setValidator(QIntValidator(bottom=0))
@@ -834,14 +832,6 @@ class Edit(QWidget):
         # re-enable messagebox error handler
         if messagebox_error_handler is not None:
             logging.getLogger().addHandler(messagebox_error_handler)
-
-    def display_matrix(self, item):
-        self.transfmat_path = item.text()
-        # Display the matrix
-        self.display_graph = DisplayGraphWindow(self.transfmat_path)
-        self.display_graph.setWindowTitle(gf.splitext(os.path.basename(self.transfmat_path))[0])
-        self.display_graph.move(700, 0)
-        self.display_graph.show()
 
 
 class ManualEdit(QWidget):
@@ -953,65 +943,3 @@ class ManualEdit(QWidget):
             self.logger.exception('Manual editing failed')
 
         self.logger.info("Done")
-
-
-class DisplayGraphWindow(QWidget):
-    def __init__(self, transfmat_path):
-        super().__init__()
-
-        self.plot_xy(transfmat_path)
-
-        layout = QVBoxLayout()
-        widget_graph = QWidget(self)
-        widget_graph.setLayout(layout)
-
-    def plot_xy(self, transfmat_path):
-        # Read the transformation matrix values
-        transformation_matrix, tmat_metadata = f.read_transfMat(transfmat_path)
-
-        if transformation_matrix is None:
-            return
-
-        time = list(transformation_matrix[:, 0])
-        included_x_shift = transformation_matrix[:, 1]
-        included_y_shift = transformation_matrix[:, 2]
-        inclusion = transformation_matrix[:, 3]
-        x_shift = transformation_matrix[:, 4]
-        y_shift = transformation_matrix[:, 5]
-        dim_x = transformation_matrix[:, 6]
-        dim_y = transformation_matrix[:, 7]
-        dx = dim_x - abs(x_shift)
-        dy = dim_y - abs(y_shift)
-        included_dx = dim_x - abs(included_x_shift)
-        included_dy = dim_y - abs(included_y_shift)
-
-        included_xy_shift = []
-        xy_shift = []
-        included_xy_shift = []
-
-        for i in range(len(time)):
-            distance = np.sqrt((dim_x[i]**2 - dx[i]**2) + (dim_y[i]**2 - dy[i]**2))
-            if inclusion[i] == 1:
-                included_distance = np.sqrt((dim_x[i]**2 - included_dx[i]**2) + (dim_y[i]**2 - included_dy[i]**2))
-            else:
-                included_distance = float("nan")
-            max_distance = np.sqrt((dim_x[i]**2) + (dim_y[i]**2))
-            xy_shift.append((max_distance-distance)/max_distance)
-            included_xy_shift.append((max_distance-included_distance)/max_distance)
-
-        # Create a figure and a canvas
-        figure = Figure()
-        canvas = FigureCanvas(figure)
-
-        # Create a subplot and plot the data
-        ax = figure.add_subplot(111)
-        ax.plot(time, xy_shift, label='All timepoints')
-        ax.plot(time, included_xy_shift, label='Selected timepoints')
-        ax.legend()
-        ax.set_title('Offset')
-        ax.set_xlabel('timepoints')
-        ax.set_ylabel('offset values')
-
-        # Add the canvas to the layout
-        layout = QVBoxLayout(self)
-        layout.addWidget(canvas)
