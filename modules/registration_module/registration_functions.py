@@ -75,9 +75,7 @@ class EditTransformationMatrix(QWidget):
         self.other_axis_indices = np.setdiff1d(range(viewer.dims.ndim), [self.T_axis_index, self.Y_axis_index, self.X_axis_index])
 
         # 3 columns: T, Y, X
-        points_TYX = self.tmat[:, (0, 5, 4)]
-        # from 1-based indexing to 0-based indexing
-        points_TYX[:, 0] = points_TYX[:, 0] - 1
+        points_TYX = np.column_stack((np.arange(self.tmat.shape[0]), self.tmat[:, (5,4)]))
         # center
         shifty = np.round((points_TYX[:, 1].min() + points_TYX[:, 1].max()) / 2 - self.tmat[:, 7].mean() / 2)
         shiftx = np.round((points_TYX[:, 2].min() + points_TYX[:, 2].max()) / 2 - self.tmat[:, 6].mean() / 2)
@@ -682,8 +680,8 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
                     registered_image[0, timepoint, c, z, :, :] = np.roll(image6D[0, timepoint, c, z, :, :], xyShift, axis=(1, 0))
 
     if skip_crop:
-        t_start = min(d[0] for d in tmat_int if d[3] == 1) - 1
-        t_end = max(d[0] for d in tmat_int if d[3] == 1)
+        t_start = np.nonzero(tmat_int[:,3])[0].min()
+        t_end = np.nonzero(tmat_int[:,3])[0].max() + 1
         registered_image = registered_image[:, t_start:t_end, :, :, :, :]
         # Save the registered and un-cropped image
         logging.getLogger(__name__).info('Saving transformed image to %s', registeredFilepath)
@@ -703,8 +701,8 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
         y_end = image.sizes['Y'] - max(d[2] for d in tmat_int if d[3] == 1)
         x_start = 0 - min([d[1] for d in tmat_int if d[3] == 1])
         x_end = image.sizes['X'] - max(d[1] for d in tmat_int if d[3] == 1)
-        t_start = min(d[0] for d in tmat_int if d[3] == 1) - 1
-        t_end = max(d[0] for d in tmat_int if d[3] == 1)
+        t_start = np.nonzero(tmat_int[:,3])[0].min()
+        t_end = np.nonzero(tmat_int[:,3])[0].max() + 1
 
         # Crop along the y-axis
         image_cropped = registered_image[:, t_start:t_end, :, :, y_start:y_end, x_start:x_end]
