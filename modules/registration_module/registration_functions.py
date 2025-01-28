@@ -244,6 +244,11 @@ class EditTransformationMatrix(QWidget):
         # final transformation
         self.tmat[:, 1] = self.tmat[:, 4] - self.tmat[self.start_frame.value(), 4]
         self.tmat[:, 2] = self.tmat[:, 5] - self.tmat[self.start_frame.value(), 5]
+        self.tmat[:self.start_frame.value(), 1] = self.tmat[self.start_frame.value(), 1]
+        self.tmat[:self.start_frame.value(), 2] = self.tmat[self.start_frame.value(), 2]
+        if self.end_frame.value() < self.tmat.shape[0]:
+            self.tmat[self.end_frame.value():, 1] = self.tmat[self.end_frame.value(), 1]
+            self.tmat[self.end_frame.value():, 2] = self.tmat[self.end_frame.value(), 2]
         self.tmat_changed.emit(self.tmat)
 
     def time_range_changed(self):
@@ -838,6 +843,9 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         transformation_matrices[timepoint_range[0]:(timepoint_range[1]+1), 1:3] = np.round(shifts).astype(int)
         transformation_matrices[timepoint_range[0]:(timepoint_range[1]+1), 4:6] = np.round(shifts).astype(int)
         transformation_matrices[timepoint_range[0]:(timepoint_range[1]+1), 3] = 1
+        if timepoint_range[1] < transformation_matrices.shape[0]:
+            transformation_matrices[timepoint_range[1]:, 1:3] = transformation_matrices[timepoint_range[1], 1:3]
+            transformation_matrices[timepoint_range[1]:, 4:6] = transformation_matrices[timepoint_range[1], 4:6]
     else:
         transformation_matrices[:, 1:3] = np.round(shifts).astype(int)
         transformation_matrices[:, 4:6] = np.round(shifts).astype(int)
@@ -1094,6 +1102,11 @@ def edit_main(reference_matrix_path, range_start, range_end):
         tmat[range_start:(range_end+1), 3] = 1
         tmat[:, 1] = tmat[:, 4] - tmat[range_start, 4]
         tmat[:, 2] = tmat[:, 5] - tmat[range_start, 5]
+        tmat[:range_start, 1] = tmat[range_start, 1]
+        tmat[:range_start, 2] = tmat[range_start, 2]
+        if range_end < tmat.shape[0]:
+            tmat[range_end:, 1] = tmat[range_end, 1]
+            tmat[range_end:, 2] = tmat[range_end, 2]
 
         # Save the new matrix
         logger.info("Saving transformation matrix to %s", reference_matrix_path)
