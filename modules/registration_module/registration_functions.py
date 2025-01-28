@@ -938,6 +938,11 @@ def registration_main(image_path, output_path, output_basename, channel_position
             remove_all_log_handlers()
             raise TypeError(f"Image {image_path} has a F axis with size > 1")
 
+        if timepoint_range is not None and timepoint_range[0] >= image.sizes['T']:
+            logger.error('Invalid timepoint range')
+            remove_all_log_handlers()
+            raise ValueError('Invalid timepoint range')
+
         # Calculate transformation matrix
         tmat = registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method, image_metadata, timepoint_range)
 
@@ -1095,6 +1100,11 @@ def edit_main(reference_matrix_path, range_start, range_end):
         # Load the transformation matrix
         logger.debug("loading: %s", reference_matrix_path)
         tmat, tmat_metadata = read_transfMat(reference_matrix_path)
+
+        if range_start >= tmat.shape[0]:
+            logger.error('Invalid timepoint range')
+            remove_all_log_handlers()
+            raise ValueError('Invalid timepoint range')
 
         # Update transformation matrix
         logger.info("Editing transformation matrix (start=%s, end=%s)", range_start, range_end)

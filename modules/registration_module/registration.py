@@ -800,15 +800,40 @@ class Edit(QWidget):
 
         if not check_inputs(transfmat_paths, start_timepoint, end_timepoint):
             return
+
+        # disable messagebox error handler
+        messagebox_error_handler = None
+        for h in logging.getLogger().handlers:
+            if h.get_name() == 'messagebox_error_handler':
+                messagebox_error_handler = h
+                logging.getLogger().removeHandler(messagebox_error_handler)
+                break
+
+        QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+        QApplication.processEvents()
+
+        status = []
+        error_messages = []
         for transfmat_path in transfmat_paths:
-            self.transfmat_path = transfmat_path
-            # Update the transformation matrix with indicated values
-            f.edit_main(self.transfmat_path, int(start_timepoint), int(end_timepoint))
-            # Create an instance of the second window
-            self.display_graph = DisplayGraphWindow(self.transfmat_path)
-            self.display_graph.setWindowTitle(gf.splitext(os.path.basename(self.transfmat_path))[0])
-            self.display_graph.move(700, 0)
-            self.display_graph.show()
+            try:
+                f.edit_main(transfmat_path, int(start_timepoint), int(end_timepoint))
+                status.append("Success")
+                error_messages.append("")
+            except Exception as e:
+                status.append("Failed")
+                error_messages.append(str(e))
+                self.logger.exception("Editing failed")
+
+        # Restore cursor
+        QApplication.restoreOverrideCursor()
+
+        if any(s != 'Success' for s in status):
+            msg = gf.StatusTableDialog('Warning', status, error_messages, transfmat_paths)
+            msg.exec_()
+
+        # re-enable messagebox error handler
+        if messagebox_error_handler is not None:
+            logging.getLogger().addHandler(messagebox_error_handler)
 
     def display_matrix(self, item):
         self.transfmat_path = item.text()
