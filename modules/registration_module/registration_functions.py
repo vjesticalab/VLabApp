@@ -682,7 +682,7 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
                     registered_image[0, timepoint, c, z, :, :] = np.roll(image6D[0, timepoint, c, z, :, :], xyShift, axis=(1, 0))
 
     if skip_crop:
-        t_start = min(d[0] for d in tmat_int if d[3] == 1)
+        t_start = min(d[0] for d in tmat_int if d[3] == 1) - 1
         t_end = max(d[0] for d in tmat_int if d[3] == 1)
         registered_image = registered_image[:, t_start:t_end, :, :, :, :]
         # Save the registered and un-cropped image
