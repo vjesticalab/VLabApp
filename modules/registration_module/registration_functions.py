@@ -77,8 +77,8 @@ class EditTransformationMatrix(QWidget):
         # 3 columns: T, Y, X
         points_TYX = np.column_stack((np.arange(self.tmat.shape[0]), self.tmat[:, (5,4)]))
         # center
-        shifty = np.round((points_TYX[:, 1].min() + points_TYX[:, 1].max()) / 2 - self.tmat[:, 7].mean() / 2)
-        shiftx = np.round((points_TYX[:, 2].min() + points_TYX[:, 2].max()) / 2 - self.tmat[:, 6].mean() / 2)
+        shifty = np.round((points_TYX[:, 1].min() + points_TYX[:, 1].max()) / 2 - self.viewer.dims.range[self.Y_axis_index][1] / 2)
+        shiftx = np.round((points_TYX[:, 2].min() + points_TYX[:, 2].max()) / 2 - self.viewer.dims.range[self.X_axis_index][1] / 2)
         points_TYX[:, 1] = points_TYX[:, 1] - shifty
         points_TYX[:, 2] = points_TYX[:, 2] - shiftx
 
