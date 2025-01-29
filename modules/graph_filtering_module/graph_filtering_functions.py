@@ -633,10 +633,9 @@ class CellTracksFiltering:
         output_file = os.path.join(output_path, output_basename+".ome.tif")
         self.logger.info("Saving segmentation mask to %s", output_file)
         selected_mask = self.get_mask(relabel_mask_ids)
-        selected_mask = selected_mask[:, np.newaxis, :, :]
         ome_metadata = OmeTiffWriter.build_ome(data_shapes=[selected_mask.shape],
                                                data_types=[selected_mask.dtype],
-                                               dimension_order=["TCYX"],
+                                               dimension_order=["TYX"],
                                                channel_names=[self.mask_channel_names],
                                                physical_pixel_sizes=[PhysicalPixelSizes(X=self.mask_physical_pixel_sizes[0], Y=self.mask_physical_pixel_sizes[1], Z=self.mask_physical_pixel_sizes[2])])
         ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))

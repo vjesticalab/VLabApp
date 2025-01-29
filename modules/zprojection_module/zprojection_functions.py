@@ -107,13 +107,6 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
                     else:
                         image_metadata.append(x.value)
 
-        # Check z existence in the image
-        if image.sizes['Z'] == 0:
-            logger.error('Image %s has no z dimension', str(image_path))
-            # Remove all handlers for this module
-            remove_all_log_handlers()
-            raise TypeError(f"Image {image_path} has no z dimension")
-
         # Check 'F' axis has size 1
         if image.sizes['F'] != 1:
             logger.error('Image %s has a F axis with size > 1', str(image_path))

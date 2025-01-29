@@ -1723,10 +1723,9 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         else:
             output_file = os.path.join(output_path, output_basename+".ome.tif")
             logger.info("Saving segmentation mask to %s", output_file)
-            mask = mask[:, np.newaxis, :, :]
             ome_metadata = OmeTiffWriter.build_ome(data_shapes=[mask.shape],
                                                    data_types=[mask.dtype],
-                                                   dimension_order=["TCYX"],
+                                                   dimension_order=["TYX"],
                                                    channel_names=[mask_image.channel_names],
                                                    physical_pixel_sizes=[PhysicalPixelSizes(X=mask_image.physical_pixel_sizes[0], Y=mask_image.physical_pixel_sizes[1], Z=mask_image.physical_pixel_sizes[2])])
             ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))

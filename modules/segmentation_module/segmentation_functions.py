@@ -199,8 +199,6 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
             viewer_images.window._qt_window.setWindowModality(Qt.ApplicationModal)
             viewer_images.show()
             image_napari = image3D
-            # TCYX
-            image_napari = image_napari[:, np.newaxis, :, :]
             viewer_images.add_image(image_napari, name="Input image")
 
             # Set cursor to BusyCursor
@@ -234,11 +232,10 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
             cuda.empty_cache()
         # Save the mask
         output_name = os.path.join(output_path, output_basename+".ome.tif")
-        mask = mask[:, np.newaxis, :, :]
         logger.info("Saving segmentation mask to %s", output_name)
         ome_metadata = OmeTiffWriter.build_ome(data_shapes=[mask.shape],
                                                data_types=[mask.dtype],
-                                               dimension_order=["TCYX"],
+                                               dimension_order=["TYX"],
                                                channel_names=[['Segmentation mask']],
                                                physical_pixel_sizes=[PhysicalPixelSizes(X=image.physical_pixel_sizes[0], Y=image.physical_pixel_sizes[1], Z=image.physical_pixel_sizes[2])])
         ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))

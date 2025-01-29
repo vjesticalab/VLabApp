@@ -483,10 +483,9 @@ class GroundTruthWidget(QWidget):
 
         output_file = os.path.join(self.output_path, self.output_basename+".ome.tif")
         self.logger.info("Saving segmentation mask to %s", output_file)
-        mask = self.mask[:, np.newaxis, :, :]
-        ome_metadata = OmeTiffWriter.build_ome(data_shapes=[mask.shape],
-                                               data_types=[mask.dtype],
-                                               dimension_order=["TCYX"],
+        ome_metadata = OmeTiffWriter.build_ome(data_shapes=[self.mask.shape],
+                                               data_types=[self.mask.dtype],
+                                               dimension_order=["TYX"],
                                                channel_names=[['Segmentation mask']],
                                                physical_pixel_sizes=[PhysicalPixelSizes(X=self.image_BF.physical_pixel_sizes[0], Y=self.image_BF.physical_pixel_sizes[1], Z=self.image_BF.physical_pixel_sizes[2])])
         ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))
@@ -498,7 +497,7 @@ class GroundTruthWidget(QWidget):
             ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
         for x in self.image_mask_metadata:
             ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
-        OmeTiffWriter.save(mask, output_file, ome_xml=ome_metadata)
+        OmeTiffWriter.save(self.mask, output_file, ome_xml=ome_metadata)
 
         if not closing:
             self.mask_modified = False
