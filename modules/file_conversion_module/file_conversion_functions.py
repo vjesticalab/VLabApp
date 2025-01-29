@@ -411,10 +411,10 @@ def convert_mask_and_graph(mask_path, graph_path, output_path, output_basename, 
             raise ValueError(error_message.strip())
 
 
-def convert_image_mask_to_movie(image_path, output_path, output_basename, projection_type, projection_zrange, input_is_mask, colors, autocontrast, quality, fps):
+def convert_image_mask_to_lossy_preview(image_path, output_path, output_basename, output_format, projection_type, projection_zrange, input_is_mask, colors, autocontrast, quality, fps):
     """
     Load image or mask (`image_path`).
-    Save as mp4 movie into `output_path` directory.
+    Save as mp4 movie or jpg image into `output_path` directory.
 
     Parameters
     ----------
@@ -424,6 +424,11 @@ def convert_image_mask_to_movie(image_path, output_path, output_basename, projec
         output directory.
     output_basename: str
         output basename. Output file will be saved as `output_path`/`output_basename`.mp4.
+    output_format: str
+        output format. Possible formats:
+            mp4: save all as mp4
+            jpg: save all as jpg
+            auto: save to mp4 if more than one time frame, save to jpg otherwise.
     projection_type : str
         type of projection to perform if the image is a z-stack
     projection_zrange: int or (int,int) or None
@@ -490,12 +495,25 @@ def convert_image_mask_to_movie(image_path, output_path, output_basename, projec
         # Remove all handlers for this module
         raise TypeError(f"Image {image_path} has a F axis with size > 1")
 
+    if output_format == 'auto':
+        logger.debug('Output format auto-detection')
+        if image.sizes['T'] > 1:
+            output_format = 'mp4'
+        else:
+            output_format = 'jpg'
+        logger.debug('Output format: %s', output_format)
+
     ###########################
     # Prepare image
     ###########################
+    if output_format == 'jpg' and image.sizes['T']>1:
+        logger.info('Preparing image: keeping only first frame')
+        # keep only first time frame
+        image.crop('T', 0, 1)
+
     # Project Z axis if needed and select channel
     if image.sizes['Z'] > 1:
-        logger.info('Preparing image to segment: performing Z-projection')
+        logger.info('Preparing image: performing Z-projection')
         image_processed = image.z_projection(projection_type, projection_zrange)
     else:
         image_processed = image.image
@@ -525,8 +543,12 @@ def convert_image_mask_to_movie(image_path, output_path, output_basename, projec
 
     # set output size to next multiple of 16 (will pad with 0)
     mbs = 16
-    size_x = round(np.ceil(image.sizes['X'] / mbs) * mbs)
-    size_y = round(np.ceil(image.sizes['Y'] / mbs) * mbs)
+    if output_format == 'mp4':
+        size_x = round(np.ceil(image.sizes['X'] / mbs) * mbs)
+        size_y = round(np.ceil(image.sizes['Y'] / mbs) * mbs)
+    else:
+        size_x = image.sizes['X']
+        size_y = image.sizes['Y']
 
     if input_is_mask:
         ncolors = image_processed.max() + 2
@@ -566,6 +588,11 @@ def convert_image_mask_to_movie(image_path, output_path, output_basename, projec
                                                                                               gamma=0)
                 image_output[t, :, :, color] = image_output_frame
 
-    output_name = os.path.join(output_path, output_basename+'.mp4')
-    logger.info('Saving movie to %s', output_name)
-    iio.imwrite(output_name, image_output, extension='.mp4', fps=fps, quality=quality, macro_block_size=mbs)
+    if output_format == 'mp4':
+        output_name = os.path.join(output_path, output_basename+'.mp4')
+        logger.info('Saving movie to %s', output_name)
+        iio.imwrite(output_name, image_output, extension='.mp4', fps=fps, quality=quality, macro_block_size=mbs)
+    elif output_format == 'jpg':
+        output_name = os.path.join(output_path, output_basename+'.jpg')
+        logger.info('Saving image to %s', output_name)
+        iio.imwrite(output_name, image_output[0])

@@ -272,7 +272,7 @@ class ImageMaskConversion(QWidget):
 
         # Documentation
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
-        label_documentation.setText('Convert images and masks to mp4 movies. The resulting mp4 movies are encoded using lossy compression, which results in data loss and distortion. These movies should not be used for scientific applications. In addition, X and Y axes are resized to the nearest multiple of 16.')
+        label_documentation.setText('Convert images and masks to small file-size preview movie (mp4) or image (jpg). The resulting mp4 movies or jpg images are encoded using lossy compression, which results in data loss and distortion. These files should not be used for scientific applications. In addition, when converting to mp4 movie, X and Y axes are resized to the nearest multiple of 16.')
         groupbox = QGroupBox('Documentation')
         layout2 = QVBoxLayout()
         layout2.addWidget(label_documentation)
@@ -325,6 +325,7 @@ class ImageMaskConversion(QWidget):
         layout2 = QVBoxLayout()
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
+
         # input type
         groupbox2 = QGroupBox('Input type:')
         layout3 = QVBoxLayout()
@@ -340,6 +341,7 @@ class ImageMaskConversion(QWidget):
         layout3.addWidget(self.input_type_mask)
         groupbox2.setLayout(layout3)
         layout2.addWidget(groupbox2)
+
         # channels
         groupbox2 = QGroupBox('Channels:')
         layout3 = QFormLayout()
@@ -439,8 +441,27 @@ class ImageMaskConversion(QWidget):
         groupbox2.setLayout(layout3)
         layout2.addWidget(groupbox2)
 
+        # output format
+        groupbox2 = QGroupBox('Output format:')
+        layout3 = QVBoxLayout()
+        self.output_format_auto = QRadioButton('Auto')
+        self.output_format_auto.setToolTip('Convert to mp4 movie if input file has more than one time frame, to jpg otherwise.')
+        self.output_format_auto.setChecked(True)
+        self.output_format_auto.toggled.connect(self.update_output_filename_label)
+        layout3.addWidget(self.output_format_auto)
+        self.output_format_jpg = QRadioButton('jpg images')
+        self.output_format_jpg.setToolTip('Convert all files to jpg images (first time frame).')
+        self.output_format_jpg.toggled.connect(self.update_output_filename_label)
+        layout3.addWidget(self.output_format_jpg)
+        self.output_format_mp4 = QRadioButton('mp4 movies')
+        self.output_format_mp4.setToolTip('Convert all files to mp4 movies. This option can generate unreadable mp4 movies if the number of time frames is too low')
+        self.output_format_mp4.toggled.connect(self.update_output_filename_label)
+        layout3.addWidget(self.output_format_mp4)
+        groupbox2.setLayout(layout3)
+        layout2.addWidget(groupbox2)
+
         # movie option
-        groupbox2 = QGroupBox('Output movie options:')
+        groupbox2 = QGroupBox('Output options (mp4 movie):')
         layout3 = QFormLayout()
         self.output_quality = QSpinBox()
         self.output_quality.setMinimum(0)
@@ -471,7 +492,12 @@ class ImageMaskConversion(QWidget):
         else:
             output_path = os.path.abspath(self.output_folder.text())
 
-        self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, '<input basename>' + self.output_user_suffix.text() + '.mp4')))
+        if self.output_format_mp4.isChecked():
+            self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, '<input basename>' + self.output_user_suffix.text() + '.mp4')))
+        elif self.output_format_jpg.isChecked():
+            self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, '<input basename>' + self.output_user_suffix.text() + '.jpg')))
+        else:
+            self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, '<input basename>' + self.output_user_suffix.text() + '.mp4 or .jpg')))
 
     def projection_mode_fixed_zmin_changed(self, value):
         if self.projection_mode_fixed_zmax.value() < value:
@@ -511,6 +537,13 @@ class ImageMaskConversion(QWidget):
             input_is_mask = False
         else:
             input_is_mask = None
+
+        if self.output_format_jpg.isChecked():
+            output_format = 'jpg'
+        elif self.output_format_mp4.isChecked():
+            output_format = 'mp4'
+        else:
+            output_format = 'auto'
 
         image_paths = self.image_list.get_file_list()
         user_suffix = self.output_user_suffix.text()
@@ -555,16 +588,17 @@ class ImageMaskConversion(QWidget):
             QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
             QApplication.processEvents()
             try:
-                f.convert_image_mask_to_movie(image_path,
-                                              output_path,
-                                              output_basename,
-                                              projection_type,
-                                              projection_zrange,
-                                              input_is_mask,
-                                              colors,
-                                              self.autocontrast.isChecked(),
-                                              quality=self.output_quality.value(),
-                                              fps=self.output_fps.value())
+                f.convert_image_mask_to_lossy_preview(image_path,
+                                                      output_path,
+                                                      output_basename,
+                                                      output_format,
+                                                      projection_type,
+                                                      projection_zrange,
+                                                      input_is_mask,
+                                                      colors,
+                                                      self.autocontrast.isChecked(),
+                                                      quality=self.output_quality.value(),
+                                                      fps=self.output_fps.value())
                 status.append('Success')
                 error_messages.append(None)
             except Exception as e:
