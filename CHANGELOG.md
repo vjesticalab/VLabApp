@@ -17,6 +17,8 @@
 * Registration module with "timepoint range" option: mark timepoints outside of the selected range as ignored in the transformation matrix (set column align_0_1 to 0). For the registered image, save only only time frames within the selected range.
 * Registration module with "timepoint range" option: fix a bug with the output transformation matrix (alignment values assigned to the wrong timepoint).
 * Registration module: fix missing frame when saving registered without cropping.
+* Cell tracking module: fix a crash when saving multiple times from napari.
+
 
 
 

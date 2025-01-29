@@ -1467,10 +1467,9 @@ class CellTrackingWidget(QWidget):
         # TODO: adapt metadata to more generic input files (other axes)
         output_file1 = os.path.join(self.output_path, self.output_basename+".ome.tif")
         self.logger.info("Saving segmentation mask to %s", output_file1)
-        self.mask = self.mask[:, np.newaxis, :, :]
         ome_metadata = OmeTiffWriter.build_ome(data_shapes=[self.mask.shape],
                                                data_types=[self.mask.dtype],
-                                               dimension_order=["TCYX"],
+                                               dimension_order=["TYX"],
                                                channel_names=[self.mask_channel_names],
                                                physical_pixel_sizes=[PhysicalPixelSizes(X=self.mask_physical_pixel_sizes[0], Y=self.mask_physical_pixel_sizes[1], Z=self.mask_physical_pixel_sizes[2])])
         ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))
