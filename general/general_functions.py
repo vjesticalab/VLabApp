@@ -1229,6 +1229,8 @@ class Image:
         If zrange is None, use all Z values. If zrange is an integer, use z values in [z_best-zrange,z_best+zrange],
         where z_best is the Z corresponding to best focus. If zrange is a tuple of lenght 2 (zmin,zmax), use z values in [zmin,zmax].
         Possible focus_methods: tenengrad_var, laplacian_var, std.
+    crop(axis, start, end)
+        crop axis ('F', 'T', 'C', 'Z', 'Y' or 'X') to start:end in-place.
     """
 
     def __init__(self, im_path):
@@ -1329,9 +1331,6 @@ class Image:
 
         self.image = set_6Dimage(image, axes_order)
         return self.image
-
-    def save(self):
-        pass
 
     def get_TYXarray(self):
         if self.sizes['F'] > 1 or self.sizes['C'] > 1 or self.sizes['Z'] > 1:
@@ -1452,6 +1451,32 @@ class Image:
                         return None
 
         return projected_image
+
+    def crop(self, axis, start, end):
+        """
+        Crop axis to start:end in-place.
+
+        Parameters
+        ----------
+        axis: str
+            axis to crop ('F', 'T', 'C', 'Z', 'Y' or 'X').
+        start: int
+            start indice.
+        end: int
+            end indice.
+        """
+        slices = []
+        for a in self._axes:
+            if a == axis:
+                slices.append(slice(start, end))
+            else:
+                slices.append(slice(None))
+        self.image = self.image[tuple(slices)]
+        self.shape = self.image.shape
+        for i, a in enumerate(self._axes):
+             self.sizes[a] = self.shape[i]
+        if axis == 'C':
+            self.channel_names = self.channel_names[start:end]
 
 
 def load_cell_tracking_graph(graph_path, mask_dtype):
