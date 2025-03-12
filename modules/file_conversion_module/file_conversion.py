@@ -511,7 +511,6 @@ class ImageMaskConversion(QWidget):
         if target in self.channel_colors and event.type() == QEvent.MouseButtonRelease:
             color = QColorDialog.getColor(initial=target.pixmap().toImage().pixelColor(0, 0))
             if color.isValid():
-                print(color.name(QColor.HexRgb))
                 target.pixmap().fill(QColor(color))
                 target.repaint()
             return True

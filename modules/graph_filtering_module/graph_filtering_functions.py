@@ -1125,8 +1125,6 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
             logger.info("Input image path: %s", image_path)
         logger.info("Input mask path: %s", mask_path)
         logger.info("Input graph path: %s", graph_path)
-        logger.info("Output path: %s", output_path)
-        logger.info("Output basename: %s", output_basename)
 
         ###########################
         # Load image, mask and graph

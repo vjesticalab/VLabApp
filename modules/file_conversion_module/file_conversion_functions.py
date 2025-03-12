@@ -282,8 +282,6 @@ def convert_mask_and_graph(mask_path, graph_path, output_path, output_basename, 
 
     logger.info('Input mask path: %s', mask_path)
     logger.info('Input graph path: %s', graph_path)
-    logger.info('Output path: %s', output_path)
-    logger.info('Output basename: %s', output_basename)
 
     ###########################
     # Load mask and graph
@@ -469,8 +467,6 @@ def convert_image_mask_to_lossy_preview(image_path, output_path, output_basename
     logger.info('- imageio-ffmpeg version: %s', imageioffmpeg_version)
 
     logger.info('Input image/mask path: %s', image_path)
-    logger.info('Output path: %s', output_path)
-    logger.info('Output basename: %s', output_basename)
 
     if 'FFMPEG' not in iio_config.known_plugins:
         logger.error('imageio ffmpeg plugin missing. Install imageio with ffmpeg plugin using `pip install imageio[ffmpeg]`')

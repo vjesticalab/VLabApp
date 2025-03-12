@@ -616,8 +616,6 @@ def main(image_path, output_path, output_basename, T_range, C_range, Z_range, Y_
             logger.info("- napari version: %s", napari.__version__)
 
         logger.info('Input image/mask path: %s', image_path)
-        logger.info('Output path: %s', output_path)
-        logger.info('Output basename: %s', output_basename)
 
         # Load image
         logger.debug("loading %s", image_path)

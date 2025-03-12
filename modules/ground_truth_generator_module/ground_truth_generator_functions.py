@@ -678,8 +678,6 @@ def main(image_BF_path, image_fluo1_path, image_fluo2_path, image_mask_path, out
             logger.info("Input fluorescent image 2 path: %s", image_fluo2_path)
         if image_mask_path is not None and image_mask_path != '':
             logger.info("Input segmentation mask path: %s", image_mask_path)
-        logger.info("Output path: %s", output_path)
-        logger.info("Output basename: %s", output_basename)
 
         # Load image
         logger.debug("loading %s", image_BF_path)

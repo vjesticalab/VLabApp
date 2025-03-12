@@ -137,8 +137,6 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
 
         logger.info("Input image path: %s", image_path)
         logger.info("Input cellpose model path: %s", model_path)
-        logger.info("Output path: %s", output_path)
-        logger.info("Output basename: %s", output_basename)
         logger.debug("use_gpu: %s", use_gpu)
         logger.debug("display_results: %s", display_results)
 

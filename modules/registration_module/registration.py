@@ -385,7 +385,6 @@ class Perform(QWidget):
         output_basenames = [gf.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
         for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
             # collect arguments
-            print("IMAGE=", image_path)
             arguments.append((image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, registration_method))
         if not arguments:
             return
@@ -441,7 +440,6 @@ class Perform(QWidget):
                             coalign_image_path = os.path.join(os.path.dirname(image_path), im)
                             if coalign_image_path not in image_paths:
                                 coalignment_output_basename = gf.splitext(os.path.basename(coalign_image_path))[0] + self.output_suffix + user_suffix
-                                print("IMAGE(co)=", coalign_image_path)
                                 map_run_to_image_no.append(n)
                                 arguments.append((coalign_image_path, tmat_path, output_path, coalignment_output_basename, skip_crop_decision))
             if arguments:

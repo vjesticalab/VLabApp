@@ -1608,8 +1608,6 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         if image_path:
             logger.info("Input image path: %s", image_path)
         logger.info("Input mask path: %s", mask_path)
-        logger.info("Output path: %s", output_path)
-        logger.info("Output basename: %s", output_basename)
         logger.debug("min area: %s", min_area)
         logger.debug("max delta frame: %s", max_delta_frame)
         logger.debug("min overlap fraction: %s%%", min_overlap_fraction*100)

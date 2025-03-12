@@ -905,8 +905,6 @@ def registration_main(image_path, output_path, output_basename, channel_position
         logger.info("- skimage version: %s", skimage_version)
 
         logger.info("Input image path: %s", image_path)
-        logger.info("Output path: %s", output_path)
-        logger.info("Output basename: %s", output_basename)
         logger.info("Registration method: %s", registration_method)
 
         # Load image
@@ -1007,8 +1005,6 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
 
         logger.info("Input image path: %s", image_path)
         logger.info("Input transformation matrix path: %s", tmat_path)
-        logger.info("Output path: %s", output_path)
-        logger.info("Output basename: %s", output_basename)
 
         # Load image and matrix
         try:

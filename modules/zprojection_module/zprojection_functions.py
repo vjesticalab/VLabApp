@@ -84,8 +84,6 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
 
         # Load image
         logger.info("Input image path: %s", image_path)
-        logger.info("Output path: %s", output_path)
-        logger.info("Output basename: %s", output_basename)
 
         logger.debug("Loading %s", image_path)
         try:
