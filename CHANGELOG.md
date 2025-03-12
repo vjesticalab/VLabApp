@@ -2,6 +2,8 @@
 
 ### Added
 
+* Add a new Image cropping module.
+
 ### Changed
 
 * Registration module: standardize interpretation of the timepoint range "From" and "To" parameters. Now "From" and "To" correspond to zero-based time frame indices and the timepoint range include both "From" and "To" values.

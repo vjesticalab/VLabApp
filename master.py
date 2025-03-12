@@ -17,6 +17,7 @@ from modules.events_filter_module import events_filter
 from modules.viewer_module import viewer
 from modules.file_organization_module import file_organization
 from modules.file_conversion_module import file_conversion
+from modules.image_cropping_module import image_cropping
 from modules.pipeline_module import pipeline
 from general import general_functions as gf
 
@@ -130,6 +131,10 @@ class MainWindow(QWidget):
         subitem = QTreeWidgetItem(item, ["File conversion (lossy preview)"])
         subitem.setData(0, Qt.UserRole, self.right_panel.count())
         self.right_panel.addWidget(gf.Page(widget=file_conversion.ImageMaskConversion()))
+
+        subitem = QTreeWidgetItem(item, ["Image cropping"])
+        subitem.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=image_cropping.ImageCropping()))
 
         subitem = QTreeWidgetItem(item, ["Ground truth generator"])
         subitem.setData(0, Qt.UserRole, self.right_panel.count())

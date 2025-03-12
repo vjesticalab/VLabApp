@@ -19,7 +19,8 @@ output_suffixes = {'zprojection': '_vPR',
                    'segmentation': '_vSM',
                    'cell_tracking': '_vTG',
                    'graph_filtering': '_vGF',
-                   'events_filter': '_vEF'}
+                   'events_filter': '_vEF',
+                   'image_cropping': '_vCR'}
 imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
 graphtypes = ['.graphmlz']
 matrixtypes = ['.txt', '.csv']
