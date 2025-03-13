@@ -260,11 +260,11 @@ class GroundTruthWidget(QWidget):
             self.projection_mode_fixed.setToolTip('Project all Z sections with Z in the interval [from,to].')
             self.projection_mode_fixed_zmin = QSpinBox()
             self.projection_mode_fixed_zmin.setMinimum(0)
-            self.projection_mode_fixed_zmin.setMaximum(self.image_BF.sizes['Z']-1)
+            self.projection_mode_fixed_zmin.setMaximum(6)
             self.projection_mode_fixed_zmin.setValue(4)
             self.projection_mode_fixed_zmin.valueChanged.connect(self.projection_mode_fixed_zmin_changed)
             self.projection_mode_fixed_zmax = QSpinBox()
-            self.projection_mode_fixed_zmax.setMinimum(0)
+            self.projection_mode_fixed_zmax.setMinimum(4)
             self.projection_mode_fixed_zmax.setMaximum(self.image_BF.sizes['Z']-1)
             self.projection_mode_fixed_zmax.setValue(6)
             self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
@@ -369,12 +369,10 @@ class GroundTruthWidget(QWidget):
             self.save_button.setStyleSheet("background: darkred;")
 
     def projection_mode_fixed_zmin_changed(self, value):
-        if self.projection_mode_fixed_zmax.value() < value:
-            self.projection_mode_fixed_zmax.setValue(value)
+        self.projection_mode_fixed_zmax.setMinimum(value)
 
     def projection_mode_fixed_zmax_changed(self, value):
-        if self.projection_mode_fixed_zmin.value() > value:
-            self.projection_mode_fixed_zmin.setValue(value)
+        self.projection_mode_fixed_zmin.setMaximum(value)
 
     def get_projection_suffix(self, maxZ, projection_zrange, projection_type):
         if projection_zrange is None:

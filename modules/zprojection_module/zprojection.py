@@ -63,12 +63,12 @@ class zProjection(QWidget):
         self.projection_mode_fixed.toggled.connect(self.update_output_filename_label)
         self.projection_mode_fixed_zmin = QSpinBox()
         self.projection_mode_fixed_zmin.setMinimum(0)
-        self.projection_mode_fixed_zmin.setMaximum(20)
+        self.projection_mode_fixed_zmin.setMaximum(6)
         self.projection_mode_fixed_zmin.setValue(4)
         self.projection_mode_fixed_zmin.valueChanged.connect(self.projection_mode_fixed_zmin_changed)
         self.projection_mode_fixed_zmin.valueChanged.connect(self.update_output_filename_label)
         self.projection_mode_fixed_zmax = QSpinBox()
-        self.projection_mode_fixed_zmax.setMinimum(0)
+        self.projection_mode_fixed_zmax.setMinimum(4)
         self.projection_mode_fixed_zmax.setMaximum(20)
         self.projection_mode_fixed_zmax.setValue(6)
         self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
@@ -182,12 +182,10 @@ class zProjection(QWidget):
         self.update_output_filename_label()
 
     def projection_mode_fixed_zmin_changed(self, value):
-        if self.projection_mode_fixed_zmax.value() < value:
-            self.projection_mode_fixed_zmax.setValue(value)
+        self.projection_mode_fixed_zmax.setMinimum(value)
 
     def projection_mode_fixed_zmax_changed(self, value):
-        if self.projection_mode_fixed_zmin.value() > value:
-            self.projection_mode_fixed_zmin.setValue(value)
+        self.projection_mode_fixed_zmin.setMaximum(value)
 
     def update_output_filename_label(self):
         if self.pipeline_layout:

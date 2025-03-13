@@ -77,11 +77,11 @@ class Perform(QWidget):
         self.projection_mode_fixed.setToolTip('Project all Z sections with Z in the interval [from,to].')
         self.projection_mode_fixed_zmin = QSpinBox()
         self.projection_mode_fixed_zmin.setMinimum(0)
-        self.projection_mode_fixed_zmin.setMaximum(20)
+        self.projection_mode_fixed_zmin.setMaximum(6)
         self.projection_mode_fixed_zmin.setValue(4)
         self.projection_mode_fixed_zmin.valueChanged.connect(self.projection_mode_fixed_zmin_changed)
         self.projection_mode_fixed_zmax = QSpinBox()
-        self.projection_mode_fixed_zmax.setMinimum(0)
+        self.projection_mode_fixed_zmax.setMinimum(4)
         self.projection_mode_fixed_zmax.setMaximum(20)
         self.projection_mode_fixed_zmax.setValue(6)
         self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
@@ -132,6 +132,7 @@ class Perform(QWidget):
         self.time_mode_fixed_tmax = QSpinBox()
         self.time_mode_fixed_tmax.setMinimum(0)
         self.time_mode_fixed_tmax.setMaximum(1000)
+        self.time_mode_fixed_tmax.setValue(1000)
         self.time_mode_fixed_tmax.valueChanged.connect(self.time_mode_fixed_tmax_changed)
 
         # Layout
@@ -508,20 +509,16 @@ class Perform(QWidget):
         self.output_filename_label2.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif")))
 
     def projection_mode_fixed_zmin_changed(self, value):
-        if self.projection_mode_fixed_zmax.value() < value:
-            self.projection_mode_fixed_zmax.setValue(value)
+        self.projection_mode_fixed_zmax.setMinimum(value)
 
     def projection_mode_fixed_zmax_changed(self, value):
-        if self.projection_mode_fixed_zmin.value() > value:
-            self.projection_mode_fixed_zmin.setValue(value)
+        self.projection_mode_fixed_zmin.setMaximum(value)
 
     def time_mode_fixed_tmin_changed(self, value):
-        if self.time_mode_fixed_tmax.value() < value:
-            self.time_mode_fixed_tmax.setValue(value)
+        self.time_mode_fixed_tmax.setMinimum(value)
 
     def time_mode_fixed_tmax_changed(self, value):
-        if self.time_mode_fixed_tmin.value() > value:
-            self.time_mode_fixed_tmin.setValue(value)
+        self.time_mode_fixed_tmin.setMaximum(value)
 
 
 class Align(QWidget):
@@ -727,12 +724,15 @@ class Edit(QWidget):
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('Modify the start and end point of existing transformation matrices.')
         self.matrices_list = gf.FileListWidget(filetypes=gf.matrixtypes, filenames_filter=self.output_suffix)
-        self.start_timepoint_label = QLabel('From:', self)
-        self.start_timepoint_edit = QLineEdit(placeholderText='eg. 0, 1, 2, ...')
-        self.start_timepoint_edit.setValidator(QIntValidator(bottom=0))
-        self.end_timepoint_label = QLabel('To:', self)
-        self.end_timepoint_edit = QLineEdit(placeholderText='eg. 0, 1, 2, ...')
-        self.end_timepoint_edit.setValidator(QIntValidator(bottom=0))
+        self.tmin = QSpinBox()
+        self.tmin.setMinimum(0)
+        self.tmin.setMaximum(1000)
+        self.tmin.valueChanged.connect(self.tmin_changed)
+        self.tmax = QSpinBox()
+        self.tmax.setMinimum(0)
+        self.tmax.setMaximum(1000)
+        self.tmax.setValue(1000)
+        self.tmax.valueChanged.connect(self.tmax_changed)
         self.edit_button = QPushButton('Edit')
         self.edit_button.clicked.connect(self.edit)
 
@@ -751,10 +751,12 @@ class Edit(QWidget):
         layout.addWidget(groupbox)
         groupbox = QGroupBox('New timepoint range')
         layout2 = QHBoxLayout()
-        layout2.addWidget(self.start_timepoint_label)
-        layout2.addWidget(self.start_timepoint_edit)
-        layout2.addWidget(self.end_timepoint_label)
-        layout2.addWidget(self.end_timepoint_edit)
+        layout3 = QFormLayout()
+        layout3.addRow("From:", self.tmin)
+        layout2.addLayout(layout3)
+        layout3 = QFormLayout()
+        layout3.addRow("To:", self.tmax)
+        layout2.addLayout(layout3)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         layout.addWidget(self.edit_button, alignment=Qt.AlignCenter)
@@ -763,8 +765,14 @@ class Edit(QWidget):
 
         self.logger = logging.getLogger(__name__)
 
+    def tmin_changed(self, value):
+        self.tmax.setMinimum(value)
+
+    def tmax_changed(self, value):
+        self.tmin.setMaximum(value)
+
     def edit(self):
-        def check_inputs(transfmat_paths, start_timepoint, end_timepoint):
+        def check_inputs(transfmat_paths):
             """
             Check if the inputs are valid
             Return: True if valid, False otherwise
@@ -776,25 +784,13 @@ class Edit(QWidget):
                 if not os.path.isfile(path):
                     self.logger.error('Matrix not found\n%s', path)
                     return False
-            if len(start_timepoint) == 0:
-                self.logger.error('Start timepoint missing')
-                self.start_timepoint_edit.setFocus()
-                return False
-            if len(end_timepoint) == 0:
-                self.logger.error('End timepoint missing')
-                self.end_timepoint_edit.setFocus()
-                return False
-            if int(start_timepoint) > int(end_timepoint):
-                self.logger.error('End timepoint must be larger or equal to start timepoint')
-                self.end_timepoint_edit.setFocus()
-                return False
             return True
 
         transfmat_paths = self.matrices_list.get_file_list()
-        start_timepoint = self.start_timepoint_edit.text()
-        end_timepoint = self.end_timepoint_edit.text()
+        start_timepoint = self.tmin.value()
+        end_timepoint = self.tmax.value()
 
-        if not check_inputs(transfmat_paths, start_timepoint, end_timepoint):
+        if not check_inputs(transfmat_paths):
             return
 
         # disable messagebox error handler

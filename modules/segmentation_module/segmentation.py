@@ -70,11 +70,11 @@ class Segmentation(QWidget):
         self.projection_mode_fixed.setToolTip('Project all Z sections with Z in the interval [from,to].')
         self.projection_mode_fixed_zmin = QSpinBox()
         self.projection_mode_fixed_zmin.setMinimum(0)
-        self.projection_mode_fixed_zmin.setMaximum(20)
+        self.projection_mode_fixed_zmin.setMaximum(6)
         self.projection_mode_fixed_zmin.setValue(4)
         self.projection_mode_fixed_zmin.valueChanged.connect(self.projection_mode_fixed_zmin_changed)
         self.projection_mode_fixed_zmax = QSpinBox()
-        self.projection_mode_fixed_zmax.setMinimum(0)
+        self.projection_mode_fixed_zmax.setMinimum(4)
         self.projection_mode_fixed_zmax.setMaximum(20)
         self.projection_mode_fixed_zmax.setValue(6)
         self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
@@ -249,12 +249,10 @@ class Segmentation(QWidget):
         self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif")))
 
     def projection_mode_fixed_zmin_changed(self, value):
-        if self.projection_mode_fixed_zmax.value() < value:
-            self.projection_mode_fixed_zmax.setValue(value)
+        self.projection_mode_fixed_zmax.setMinimum(value)
 
     def projection_mode_fixed_zmax_changed(self, value):
-        if self.projection_mode_fixed_zmin.value() > value:
-            self.projection_mode_fixed_zmin.setValue(value)
+        self.projection_mode_fixed_zmin.setMaximum(value)
 
     def get_widgets_state(self):
         widgets_state = {

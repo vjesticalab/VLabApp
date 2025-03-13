@@ -250,6 +250,8 @@ class EditTransformationMatrix(QWidget):
         self.tmat_changed.emit(self.tmat)
 
     def time_range_changed(self):
+        self.start_frame.setMaximum(self.end_frame.value())
+        self.end_frame.setMinimum(self.start_frame.value())
         # adjust point transparency
         self.layer_points.edge_color[:,3] = self.point_alpha_inactive
         self.layer_points.edge_color[(self.start_frame.value() <= self.layer_points.data[:, self.T_axis_index]) & (self.layer_points.data[:, self.T_axis_index] <= self.end_frame.value()),3] = self.point_alpha_active
@@ -310,8 +312,8 @@ class PlotTransformation(QWidget):
         self.vline = self.ax.axvline(x=self.viewer.dims.current_step[self.T_axis_index], ymin=0, ymax=1, color="black", alpha=0.1)
         (self.line_x_all,) = self.ax.plot(x, tmat[:, 4], color="#E41A1C", linestyle=":", label="x (all frames)", alpha=0.8)
         (self.line_y_all,) = self.ax.plot(x, tmat[:, 5], color="#377EB8", linestyle=":", label="y (all frames)", alpha=0.8)
-        (self.line_x_active,) = self.ax.plot(x[tmat[:, 3] == 1], tmat[tmat[:, 3] == 1, 1], color="#E41A1C", linestyle="-", label="x (selected frames)")
-        (self.line_y_active,) = self.ax.plot(x[tmat[:, 3] == 1], tmat[tmat[:, 3] == 1, 2], color="#377EB8", linestyle="-", label="y (selected frames)")
+        (self.line_x_active,) = self.ax.plot(x[tmat[:, 3] == 1], tmat[tmat[:, 3] == 1, 1], color="#E41A1C", linestyle="-", marker='o', label="x (selected frames)")
+        (self.line_y_active,) = self.ax.plot(x[tmat[:, 3] == 1], tmat[tmat[:, 3] == 1, 2], color="#377EB8", linestyle="-", marker='o', label="y (selected frames)")
         self.ax.legend()
 
         layout = QVBoxLayout()
