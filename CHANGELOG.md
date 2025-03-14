@@ -24,11 +24,11 @@
 
 * Registration module: standardize interpretation of the timepoint range "From" and "To" parameters. Now "From" and "To" correspond to zero-based time frame indices and the timepoint range include both "From" and "To" values.
 * Registration module: when using StackReg, round registration shifts to nearest integer.
-* Rename sub-module "File conversion (to mp4 moview)" to "File conversion (lossy preview)" and add option to save to jpg.
+* Rename sub-module "File conversion (to mp4 movies)" to "File conversion (lossy preview)" and add option to save to jpg.
 
 ### Removed
 
-* Registration module, Editing (manual): remove option to plot registration matrix.
+* Registration module, Editing (batch): remove option to plot registration matrix.
 
 ### Fixed
 
