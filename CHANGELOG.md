@@ -2,6 +2,22 @@
 
 ### Added
 
+### Changed
+
+### Removed
+
+### Fixed
+
+
+
+
+
+
+
+## [v2.3.0] 2025-03-14
+
+### Added
+
 * Add a new Image cropping module.
 
 ### Changed
@@ -20,8 +36,6 @@
 * Registration module with "timepoint range" option: fix a bug with the output transformation matrix (alignment values assigned to the wrong timepoint).
 * Registration module: fix missing frame when saving registered without cropping.
 * Cell tracking module: fix a crash when saving multiple times from napari.
-
-
 
 
 
