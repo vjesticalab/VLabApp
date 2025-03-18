@@ -2,9 +2,11 @@
 
 ### Added
 
-* Segmentation module: add option to use cellpose built-in models (cyto, cyto2, nuclei, tissuenet, livecell).
+* Segmentation module: add option to use cellpose built-in models (cyto, cyto2, cyto3, nuclei, tissuenet_cp3, livecell_cp3, yeast_PhC_cp3, yeast_BF_cp3, bact_phase_cp3, bact_fluor_cp3, deepbacs_cp3, cyto2_cp3).
 
 ### Changed
+
+* Segmentation module: use cellpose v3 (instead of v2).
 
 ### Removed
 

@@ -694,8 +694,8 @@ class Pipeline(QWidget):
                         if not os.path.isfile(model_path):
                             self.logger.error('Model not found: %s (module "%s")', model_path, module_label)
                             return
-                    elif model_type not in ['cyto', 'cyto2', 'nuclei'] and diameter == 0:
-                        self.logger.error('Diameter estimation using cellpose built-in model (i.e. diameter=0) is only available for cyto, cyto2 and nuclei models.')
+                    elif model_type not in ['cyto', 'cyto2', 'cyto3', 'nuclei'] and diameter == 0:
+                        self.logger.error('Diameter estimation using cellpose built-in model (i.e. diameter=0) is only available for cyto, cyto2, cyto3 and nuclei models.')
                         return
                     jobs.append({'function': segmentation_functions.main,
                                  'arguments': (image_path,

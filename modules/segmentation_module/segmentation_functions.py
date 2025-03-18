@@ -76,11 +76,11 @@ def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_
     image_path: str
         input image path. Must be a tif, ome-tif or nd2 image with axes T,Y,X
     model_type: str
-        cellpose model type. Either "User trained model" or one of the cellpose built-in model names (cyto, cyto2, nuclei, tissuenet or livecell).
+        cellpose model type. Either "User trained model" or one of the cellpose built-in model names (cyto, cyto2, cyto3, nuclei, tissuenet_cp3, livecell_cp3, yeast_PhC_cp3, yeast_BF_cp3, bact_phase_cp3, bact_fluor_cp3, deepbacs_cp3 or cyto2_cp3).
     model_path: str
         cellpose pretrained model path (only used if `model_type` == "User trained model").
     diameter: int
-        expected cell diameter for cellpose  (only used if `model_type` != "User trained model"). If 0, use cellpose built-in model to estimate diameter (available only for model_type cyto, cyto2 and nuclei). See cellpose documentation for more information https://cellpose.readthedocs.io/en/latest/index.html.
+        expected cell diameter for cellpose  (only used if `model_type` != "User trained model"). If 0, use cellpose built-in model to estimate diameter (available only for model_type cyto, cyto2, cyto3 and nuclei). See cellpose documentation for more information https://cellpose.readthedocs.io/en/latest/index.html.
     cellprob_threshold: float
         cellpose cellprob threshold. See cellpose documentation for more information https://cellpose.readthedocs.io/en/latest/index.html.
     flow_threshold: float
@@ -206,7 +206,7 @@ def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_
             logger.debug("loading cellpose model %s", model_path)
             model = models.CellposeModel(gpu=use_gpu, pretrained_model=model_path)
             diameter = model.diam_labels
-        elif model_type in ['cyto', 'cyto2', 'nuclei']:
+        elif model_type in ['cyto', 'cyto2', 'cyto3', 'nuclei']:
             logger.debug("loading cellpose model %s", model_type)
             model = models.Cellpose(gpu=use_gpu, model_type=model_type)
             if diameter == 0:

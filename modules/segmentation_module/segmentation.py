@@ -23,7 +23,7 @@ class Segmentation(QWidget):
                                     'Input images must have X and Y axes and can optionally have C, Z and/or T axes (Z axis will be projected and only the chosen channel will be selected before performing segmentation).<br>' +
                                     '<h3>Cellpose model types</h3>' +
                                     '<b>Built-in models</b><br>' +
-                                    'Built-in models cyto, cyto2, nuclei, tissuenet and livecell are available. These models require a parameter "diameter", which should correspond to the expected diameter of the objects to segment. With cyto, cyto2 or nuclei model types, the diameter can be estimated using cellpose built-in model by setting the parameter "diameter" to 0. For more information, see section "Models" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>' +
+                                    'Built-in models cyto, cyto2, cyto3, nuclei, tissuenet_cp3, livecell_cp3, yeast_PhC_cp3, yeast_BF_cp3, bact_phase_cp3, bact_fluor_cp3, deepbacs_cp3 and cyto2_cp3 are available. These models require a parameter "diameter", which should correspond to the expected diameter of the objects to segment. With cyto, cyto2, cyto3 or nuclei model types, the diameter can be estimated using cellpose built-in model by setting the parameter "diameter" to 0. For more information, see section "Models" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>' +
                                     '<br>' +
                                     '<b>User trained model</b><br>' +
                                     'A user trained model can be obtained by finetuning a pretrained cellpose model on a collection of annotated images similar to the input images (see section "Training" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>). When using a user trained model it is not possible to choose the diameter, which is set to the median diameter estimated on the training set.')
@@ -52,11 +52,20 @@ class Segmentation(QWidget):
 
         self.cellpose_model_type = QComboBox()
         self.cellpose_model_type.addItem("User trained model")
-        self.cellpose_model_type.addItem("cyto")
+        self.cellpose_model_type.insertSeparator(self.cellpose_model_type.count())
+        self.cellpose_model_type.addItem("cyto3")
         self.cellpose_model_type.addItem("cyto2")
+        self.cellpose_model_type.addItem("cyto")
         self.cellpose_model_type.addItem("nuclei")
-        self.cellpose_model_type.addItem("tissuenet")
-        self.cellpose_model_type.addItem("livecell")
+        self.cellpose_model_type.insertSeparator(self.cellpose_model_type.count())
+        self.cellpose_model_type.addItem("tissuenet_cp3")
+        self.cellpose_model_type.addItem("livecell_cp3")
+        self.cellpose_model_type.addItem("yeast_PhC_cp3")
+        self.cellpose_model_type.addItem("yeast_BF_cp3")
+        self.cellpose_model_type.addItem("bact_phase_cp3")
+        self.cellpose_model_type.addItem("bact_fluor_cp3")
+        self.cellpose_model_type.addItem("deepbacs_cp3")
+        self.cellpose_model_type.addItem("cyto2_cp3")
         self.cellpose_model_type.setCurrentText("User trained model")
         self.cellpose_model_type.currentTextChanged.connect(self.cellpose_model_type_changed)
         self.cellpose_user_model = gf.FileLineEdit()
@@ -65,7 +74,7 @@ class Segmentation(QWidget):
         self.cellpose_diameter.setMinimum(0)
         self.cellpose_diameter.setMaximum(1000)
         self.cellpose_diameter.setValue(0)
-        self.cellpose_diameter.setToolTip('Expected cell diameter (pixel). If 0, use cellpose built-in model to estimate diameter (available only for cyto, cyto2 and nuclei models).')
+        self.cellpose_diameter.setToolTip('Expected cell diameter (pixel). If 0, use cellpose built-in model to estimate diameter (available only for cyto, cyto2, cyto3 and nuclei models).')
         self.cellpose_diameter.setVisible(False)
         self.cellpose_diameter_label = QLabel("Diameter:")
         self.cellpose_diameter_label.setVisible(False)
@@ -401,8 +410,8 @@ class Segmentation(QWidget):
                 self.logger.error('Model not found: %s', model_path)
                 self.cellpose_user_model.setFocus()
                 return
-        elif model_type not in ['cyto', 'cyto2', 'nuclei'] and diameter == 0:
-            self.logger.error('Diameter estimation using cellpose built-in model (i.e. diameter == 0) is only available for cyto, cyto2 and nuclei models')
+        elif model_type not in ['cyto', 'cyto2', 'cyto3', 'nuclei'] and diameter == 0:
+            self.logger.error('Diameter estimation using cellpose built-in model (i.e. diameter == 0) is only available for cyto, cyto2, cyto3 and nuclei models')
             self.cellpose_diameter.setFocus()
             return
 
