@@ -531,7 +531,7 @@ class Pipeline(QWidget):
                     output_suffix = gf.output_suffixes['registration']
                     user_suffix = settings['output_user_suffix']
                     output_basename = gf.splitext(os.path.basename(image_path))[0] + output_suffix + user_suffix
-                    channel_position = int(settings['channel_position'] if settings['channel_position'] != '' else '0')
+                    channel_position = settings['channel_position']
                     projection_type = settings['projection_type']
                     if settings['projection_mode_bestZ']:
                         projection_zrange = 0
@@ -669,7 +669,7 @@ class Pipeline(QWidget):
                     output_suffix = gf.output_suffixes['segmentation']
                     user_suffix = settings['output_user_suffix']
                     output_basename = gf.splitext(os.path.basename(image_path))[0] + output_suffix + user_suffix
-                    channel_position = int(settings['channel_position'] if settings['channel_position'] != '' else '0')
+                    channel_position = settings['channel_position']
                     projection_type = settings['projection_type']
                     if settings['projection_mode_bestZ']:
                         projection_zrange = 0

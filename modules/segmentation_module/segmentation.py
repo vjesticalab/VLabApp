@@ -47,10 +47,10 @@ class Segmentation(QWidget):
         self.output_filename_label.setEnabled(False)
         self.output_filename_label.textChanged.connect(self.output_filename_label.setToolTip)
 
-        self.channel_position = QLineEdit(placeholderText='eg. 0 (default) / 1 / ...')
-        self.channel_position.setMinimumWidth(200)
-        self.channel_position.setValidator(QIntValidator())
-        self.channel_position.setText("0")
+        self.channel_position = QSpinBox()
+        self.channel_position.setMinimum(0)
+        self.channel_position.setMaximum(100)
+        self.channel_position.setValue(0)
         # Z-Projection range
         # only bestZ
         self.projection_mode_bestZ = QRadioButton("Z section with best focus")
@@ -262,7 +262,7 @@ class Segmentation(QWidget):
             'output_folder': self.output_folder.text(),
             'selected_model': self.selected_model.text(),
             'output_user_suffix': self.output_user_suffix.text(),
-            'channel_position': self.channel_position.text(),
+            'channel_position': self.channel_position.value(),
             'projection_mode_bestZ': self.projection_mode_bestZ.isChecked(),
             'projection_mode_around_bestZ': self.projection_mode_around_bestZ.isChecked(),
             'projection_mode_around_bestZ_zrange': self.projection_mode_around_bestZ_zrange.value(),
@@ -284,7 +284,7 @@ class Segmentation(QWidget):
         self.output_folder.setText(widgets_state['output_folder'])
         self.selected_model.setText(widgets_state['selected_model'])
         self.output_user_suffix.setText(widgets_state['output_user_suffix'])
-        self.channel_position.setText(widgets_state['channel_position'])
+        self.channel_position.setValue(widgets_state['channel_position'])
         self.projection_mode_bestZ.setChecked(widgets_state['projection_mode_bestZ'])
         self.projection_mode_around_bestZ.setChecked(widgets_state['projection_mode_around_bestZ'])
         self.projection_mode_around_bestZ_zrange.setValue(widgets_state['projection_mode_around_bestZ_zrange'])
@@ -330,10 +330,7 @@ class Segmentation(QWidget):
                 return False
             return True
 
-        if self.channel_position.text() == '':
-            channel_position = 0
-        else:
-            channel_position = int(self.channel_position.text())
+        channel_position = self.channel_position.value()
         projection_type = self.projection_type.currentText()
         if self.projection_mode_bestZ.isChecked():
             projection_zrange = 0

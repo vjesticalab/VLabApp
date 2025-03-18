@@ -30,10 +30,10 @@ class Perform(QWidget):
                                     'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
 
         self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='_BF', filenames_exclude_filter=self.output_suffix)
-        self.channel_position = QLineEdit(placeholderText='eg. 0 (default) / 1 / ...')
-        self.channel_position.setMinimumWidth(200)
-        self.channel_position.setValidator(QIntValidator(bottom=0))
-        self.channel_position.setText("0")
+        self.channel_position = QSpinBox()
+        self.channel_position.setMinimum(0)
+        self.channel_position.setMaximum(100)
+        self.channel_position.setValue(0)
 
         self.use_input_folder = QRadioButton("Use input image folder")
         self.use_input_folder.setChecked(True)
@@ -270,7 +270,7 @@ class Perform(QWidget):
             'use_custom_folder': self.use_custom_folder.isChecked(),
             'output_folder': self.output_folder.text(),
             'output_user_suffix': self.output_user_suffix.text(),
-            'channel_position': self.channel_position.text(),
+            'channel_position': self.channel_position.value(),
             'projection_mode_bestZ': self.projection_mode_bestZ.isChecked(),
             'projection_mode_around_bestZ': self.projection_mode_around_bestZ.isChecked(),
             'projection_mode_around_bestZ_zrange': self.projection_mode_around_bestZ_zrange.value(),
@@ -295,7 +295,7 @@ class Perform(QWidget):
         self.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
         self.output_folder.setText(widgets_state['output_folder'])
         self.output_user_suffix.setText(widgets_state['output_user_suffix'])
-        self.channel_position.setText(widgets_state['channel_position'])
+        self.channel_position.setValue(widgets_state['channel_position'])
         self.projection_mode_bestZ.setChecked(widgets_state['projection_mode_bestZ'])
         self.projection_mode_around_bestZ.setChecked(widgets_state['projection_mode_around_bestZ'])
         self.projection_mode_around_bestZ_zrange.setValue(widgets_state['projection_mode_around_bestZ_zrange'])
@@ -335,7 +335,7 @@ class Perform(QWidget):
 
         # Arianna 26/07/23: added the three options channel_name, channel_position, projection_type
         # Arianna 06/03/24: added the time points option
-        channel_position = self.channel_position.text()
+        channel_position = self.channel_position.value()
         projection_type = self.projection_type.currentText()
         if self.projection_mode_bestZ.isChecked():
             projection_zrange = 0
@@ -354,11 +354,6 @@ class Perform(QWidget):
         registration_method = self.registration_method.currentText()
         coalignment = self.coalignment_yn.isChecked()
         skip_crop_decision = self.skip_cropping_yn.isChecked()
-
-        if channel_position == '':
-            channel_position = 0
-        else:
-            channel_position = int(channel_position)
 
         if not check_inputs(image_paths):
             return
