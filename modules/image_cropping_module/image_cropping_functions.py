@@ -245,7 +245,7 @@ class ImageCroppingWidget(QWidget):
 
         layout3 = QHBoxLayout()
         # Save button
-        self.save_button = QPushButton("Save mask")
+        self.save_button = QPushButton("Save cropped image")
         self.save_button.clicked.connect(self.save)
         if self.image_modified:
             self.save_button.setStyleSheet("background: darkred;")
