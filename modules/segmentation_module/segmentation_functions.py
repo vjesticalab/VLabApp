@@ -27,14 +27,14 @@ def remove_all_log_handlers():
         logging.getLogger('general.general_functions').removeHandler(logging.getLogger('general.general_functions').handlers[0])
 
 
-def call_evaluate(index, model, image_2D, diameter, channels):
+def call_evaluate(index, model, image_2D, diameter, cellprob_threshold, flow_threshold, channels):
     """
     Wrapper function to track image index passed to Cellpose
     """
-    return tuple([index]) + model.eval(image_2D, diameter=diameter, channels=channels)
+    return tuple([index]) + model.eval(image_2D, diameter=diameter, channels=channels, cellprob_threshold=cellprob_threshold, flow_threshold=flow_threshold)
 
 
-def par_run_eval(image, mask, model, logger, tot_iterations, n_count, pbr=None):
+def par_run_eval(image, mask, model, diameter, cellprob_threshold, flow_threshold, logger, tot_iterations, n_count, pbr=None):
     """
     Run model evaluation in parallel
     """
@@ -45,12 +45,15 @@ def par_run_eval(image, mask, model, logger, tot_iterations, n_count, pbr=None):
                 t,
                 model,
                 image[t, :, :],
-                model.diam_labels, [0, 0]
+                diameter,
+                cellprob_threshold,
+                flow_threshold,
+                [0, 0]
             ): t for t in range(image.shape[0])
         }
         for future in concurrent.futures.as_completed(future_reg):
             try:
-                index, mask[index, :, :], _, _ = future.result()
+                index, mask[index, :, :], *_ = future.result()
             except Exception:
                 logger.exception("An exception occurred")
                 raise
@@ -63,7 +66,7 @@ def par_run_eval(image, mask, model, logger, tot_iterations, n_count, pbr=None):
     return mask
 
 
-def main(image_path, model_path, output_path, output_basename, channel_position, projection_type, projection_zrange, n_count, display_results=True, use_gpu=True, run_parallel=True):
+def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_threshold, output_path, output_basename, channel_position, projection_type, projection_zrange, n_count, display_results=True, use_gpu=True, run_parallel=True):
     """
     Load image, segment with cellpose and save the resulting mask
     into `output_path` directory using filename `output_basename`.ome.tif.
@@ -72,8 +75,16 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
     ----------
     image_path: str
         input image path. Must be a tif, ome-tif or nd2 image with axes T,Y,X
+    model_type: str
+        cellpose model type. Either "User trained model" or one of the cellpose built-in model names (cyto, cyto2, nuclei, tissuenet or livecell).
     model_path: str
-        cellpose pretrained model path
+        cellpose pretrained model path (only used if `model_type` == "User trained model").
+    diameter: int
+        expected cell diameter for cellpose  (only used if `model_type` != "User trained model"). If 0, use cellpose built-in model to estimate diameter (available only for model_type cyto, cyto2 and nuclei). See cellpose documentation for more information https://cellpose.readthedocs.io/en/latest/index.html.
+    cellprob_threshold: float
+        cellpose cellprob threshold. See cellpose documentation for more information https://cellpose.readthedocs.io/en/latest/index.html.
+    flow_threshold: float
+        cellpose flow threshold. See cellpose documentation for more information https://cellpose.readthedocs.io/en/latest/index.html.
     output_path: str
         output directory
     output_basename: str
@@ -136,7 +147,13 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
             logger.info("- napari version: %s", napari.__version__)
 
         logger.info("Input image path: %s", image_path)
-        logger.info("Input cellpose model path: %s", model_path)
+        logger.info("Model type: %s", model_type)
+        if model_type == "User trained model":
+            logger.info("User trained model path: %s", model_path)
+        else:
+            logger.info("Diameter: %s", diameter)
+        logger.info("cellprob threshold: %s", cellprob_threshold)
+        logger.info("flow threshold: %s", flow_threshold)
         logger.debug("use_gpu: %s", use_gpu)
         logger.debug("display_results: %s", display_results)
 
@@ -185,8 +202,18 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
             raise TypeError(f"Position of the channel given ({channel_position}) is out of range for image {image.basename}")
 
         # Create cellpose model
-        logger.debug("loading cellpose model %s", model_path)
-        model = models.CellposeModel(gpu=use_gpu, pretrained_model=model_path)
+        if model_type == "User trained model":
+            logger.debug("loading cellpose model %s", model_path)
+            model = models.CellposeModel(gpu=use_gpu, pretrained_model=model_path)
+            diameter = model.diam_labels
+        elif model_type in ['cyto', 'cyto2', 'nuclei']:
+            logger.debug("loading cellpose model %s", model_type)
+            model = models.Cellpose(gpu=use_gpu, model_type=model_type)
+            if diameter == 0:
+                diameter = None
+        else:
+            logger.debug("loading cellpose model %s", model_type)
+            model = models.CellposeModel(gpu=use_gpu, model_type=model_type)
 
         tot_iterations = image.sizes['T']
 
@@ -209,12 +236,12 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
             pbr = None
 
         # Cellpose segmentation
-        logger.info("Cellpose segmentation (model diameter=%s)", model.diam_labels)
+        logger.info("Cellpose segmentation (diameter=%s)", diameter)
 
         iteration = 0
         mask = np.zeros(image3D.shape, dtype='uint16')
         if run_parallel and n_count > 1:
-            mask = par_run_eval(image3D, mask, model, logger, tot_iterations, n_count, pbr)
+            mask = par_run_eval(image3D, mask, model, diameter, cellprob_threshold, flow_threshold, logger, tot_iterations, n_count, pbr)
         else:
             for t in range(image3D.shape[0]):
                 iteration += 1
@@ -224,7 +251,7 @@ def main(image_path, model_path, output_path, output_basename, channel_position,
                     pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
                     pbr.update(1)
                 logger.debug("cellpose segmentation %s/%s", iteration, tot_iterations)
-                mask[t, :, :], _, _ = model.eval(image_2D, diameter=model.diam_labels, channels=[0, 0])
+                mask[t, :, :], *_ = model.eval(image_2D, diameter=diameter, channels=[0, 0], cellprob_threshold=cellprob_threshold, flow_threshold=flow_threshold)
 
         if use_gpu:
             cuda.empty_cache()

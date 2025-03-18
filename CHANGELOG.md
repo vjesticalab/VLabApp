@@ -2,6 +2,8 @@
 
 ### Added
 
+* Segmentation module: add option to use cellpose built-in models (cyto, cyto2, nuclei, tissuenet, livecell).
+
 ### Changed
 
 ### Removed

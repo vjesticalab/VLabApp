@@ -4,7 +4,7 @@ import sys
 import concurrent
 import time
 import numpy as np
-from PyQt5.QtWidgets import QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QAbstractItemView, QAction, QListView, QSizePolicy, QGroupBox, QApplication, QFileDialog
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QAbstractItemView, QAction, QListView, QSizePolicy, QGroupBox, QApplication, QFileDialog
 from PyQt5.QtCore import Qt, QEvent, QSettings
 from PyQt5.QtGui import QKeySequence, QStandardItem, QBrush, QColor, QCursor
 from modules.pipeline_module import pipeline_functions as f
@@ -665,7 +665,11 @@ class Pipeline(QWidget):
                     last_job_with_same_input_idx = len(jobs) - 1
                 elif module_name == 'segmentation':
                     image_path = next_image_path
-                    model_path = settings['selected_model']
+                    model_type = settings['cellpose_model_type']
+                    model_path = settings['cellpose_user_model']
+                    diameter = settings['cellpose_diameter']
+                    cellprob_threshold = float(settings['cellpose_cellprob_threshold'])
+                    flow_threshold = float(settings['cellpose_flow_threshold'])
                     output_suffix = gf.output_suffixes['segmentation']
                     user_suffix = settings['output_user_suffix']
                     output_basename = gf.splitext(os.path.basename(image_path))[0] + output_suffix + user_suffix
@@ -683,15 +687,23 @@ class Pipeline(QWidget):
                     run_parallel = not coarse_grain and not use_gpu
                     display_results = False
                     # check input
-                    if model_path == '':
-                        self.logger.error('Model missing (module "%s")', module_label)
-                        return
-                    if not os.path.isfile(model_path):
-                        self.logger.error('Model not found: %s (module "%s")', model_path, module_label)
+                    if model_type == "User trained model":
+                        if model_path == '':
+                            self.logger.error('Model missing (module "%s")', module_label)
+                            return
+                        if not os.path.isfile(model_path):
+                            self.logger.error('Model not found: %s (module "%s")', model_path, module_label)
+                            return
+                    elif model_type not in ['cyto', 'cyto2', 'nuclei'] and diameter == 0:
+                        self.logger.error('Diameter estimation using cellpose built-in model (i.e. diameter=0) is only available for cyto, cyto2 and nuclei models.')
                         return
                     jobs.append({'function': segmentation_functions.main,
                                  'arguments': (image_path,
+                                               model_type,
                                                model_path,
+                                               diameter,
+                                               cellprob_threshold,
+                                               flow_threshold,
                                                output_path,
                                                output_basename,
                                                channel_position,
