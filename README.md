@@ -35,7 +35,7 @@ The use of Anaconda is supposed.
  
 1. Create a virtual environment for your code, in the terminal: 
     ```
-    conda create --name venv_VLabApp  python=3.10
+    conda create --name venv_VLabApp  python=3.11
     ```
  
 2. Once the venv is created, activate it: 

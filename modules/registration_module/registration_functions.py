@@ -77,8 +77,8 @@ class EditTransformationMatrix(QWidget):
         # 3 columns: T, Y, X
         points_TYX = np.column_stack((np.arange(self.tmat.shape[0]), self.tmat[:, (5,4)]))
         # center
-        shifty = np.round((points_TYX[:, 1].min() + points_TYX[:, 1].max()) / 2 - self.viewer.dims.range[self.Y_axis_index][1] / 2)
-        shiftx = np.round((points_TYX[:, 2].min() + points_TYX[:, 2].max()) / 2 - self.viewer.dims.range[self.X_axis_index][1] / 2)
+        shifty = np.round((points_TYX[:, 1].min() + points_TYX[:, 1].max()) / 2 - (self.viewer.dims.range[self.Y_axis_index][1]+1) / 2)
+        shiftx = np.round((points_TYX[:, 2].min() + points_TYX[:, 2].max()) / 2 - (self.viewer.dims.range[self.X_axis_index][1]+1) / 2)
         points_TYX[:, 1] = points_TYX[:, 1] - shifty
         points_TYX[:, 2] = points_TYX[:, 2] - shiftx
 
@@ -90,7 +90,7 @@ class EditTransformationMatrix(QWidget):
         for i, d in enumerate(viewer.dims.axis_labels):
             if d not in ['T', 'Y', 'X']:
                 range_min = np.round(viewer.dims.range[i][0])
-                range_max = np.round(viewer.dims.range[i][1])
+                range_max = np.round(viewer.dims.range[i][1]+1)
                 values = np.arange(range_min, range_max, 1, dtype=points_TYX.dtype)
                 points_nrow = points.shape[0]
                 points = np.tile(points, (values.shape[0], 1))
@@ -98,7 +98,7 @@ class EditTransformationMatrix(QWidget):
 
         edge_color = np.tile(self.point_color_default+[self.point_alpha_inactive], (points.shape[0], 1))
         edge_color[(tmat_start <= points[:, self.T_axis_index]) & (points[:, self.T_axis_index] <= tmat_end)] = self.point_color_default+[self.point_alpha_active]
-        self.layer_points = viewer.add_points(points, name='Alignment points', size=30, face_color="#00000000", edge_color=edge_color, edge_width=0.2)
+        self.layer_points = viewer.add_points(points, name='Alignment points', size=30, face_color="#00000000", border_color=edge_color, border_width=0.2)
 
         layout = QVBoxLayout()
 
@@ -193,8 +193,8 @@ class EditTransformationMatrix(QWidget):
                         self.update_tmat()
                         #update point color
                         modified_frames = (np.abs(self.tmat_saved_version[:,(4,5)]-self.tmat[:,(4,5)])>0.0001).all(axis=1).nonzero()
-                        layer.edge_color[:,0:3] = self.point_color_default
-                        layer.edge_color[np.isin(layer.data[:, self.T_axis_index],modified_frames),0:3] = self.point_color_modified
+                        layer.border_color[:,0:3] = self.point_color_default
+                        layer.border_color[np.isin(layer.data[:, self.T_axis_index],modified_frames),0:3] = self.point_color_modified
 
                         layer.refresh()
 
@@ -253,14 +253,14 @@ class EditTransformationMatrix(QWidget):
         self.start_frame.setMaximum(self.end_frame.value())
         self.end_frame.setMinimum(self.start_frame.value())
         # adjust point transparency
-        self.layer_points.edge_color[:,3] = self.point_alpha_inactive
-        self.layer_points.edge_color[(self.start_frame.value() <= self.layer_points.data[:, self.T_axis_index]) & (self.layer_points.data[:, self.T_axis_index] <= self.end_frame.value()),3] = self.point_alpha_active
+        self.layer_points.border_color[:,3] = self.point_alpha_inactive
+        self.layer_points.border_color[(self.start_frame.value() <= self.layer_points.data[:, self.T_axis_index]) & (self.layer_points.data[:, self.T_axis_index] <= self.end_frame.value()),3] = self.point_alpha_active
         self.update_tmat()
         self.layer_points.refresh()
 
     def on_close(self):
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
         if not np.array_equal(self.tmat, self.tmat_saved_version) and not self.read_only:
             save = QMessageBox.question(self, 'Save changes', "Save transformation matrix before closing?", QMessageBox.Yes | QMessageBox.No)
             if save == QMessageBox.Yes:
@@ -278,7 +278,7 @@ class EditTransformationMatrix(QWidget):
             np.savetxt(filename, self.tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
             self.tmat_saved_version = self.tmat.copy()
             #update point color
-            self.layer_points.edge_color[:,0:3] = self.point_color_default
+            self.layer_points.border_color[:,0:3] = self.point_color_default
             self.layer_points.refresh()
 
     def __del__(self):
@@ -1212,7 +1212,7 @@ def manual_edit_main(image_path, matrix_path):
         # Remove all handlers for this module
         remove_all_log_handlers()
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
         try:
             # close napari window
             viewer.close()

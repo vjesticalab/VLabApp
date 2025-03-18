@@ -400,8 +400,8 @@ class GroundTruthWidget(QWidget):
 
     def export(self):
         # Set cursor to BusyCursor
-        napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
-        napari.qt.get_app().processEvents()
+        napari.qt.get_qapp().setOverrideCursor(QCursor(Qt.BusyCursor))
+        napari.qt.get_qapp().processEvents()
 
         # Show activity dock & add napari progress bar
         self.viewer.window._status_bar._toggle_activity_dock(True)
@@ -464,7 +464,7 @@ class GroundTruthWidget(QWidget):
             f.write(buffered_handler.get_messages())
 
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
         self.viewer.window._status_bar._toggle_activity_dock(False)
         pbr.close()
 
@@ -473,8 +473,8 @@ class GroundTruthWidget(QWidget):
 
     def save(self, closing=False):
         # Set cursor to BusyCursor
-        napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
-        napari.qt.get_app().processEvents()
+        napari.qt.get_qapp().setOverrideCursor(QCursor(Qt.BusyCursor))
+        napari.qt.get_qapp().processEvents()
 
         split_regions(self.mask)
         relabel(self.mask)
@@ -504,7 +504,7 @@ class GroundTruthWidget(QWidget):
 
         self.logger.debug("Done")
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
 
         QMessageBox.information(self, 'Files saved', 'Mask saved to\n' + output_file)
 
@@ -513,7 +513,7 @@ class GroundTruthWidget(QWidget):
 
     def on_viewer_close(self):
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
         if self.mask_modified:
             save = QMessageBox.question(self, 'Save changes', "Save mask before closing?", QMessageBox.Yes | QMessageBox.No)
             if save == QMessageBox.Yes:
@@ -530,8 +530,8 @@ class GroundTruthWidget(QWidget):
             return
 
         # Set cursor to BusyCursor
-        napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
-        napari.qt.get_app().processEvents()
+        napari.qt.get_qapp().setOverrideCursor(QCursor(Qt.BusyCursor))
+        napari.qt.get_qapp().processEvents()
 
         # Show activity dock & add napari progress bar
         self.viewer.window._status_bar._toggle_activity_dock(True)
@@ -598,7 +598,7 @@ class GroundTruthWidget(QWidget):
         self.save_button.setStyleSheet("background: darkred;")
 
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
         self.viewer.window._status_bar._toggle_activity_dock(False)
         pbr.close()
 
@@ -798,7 +798,7 @@ def main(image_BF_path, image_fluo1_path, image_fluo2_path, image_mask_path, out
         # Remove all handlers for this module
         remove_all_log_handlers()
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
         try:
             # close napari window
             viewer.close()

@@ -935,8 +935,8 @@ class GraphFilteringWidget(QWidget):
     def filter(self, closing=False):
 
         # Set cursor to BusyCursor
-        napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
-        napari.qt.get_app().processEvents()
+        napari.qt.get_qapp().setOverrideCursor(QCursor(Qt.BusyCursor))
+        napari.qt.get_qapp().processEvents()
 
         self.cell_tracks_filtering.reset_filters()
 
@@ -990,15 +990,15 @@ class GraphFilteringWidget(QWidget):
         self.save_button.setText("Save")
         self.logger.debug("Done")
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
 
     def save(self, closing=False, relabel_mask_ids=True):
         """
         Save one mask and one graph file with all selected tracks
         """
         # Set cursor to BusyCursor
-        napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
-        napari.qt.get_app().processEvents()
+        napari.qt.get_qapp().setOverrideCursor(QCursor(Qt.BusyCursor))
+        napari.qt.get_qapp().processEvents()
         self.logger.debug("Done")
 
         if self.mask_need_filtering:
@@ -1011,7 +1011,7 @@ class GraphFilteringWidget(QWidget):
             self.save_button.setStyleSheet("")
 
         # restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
 
         QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + os.path.join(self.output_path, self.output_basename+".ome.tif") + "\n" + os.path.join(self.output_path, self.output_basename+".graphmlz"))
 
@@ -1020,7 +1020,7 @@ class GraphFilteringWidget(QWidget):
 
     def on_viewer_images_close(self):
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
         if self.mask_modified:
             if self.mask_need_filtering:
                 save = QMessageBox.question(self, 'Save changes', "Filter and save changes before closing?", QMessageBox.Yes | QMessageBox.No)
@@ -1270,7 +1270,7 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
         remove_all_log_handlers()
         if display_results:
             # Restore cursor
-            napari.qt.get_app().restoreOverrideCursor()
+            napari.qt.get_qapp().restoreOverrideCursor()
             try:
                 # close napari window
                 viewer_images.close()

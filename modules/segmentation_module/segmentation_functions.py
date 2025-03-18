@@ -227,8 +227,8 @@ def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_
             viewer_images.add_image(image_napari, name="Input image")
 
             # Set cursor to BusyCursor
-            napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
-            napari.qt.get_app().processEvents()
+            napari.qt.get_qapp().setOverrideCursor(QCursor(Qt.BusyCursor))
+            napari.qt.get_qapp().processEvents()
             # Show activity dock & add napari progress bar
             viewer_images.window._status_bar._toggle_activity_dock(True)
             pbr = napari.utils.progress(total=tot_iterations)
@@ -270,10 +270,10 @@ def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_
 
         if display_results:
             # Restore cursor
-            napari.qt.get_app().restoreOverrideCursor()
+            napari.qt.get_qapp().restoreOverrideCursor()
             QMessageBox.information(viewer_images.window._qt_window, 'File saved', 'Mask saved to\n' + output_name)
             # Stop logging into napari window
-            napari.qt.get_app().restoreOverrideCursor()
+            napari.qt.get_qapp().restoreOverrideCursor()
             viewer_images.window._status_bar._toggle_activity_dock(False)
             pbr.close()
             # Show mask in napari
@@ -291,7 +291,7 @@ def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_
         remove_all_log_handlers()
         if display_results:
             # Restore cursor
-            napari.qt.get_app().restoreOverrideCursor()
+            napari.qt.get_qapp().restoreOverrideCursor()
             try:
                 # close napari window
                 viewer_images.close()

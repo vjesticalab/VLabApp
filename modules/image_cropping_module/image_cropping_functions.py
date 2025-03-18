@@ -460,8 +460,8 @@ class ImageCroppingWidget(QWidget):
 
     def save(self, closing=False):
         # Set cursor to BusyCursor
-        napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
-        napari.qt.get_app().processEvents()
+        napari.qt.get_qapp().setOverrideCursor(QCursor(Qt.BusyCursor))
+        napari.qt.get_qapp().processEvents()
 
         if not any([self.crop_T.isChecked(),
                     self.crop_C.isChecked(),
@@ -469,7 +469,7 @@ class ImageCroppingWidget(QWidget):
                     self.crop_Y.isChecked(),
                     self.crop_X.isChecked()]):
             # Restore cursor
-            napari.qt.get_app().restoreOverrideCursor()
+            napari.qt.get_qapp().restoreOverrideCursor()
             QMessageBox.warning(self, 'Warning', 'File not saved.\nPlease select at least one axis to crop.', buttons=QMessageBox.Ok)
             return
 
@@ -537,7 +537,7 @@ class ImageCroppingWidget(QWidget):
 
         self.logger.debug("Done")
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
 
         QMessageBox.information(self, 'Files saved', 'Mask saved to\n' + output_name)
 
@@ -546,7 +546,7 @@ class ImageCroppingWidget(QWidget):
 
     def on_viewer_close(self):
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
         if self.image_modified:
             save = QMessageBox.question(self, 'Save changes', "Save cropped image before closing?", QMessageBox.Yes | QMessageBox.No)
             if save == QMessageBox.Yes:
@@ -756,7 +756,7 @@ def main(image_path, output_path, output_basename, T_range, C_range, Z_range, Y_
         remove_all_log_handlers()
         if display_results:
             # Restore cursor
-            napari.qt.get_app().restoreOverrideCursor()
+            napari.qt.get_qapp().restoreOverrideCursor()
             try:
                 # close napari window
                 viewer.close()

@@ -7,6 +7,7 @@
 ### Changed
 
 * Segmentation module: use cellpose v3 (instead of v2).
+* Use napari v0.5.6 (instead of v0.4.19).
 
 ### Removed
 

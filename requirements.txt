@@ -2,9 +2,9 @@ aicsimageio==4.14.0
 cellpose==3.1.1.1
 torch==2.6.0
 matplotlib==3.10.1
-napari==0.4.19.post1
+napari==0.5.6
 nd2==0.10.2
-numpy==1.26.4
+numpy==2.0.2
 opencv_python_headless==4.11.0.86
 pyqt5==5.15.11 --config-settings --confirm-license=
 pystackreg==0.2.8

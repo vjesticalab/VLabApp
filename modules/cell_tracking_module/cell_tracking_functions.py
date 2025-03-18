@@ -328,8 +328,8 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
 
     if graph.vcount() > 0:
         vertices_layer.add(np.array(layout[:graph.vcount()]))
-        vertices_layer.edge_width_is_relative = True
-        vertices_layer.edge_width = 0.0
+        vertices_layer.border_width_is_relative = True
+        vertices_layer.border_width = 0.0
         vertices_layer.symbol = 'square'
         vertices_layer.size = vertex_size
         vertices_layer.face_color = colors[graph.vs['mask_id']]
@@ -396,9 +396,9 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                             # erase selection
                             layer.properties['selected'][layer.properties['selected']] = False
                     # change style
-                    layer.edge_color[layer.properties['selected']] = [1.0, 1.0, 1.0, 1.0]  # white
-                    layer.edge_width[~layer.properties['selected']] = 0
-                    layer.edge_width[layer.properties['selected']] = 0.4
+                    layer.border_color[layer.properties['selected']] = [1.0, 1.0, 1.0, 1.0]  # white
+                    layer.border_width[~layer.properties['selected']] = 0
+                    layer.border_width[layer.properties['selected']] = 0.4
                     layer.refresh()
 
         # mouse click on viewer_image (mask_layer)
@@ -464,10 +464,10 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                                 viewer_graph.layers['Vertices'].properties['selected'][
                                     viewer_graph.layers['Vertices'].properties['selected']] = False
                         # change style
-                        viewer_graph.layers['Vertices'].edge_color[viewer_graph.layers['Vertices'].properties['selected']] = [
+                        viewer_graph.layers['Vertices'].border_color[viewer_graph.layers['Vertices'].properties['selected']] = [
                             1.0, 1.0, 1.0, 1.0]  # white
-                        viewer_graph.layers['Vertices'].edge_width[~viewer_graph.layers['Vertices'].properties['selected']] = 0
-                        viewer_graph.layers['Vertices'].edge_width[viewer_graph.layers['Vertices'].properties['selected']] = 0.4
+                        viewer_graph.layers['Vertices'].border_width[~viewer_graph.layers['Vertices'].properties['selected']] = 0
+                        viewer_graph.layers['Vertices'].border_width[viewer_graph.layers['Vertices'].properties['selected']] = 0.4
                         viewer_graph.layers['Vertices'].refresh()
 
         viewer_graph.reset_view()
@@ -1288,8 +1288,8 @@ class CellTrackingWidget(QWidget):
 
     def clean_mask(self):
         # Set cursor to BusyCursor
-        napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
-        napari.qt.get_app().processEvents()
+        napari.qt.get_qapp().setOverrideCursor(QCursor(Qt.BusyCursor))
+        napari.qt.get_qapp().processEvents()
 
         if self.show_mask_diff.isChecked():
             mask_original = self.mask.copy()
@@ -1341,12 +1341,12 @@ class CellTrackingWidget(QWidget):
 
         self.logger.debug("Done")
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
 
     def interpolate_mask(self):
         # Set cursor to BusyCursor
-        napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
-        napari.qt.get_app().processEvents()
+        napari.qt.get_qapp().setOverrideCursor(QCursor(Qt.BusyCursor))
+        napari.qt.get_qapp().processEvents()
 
         if self.show_mask_diff2.isChecked():
             mask_original = self.mask.copy()
@@ -1401,12 +1401,12 @@ class CellTrackingWidget(QWidget):
 
         self.logger.debug("Done")
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
 
     def relabel(self, closing=False):
         # Set cursor to BusyCursor
-        napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
-        napari.qt.get_app().processEvents()
+        napari.qt.get_qapp().setOverrideCursor(QCursor(Qt.BusyCursor))
+        napari.qt.get_qapp().processEvents()
 
         if self.show_mask_diff3.isChecked():
             mask_original = self.mask.copy()
@@ -1454,12 +1454,12 @@ class CellTrackingWidget(QWidget):
 
         self.logger.debug("Done")
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
 
     def save(self, closing=False):
         # Set cursor to BusyCursor
-        napari.qt.get_app().setOverrideCursor(QCursor(Qt.BusyCursor))
-        napari.qt.get_app().processEvents()
+        napari.qt.get_qapp().setOverrideCursor(QCursor(Qt.BusyCursor))
+        napari.qt.get_qapp().processEvents()
 
         if self.mask_need_relabelling:
             self.relabel(closing)
@@ -1495,7 +1495,7 @@ class CellTrackingWidget(QWidget):
 
         self.logger.debug("Done")
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
 
         QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + output_file1 + "\n" + output_file3)
 
@@ -1505,7 +1505,7 @@ class CellTrackingWidget(QWidget):
 
     def on_viewer_images_close(self):
         # Restore cursor
-        napari.qt.get_app().restoreOverrideCursor()
+        napari.qt.get_qapp().restoreOverrideCursor()
         if self.mask_modified:
             if self.mask_need_relabelling:
                 save = QMessageBox.question(self, 'Save changes', "Relabel and save changes before closing?", QMessageBox.Yes | QMessageBox.No)
@@ -1752,7 +1752,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         remove_all_log_handlers()
         if display_results:
             # Restore cursor
-            napari.qt.get_app().restoreOverrideCursor()
+            napari.qt.get_qapp().restoreOverrideCursor()
             try:
                 # close napari window
                 viewer_images.close()
