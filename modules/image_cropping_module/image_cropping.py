@@ -27,7 +27,7 @@ class ImageCropping(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        self.image_list = gf.FileListWidget(filetypes=gf.imagetypes)
+        self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_exclude_filter=self.output_suffix)
         self.image_list.file_list_changed.connect(self.image_list_changed)
         groupbox = QGroupBox('Input files (images or masks)')
         layout2 = QVBoxLayout()
