@@ -456,6 +456,7 @@ class ImageCroppingWidget(QWidget):
                                                                     Y_range[0]:(Y_range[1]+1),
                                                                     X_range[0]:(X_range[1]+1)]
         self.viewer.layers['Cropped image'].translate = (0, T_range[0], C_range[0], Z_range[0], Y_range[0], X_range[0])
+        self.viewer.layers['Cropped image'].editable = False
         self.viewer.layers['Cropped image'].refresh()
 
     def save(self, closing=False):
@@ -698,8 +699,10 @@ def main(image_path, output_path, output_basename, T_range, C_range, Z_range, Y_
             viewer.window._qt_window.setWindowModality(Qt.ApplicationModal)
             viewer.show()
             layer1 = viewer.add_image(image.image, name="Input image", opacity=0.5, colormap=napari.utils.Colormap([[1, 0, 0, 1], [1, 0, 0, 1]]))
+            layer1.editable = False
             cropped_origin = (0, T_range[0], C_range[0], Z_range[0], Y_range[0], X_range[0])
-            viewer.add_image(cropped_image, name="Cropped image", translate=cropped_origin, contrast_limits=layer1.contrast_limits)
+            layer2 = viewer.add_image(cropped_image, name="Cropped image", translate=cropped_origin, contrast_limits=layer1.contrast_limits)
+            layer2.editable = False
             viewer.dims.axis_labels = ('F', 'T', 'C', 'Z', 'Y', 'X')
             # Add CellTrackingWidget to napari
             scroll_area = QScrollArea()

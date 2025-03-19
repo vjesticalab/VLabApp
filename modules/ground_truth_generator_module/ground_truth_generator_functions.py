@@ -774,11 +774,17 @@ def main(image_BF_path, image_fluo1_path, image_fluo2_path, image_mask_path, out
         viewer.window._qt_window.setWindowModality(Qt.ApplicationModal)
         viewer.show()
 
-        viewer.add_image(image_BF.image, channel_axis=2, name='Bright-field', colormap='gray')
+        layers = viewer.add_image(image_BF.image, channel_axis=2, name='Bright-field', colormap='gray')
+        for layer in layers:
+            layer.editable = False
         if image_fluo1 is not None:
-            viewer.add_image(image_fluo1.image, channel_axis=2, name='Cell marker 1', colormap='magenta', blending='additive')
+            layers = viewer.add_image(image_fluo1.image, channel_axis=2, name='Cell marker 1', colormap='magenta', blending='additive')
+            for layer in layers:
+                layer.editable = False
         if image_fluo2 is not None:
-            viewer.add_image(image_fluo2.image, channel_axis=2, name='Cell marker 2', colormap='yellow', blending='additive')
+            layers = viewer.add_image(image_fluo2.image, channel_axis=2, name='Cell marker 2', colormap='yellow', blending='additive')
+            for layer in layers:
+                layer.editable = False
         if image_mask is not None:
             mask = image_mask.get_TYXarray()
             # broadcast mask to FTZYX, with broadcastedd axis containing shallow copies (C axis is used as channel_axis)

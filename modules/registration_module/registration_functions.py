@@ -1189,7 +1189,9 @@ def manual_edit_main(image_path, matrix_path):
         viewer.show()
 
         # assuming a FTCZYX image:
-        viewer.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+        layers = viewer.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+        for layer in layers:
+            layer.editable = False
         # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
         viewer.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
 

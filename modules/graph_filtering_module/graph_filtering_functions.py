@@ -1184,7 +1184,8 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
             logger.debug("displaying image and mask")
             viewer_images = napari.Viewer(title=image_path)
             if image_path != '':
-                viewer_images.add_image(image.get_TYXarray(), name="Image")
+                layer = viewer_images.add_image(image.get_TYXarray(), name="Image")
+                layer.editable = False
             layer = viewer_images.add_labels(mask.get_TYXarray(), name="Cell mask", visible=False)
             layer.editable = False
             # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.

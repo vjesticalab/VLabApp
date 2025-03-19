@@ -154,7 +154,9 @@ class ImageMaskGraphViewer(QWidget):
 
         viewer_images = napari.Viewer(title=mask_path if mask_path != '' else image_path)
         if image_path != '':
-            viewer_images.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+            layers = viewer_images.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+            for layer in layers:
+                layer.editable = False
             # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
             viewer_images.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
         if mask_path != '':
@@ -312,7 +314,10 @@ class RegistrationViewer(QWidget):
 
         viewer = napari.Viewer()
         # assuming a FTCZYX image:
-        viewer.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+        layers = viewer.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+        for layer in layers:
+            layer.editable = False
+
         # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
         viewer.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
 

@@ -224,8 +224,8 @@ def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_
             viewer_images.window._qt_window.setWindowModality(Qt.ApplicationModal)
             viewer_images.show()
             image_napari = image3D
-            viewer_images.add_image(image_napari, name="Input image")
-
+            layer = viewer_images.add_image(image_napari, name="Input image")
+            layer.editable = False
             # Set cursor to BusyCursor
             napari.qt.get_qapp().setOverrideCursor(QCursor(Qt.BusyCursor))
             napari.qt.get_qapp().processEvents()

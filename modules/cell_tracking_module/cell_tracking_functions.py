@@ -1317,12 +1317,13 @@ class CellTrackingWidget(QWidget):
             mask_diff[(self.mask != mask_original) & (self.mask != 0) & (mask_original != 0)] = 2  # modified
             mask_diff[(self.mask != mask_original) & (mask_original == 0)] = 3  # added
             del mask_original
-            self.viewer_images.add_image(mask_diff, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
-                                         colormap=napari.utils.Colormap([[0, 0, 0, 0],
-                                                                         [0.77, 0.27, 0.29, 1],
-                                                                         [0.16, 0.36, 0.62, 1],
-                                                                         [0.30, 0.51, 0.15, 1]]),
-                                         contrast_limits=[0, 3], visible=False)
+            layer = self.viewer_images.add_image(mask_diff, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
+                                                 colormap=napari.utils.Colormap([[0, 0, 0, 0],
+                                                                                 [0.77, 0.27, 0.29, 1],
+                                                                                 [0.16, 0.36, 0.62, 1],
+                                                                                 [0.30, 0.51, 0.15, 1]]),
+                                                 contrast_limits=[0, 3], visible=False)
+            layer.editable = False
             self.viewer_images.layers.selection.active = self.viewer_images.layers['Cell mask']
 
         self.viewer_images.layers['Cell mask'].refresh()
@@ -1377,12 +1378,13 @@ class CellTrackingWidget(QWidget):
             mask_diff[(self.mask != mask_original) & (self.mask != 0) & (mask_original != 0)] = 2  # modified
             mask_diff[(self.mask != mask_original) & (mask_original == 0)] = 3  # added
             del mask_original
-            self.viewer_images.add_image(mask_diff, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
-                                         colormap=napari.utils.Colormap([[0, 0, 0, 0],
-                                                                         [0.77, 0.27, 0.29, 1],
-                                                                         [0.16, 0.36, 0.62, 1],
-                                                                         [0.30, 0.51, 0.15, 1]]),
-                                         contrast_limits=[0, 3], visible=False)
+            layer = self.viewer_images.add_image(mask_diff, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
+                                                 colormap=napari.utils.Colormap([[0, 0, 0, 0],
+                                                                                 [0.77, 0.27, 0.29, 1],
+                                                                                 [0.16, 0.36, 0.62, 1],
+                                                                                 [0.30, 0.51, 0.15, 1]]),
+                                                 contrast_limits=[0, 3], visible=False)
+            layer.editable = False
             self.viewer_images.layers.selection.active = self.viewer_images.layers['Cell mask']
 
         self.viewer_images.layers['Cell mask'].refresh()
@@ -1429,12 +1431,13 @@ class CellTrackingWidget(QWidget):
             mask_diff[(self.mask != mask_original) & (self.mask != 0) & (mask_original != 0)] = 2  # modified
             mask_diff[(self.mask != mask_original) & (mask_original == 0)] = 3  # added
             del mask_original
-            self.viewer_images.add_image(mask_diff, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
-                                         colormap=napari.utils.Colormap([[0, 0, 0, 0],
-                                                                         [0.77, 0.27, 0.29, 1],
-                                                                         [0.16, 0.36, 0.62, 1],
-                                                                         [0.30, 0.51, 0.15, 1]]),
-                                         contrast_limits=[0, 3], visible=False)
+            layer = self.viewer_images.add_image(mask_diff, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
+                                                 colormap=napari.utils.Colormap([[0, 0, 0, 0],
+                                                                                 [0.77, 0.27, 0.29, 1],
+                                                                                 [0.16, 0.36, 0.62, 1],
+                                                                                 [0.30, 0.51, 0.15, 1]]),
+                                                 contrast_limits=[0, 3], visible=False)
+            layer.editable = False
             self.viewer_images.layers.selection.active = self.viewer_images.layers['Cell mask']
 
         if not closing:
@@ -1684,7 +1687,9 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
             logger.debug("displaying image and mask")
             viewer_images = napari.Viewer(title=mask_path)
             if image_path != '':
-                viewer_images.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+                layers = viewer_images.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+                for layer in layers:
+                    layer.editable = False
                 # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
                 viewer_images.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
             # broadcast TYX mask to FTZYX with F and Z axis containing shallow copies (C axis is used as channel_axis):
