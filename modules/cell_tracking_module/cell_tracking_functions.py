@@ -1309,7 +1309,11 @@ class CellTrackingWidget(QWidget):
             mask_diff[(self.mask != mask_original) & (self.mask != 0) & (mask_original != 0)] = 2  # modified
             mask_diff[(self.mask != mask_original) & (mask_original == 0)] = 3  # added
             del mask_original
-            layer = self.viewer_images.add_image(mask_diff, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
+            # broadcast TYX mask_diff to FTZYX with F and Z axis containing shallow copies (C axis is used as channel_axis):
+            sizeF = self.viewer_images.layers['Cell mask'].data.shape[0]
+            sizeZ = self.viewer_images.layers['Cell mask'].data.shape[2]
+            mask_diff_FTZYX = np.broadcast_to(mask_diff[np.newaxis, :, np.newaxis, :, :], (sizeF, mask_diff.shape[0], sizeZ, mask_diff.shape[1], mask_diff.shape[2]))
+            layer = self.viewer_images.add_image(mask_diff_FTZYX, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
                                                  colormap=napari.utils.Colormap([[0, 0, 0, 0],
                                                                                  [0.77, 0.27, 0.29, 1],
                                                                                  [0.16, 0.36, 0.62, 1],
@@ -1370,7 +1374,11 @@ class CellTrackingWidget(QWidget):
             mask_diff[(self.mask != mask_original) & (self.mask != 0) & (mask_original != 0)] = 2  # modified
             mask_diff[(self.mask != mask_original) & (mask_original == 0)] = 3  # added
             del mask_original
-            layer = self.viewer_images.add_image(mask_diff, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
+            # broadcast TYX mask_diff to FTZYX with F and Z axis containing shallow copies (C axis is used as channel_axis):
+            sizeF = self.viewer_images.layers['Cell mask'].data.shape[0]
+            sizeZ = self.viewer_images.layers['Cell mask'].data.shape[2]
+            mask_diff_FTZYX = np.broadcast_to(mask_diff[np.newaxis, :, np.newaxis, :, :], (sizeF, mask_diff.shape[0], sizeZ, mask_diff.shape[1], mask_diff.shape[2]))
+            layer = self.viewer_images.add_image(mask_diff_FTZYX, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
                                                  colormap=napari.utils.Colormap([[0, 0, 0, 0],
                                                                                  [0.77, 0.27, 0.29, 1],
                                                                                  [0.16, 0.36, 0.62, 1],
@@ -1423,7 +1431,11 @@ class CellTrackingWidget(QWidget):
             mask_diff[(self.mask != mask_original) & (self.mask != 0) & (mask_original != 0)] = 2  # modified
             mask_diff[(self.mask != mask_original) & (mask_original == 0)] = 3  # added
             del mask_original
-            layer = self.viewer_images.add_image(mask_diff, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
+            # broadcast TYX mask_diff to FTZYX with F and Z axis containing shallow copies (C axis is used as channel_axis):
+            sizeF = self.viewer_images.layers['Cell mask'].data.shape[0]
+            sizeZ = self.viewer_images.layers['Cell mask'].data.shape[2]
+            mask_diff_FTZYX = np.broadcast_to(mask_diff[np.newaxis, :, np.newaxis, :, :], (sizeF, mask_diff.shape[0], sizeZ, mask_diff.shape[1], mask_diff.shape[2]))
+            layer = self.viewer_images.add_image(mask_diff_FTZYX, name="Cell mask modifications (1: removed, 2: modified, 3: added)", opacity=0.8,
                                                  colormap=napari.utils.Colormap([[0, 0, 0, 0],
                                                                                  [0.77, 0.27, 0.29, 1],
                                                                                  [0.16, 0.36, 0.62, 1],

@@ -13,6 +13,7 @@
 
 ### Fixed
 
+* Cell tracking module: add missing axes to layer showing mask modifications (when showing results in napari).
 
 
 
