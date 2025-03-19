@@ -272,24 +272,24 @@ class FileOrganization(QWidget):
 
         patterns = []
         if self.files_zprojection.isChecked():
-            patterns.append(gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
         if self.files_ground_truth_generator.isChecked():
-            patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
             # exported directory
             patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*$')
             patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*'+gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*$')
         if self.files_registration.isChecked():
-            patterns.append(gf.output_suffixes['registration']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['registration']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
         if self.files_segmentation.isChecked():
-            patterns.append(gf.output_suffixes['segmentation']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['segmentation']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
         if self.files_cell_tracking.isChecked():
-            patterns.append(gf.output_suffixes['cell_tracking']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['cell_tracking']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
         if self.files_graph_filtering.isChecked():
-            patterns.append(gf.output_suffixes['graph_filtering']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['graph_filtering']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
         if self.files_events_filter.isChecked():
-            patterns.append(gf.output_suffixes['events_filter']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['events_filter']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
         if self.files_image_cropping.isChecked():
-            patterns.append(gf.output_suffixes['image_cropping']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['image_cropping']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
 
         if len(patterns) == 0:
             QMessageBox.warning(self, 'Warning', 'Please select at least one file type in the files selection box\n(in addition to log files).', buttons=QMessageBox.Ok)
@@ -341,24 +341,24 @@ class FileOrganization(QWidget):
 
         patterns = []
         if self.files_zprojection.isChecked():
-            patterns.append(gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
         if self.files_ground_truth_generator.isChecked():
-            patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
             # exported directory
             patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*$')
             patterns.append(gf.output_suffixes['ground_truth_generator']+'[A-Za-z0-9-]*'+gf.output_suffixes['zprojection']+'[A-Za-z0-9-]*$')
         if self.files_registration.isChecked():
-            patterns.append(gf.output_suffixes['registration']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['registration']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
         if self.files_segmentation.isChecked():
-            patterns.append(gf.output_suffixes['segmentation']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['segmentation']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
         if self.files_cell_tracking.isChecked():
-            patterns.append(gf.output_suffixes['cell_tracking']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['cell_tracking']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
         if self.files_graph_filtering.isChecked():
-            patterns.append(gf.output_suffixes['graph_filtering']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['graph_filtering']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
         if self.files_events_filter.isChecked():
-            patterns.append(gf.output_suffixes['events_filter']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['events_filter']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
         if self.files_image_cropping.isChecked():
-            patterns.append(gf.output_suffixes['image_cropping']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+            patterns.append(gf.output_suffixes['image_cropping']+'[A-Za-z0-9-]*'+'[a-zA-Z4.]*$')
 
         if len(patterns) == 0:
             QMessageBox.warning(self, 'Warning', 'Please select at least one file type in the files selection box\n(in addition to log files).', buttons=QMessageBox.Ok)
