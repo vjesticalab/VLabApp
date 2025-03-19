@@ -977,8 +977,12 @@ class GraphFilteringWidget(QWidget):
 
         if not closing:
             selected_mask = self.cell_tracks_filtering.get_mask()
+            # broadcast TYX mask to FTZYX with F and Z axis containing shallow copies (C axis is used as channel_axis):
+            sizeF = self.viewer_images.layers['Selected cell mask'].data.shape[0]
+            sizeZ = self.viewer_images.layers['Selected cell mask'].data.shape[2]
+            selected_mask_FTZYX = np.broadcast_to(selected_mask[np.newaxis, :, np.newaxis, :, :], (sizeF, selected_mask.shape[0], sizeZ, selected_mask.shape[1], selected_mask.shape[2]))
             self.logger.debug("adding to viewer_images")
-            self.viewer_images.layers['Selected cell mask'].data = selected_mask
+            self.viewer_images.layers['Selected cell mask'].data = selected_mask_FTZYX
             self.viewer_images.layers['Selected cell mask'].editable = False
             self.logger.debug("refreshing viewer_images")
             self.viewer_images.layers['Selected cell mask'].refresh()
@@ -1184,12 +1188,20 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
             logger.debug("displaying image and mask")
             viewer_images = napari.Viewer(title=image_path)
             if image_path != '':
-                layer = viewer_images.add_image(image.get_TYXarray(), name="Image")
-                layer.editable = False
-            layer = viewer_images.add_labels(mask.get_TYXarray(), name="Cell mask", visible=False)
+                layers = viewer_images.add_image(image.image, channel_axis=2, name=['Image [' + x + ']' for x in image.channel_names] if image.channel_names else 'Image')
+                for layer in layers:
+                    layer.editable = False
+                # channel axis is already used as channel_axis (layers) => it is not in viewer.dims:
+                viewer_images.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
+            # broadcast TYX mask to FTZYX with F and Z axis containing shallow copies (C axis is used as channel_axis):
+            sizeF = image.image.shape[0] if image_path != '' else 1
+            sizeZ = image.image.shape[3] if image_path != '' else 1
+            mask_TYX = mask.get_TYXarray()
+            mask_FTZYX = np.broadcast_to(mask_TYX[np.newaxis, :, np.newaxis, :, :], (sizeF, mask_TYX.shape[0], sizeZ, mask_TYX.shape[1], mask_TYX.shape[2]))
+            layer = viewer_images.add_labels(mask_FTZYX, name="Cell mask", visible=False)
             layer.editable = False
-            selected_mask_layer = viewer_images.add_labels(mask.get_TYXarray(), name="Selected cell mask")
-            selected_mask_layer.editable = False
+            layer = viewer_images.add_labels(mask_FTZYX, name="Selected cell mask")
+            layer.editable = False
 
             # add GraphFilteringWidget to napari
             scroll_area = QScrollArea()

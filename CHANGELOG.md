@@ -8,6 +8,7 @@
 
 * Segmentation module: use cellpose v3 (instead of v2).
 * Use napari v0.5.6 (instead of v0.4.19).
+* Graph filtering module: when showing results in napari, images with more than T,Y,X axes are allowed (e.g. T,C,Z,Y,X).
 
 ### Removed
 

@@ -21,7 +21,7 @@ class GraphFiltering(QWidget):
 
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('For each pair of input segmentation mask and cell tracking graph, apply the selected filters and save the filtered cell tracking graph and segmentation mask.<br>' +
-                                    'Input segmentation mask must have X, Y and T axes. The optional input image must have X, Y and T axes.')
+                                    'Input segmentation mask must have X, Y and T axes. The optional input image must have X, Y and T axes and can optionally have C and/or Z axes.')
         groupbox = QGroupBox("Documentation")
         layout2 = QVBoxLayout()
         layout2.addWidget(label_documentation)
