@@ -199,9 +199,6 @@ class EditTransformationMatrix(QWidget):
                         layer.refresh()
 
         self.layer_points.editable = False
-        # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
-        # This is a quick and dirty hack to force the layer to stay non-editable.
-        self.layer_points.events.editable.connect(lambda e: setattr(e.source, 'editable', False))
 
         # To allow saving transformation matrix before closing (__del__ is called too late)
         # TODO: replace by proper napari close event once implemented (https://forum.image.sc/t/handle-of-close-event-in-napari/61039)

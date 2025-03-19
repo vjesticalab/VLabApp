@@ -171,9 +171,6 @@ class ImageMaskGraphViewer(QWidget):
             viewer_images.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
             mask_layer.help = "<left-click> to set view"
             mask_layer.editable = False
-            # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
-            # This is a quick and dirty hack to force the layer to stay non-editable.
-            mask_layer.events.editable.connect(lambda e: setattr(e.source, 'editable', False))
 
         if graph_path != '':
             viewer_graph = napari.Viewer(title='Cell tracking graph')

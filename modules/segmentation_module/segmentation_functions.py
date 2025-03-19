@@ -279,9 +279,6 @@ def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_
             # Show mask in napari
             layer_mask = viewer_images.add_labels(mask, name="Cell mask")
             layer_mask.editable = False
-            # In the current version of napari (v0.4.17), editable is set to True whenever we change the axis value by clicking on the corresponding slider.
-            # This is a quick and dirty hack to force the layer to stay non-editable.
-            layer_mask.events.editable.connect(lambda e: setattr(e.source, 'editable', False))
 
         # Remove all handlers for this module
         remove_all_log_handlers()
