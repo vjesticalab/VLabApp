@@ -162,6 +162,7 @@ class FileOrganization(QWidget):
         self.files_cell_tracking = QCheckBox('Cell tracking module output files (*'+gf.output_suffixes['cell_tracking']+')')
         self.files_graph_filtering = QCheckBox('Graph filtering module output files (*'+gf.output_suffixes['graph_filtering']+')')
         self.files_events_filter = QCheckBox('Events filter module output files (*'+gf.output_suffixes['events_filter']+')')
+        self.files_image_cropping = QCheckBox('Image cropping module output files (*'+gf.output_suffixes['image_cropping']+')')
         self.files_ground_truth_generator = QCheckBox('Ground truth generator module output files (*'+gf.output_suffixes['ground_truth_generator']+')')
         self.files_intermediate_logs = QCheckBox('Preserve intermediate log files')
         self.files_intermediate_logs.setToolTip('Preserve all log files, including log files corresponding to intermediate files')
@@ -213,6 +214,7 @@ class FileOrganization(QWidget):
         layout2.addWidget(self.files_cell_tracking)
         layout2.addWidget(self.files_graph_filtering)
         layout2.addWidget(self.files_events_filter)
+        layout2.addWidget(self.files_image_cropping)
         layout2.addWidget(self.files_ground_truth_generator)
         layout2.addWidget(self.files_intermediate_logs)
         groupbox2.setLayout(layout2)
@@ -286,6 +288,8 @@ class FileOrganization(QWidget):
             patterns.append(gf.output_suffixes['graph_filtering']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.files_events_filter.isChecked():
             patterns.append(gf.output_suffixes['events_filter']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+        if self.files_image_cropping.isChecked():
+            patterns.append(gf.output_suffixes['image_cropping']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
 
         if len(patterns) == 0:
             QMessageBox.warning(self, 'Warning', 'Please select at least one file type in the files selection box\n(in addition to log files).', buttons=QMessageBox.Ok)
@@ -353,6 +357,8 @@ class FileOrganization(QWidget):
             patterns.append(gf.output_suffixes['graph_filtering']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
         if self.files_events_filter.isChecked():
             patterns.append(gf.output_suffixes['events_filter']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
+        if self.files_image_cropping.isChecked():
+            patterns.append(gf.output_suffixes['image_cropping']+'[A-Za-z0-9-]*'+'[a-zA-Z.]*$')
 
         if len(patterns) == 0:
             QMessageBox.warning(self, 'Warning', 'Please select at least one file type in the files selection box\n(in addition to log files).', buttons=QMessageBox.Ok)
