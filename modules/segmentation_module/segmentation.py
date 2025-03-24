@@ -8,6 +8,11 @@ from modules.segmentation_module import segmentation_functions as f
 from general import general_functions as gf
 import torch
 from cellpose.core import assign_device
+try:
+    from micro_sam.automatic_segmentation import get_predictor_and_segmenter, automatic_instance_segmentation
+    microsam_available = True
+except ImportError:
+    microsam_available = False
 
 
 class Segmentation(QWidget):
@@ -18,15 +23,22 @@ class Segmentation(QWidget):
 
         self.pipeline_layout = pipeline_layout
 
+        doc_text = 'For each input image,  perform cell segmentation using <a href="https://www.cellpose.org/">cellpose</a> '
+        if microsam_available:
+            doc_text += 'or <a href="https://github.com/computational-cell-analytics/micro-sam">Segment Anything for Microscopy</a> '
+        doc_text += 'and save the resulting mask.<br>'
+        doc_text += 'Input images must have X and Y axes and can optionally have C, Z and/or T axes (Z axis will be projected and only the chosen channel will be selected before performing segmentation).<br>'
+        doc_text += '<h3>Cellpose</h3>'
+        doc_text += '<b>Built-in models</b><br>'
+        doc_text += 'Built-in models cyto, cyto2, cyto3, nuclei, tissuenet_cp3, livecell_cp3, yeast_PhC_cp3, yeast_BF_cp3, bact_phase_cp3, bact_fluor_cp3, deepbacs_cp3 and cyto2_cp3 are available. These models require a parameter "diameter", which should correspond to the expected diameter of the objects to segment. With cyto, cyto2, cyto3 or nuclei model types, the diameter can be estimated using cellpose built-in model by setting the parameter "diameter" to 0. For more information, see section "Models" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>'
+        doc_text += '<br>'
+        doc_text += '<b>User trained model</b><br>'
+        doc_text += 'A user trained model can be obtained by finetuning a pretrained cellpose model on a collection of annotated images similar to the input images (see section "Training" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>). When using a user trained model it is not possible to choose the diameter, which is set to the median diameter estimated on the training set.'
+        if microsam_available:
+            doc_text += '<h3>Segment Anything for Microscopy</h3>'
+            doc_text += 'Segment Anything models vit_h, vit_l, vit_b, vit_t and Segment Anything for Microscopy models vit_l_lm, vit_b_lm, vit_t_lm, vit_l_em_organelles, vit_b_em_organelles and vit_t_em_organelles are available. For more information, see section "Finetuned Models" in Segment Anything for Microscopy documentation <a href="https://computational-cell-analytics.github.io/micro-sam/micro_sam.html">https://computational-cell-analytics.github.io/micro-sam/micro_sam.html</a>.'
         label_documentation = gf.CollapsibleLabel('',  collapsed=True)
-        label_documentation.setText('For each input image,  perform cell segmentation using <a href="https://www.cellpose.org/">cellpose</a> and save the resulting mask.<br>' +
-                                    'Input images must have X and Y axes and can optionally have C, Z and/or T axes (Z axis will be projected and only the chosen channel will be selected before performing segmentation).<br>' +
-                                    '<h3>Cellpose model types</h3>' +
-                                    '<b>Built-in models</b><br>' +
-                                    'Built-in models cyto, cyto2, cyto3, nuclei, tissuenet_cp3, livecell_cp3, yeast_PhC_cp3, yeast_BF_cp3, bact_phase_cp3, bact_fluor_cp3, deepbacs_cp3 and cyto2_cp3 are available. These models require a parameter "diameter", which should correspond to the expected diameter of the objects to segment. With cyto, cyto2, cyto3 or nuclei model types, the diameter can be estimated using cellpose built-in model by setting the parameter "diameter" to 0. For more information, see section "Models" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>' +
-                                    '<br>' +
-                                    '<b>User trained model</b><br>' +
-                                    'A user trained model can be obtained by finetuning a pretrained cellpose model on a collection of annotated images similar to the input images (see section "Training" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>). When using a user trained model it is not possible to choose the diameter, which is set to the median diameter estimated on the training set.')
+        label_documentation.setText(doc_text)
 
         self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='_BF')
         self.image_list.file_list_changed.connect(self.image_list_changed)
@@ -49,6 +61,13 @@ class Segmentation(QWidget):
         self.output_filename_label.setFrame(False)
         self.output_filename_label.setEnabled(False)
         self.output_filename_label.textChanged.connect(self.output_filename_label.setToolTip)
+
+        self.segmentation_method = QComboBox()
+        self.segmentation_method.addItem("cellpose")
+        if microsam_available:
+            self.segmentation_method.addItem("Segment Anything for Microscopy")
+        self.segmentation_method.setCurrentText("cellpose")
+        self.segmentation_method.currentTextChanged.connect(self.segmentation_method_changed)
 
         self.cellpose_model_type = QComboBox()
         self.cellpose_model_type.addItem("User trained model")
@@ -84,6 +103,19 @@ class Segmentation(QWidget):
         self.cellpose_flow_threshold = QLineEdit(placeholderText='0.4')
         self.cellpose_flow_threshold.setValidator(QDoubleValidator(decimals=2))
         self.cellpose_flow_threshold.validator().setNotation(QDoubleValidator.StandardNotation)
+
+        self.microsam_model_type = QComboBox()
+        self.microsam_model_type.addItem("vit_h")
+        self.microsam_model_type.addItem("vit_l")
+        self.microsam_model_type.addItem("vit_b")
+        self.microsam_model_type.addItem("vit_t")
+        self.microsam_model_type.addItem("vit_l_lm")
+        self.microsam_model_type.addItem("vit_b_lm")
+        self.microsam_model_type.addItem("vit_t_lm")
+        self.microsam_model_type.addItem("vit_l_em_organelles")
+        self.microsam_model_type.addItem("vit_b_em_organelles")
+        self.microsam_model_type.addItem("vit_t_em_organelles")
+        self.microsam_model_type.setCurrentText("vit_l_lm")
 
         self.channel_position = QSpinBox()
         self.channel_position.setMinimum(0)
@@ -196,15 +228,30 @@ class Segmentation(QWidget):
 
         groupbox2 = QGroupBox("Segmentation method")
         layout4 = QFormLayout()
-        layout4.addRow("Model type:", self.cellpose_model_type)
-        layout4.addRow(self.cellpose_user_model_label, self.cellpose_user_model)
-        layout4.addRow(self.cellpose_diameter_label, self.cellpose_diameter)
-        collapsible = gf.CollapsibleWidget("", collapsed_icon="▶ [show more]", expanded_icon="▼ [hide]", expanded=False)
+        layout4.addRow("Method:", self.segmentation_method)
+
+        self.segmentation_settings_cellpose = QWidget()
         layout5 = QFormLayout()
-        collapsible.content.setLayout(layout5)
-        layout5.addRow("Cellprob threshold:", self.cellpose_cellprob_threshold)
-        layout5.addRow("Flow threshold:", self.cellpose_flow_threshold)
-        layout4.addRow(collapsible)
+        layout5.setContentsMargins(0, 0, 0, 0)
+        layout5.addRow("Model type:", self.cellpose_model_type)
+        layout5.addRow(self.cellpose_user_model_label, self.cellpose_user_model)
+        layout5.addRow(self.cellpose_diameter_label, self.cellpose_diameter)
+        collapsible = gf.CollapsibleWidget("", collapsed_icon="▶ [show more]", expanded_icon="▼ [hide]", expanded=False)
+        layout6 = QFormLayout()
+        collapsible.content.setLayout(layout6)
+        layout6.addRow("Cellprob threshold:", self.cellpose_cellprob_threshold)
+        layout6.addRow("Flow threshold:", self.cellpose_flow_threshold)
+        layout5.addRow(collapsible)
+        self.segmentation_settings_cellpose.setLayout(layout5)
+        layout4.addRow(self.segmentation_settings_cellpose)
+
+        self.segmentation_settings_microsam = QWidget()
+        self.segmentation_settings_microsam.setVisible(False)
+        layout5 = QFormLayout()
+        layout5.setContentsMargins(0, 0, 0, 0)
+        layout5.addRow("Model type:", self.microsam_model_type)
+        self.segmentation_settings_microsam.setLayout(layout5)
+        layout4.addRow(self.segmentation_settings_microsam)
         groupbox2.setLayout(layout4)
         layout3.addWidget(groupbox2)
 
@@ -271,6 +318,15 @@ class Segmentation(QWidget):
 
         self.update_output_filename_label()
 
+    def segmentation_method_changed(self, method):
+        if method == 'cellpose':
+            self.segmentation_settings_cellpose.setVisible(True)
+            self.segmentation_settings_microsam.setVisible(False)
+        else:
+            self.segmentation_settings_cellpose.setVisible(False)
+            self.segmentation_settings_microsam.setVisible(True)
+        return
+
     def cellpose_model_type_changed(self, model):
         if model == 'User trained model':
             self.cellpose_user_model_label.setVisible(True)
@@ -318,11 +374,13 @@ class Segmentation(QWidget):
             'use_input_folder': self.use_input_folder.isChecked(),
             'use_custom_folder': self.use_custom_folder.isChecked(),
             'output_folder': self.output_folder.text(),
+            'segmentation_method': self.segmentation_method.currentText(),
             'cellpose_model_type': self.cellpose_model_type.currentText(),
             'cellpose_user_model': self.cellpose_user_model.text(),
             'cellpose_diameter': self.cellpose_diameter.value(),
             'cellpose_cellprob_threshold': self.cellpose_cellprob_threshold.text() if self.cellpose_cellprob_threshold.text() != '' else self.cellpose_cellprob_threshold.placeholderText(),
             'cellpose_flow_threshold':  self.cellpose_flow_threshold.text() if self.cellpose_flow_threshold.text() != '' else self.cellpose_flow_threshold.placeholderText(),
+            'microsam_model_type': self.microsam_model_type.currentText(),
             'output_user_suffix': self.output_user_suffix.text(),
             'channel_position': self.channel_position.value(),
             'projection_mode_bestZ': self.projection_mode_bestZ.isChecked(),
@@ -344,11 +402,13 @@ class Segmentation(QWidget):
         self.use_input_folder.setChecked(widgets_state['use_input_folder'])
         self.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
         self.output_folder.setText(widgets_state['output_folder'])
+        self.segmentation_method.setCurrentText(widgets_state['segmentation_method'])
         self.cellpose_model_type.setCurrentText(widgets_state['cellpose_model_type'])
         self.cellpose_user_model.setText(widgets_state['cellpose_user_model'])
         self.cellpose_diameter.setValue(widgets_state['cellpose_diameter'])
         self.cellpose_cellprob_threshold.setText(widgets_state['cellpose_cellprob_threshold'])
         self.cellpose_flow_threshold.setText(widgets_state['cellpose_flow_threshold'])
+        self.microsam_model_type.setCurrentText(widgets_state['microsam_model_type'])
         self.output_user_suffix.setText(widgets_state['output_user_suffix'])
         self.channel_position.setValue(widgets_state['channel_position'])
         self.projection_mode_bestZ.setChecked(widgets_state['projection_mode_bestZ'])
@@ -363,6 +423,8 @@ class Segmentation(QWidget):
         self.coarse_grain.setChecked(widgets_state['coarse_grain'])
         self.n_count.setValue(widgets_state['n_count'])
         self.display_results.setChecked(widgets_state['display_results'])
+        if widgets_state['segmentation_method'] == "Segment Anything for Microscopy" and not microsam_available:
+            self.logger.error('Segment Anything for Microscopy is not available.')
 
     def submit(self):
         """
@@ -382,11 +444,13 @@ class Segmentation(QWidget):
             projection_zrange = None
 
         image_paths = self.image_list.get_file_list()
-        model_type = self.cellpose_model_type.currentText()
-        diameter = self.cellpose_diameter.value()
-        model_path = self.cellpose_user_model.text()
-        cellprob_threshold = float(self.cellpose_cellprob_threshold.text()) if self.cellpose_cellprob_threshold.text() != '' else float(self.cellpose_cellprob_threshold.placeholderText())
-        flow_threshold = float(self.cellpose_flow_threshold.text()) if self.cellpose_flow_threshold.text() != '' else float(self.cellpose_flow_threshold.placeholderText())
+        segmentation_method = self.segmentation_method.currentText()
+        cellpose_model_type = self.cellpose_model_type.currentText()
+        cellpose_diameter = self.cellpose_diameter.value()
+        cellpose_model_path = self.cellpose_user_model.text()
+        cellpose_cellprob_threshold = float(self.cellpose_cellprob_threshold.text()) if self.cellpose_cellprob_threshold.text() != '' else float(self.cellpose_cellprob_threshold.placeholderText())
+        cellpose_flow_threshold = float(self.cellpose_flow_threshold.text()) if self.cellpose_flow_threshold.text() != '' else float(self.cellpose_flow_threshold.placeholderText())
+        microsam_model_type = self.microsam_model_type.currentText()
         user_suffix = self.output_user_suffix.text()
         output_basenames = [gf.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
         if self.use_input_folder.isChecked():
@@ -401,19 +465,20 @@ class Segmentation(QWidget):
             if not os.path.isfile(path):
                 self.logger.error('Image not found: %s', path)
                 return
-        if model_type == "User trained model":
-            if model_path == '':
-                self.logger.error('Model missing')
-                self.cellpose_user_model.setFocus()
+        if segmentation_method == "cellpose":
+            if cellpose_model_type == "User trained model":
+                if cellpose_model_path == '':
+                    self.logger.error('Model missing')
+                    self.cellpose_user_model.setFocus()
+                    return
+                if not os.path.isfile(cellpose_model_path):
+                    self.logger.error('Model not found: %s', cellpose_model_path)
+                    self.cellpose_user_model.setFocus()
+                    return
+            elif cellpose_model_type not in ['cyto', 'cyto2', 'cyto3', 'nuclei'] and cellpose_diameter == 0:
+                self.logger.error('Diameter estimation using cellpose built-in model (i.e. diameter == 0) is only available for cyto, cyto2, cyto3 and nuclei models')
+                self.cellpose_diameter.setFocus()
                 return
-            if not os.path.isfile(model_path):
-                self.logger.error('Model not found: %s', model_path)
-                self.cellpose_user_model.setFocus()
-                return
-        elif model_type not in ['cyto', 'cyto2', 'cyto3', 'nuclei'] and diameter == 0:
-            self.logger.error('Diameter estimation using cellpose built-in model (i.e. diameter == 0) is only available for cyto, cyto2, cyto3 and nuclei models')
-            self.cellpose_diameter.setFocus()
-            return
 
         if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
             self.logger.error('Output folder missing')
@@ -450,11 +515,13 @@ class Segmentation(QWidget):
             QApplication.processEvents()
             arguments.append(
                 (image_path,
-                 model_type,
-                 model_path,
-                 diameter,
-                 cellprob_threshold,
-                 flow_threshold,
+                 segmentation_method,
+                 cellpose_model_type,
+                 cellpose_model_path,
+                 cellpose_diameter,
+                 cellpose_cellprob_threshold,
+                 cellpose_flow_threshold,
+                 microsam_model_type,
                  output_path,
                  output_basename,
                  channel_position,

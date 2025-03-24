@@ -16,6 +16,12 @@ from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
 from ome_types.model import CommentAnnotation
 from version import __version__ as vlabapp_version
+try:
+    from micro_sam import __version__ as microsam_version
+    from micro_sam.automatic_segmentation import get_predictor_and_segmenter, automatic_instance_segmentation
+    microsam_available = True
+except ImportError:
+    microsam_available = False
 
 
 def remove_all_log_handlers():
@@ -27,28 +33,27 @@ def remove_all_log_handlers():
         logging.getLogger('general.general_functions').removeHandler(logging.getLogger('general.general_functions').handlers[0])
 
 
-def call_evaluate(index, model, image_2D, diameter, cellprob_threshold, flow_threshold, channels):
+def run_cellpose(index, image_2D, model, diameter, cellprob_threshold, flow_threshold):
     """
     Wrapper function to track image index passed to Cellpose
     """
-    return tuple([index]) + model.eval(image_2D, diameter=diameter, channels=channels, cellprob_threshold=cellprob_threshold, flow_threshold=flow_threshold)
+    return tuple([index]) + model.eval(image_2D, diameter=diameter, channels=[0, 0], cellprob_threshold=cellprob_threshold, flow_threshold=flow_threshold)
 
 
-def par_run_eval(image, mask, model, diameter, cellprob_threshold, flow_threshold, logger, tot_iterations, n_count, pbr=None):
+def parallel_run_cellpose(image, mask, model, diameter, cellprob_threshold, flow_threshold, logger, tot_iterations, n_count, pbr=None):
     """
     Run model evaluation in parallel
     """
     with concurrent.futures.ProcessPoolExecutor(max_workers=n_count) as executor:
         future_reg = {
             executor.submit(
-                call_evaluate,
+                run_cellpose,
                 t,
-                model,
                 image[t, :, :],
+                model,
                 diameter,
                 cellprob_threshold,
-                flow_threshold,
-                [0, 0]
+                flow_threshold
             ): t for t in range(image.shape[0])
         }
         for future in concurrent.futures.as_completed(future_reg):
@@ -66,7 +71,43 @@ def par_run_eval(image, mask, model, diameter, cellprob_threshold, flow_threshol
     return mask
 
 
-def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_threshold, output_path, output_basename, channel_position, projection_type, projection_zrange, n_count, display_results=True, use_gpu=True, run_parallel=True):
+def run_microsam(index, image_2D, predictor, segmenter):
+    """
+    Wrapper function to track image index passed to Segment Anything for Microscopy
+    """
+    return (index, automatic_instance_segmentation(predictor=predictor, segmenter=segmenter, input_path=image_2D, verbose=False))
+
+
+def parallel_run_microsam(image, mask, predictor, segmenter, logger, tot_iterations, n_count, pbr=None):
+    """
+    Run model evaluation in parallel
+    """
+    with concurrent.futures.ProcessPoolExecutor(max_workers=n_count) as executor:
+        future_reg = {
+            executor.submit(
+                run_microsam,
+                t,
+                image[t, :, :],
+                predictor,
+                segmenter
+            ): t for t in range(image.shape[0])
+        }
+        for future in concurrent.futures.as_completed(future_reg):
+            try:
+                index, mask[index, :, :] = future.result()
+            except Exception:
+                logger.exception("An exception occurred")
+                raise
+            else:
+                logger.debug("Segment Anthing for Microscopy segmentation %s/%s", index+1, tot_iterations)
+                if pbr is not None:
+                    pbr.set_description(f"Segment Anthing for Microscopy segmentation {index+1}/{tot_iterations}")
+                    pbr.update(1)
+
+    return mask
+
+
+def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_path, cellpose_diameter, cellpose_cellprob_threshold, cellpose_flow_threshold, microsam_model_type, output_path, output_basename, channel_position, projection_type, projection_zrange, n_count, display_results=True, use_gpu=True, run_parallel=True):
     """
     Load image, segment with cellpose and save the resulting mask
     into `output_path` directory using filename `output_basename`.ome.tif.
@@ -75,16 +116,20 @@ def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_
     ----------
     image_path: str
         input image path. Must be a tif, ome-tif or nd2 image with axes T,Y,X
-    model_type: str
+    segmentation_method: str
+        Segmentation method ("cellpose" or "Segment Anything for Microscopy").
+    cellpose_model_type: str
         cellpose model type. Either "User trained model" or one of the cellpose built-in model names (cyto, cyto2, cyto3, nuclei, tissuenet_cp3, livecell_cp3, yeast_PhC_cp3, yeast_BF_cp3, bact_phase_cp3, bact_fluor_cp3, deepbacs_cp3 or cyto2_cp3).
-    model_path: str
-        cellpose pretrained model path (only used if `model_type` == "User trained model").
-    diameter: int
-        expected cell diameter for cellpose  (only used if `model_type` != "User trained model"). If 0, use cellpose built-in model to estimate diameter (available only for model_type cyto, cyto2, cyto3 and nuclei). See cellpose documentation for more information https://cellpose.readthedocs.io/en/latest/index.html.
-    cellprob_threshold: float
+    cellpose_model_path: str
+        cellpose pretrained model path (only used if `cellpose_model_type` == "User trained model").
+    cellpose_diameter: int
+        expected cell diameter for cellpose  (only used if `cellpose_model_type` != "User trained model"). If 0, use cellpose built-in model to estimate diameter (available only for cellpose_model_type cyto, cyto2, cyto3 and nuclei). See cellpose documentation for more information https://cellpose.readthedocs.io/en/latest/index.html.
+    cellpose_cellprob_threshold: float
         cellpose cellprob threshold. See cellpose documentation for more information https://cellpose.readthedocs.io/en/latest/index.html.
-    flow_threshold: float
+    cellpose_flow_threshold: float
         cellpose flow threshold. See cellpose documentation for more information https://cellpose.readthedocs.io/en/latest/index.html.
+    microsam_model_type: str
+        Segment Anything for Microscopy model type ("vit_h", "vit_l", "vit_b", "vit_t", "vit_l_lm", "vit_b_lm", "vit_t_lm", "vit_l_em_organelles", "vit_b_em_organelles" or "vit_t_em_organelles").
     output_path: str
         output directory
     output_basename: str
@@ -141,21 +186,35 @@ def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_
         logger.info("- python version: %s", python_version())
         logger.info("- VLabApp version: %s", vlabapp_version)
         logger.info("- numpy version: %s", np.__version__)
-        logger.info("- cellpose version: %s", cellpose_version)
+        if segmentation_method == "cellpose":
+            logger.info("- cellpose version: %s", cellpose_version)
+        elif segmentation_method == "Segment Anything for Microscopy" and microsam_available:
+            logger.info("- micro_sam version: %s", microsam_version)
         logger.info("- torch version: %s", torch_version)
         if display_results:
             logger.info("- napari version: %s", napari.__version__)
 
         logger.info("Input image path: %s", image_path)
-        logger.info("Model type: %s", model_type)
-        if model_type == "User trained model":
-            logger.info("User trained model path: %s", model_path)
-        else:
-            logger.info("Diameter: %s", diameter)
-        logger.info("cellprob threshold: %s", cellprob_threshold)
-        logger.info("flow threshold: %s", flow_threshold)
+        logger.info("Segmentation method: %s", segmentation_method)
+        if segmentation_method == "cellpose":
+            logger.info("Model type: %s", cellpose_model_type)
+            if cellpose_model_type == "User trained model":
+                logger.info("User trained model path: %s", cellpose_model_path)
+            else:
+                logger.info("Diameter: %s", cellpose_diameter)
+            logger.info("cellprob threshold: %s", cellpose_cellprob_threshold)
+            logger.info("flow threshold: %s", cellpose_flow_threshold)
+        elif segmentation_method == "Segment Anything for Microscopy":
+            logger.info("Model type: %s", microsam_model_type)
         logger.debug("use_gpu: %s", use_gpu)
         logger.debug("display_results: %s", display_results)
+
+        # check
+        if segmentation_method == "Segment Anything for Microscopy" and not microsam_available:
+            logger.error('Segmentation method "Segment Anything for Microscopy" is not available')
+            # Remove all handlers for this module
+            remove_all_log_handlers()
+            raise RuntimeError('Segmentation method "Segment Anything for Microscopy" is not available')
 
         # Load image
         logger.debug("loading %s", image_path)
@@ -201,20 +260,6 @@ def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_
             remove_all_log_handlers()
             raise TypeError(f"Position of the channel given ({channel_position}) is out of range for image {image.basename}")
 
-        # Create cellpose model
-        if model_type == "User trained model":
-            logger.debug("loading cellpose model %s", model_path)
-            model = models.CellposeModel(gpu=use_gpu, pretrained_model=model_path)
-            diameter = model.diam_labels
-        elif model_type in ['cyto', 'cyto2', 'cyto3', 'nuclei']:
-            logger.debug("loading cellpose model %s", model_type)
-            model = models.Cellpose(gpu=use_gpu, model_type=model_type)
-            if diameter == 0:
-                diameter = None
-        else:
-            logger.debug("loading cellpose model %s", model_type)
-            model = models.CellposeModel(gpu=use_gpu, model_type=model_type)
-
         tot_iterations = image.sizes['T']
 
         if display_results:
@@ -235,26 +280,64 @@ def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_
         else:
             pbr = None
 
-        # Cellpose segmentation
-        logger.info("Cellpose segmentation (diameter=%s)", diameter)
+        if segmentation_method == "cellpose":
+            # Create cellpose model
+            if cellpose_model_type == "User trained model":
+                logger.debug("loading cellpose model %s", cellpose_model_path)
+                cellpose_model = models.CellposeModel(gpu=use_gpu, pretrained_model=cellpose_model_path)
+                cellpose_diameter = cellpose_model.diam_labels
+            elif cellpose_model_type in ['cyto', 'cyto2', 'cyto3', 'nuclei']:
+                logger.debug("loading cellpose model %s", cellpose_model_type)
+                cellpose_model = models.Cellpose(gpu=use_gpu, model_type=cellpose_model_type)
+                if cellpose_diameter == 0:
+                    cellpose_diameter = None
+            else:
+                logger.debug("loading cellpose model %s", cellpose_model_type)
+                cellpose_model = models.CellposeModel(gpu=use_gpu, model_type=cellpose_model_type)
 
-        iteration = 0
-        mask = np.zeros(image3D.shape, dtype='uint16')
-        if run_parallel and n_count > 1:
-            mask = par_run_eval(image3D, mask, model, diameter, cellprob_threshold, flow_threshold, logger, tot_iterations, n_count, pbr)
-        else:
-            for t in range(image3D.shape[0]):
-                iteration += 1
-                image_2D = image3D[t, :, :]
-                if display_results:
-                    # Logging into napari window
-                    pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
-                    pbr.update(1)
-                logger.debug("cellpose segmentation %s/%s", iteration, tot_iterations)
-                mask[t, :, :], *_ = model.eval(image_2D, diameter=diameter, channels=[0, 0], cellprob_threshold=cellprob_threshold, flow_threshold=flow_threshold)
+            # Cellpose segmentation
+            logger.info("Cellpose segmentation (diameter=%s)", cellpose_diameter)
+
+            iteration = 0
+            mask = np.zeros(image3D.shape, dtype='uint16')
+            if run_parallel and n_count > 1:
+                mask = parallel_run_cellpose(image3D, mask, cellpose_model, cellpose_diameter, cellpose_cellprob_threshold, cellpose_flow_threshold, logger, tot_iterations, n_count, pbr)
+            else:
+                for t in range(image3D.shape[0]):
+                    iteration += 1
+                    image_2D = image3D[t, :, :]
+                    if display_results:
+                        # Logging into napari window
+                        pbr.set_description(f"cellpose segmentation {iteration}/{tot_iterations}")
+                        pbr.update(1)
+                    logger.debug("cellpose segmentation %s/%s", iteration, tot_iterations)
+                    _, mask[t, :, :], *_ = run_cellpose(t, image_2D, cellpose_model, cellpose_diameter, cellpose_cellprob_threshold, cellpose_flow_threshold)
+        elif segmentation_method == "Segment Anything for Microscopy":
+            # create predictor and segmenter
+            logger.debug("loading Segment Anything for Microscopy model %s", microsam_model_type)
+            microsam_predictor, microsam_segmenter = get_predictor_and_segmenter(model_type=microsam_model_type)
+
+            # Cellpose segmentation
+            logger.info("Segment Anything for Microscopy segmentation")
+
+            iteration = 0
+            mask = np.zeros(image3D.shape, dtype='uint16')
+            if run_parallel and n_count > 1:
+                mask = parallel_run_microsam(image3D, mask, microsam_predictor, microsam_segmenter, logger, tot_iterations, n_count, pbr)
+            else:
+                for t in range(image3D.shape[0]):
+                    iteration += 1
+                    image_2D = image3D[t, :, :]
+                    if display_results:
+                        # Logging into napari window
+                        pbr.set_description(f"Segment Anything for Microscopy segmentation {iteration}/{tot_iterations}")
+                        pbr.update(1)
+                    logger.debug("Segment Anything for Microscopy segmentation %s/%s", iteration, tot_iterations)
+                    _, mask[t, :, :] = run_microsam(t, image_2D, microsam_predictor, microsam_segmenter)
 
         if use_gpu:
             cuda.empty_cache()
+
         # Save the mask
         output_name = os.path.join(output_path, output_basename+".ome.tif")
         logger.info("Saving segmentation mask to %s", output_name)
@@ -269,6 +352,9 @@ def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_
         OmeTiffWriter.save(mask, output_name, ome_xml=ome_metadata)
 
         if display_results:
+            # Show mask in napari
+            layer_mask = viewer_images.add_labels(mask, name="Cell mask")
+            layer_mask.editable = False
             # Restore cursor
             napari.qt.get_qapp().restoreOverrideCursor()
             QMessageBox.information(viewer_images.window._qt_window, 'File saved', 'Mask saved to\n' + output_name)
@@ -276,9 +362,6 @@ def main(image_path, model_type, model_path, diameter, cellprob_threshold, flow_
             napari.qt.get_qapp().restoreOverrideCursor()
             viewer_images.window._status_bar._toggle_activity_dock(False)
             pbr.close()
-            # Show mask in napari
-            layer_mask = viewer_images.add_labels(mask, name="Cell mask")
-            layer_mask.editable = False
 
         # Remove all handlers for this module
         remove_all_log_handlers()

@@ -665,11 +665,13 @@ class Pipeline(QWidget):
                     last_job_with_same_input_idx = len(jobs) - 1
                 elif module_name == 'segmentation':
                     image_path = next_image_path
-                    model_type = settings['cellpose_model_type']
-                    model_path = settings['cellpose_user_model']
-                    diameter = settings['cellpose_diameter']
-                    cellprob_threshold = float(settings['cellpose_cellprob_threshold'])
-                    flow_threshold = float(settings['cellpose_flow_threshold'])
+                    segmentation_method = settings['segmentation_method']
+                    cellpose_model_type = settings['cellpose_model_type']
+                    cellpose_model_path = settings['cellpose_user_model']
+                    cellpose_diameter = settings['cellpose_diameter']
+                    cellpose_cellprob_threshold = float(settings['cellpose_cellprob_threshold'])
+                    cellpose_flow_threshold = float(settings['cellpose_flow_threshold'])
+                    microsam_model_type = settings['microsam_model_type']
                     output_suffix = gf.output_suffixes['segmentation']
                     user_suffix = settings['output_user_suffix']
                     output_basename = gf.splitext(os.path.basename(image_path))[0] + output_suffix + user_suffix
@@ -687,23 +689,26 @@ class Pipeline(QWidget):
                     run_parallel = not coarse_grain and not use_gpu
                     display_results = False
                     # check input
-                    if model_type == "User trained model":
-                        if model_path == '':
-                            self.logger.error('Model missing (module "%s")', module_label)
+                    if segmentation_method == "cellpose":
+                        if cellpose_model_type == "User trained model":
+                            if cellpose_model_path == '':
+                                self.logger.error('Model missing (module "%s")', module_label)
+                                return
+                            if not os.path.isfile(cellpose_model_path):
+                                self.logger.error('Model not found: %s (module "%s")', cellpose_model_path, module_label)
+                                return
+                        elif cellpose_model_type not in ['cyto', 'cyto2', 'cyto3', 'nuclei'] and cellpose_diameter == 0:
+                            self.logger.error('Diameter estimation using cellpose built-in model (i.e. diameter=0) is only available for cyto, cyto2, cyto3 and nuclei models.')
                             return
-                        if not os.path.isfile(model_path):
-                            self.logger.error('Model not found: %s (module "%s")', model_path, module_label)
-                            return
-                    elif model_type not in ['cyto', 'cyto2', 'cyto3', 'nuclei'] and diameter == 0:
-                        self.logger.error('Diameter estimation using cellpose built-in model (i.e. diameter=0) is only available for cyto, cyto2, cyto3 and nuclei models.')
-                        return
                     jobs.append({'function': segmentation_functions.main,
                                  'arguments': (image_path,
-                                               model_type,
-                                               model_path,
-                                               diameter,
-                                               cellprob_threshold,
-                                               flow_threshold,
+                                               segmentation_method,
+                                               cellpose_model_type,
+                                               cellpose_model_path,
+                                               cellpose_diameter,
+                                               cellpose_cellprob_threshold,
+                                               cellpose_flow_threshold,
+                                               microsam_model_type,
                                                output_path,
                                                output_basename,
                                                channel_position,
@@ -820,7 +825,7 @@ class Pipeline(QWidget):
 
         # check no duplicate output (last chance)
         output_files = [x for job in jobs for x in job['output_files']]
-        duplicates = [input_image_paths[job['input_idx']] for job in jobs for x in job['output_files'] if output_files.count(x)>1]
+        duplicates = [input_image_paths[job['input_idx']] for job in jobs for x in job['output_files'] if output_files.count(x) > 1]
         duplicates = list(np.unique(duplicates))
         if len(duplicates) > 0:
             self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))

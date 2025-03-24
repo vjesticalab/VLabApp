@@ -12,6 +12,7 @@ from ome_types.model import CommentAnnotation
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform
 from skimage import __version__ as skimage_version
+from packaging.version import Version
 from PyQt5.QtWidgets import QVBoxLayout, QWidget, QPushButton, QLabel, QScrollArea, QRadioButton, QGroupBox, QFormLayout, QSpinBox, QMessageBox, QCheckBox
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QKeySequence
@@ -629,8 +630,12 @@ def register_stack_feature_matching(image, feature_type="ORB", blur=0, seed=7624
         # ransac
         shift = (0, 0)
         if len(matches) > 3:
-            model_robust, inliers = ransac((points1, points2), MoveTransform, min_samples=3,
-                                           residual_threshold=2, max_trials=100, rng=seed)
+            if Version(skimage_version) >= Version('0.21.0'):
+                model_robust, inliers = ransac((points1, points2), MoveTransform, min_samples=3,
+                                               residual_threshold=2, max_trials=100, rng=seed)
+            else:
+                model_robust, inliers = ransac((points1, points2), MoveTransform, min_samples=3,
+                                               residual_threshold=2, max_trials=100, random_state=seed)
             if model_robust is not None:
                 shift = -model_robust.translation
 

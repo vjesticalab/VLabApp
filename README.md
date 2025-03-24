@@ -48,10 +48,10 @@ The use of Anaconda is supposed.
     git clone https://github.com/vjesticalab/VLabApp.git
     ```
     Now you have the VLabApp folder into the chosen directory (eg. Desktop/VLabApp)
- 
+
 4. Open the terminal within the VLabApp, activate your venv and install the libraries running:
     ```
-    pip install -r requirements.txt
+    conda install -c pytorch -c conda-forge --file requirements.txt
     ```
     Now you have everything you need to use the Application!
 
@@ -59,18 +59,6 @@ The use of Anaconda is supposed.
     ```
     python3 master.py
     ```
-
-
-### On Windows
-
-To avoid problems with GraphML support in igraph, uninstall the `pip` package:
-```
-pip uninstall python-igraph
-```
-and install via conda
-```
-conda install -c conda-forge  python-igraph
-```
 
 
 ### On Linux
