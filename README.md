@@ -35,27 +35,26 @@ The application is divided into several modules that can be used consecutively a
 
 The use of Anaconda is supposed.
  
-1. Create a virtual environment for your code, in the terminal: 
-    ```
-    conda create --name venv_VLabApp  python=3.11
-    ```
- 
-2. Once the venv is created, activate it: 
-    ```
-    conda activate venv_VLabApp
-    ```
-
-3. Clone this git repository. Open the terminal where you want to put the App code (eg. Desktop): 
+1. Clone this git repository. Open the terminal where you want to put the App code (eg. Desktop): 
     ```
     git clone https://github.com/vjesticalab/VLabApp.git
     ```
     Now you have the VLabApp folder into the chosen directory (eg. Desktop/VLabApp)
 
-4. Open the terminal within the VLabApp, activate your venv and install the libraries running:
+2. Enter the VLabApp folder
     ```
-    conda install -c pytorch -c conda-forge --file requirements.txt
+    cd VLabApp
     ```
-    Now you have everything you need to use the Application!
+
+3. Create a conda environment
+    ```
+    conda env create --name venv_VLabApp  --file environment.yml
+    ```
+ 
+4. Activate the environment: 
+    ```
+    conda activate venv_VLabApp
+    ```
 
 5. To open the application, run:
     ```
