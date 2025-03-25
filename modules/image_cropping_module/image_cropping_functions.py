@@ -540,7 +540,7 @@ class ImageCroppingWidget(QWidget):
         # Restore cursor
         napari.qt.get_qapp().restoreOverrideCursor()
 
-        QMessageBox.information(self, 'Files saved', 'Mask saved to\n' + output_name)
+        QMessageBox.information(self, 'Files saved', 'File saved to\n' + output_name)
 
     def quit(self):
         self.viewer.close()

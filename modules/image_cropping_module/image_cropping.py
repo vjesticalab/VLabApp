@@ -20,6 +20,7 @@ class ImageCropping(QWidget):
         # Documentation
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('Crop images and masks.<br>' +
+                                    'Input images can have any compbination of T, C, Z, Y and X axes.<br>'
                                     'Note: cropping ranges are inclusive (e.g. when cropping axis T from 2 to 10, all time frames T=2, 3, ..., 10 are kept).')
         groupbox = QGroupBox('Documentation')
         layout2 = QVBoxLayout()

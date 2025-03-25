@@ -21,6 +21,8 @@ The application is divided into several modules that can be used consecutively a
 * **Pipeline** - to create a pipeline by combining individual modules.
 * **Viewers** - to easily view the generated images, masks, graphs, registration matrix in Napari.
 * **File organization** - to export or clean generated output.
+* **File conversion** - to export masks and graphs to various file formats and to convert image and masks to small file-size preview movies or images.
+* **Image cropping** - to crop images and masks.
 * **Ground truth generator** - to quickly and easily generate the ground truth masks useful for a possible retraining of the network to be used in the Segmentation module.
 
 
