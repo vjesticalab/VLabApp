@@ -7,7 +7,7 @@ import napari
 from cellpose import models
 from cellpose import version as cellpose_version
 from torch import __version__ as torch_version
-from torch import cuda
+from torch import cuda, set_num_threads
 from general import general_functions as gf
 from PyQt5.QtGui import QCursor
 from PyQt5.QtCore import Qt
@@ -280,6 +280,9 @@ def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_pa
         else:
             pbr = None
 
+        #limit number of theads used by torch on CPU
+        set_num_threads(1)
+
         if segmentation_method == "cellpose":
             # Create cellpose model
             if cellpose_model_type == "User trained model":
@@ -315,7 +318,7 @@ def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_pa
         elif segmentation_method == "Segment Anything for Microscopy":
             # create predictor and segmenter
             logger.debug("loading Segment Anything for Microscopy model %s", microsam_model_type)
-            microsam_predictor, microsam_segmenter = get_predictor_and_segmenter(model_type=microsam_model_type)
+            microsam_predictor, microsam_segmenter = get_predictor_and_segmenter(model_type=microsam_model_type, device=None if use_gpu else 'cpu')
 
             # Cellpose segmentation
             logger.info("Segment Anything for Microscopy segmentation")
