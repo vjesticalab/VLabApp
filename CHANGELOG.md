@@ -18,6 +18,7 @@
 
 * Cell tracking module: add missing axes to layer showing mask modifications (when showing results in napari).
 * File organization module: also consider mp4 files.
+* Registration module: check no duplicated output when coaligning files.
 
 
 

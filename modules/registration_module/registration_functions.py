@@ -964,7 +964,6 @@ def registration_main(image_path, output_path, output_basename, channel_position
                 alignment_main(coalign_image_path, tmat_path, output_path, coalign_output_basename, skip_crop_decision)
 
 
-        return image_path
 
     except Exception:
         # Remove all handlers for this module
