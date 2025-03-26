@@ -1,4 +1,5 @@
 import os
+import sys
 import re
 import logging
 import concurrent.futures
@@ -8,6 +9,10 @@ from PyQt5.QtGui import QCursor, QIntValidator, QRegExpValidator
 import numpy as np
 from modules.registration_module import registration_functions as f
 from general import general_functions as gf
+
+
+def process_initializer():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s", handlers=[logging.StreamHandler(sys.stdout)], force=True)
 
 
 class Perform(QWidget):
@@ -415,7 +420,7 @@ class Perform(QWidget):
         if not arguments:
             return
         n_count = min(len(arguments), self.n_count.value())
-        self.logger.info("Using: %s cores to perform registration", n_count)
+        self.logger.info("Using %s cores to perform registration", n_count)
         # Perform projection
         if len(arguments) == 1:
             try:
@@ -428,7 +433,7 @@ class Perform(QWidget):
                 self.logger.exception("Registration failed")
         else:
             # we go parallel
-            with concurrent.futures.ProcessPoolExecutor(max_workers=n_count) as executor:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=n_count, initializer=process_initializer) as executor:
                 future_reg = {
                     executor.submit(f.registration_main, *args): args for args in arguments
                 }

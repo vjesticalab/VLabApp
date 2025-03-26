@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import concurrent
 from PyQt5.QtWidgets import QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QLabel, QLineEdit, QComboBox
 from PyQt5.QtCore import Qt, QRegExp
@@ -13,6 +14,10 @@ try:
     microsam_available = True
 except ImportError:
     microsam_available = False
+
+
+def process_initializer():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s", handlers=[logging.StreamHandler(sys.stdout)], force=True)
 
 
 class Segmentation(QWidget):
@@ -168,7 +173,8 @@ class Segmentation(QWidget):
         device, gpu = assign_device(gpu=True)
         self.use_gpu.setChecked(gpu)
         self.use_gpu.setEnabled(gpu)
-        self.coarse_grain = QCheckBox("Activate coarse grain parallelisation")
+        self.coarse_grain = QCheckBox("Use coarse grain parallelisation")
+        self.coarse_grain.setToolTip("Assign each input file to its own process. Use it when there are more input files than processes and enough memory (memory usage increases with the number of processes).")
         self.coarse_grain.setChecked(False)
         self.n_count = QSpinBox()
         self.n_count.setMinimum(1)
@@ -548,9 +554,8 @@ class Segmentation(QWidget):
                     error_messages.append(str(e))
                     self.logger.exception("Segmentation failed")
         elif coarse_grain_parallelism:
-            # we launch a process per video
-            self.logger.info("NCOUNT %s", n_count)
-            with concurrent.futures.ProcessPoolExecutor(n_count) as executor:
+            self.logger.info("Using %s cores to perform segmentation", n_count)
+            with concurrent.futures.ProcessPoolExecutor(n_count, initializer=process_initializer) as executor:
                 future_reg = {
                     executor.submit(f.main, *args, run_parallel=False): args for args in arguments
                 }
