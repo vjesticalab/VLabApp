@@ -6,13 +6,8 @@ from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtWidgets import QCheckBox, QComboBox, QFormLayout, QPushButton, QVBoxLayout, QWidget, QGridLayout, QLabel, QLineEdit, QHBoxLayout, QApplication, QSpinBox, QRadioButton, QGroupBox, QFileDialog
 from PyQt5.QtGui import QCursor, QIntValidator, QRegExpValidator
 import numpy as np
-import matplotlib
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
 from modules.registration_module import registration_functions as f
 from general import general_functions as gf
-
-matplotlib.use("Qt5Agg")
 
 
 class Perform(QWidget):

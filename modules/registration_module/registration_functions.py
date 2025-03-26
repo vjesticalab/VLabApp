@@ -16,11 +16,14 @@ from packaging.version import Version
 from PyQt5.QtWidgets import QVBoxLayout, QWidget, QPushButton, QLabel, QScrollArea, QRadioButton, QGroupBox, QFormLayout, QSpinBox, QMessageBox, QCheckBox
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QKeySequence
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.backend_bases import MouseButton
 from version import __version__ as vlabapp_version
 import napari
+
+matplotlib.use("Qt5Agg")
 
 
 def remove_all_log_handlers():
