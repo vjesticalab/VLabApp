@@ -363,7 +363,7 @@ class GeneralSettings(QWidget):
         self.nprocesses.setValue(1)
         self.coarse_grain = QCheckBox("Use coarse-grained parallelization")
         self.coarse_grain.setToolTip("Assign each input file to its own process. Use it when there are more input files than processes and enough memory (memory usage increases with the number of processes).")
-        self.coarse_grain.setChecked(False)
+        self.coarse_grain.setChecked(True)
 
         # Documentation
         groupbox = QGroupBox("Documentation")
