@@ -19,6 +19,7 @@
 * Cell tracking module: add missing axes to layer showing mask modifications (when showing results in napari).
 * File organization module: also consider mp4 files.
 * Registration module: check no duplicated output when coaligning files.
+* Registration module: fix selection of files to coalign (e.g. when registering image1_BF.ome.tif, do not coalign image10_BF.ome.tif).
 
 
 
