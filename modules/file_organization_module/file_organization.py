@@ -94,7 +94,7 @@ class ConfirmRemoveDialog(QDialog):
 
     Examples
     --------
-    msg=StatusTableDialog(['file', 'file2', 'file3', 'file4'])
+    msg=ConfirmRemoveDialog(['file', 'file2', 'file3', 'file4'])
     if msg.exec_():
         print("remove")
     """

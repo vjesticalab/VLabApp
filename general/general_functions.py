@@ -5,7 +5,7 @@ import nd2
 import re
 from aicsimageio.readers import OmeTiffReader
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
-from PyQt5.QtGui import QBrush, QKeySequence, QPainter, QFontMetrics, QDesktopServices, QTextDocument
+from PyQt5.QtGui import QBrush, QKeySequence, QPainter, QFontMetrics, QDesktopServices, QTextDocument, QColor
 from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem, QDialog, QShortcut
 
 import logging
@@ -213,45 +213,58 @@ class StatusTableDialog(QDialog):
 
     Examples
     --------
-    msg=StatusTableDialog('Warning',['Success','Success','Failed'],[None,None,'invalid file'],['image1.tif','image2.tif','image3.tif'])
+    msg=StatusTableDialog(['image1.tif','image2.tif','image3.tif'])
     msg.exec_()
     """
 
-    def __init__(self, title, status, error_messages, input_files):
+    def __init__(self, input_files):
         super().__init__()
         self.setSizeGripEnabled(True)
-        self.setWindowTitle(title)
+        self.setWindowTitle('Status')
         layout = QVBoxLayout()
-        table = QTableWidget()
-        table.setColumnCount(3)
-        table.setHorizontalHeaderLabels(['Status', 'Error message', 'Input file'])
-        table.verticalHeader().hide()
-        table.setTextElideMode(Qt.ElideLeft)
-        table.setWordWrap(False)
-        table.setSelectionMode(QAbstractItemView.NoSelection)
-        table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        for s, m, f in zip(status, error_messages, input_files):
-            table.insertRow(table.rowCount())
-            item = QTableWidgetItem(s)
+        self.table = QTableWidget()
+        self.table.setColumnCount(2)
+        self.table.setHorizontalHeaderLabels(['Status', 'Input file'])
+        self.table.verticalHeader().hide()
+        self.table.setTextElideMode(Qt.ElideLeft)
+        self.table.setWordWrap(False)
+        self.table.setSelectionMode(QAbstractItemView.NoSelection)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        for f in input_files:
+            self.table.insertRow(self.table.rowCount())
+            item = QTableWidgetItem('')
             item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-            if s != 'Success':
-                item.setBackground(QBrush(Qt.red))
-            table.setItem(table.rowCount()-1, 0, item)
-            item = QTableWidgetItem(m)
-            item.setToolTip(m)
-            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-            table.setItem(table.rowCount()-1, 1, item)
+            item.setToolTip('')
+            self.table.setItem(self.table.rowCount()-1, 0, item)
             item = QTableWidgetItem(f)
             item.setToolTip(f)
             item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-            table.setItem(table.rowCount()-1, 2, item)
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        table.horizontalHeader().setStretchLastSection(True)
-        layout.addWidget(table)
-        button = QPushButton("OK")
-        button.clicked.connect(self.done)
-        layout.addWidget(button, alignment=Qt.AlignCenter)
+            self.table.setItem(self.table.rowCount()-1, 1, item)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        layout.addWidget(self.table)
+        self.ok_button = QPushButton("OK")
+        self.ok_button.clicked.connect(self.done)
+        layout.addWidget(self.ok_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
+
+    def set_status(self, row, status, error_message=''):
+        self.table.item(row,0).setText(status)
+        self.table.item(row,0).setToolTip(error_message)
+        if status == 'Success':
+            self.table.item(row,0).setBackground(QBrush(QColor('#00ff00')))
+            self.table.item(row,0).setForeground(QBrush(QColor('#000000')))
+        elif status == 'Failed':
+            self.table.item(row,0).setBackground(QBrush(QColor('#ff0000')))
+            self.table.item(row,0).setForeground(QBrush(QColor('#000000')))
+        else:
+            self.table.item(row,0).setBackground(self.table.palette().base())
+            self.table.item(row,0).setForeground(self.table.palette().text())
+
+    def keyPressEvent(self, event):
+        # to disable reject() with escape key
+        if event.key() != Qt.Key_Escape:
+            super().keyPressEvent(event)
 
 
 class QMessageBoxErrorHandler(logging.Handler):

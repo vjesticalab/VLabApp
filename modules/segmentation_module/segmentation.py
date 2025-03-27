@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import time
 import concurrent
 from PyQt5.QtWidgets import QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QLabel, QLineEdit, QComboBox
 from PyQt5.QtCore import Qt, QRegExp
@@ -176,14 +177,14 @@ class Segmentation(QWidget):
         self.coarse_grain = QCheckBox("Use coarse grain parallelisation")
         self.coarse_grain.setToolTip("Assign each input file to its own process. Use it when there are more input files than processes and enough memory (memory usage increases with the number of processes).")
         self.coarse_grain.setChecked(False)
-        self.n_count = QSpinBox()
-        self.n_count.setMinimum(1)
-        self.n_count.setMaximum(os.cpu_count())
-        self.n_count.setValue(1)
-        n_count_label = QLabel("Number of processes:")
-        self.use_gpu.toggled.connect(n_count_label.setDisabled)
+        self.nprocesses = QSpinBox()
+        self.nprocesses.setMinimum(1)
+        self.nprocesses.setMaximum(os.cpu_count())
+        self.nprocesses.setValue(1)
+        nprocesses_label = QLabel("Number of processes:")
+        self.use_gpu.toggled.connect(nprocesses_label.setDisabled)
         self.use_gpu.toggled.connect(self.update_coarse_grain_status)
-        self.use_gpu.toggled.connect(self.n_count.setDisabled)
+        self.use_gpu.toggled.connect(self.nprocesses.setDisabled)
         self.use_gpu.setChecked(torch.cuda.is_available())
 
         self.display_results = QCheckBox("Show results in napari")
@@ -311,7 +312,7 @@ class Segmentation(QWidget):
             layout2.addWidget(self.use_gpu)
             layout2.addWidget(self.coarse_grain)
             layout3 = QFormLayout()
-            layout3.addRow(n_count_label, self.n_count)
+            layout3.addRow(nprocesses_label, self.nprocesses)
             layout2.addLayout(layout3)
             groupbox.setLayout(layout2)
             layout.addWidget(groupbox)
@@ -399,7 +400,7 @@ class Segmentation(QWidget):
             'projection_type': self.projection_type.currentText(),
             'use_gpu': self.use_gpu.isChecked(),
             'coarse_grain': self.coarse_grain.isChecked(),
-            'n_count': self.n_count.value(),
+            'nprocesses': self.nprocesses.value(),
             'display_results': self.display_results.isChecked()}
         return widgets_state
 
@@ -427,7 +428,7 @@ class Segmentation(QWidget):
         self.projection_type.setCurrentText(widgets_state['projection_type'])
         self.use_gpu.setChecked(widgets_state['use_gpu'])
         self.coarse_grain.setChecked(widgets_state['coarse_grain'])
-        self.n_count.setValue(widgets_state['n_count'])
+        self.nprocesses.setValue(widgets_state['nprocesses'])
         self.display_results.setChecked(widgets_state['display_results'])
         if widgets_state['segmentation_method'] == "Segment Anything for Microscopy" and not microsam_available:
             self.logger.error('Segment Anything for Microscopy is not available.')
@@ -504,15 +505,13 @@ class Segmentation(QWidget):
                 logging.getLogger().removeHandler(messagebox_error_handler)
                 break
 
-        status = []
-        error_messages = []
         coarse_grain_parallelism = self.coarse_grain.isChecked()
         arguments = []
-        n_count = self.n_count.value()
+        nprocesses = self.nprocesses.value()
 
         run_parallel = True
         if self.use_gpu.isChecked():
-            n_count = 1
+            nprocesses = 1
             run_parallel = False
         QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
@@ -533,7 +532,7 @@ class Segmentation(QWidget):
                  channel_position,
                  projection_type,
                  projection_zrange,
-                 n_count,
+                 nprocesses,
                  self.display_results.isChecked(),
                  self.use_gpu.isChecked()
                  )
@@ -542,39 +541,49 @@ class Segmentation(QWidget):
         if not arguments:
             return
 
-        # Perform segmentation
+        status_dialog = gf.StatusTableDialog(image_paths)
+        status_dialog.ok_button.setEnabled(False)
+        status_dialog.setModal(True)
+        status_dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        status_dialog.show()
+        QApplication.processEvents()
+        time.sleep(0.01)
+
+        hide_status_dialog = False
         if len(arguments) == 1 or not coarse_grain_parallelism or self.use_gpu.isChecked():
-            for args in arguments:
+            QApplication.processEvents()
+            time.sleep(0.01)
+            hide_status_dialog = True
+            for i, args in enumerate(arguments):
                 try:
                     f.main(*args, run_parallel=run_parallel)
-                    status.append("Success")
-                    error_messages.append("")
+                    status_dialog.set_status(i,'Success')
                 except Exception as e:
-                    status.append("Failed")
-                    error_messages.append(str(e))
                     self.logger.exception("Segmentation failed")
-        elif coarse_grain_parallelism:
-            self.logger.info("Using %s cores to perform segmentation", n_count)
-            with concurrent.futures.ProcessPoolExecutor(n_count, initializer=process_initializer) as executor:
-                future_reg = {
-                    executor.submit(f.main, *args, run_parallel=False): args for args in arguments
-                }
-                for future in future_reg:
+                    status_dialog.set_status(i,'Failed',str(e))
+                    hide_status_dialog = False
+                QApplication.processEvents()
+                time.sleep(0.01)
+        else:
+            self.logger.info("Using %s cores to perform segmentation", nprocesses)
+            with concurrent.futures.ProcessPoolExecutor(max_workers=nprocesses, initializer=process_initializer) as executor:
+                QApplication.processEvents()
+                time.sleep(0.01)
+                future_reg = {executor.submit(f.main, *args, run_parallel=False): i for i, args in enumerate(arguments)}
+                for future in concurrent.futures.as_completed(future_reg):
                     try:
-
                         future.result()
-                        status.append("Success")
-                        error_messages.append("")
+                        status_dialog.set_status(future_reg[future],'Success')
                     except Exception as e:
-                        status.append("Failed")
-                        error_messages.append(str(e))
                         self.logger.exception("Segmentation failed")
+                        status_dialog.set_status(future_reg[future],'Failed',str(e))
+                    QApplication.processEvents()
+                    time.sleep(0.01)
 
         QApplication.restoreOverrideCursor()
-
-        if any(s != 'Success' for s in status):
-            msg = gf.StatusTableDialog('Warning', status, error_messages, image_paths)
-            msg.exec_()
+        status_dialog.ok_button.setEnabled(True)
+        if hide_status_dialog:
+            status_dialog.hide()
 
         # re-enable messagebox error handler
         if messagebox_error_handler is not None:

@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import time
 import logging
 import concurrent.futures
 from PyQt5.QtCore import Qt, QRegExp
@@ -110,13 +111,12 @@ class Perform(QWidget):
         self.registration_method.setCurrentText("feature matching (SIFT)")
         self.coalignment_yn = QCheckBox("Co-align files with the same unique identifier (part of the filename before the first \"_\")")
         self.skip_cropping_yn = QCheckBox("Do NOT crop aligned image")
-        self.register_button = QPushButton("Register")
+        self.register_button = QPushButton("Submit")
         self.register_button.clicked.connect(self.register)
-        self.n_count = QSpinBox()
-        self.n_count.setMinimum(1)
-        self.n_count.setMaximum(os.cpu_count())
-        self.n_count.setValue(1)
-        n_count_label = QLabel("Number of processes:")
+        self.nprocesses = QSpinBox()
+        self.nprocesses.setMinimum(1)
+        self.nprocesses.setMaximum(os.cpu_count())
+        self.nprocesses.setValue(1)
 
         # T-range
         # all
@@ -252,7 +252,7 @@ class Perform(QWidget):
         if not self.pipeline_layout:
             groupbox = QGroupBox("Multi-processing")
             layout2 = QFormLayout()
-            layout2.addRow(n_count_label, self.n_count)
+            layout2.addRow("Number of processes:", self.nprocesses)
             groupbox.setLayout(layout2)
             layout.addWidget(groupbox)
             layout.addWidget(self.register_button, alignment=Qt.AlignCenter)
@@ -286,7 +286,7 @@ class Perform(QWidget):
             'registration_method': self.registration_method.currentText(),
             'coalignment_yn': self.coalignment_yn.isChecked(),
             'skip_cropping_yn': self.skip_cropping_yn.isChecked(),
-            'n_count': self.n_count.value()}
+            'nprocesses': self.nprocesses.value()}
         return widgets_state
 
     def set_widgets_state(self, widgets_state):
@@ -311,7 +311,7 @@ class Perform(QWidget):
         self.registration_method.setCurrentText(widgets_state['registration_method'])
         self.coalignment_yn.setChecked(widgets_state['coalignment_yn'])
         self.skip_cropping_yn.setChecked(widgets_state['skip_cropping_yn'])
-        self.n_count.setValue(widgets_state['n_count'])
+        self.nprocesses.setValue(widgets_state['nprocesses'])
 
     def register(self):
         """
@@ -411,48 +411,39 @@ class Perform(QWidget):
         QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         QApplication.processEvents()
 
-        status = []
-        error_messages = []
         arguments = []
         for image_path, output_path, output_basename, coalign_image_paths, coalign_output_basenames in zip(image_paths, output_paths, output_basenames, coalign_image_paths_list, coalign_output_basenames_list):
             # collect arguments
             arguments.append((image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, registration_method, coalign_image_paths, coalign_output_basenames))
         if not arguments:
             return
-        n_count = min(len(arguments), self.n_count.value())
-        self.logger.info("Using %s cores to perform registration", n_count)
-        # Perform projection
-        if len(arguments) == 1:
-            try:
-                f.registration_main(*arguments[0])
-                status.append("Success")
-                error_messages.append("")
-            except Exception as e:
-                status.append("Failed")
-                error_messages.append(str(e))
-                self.logger.exception("Registration failed")
-        else:
-            # we go parallel
-            with concurrent.futures.ProcessPoolExecutor(max_workers=n_count, initializer=process_initializer) as executor:
-                future_reg = {
-                    executor.submit(f.registration_main, *args): args for args in arguments
-                }
-                for future in future_reg:
-                    try:
-                        future.result()
-                        status.append("Success")
-                        error_messages.append("")
-                    except Exception as e:
-                        status.append("Failed")
-                        error_messages.append(str(e))
-                        self.logger.exception("An exception occurred")
+        nprocesses = min(len(arguments), self.nprocesses.value())
+        self.logger.info("Using %s cores to perform registration", nprocesses)
 
+        status_dialog = gf.StatusTableDialog(image_paths)
+        status_dialog.ok_button.setEnabled(False)
+        status_dialog.setModal(True)
+        status_dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        status_dialog.show()
+        QApplication.processEvents()
+        time.sleep(0.01)
+
+        with concurrent.futures.ProcessPoolExecutor(max_workers=nprocesses, initializer=process_initializer) as executor:
+            future_reg = {executor.submit(f.registration_main, *args): i for i, args in enumerate(arguments)}
+            QApplication.processEvents()
+            time.sleep(0.01)
+            for future in concurrent.futures.as_completed(future_reg):
+                try:
+                    future.result()
+                    status_dialog.set_status(future_reg[future],'Success')
+                except Exception as e:
+                    self.logger.exception("An exception occurred")
+                    status_dialog.set_status(future_reg[future],'Failed',str(e))
+                QApplication.processEvents()
+                time.sleep(0.01)
         # Restore cursor
         QApplication.restoreOverrideCursor()
-
-        if any(s != 'Success' for s in status):
-            msg = gf.StatusTableDialog('Warning', status, error_messages, image_paths)
-            msg.exec_()
+        status_dialog.ok_button.setEnabled(True)
 
         # re-enable messagebox error handler
         if messagebox_error_handler is not None:
@@ -519,8 +510,13 @@ class Align(QWidget):
         self.output_filename_label.setEnabled(False)
 
         self.skip_cropping_yn = QCheckBox("Do NOT crop aligned image")
-        self.align_button = QPushButton("Align")
+        self.align_button = QPushButton("Submit")
         self.align_button.clicked.connect(self.align)
+
+        self.nprocesses = QSpinBox()
+        self.nprocesses.setMinimum(1)
+        self.nprocesses.setMaximum(os.cpu_count())
+        self.nprocesses.setValue(1)
 
         # Layout
         layout = QVBoxLayout()
@@ -566,6 +562,11 @@ class Align(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         if not self.pipeline_layout:
+            groupbox = QGroupBox("Multi-processing")
+            layout2 = QFormLayout()
+            layout2.addRow("Number of processes:", self.nprocesses)
+            groupbox.setLayout(layout2)
+            layout.addWidget(groupbox)
             layout.addWidget(self.align_button, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
@@ -591,7 +592,8 @@ class Align(QWidget):
             'use_custom_folder': self.use_custom_folder.isChecked(),
             'output_folder': self.output_folder.text(),
             'output_user_suffix': self.output_user_suffix.text(),
-            'skip_cropping_yn': self.skip_cropping_yn.isChecked()}
+            'skip_cropping_yn': self.skip_cropping_yn.isChecked(),
+            'nprocesses': self.nprocesses.value()}
         return widgets_state
 
     def set_widgets_state(self, widgets_state):
@@ -601,6 +603,7 @@ class Align(QWidget):
         self.output_folder.setText(widgets_state['output_folder'])
         self.output_user_suffix.setText(widgets_state['output_user_suffix'])
         self.skip_cropping_yn.setChecked(widgets_state['skip_cropping_yn'])
+        self.nprocesses.setValue(widgets_state['nprocesses'])
 
     def align(self):
         def check_inputs(image_paths, matrix_paths):
@@ -646,36 +649,47 @@ class Align(QWidget):
                 logging.getLogger().removeHandler(messagebox_error_handler)
                 break
 
-        status = []
-        error_messages = []
-        for image_path, matrix_path, output_path, output_basename in zip(image_paths, matrix_paths, output_paths, output_basenames):
-            if os.path.isfile(image_path):
-                # Set log and cursor info
-                self.logger.info("Image %s", image_path)
-                QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
-                QApplication.processEvents()
-                # Perform projection
-                try:
-                    f.alignment_main(image_path, matrix_path, output_path, output_basename, skip_crop_decision)
-                    status.append("Success")
-                    error_messages.append(None)
-                except Exception as e:
-                    status.append("Failed")
-                    error_messages.append(str(e))
-                    self.logger.exception("Alignment failed")
-                # Restore cursor
-                QApplication.restoreOverrideCursor()
-                self.logger.info("Done")
-            else:
-                self.logger.error("Unable to locate file %s", image_path)
+        QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+        QApplication.processEvents()
 
-        if any(s != 'Success' for s in status):
-            msg = gf.StatusTableDialog('Warning', status, error_messages, image_paths)
-            msg.exec_()
+        arguments = []
+        for image_path, matrix_path, output_path, output_basename in zip(image_paths, matrix_paths, output_paths, output_basenames):
+            arguments.append((image_path, matrix_path, output_path, output_basename, skip_crop_decision))
+        if not arguments:
+            return
+        nprocesses = min(len(arguments), self.nprocesses.value())
+
+        status_dialog = gf.StatusTableDialog(image_paths)
+        status_dialog.ok_button.setEnabled(False)
+        status_dialog.setModal(True)
+        status_dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        status_dialog.show()
+        QApplication.processEvents()
+        time.sleep(0.01)
+
+        with concurrent.futures.ProcessPoolExecutor(max_workers=nprocesses, initializer=process_initializer) as executor:
+            future_reg = {executor.submit(f.alignment_main, *args): i for i, args in enumerate(arguments)}
+            QApplication.processEvents()
+            time.sleep(0.01)
+            for future in concurrent.futures.as_completed(future_reg):
+                try:
+                    future.result()
+                    status_dialog.set_status(future_reg[future],'Success')
+                except Exception as e:
+                    self.logger.exception("An exception occurred")
+                    status_dialog.set_status(future_reg[future],'Failed',str(e))
+                QApplication.processEvents()
+                time.sleep(0.01)
+
+        # Restore cursor
+        QApplication.restoreOverrideCursor()
+        status_dialog.ok_button.setEnabled(True)
 
         # re-enable messagebox error handler
         if messagebox_error_handler is not None:
             logging.getLogger().addHandler(messagebox_error_handler)
+
+        self.logger.info("Done")
 
 
 class Edit(QWidget):
@@ -696,8 +710,13 @@ class Edit(QWidget):
         self.tmax.setMaximum(1000)
         self.tmax.setValue(1000)
         self.tmax.valueChanged.connect(self.tmax_changed)
-        self.edit_button = QPushButton('Edit')
+        self.edit_button = QPushButton('Submit')
         self.edit_button.clicked.connect(self.edit)
+        self.nprocesses = QSpinBox()
+        self.nprocesses.setMinimum(1)
+        self.nprocesses.setMaximum(os.cpu_count())
+        self.nprocesses.setValue(1)
+
 
         # Layout
         layout = QVBoxLayout()
@@ -720,6 +739,11 @@ class Edit(QWidget):
         layout3 = QFormLayout()
         layout3.addRow("To:", self.tmax)
         layout2.addLayout(layout3)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+        groupbox = QGroupBox("Multi-processing")
+        layout2 = QFormLayout()
+        layout2.addRow("Number of processes:", self.nprocesses)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         layout.addWidget(self.edit_button, alignment=Qt.AlignCenter)
@@ -767,28 +791,44 @@ class Edit(QWidget):
         QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
         QApplication.processEvents()
 
-        status = []
-        error_messages = []
+        arguments = []
         for transfmat_path in transfmat_paths:
-            try:
-                f.edit_main(transfmat_path, int(start_timepoint), int(end_timepoint))
-                status.append("Success")
-                error_messages.append("")
-            except Exception as e:
-                status.append("Failed")
-                error_messages.append(str(e))
-                self.logger.exception("Editing failed")
+            arguments.append((transfmat_path, int(start_timepoint), int(end_timepoint)))
+        if not arguments:
+            return
+        nprocesses = min(len(arguments), self.nprocesses.value())
+
+        status_dialog = gf.StatusTableDialog(transfmat_paths)
+        status_dialog.ok_button.setEnabled(False)
+        status_dialog.setModal(True)
+        status_dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        status_dialog.show()
+        QApplication.processEvents()
+        time.sleep(0.01)
+
+        with concurrent.futures.ProcessPoolExecutor(max_workers=nprocesses, initializer=process_initializer) as executor:
+            future_reg = {executor.submit(f.edit_main, *args): i for i, args in enumerate(arguments)}
+            QApplication.processEvents()
+            time.sleep(0.01)
+            for future in concurrent.futures.as_completed(future_reg):
+                try:
+                    future.result()
+                    status_dialog.set_status(future_reg[future],'Success')
+                except Exception as e:
+                    self.logger.exception("An exception occurred")
+                    status_dialog.set_status(future_reg[future],'Failed',str(e))
+                QApplication.processEvents()
+                time.sleep(0.01)
 
         # Restore cursor
         QApplication.restoreOverrideCursor()
-
-        if any(s != 'Success' for s in status):
-            msg = gf.StatusTableDialog('Warning', status, error_messages, transfmat_paths)
-            msg.exec_()
+        status_dialog.ok_button.setEnabled(True)
 
         # re-enable messagebox error handler
         if messagebox_error_handler is not None:
             logging.getLogger().addHandler(messagebox_error_handler)
+
+        self.logger.info("Done")
 
 
 class ManualEdit(QWidget):
@@ -803,7 +843,7 @@ class ManualEdit(QWidget):
         self.input_image.textChanged.connect(self.input_image_changed)
         self.input_matrix = gf.FileLineEdit(label='Transformation matrices', filetypes=gf.matrixtypes)
         self.input_matrix.textChanged.connect(self.input_matrix_changed)
-        self.button_edit = QPushButton('Edit')
+        self.button_edit = QPushButton('Submit')
         self.button_edit.clicked.connect(self.edit)
 
         # Layout

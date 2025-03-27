@@ -40,11 +40,11 @@ def run_cellpose(index, image_2D, model, diameter, cellprob_threshold, flow_thre
     return tuple([index]) + model.eval(image_2D, diameter=diameter, channels=[0, 0], cellprob_threshold=cellprob_threshold, flow_threshold=flow_threshold)
 
 
-def parallel_run_cellpose(image, mask, model, diameter, cellprob_threshold, flow_threshold, logger, tot_iterations, n_count, pbr=None):
+def parallel_run_cellpose(image, mask, model, diameter, cellprob_threshold, flow_threshold, logger, tot_iterations, nprocesses, pbr=None):
     """
     Run model evaluation in parallel
     """
-    with concurrent.futures.ProcessPoolExecutor(max_workers=n_count) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=nprocesses) as executor:
         future_reg = {
             executor.submit(
                 run_cellpose,
@@ -78,11 +78,11 @@ def run_microsam(index, image_2D, predictor, segmenter):
     return (index, automatic_instance_segmentation(predictor=predictor, segmenter=segmenter, input_path=image_2D, verbose=False))
 
 
-def parallel_run_microsam(image, mask, predictor, segmenter, logger, tot_iterations, n_count, pbr=None):
+def parallel_run_microsam(image, mask, predictor, segmenter, logger, tot_iterations, nprocesses, pbr=None):
     """
     Run model evaluation in parallel
     """
-    with concurrent.futures.ProcessPoolExecutor(max_workers=n_count) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=nprocesses) as executor:
         future_reg = {
             executor.submit(
                 run_microsam,
@@ -107,7 +107,7 @@ def parallel_run_microsam(image, mask, predictor, segmenter, logger, tot_iterati
     return mask
 
 
-def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_path, cellpose_diameter, cellpose_cellprob_threshold, cellpose_flow_threshold, microsam_model_type, output_path, output_basename, channel_position, projection_type, projection_zrange, n_count, display_results=True, use_gpu=True, run_parallel=True):
+def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_path, cellpose_diameter, cellpose_cellprob_threshold, cellpose_flow_threshold, microsam_model_type, output_path, output_basename, channel_position, projection_type, projection_zrange, nprocesses, display_results=True, use_gpu=True, run_parallel=True):
     """
     Load image, segment with cellpose and save the resulting mask
     into `output_path` directory using filename `output_basename`.ome.tif.
@@ -144,6 +144,8 @@ def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_pa
         If zrange is an integer, use all z sections in the interval [z_best-zrange,z_best+zrange]
         where z_best is the Z corresponding to best focus.
         If zrange is tuple (zmin,zmax), use all z sections in the interval [zmin,zmax].
+    nprocesses: int
+        number of processes for fine grain paralleleism.
     display_results: bool, default True
         display input image and segmentation mask in napari
     use_gpu: bool, default False
@@ -303,8 +305,8 @@ def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_pa
 
             iteration = 0
             mask = np.zeros(image3D.shape, dtype='uint16')
-            if run_parallel and n_count > 1:
-                mask = parallel_run_cellpose(image3D, mask, cellpose_model, cellpose_diameter, cellpose_cellprob_threshold, cellpose_flow_threshold, logger, tot_iterations, n_count, pbr)
+            if run_parallel and nprocesses > 1:
+                mask = parallel_run_cellpose(image3D, mask, cellpose_model, cellpose_diameter, cellpose_cellprob_threshold, cellpose_flow_threshold, logger, tot_iterations, nprocesses, pbr)
             else:
                 for t in range(image3D.shape[0]):
                     iteration += 1
@@ -325,8 +327,8 @@ def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_pa
 
             iteration = 0
             mask = np.zeros(image3D.shape, dtype='uint16')
-            if run_parallel and n_count > 1:
-                mask = parallel_run_microsam(image3D, mask, microsam_predictor, microsam_segmenter, logger, tot_iterations, n_count, pbr)
+            if run_parallel and nprocesses > 1:
+                mask = parallel_run_microsam(image3D, mask, microsam_predictor, microsam_segmenter, logger, tot_iterations, nprocesses, pbr)
             else:
                 for t in range(image3D.shape[0]):
                     iteration += 1

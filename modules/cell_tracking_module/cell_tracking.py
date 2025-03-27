@@ -1,10 +1,17 @@
 import os
+import sys
+import time
+import concurrent.futures
 import logging
 from PyQt5.QtWidgets import QFileDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QLineEdit
 from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtGui import QCursor, QRegExpValidator
 from modules.cell_tracking_module import cell_tracking_functions as f
 from general import general_functions as gf
+
+
+def process_initializer():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s", handlers=[logging.StreamHandler(sys.stdout)], force=True)
 
 
 class CellTracking(QWidget):
@@ -94,10 +101,14 @@ class CellTracking(QWidget):
         self.nframes_stable.setToolTip('Minimum number of stable frames before and after the defect.')
         self.nframes_stable.valueChanged.connect(self.nframes_stable_changed)
 
+        self.nprocesses = QSpinBox()
+        self.nprocesses.setMinimum(1)
+        self.nprocesses.setMaximum(os.cpu_count())
+        self.nprocesses.setValue(1)
+
         self.display_results = QGroupBox("Show (and edit) results in napari")
         self.display_results.setCheckable(True)
         self.display_results.setChecked(False)
-
         self.input_image = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
 
         self.submit_button = QPushButton("Submit")
@@ -163,6 +174,11 @@ class CellTracking(QWidget):
         layout.addWidget(groupbox)
 
         if not self.pipeline_layout:
+            groupbox = QGroupBox("Multi-processing")
+            layout2 = QFormLayout()
+            layout2.addRow("Number of processes:", self.nprocesses)
+            groupbox.setLayout(layout2)
+            layout.addWidget(groupbox)
             layout2 = QVBoxLayout()
             layout2.addWidget(QLabel("Input image:"))
             layout2.addWidget(self.input_image)
@@ -229,7 +245,8 @@ class CellTracking(QWidget):
             'max_delta_frame_interpolation': self.max_delta_frame_interpolation.value(),
             'nframes_stable': self.nframes_stable.value(),
             'input_image': self.input_image.text(),
-            'display_results': self.display_results.isChecked()}
+            'display_results': self.display_results.isChecked(),
+            'nprocesses': self.nprocesses.value()}
         return widgets_state
 
     def set_widgets_state(self, widgets_state):
@@ -248,6 +265,7 @@ class CellTracking(QWidget):
         self.nframes_stable.setValue(widgets_state['nframes_stable'])
         self.input_image.setText(widgets_state['input_image'])
         self.display_results.setChecked(widgets_state['display_results'])
+        self.nprocesses.setValue(widgets_state['nprocesses'])
 
     def submit(self):
         """
@@ -300,35 +318,69 @@ class CellTracking(QWidget):
                 logging.getLogger().removeHandler(messagebox_error_handler)
                 break
 
-        status = []
-        error_messages = []
-        for mask_path, output_path, output_basename in zip(mask_paths, output_paths, output_basenames):
-            self.logger.info("Cell tracking (image %s, mask %s)", image_path, mask_path)
-            QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
-            QApplication.processEvents()
-            try:
-                f.main(image_path, mask_path, output_path=output_path,
-                       output_basename=output_basename,
-                       min_area=self.min_area.value(),
-                       max_delta_frame=self.max_delta_frame.value(),
-                       min_overlap_fraction=self.min_overlap_fraction.value()/100.0,
-                       clean=self.auto_clean.isChecked(),
-                       max_delta_frame_interpolation=self.max_delta_frame_interpolation.value(),
-                       nframes_defect=self.nframes_defect.value(),
-                       nframes_stable=self.nframes_stable.value(),
-                       stable_overlap_fraction=self.stable_overlap_fraction.value()/100.0,
-                       display_results=self.display_results.isChecked())
-                status.append("Success")
-                error_messages.append(None)
-            except Exception as e:
-                status.append("Failed")
-                error_messages.append(str(e))
-                self.logger.exception('Tracking failed')
-            QApplication.restoreOverrideCursor()
+        QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+        QApplication.processEvents()
 
-        if any(s != 'Success' for s in status):
-            msg = gf.StatusTableDialog('Warning', status, error_messages, mask_paths)
-            msg.exec_()
+        arguments = []
+        for mask_path, output_path, output_basename in zip(mask_paths, output_paths, output_basenames):
+            arguments.append((image_path, mask_path, output_path,
+                              output_basename,
+                              self.min_area.value(),
+                              self.max_delta_frame.value(),
+                              self.min_overlap_fraction.value()/100.0,
+                              self.auto_clean.isChecked(),
+                              self.max_delta_frame_interpolation.value(),
+                              self.nframes_defect.value(),
+                              self.nframes_stable.value(),
+                              self.stable_overlap_fraction.value()/100.0,
+                              self.display_results.isChecked()))
+        if not arguments:
+            return
+        nprocesses = min(len(arguments), self.nprocesses.value())
+
+        status_dialog = gf.StatusTableDialog(mask_paths)
+        status_dialog.ok_button.setEnabled(False)
+        status_dialog.setModal(True)
+        status_dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        status_dialog.show()
+        QApplication.processEvents()
+        time.sleep(0.01)
+
+        hide_status_dialog = False
+        if self.display_results.isChecked():
+            QApplication.processEvents()
+            time.sleep(0.01)
+            hide_status_dialog = True
+            for i, args in enumerate(arguments):
+                try:
+                    f.main(*args)
+                    status_dialog.set_status(i,'Success')
+                except Exception as e:
+                    self.logger.exception("An exception occurred")
+                    status_dialog.set_status(i,'Failed',str(e))
+                    hide_status_dialog = False
+                QApplication.processEvents()
+                time.sleep(0.01)
+        else:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=nprocesses, initializer=process_initializer) as executor:
+                future_reg = {executor.submit(f.main, *args): i for i, args in enumerate(arguments)}
+                QApplication.processEvents()
+                time.sleep(0.01)
+                for future in concurrent.futures.as_completed(future_reg):
+                    try:
+                        future.result()
+                        status_dialog.set_status(future_reg[future],'Success')
+                    except Exception as e:
+                        self.logger.exception("An exception occurred")
+                        status_dialog.set_status(future_reg[future],'Failed',str(e))
+                    QApplication.processEvents()
+                    time.sleep(0.01)
+
+        # Restore cursor
+        QApplication.restoreOverrideCursor()
+        status_dialog.ok_button.setEnabled(True)
+        if hide_status_dialog:
+            status_dialog.hide()
 
         # re-enable messagebox error handler
         if messagebox_error_handler is not None:

@@ -1,10 +1,17 @@
 import logging
 import os
+import sys
+import time
+import concurrent.futures
 from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QFileDialog, QComboBox, QSpinBox, QLabel, QFormLayout, QLineEdit
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.zprojection_module import zprojection_functions as f
 from general import general_functions as gf
+
+
+def process_initializer():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s", handlers=[logging.StreamHandler(sys.stdout)], force=True)
 
 
 class zProjection(QWidget):
@@ -89,6 +96,12 @@ class zProjection(QWidget):
         self.projection_type.setDisabled(self.projection_mode_bestZ.isChecked())
         self.projection_type.currentTextChanged.connect(self.update_output_filename_label)
         self.projection_mode_bestZ.toggled.connect(self.projection_type.setDisabled)
+
+        self.nprocesses = QSpinBox()
+        self.nprocesses.setMinimum(1)
+        self.nprocesses.setMaximum(os.cpu_count())
+        self.nprocesses.setValue(1)
+
         # Submit
         self.submit_button = QPushButton("Submit")
         self.submit_button.clicked.connect(self.submit)
@@ -173,6 +186,11 @@ class zProjection(QWidget):
 
         # Submit
         if not self.pipeline_layout:
+            groupbox = QGroupBox("Multi-processing")
+            layout2 = QFormLayout()
+            layout2.addRow("Number of processes:", self.nprocesses)
+            groupbox.setLayout(layout2)
+            layout.addWidget(groupbox)
             layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
@@ -249,7 +267,8 @@ class zProjection(QWidget):
             'projection_mode_fixed_zmin': self.projection_mode_fixed_zmin.value(),
             'projection_mode_fixed_zmax': self.projection_mode_fixed_zmax.value(),
             'projection_mode_all': self.projection_mode_all.isChecked(),
-            'projection_type': self.projection_type.currentText()}
+            'projection_type': self.projection_type.currentText(),
+            'nprocesses': self.nprocesses.value()}
         return widgets_state
 
     def set_widgets_state(self, widgets_state):
@@ -265,6 +284,7 @@ class zProjection(QWidget):
         self.projection_mode_fixed_zmax.setValue(widgets_state['projection_mode_fixed_zmax'])
         self.projection_mode_all.setChecked(widgets_state['projection_mode_all'])
         self.projection_type.setCurrentText(widgets_state['projection_type'])
+        self.nprocesses.setValue(widgets_state['nprocesses'])
 
     def submit(self):
         """
@@ -323,28 +343,41 @@ class zProjection(QWidget):
                 logging.getLogger().removeHandler(messagebox_error_handler)
                 break
 
-        status = []
-        error_messages = []
-        for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
-            # Set log and cursor info
-            self.logger.info("Image %s", image_path)
-            QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
-            QApplication.processEvents()
-            # Perform projection
-            try:
-                f.main(image_path, output_path, output_basename, projection_type, projection_zrange)
-                status.append("Success")
-                error_messages.append(None)
-            except Exception as e:
-                status.append("Failed")
-                error_messages.append(str(e))
-                self.logger.exception("Projection failed")
-            # Restore cursor
-            QApplication.restoreOverrideCursor()
+        QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+        QApplication.processEvents()
 
-        if any(s != 'Success' for s in status):
-            msg = gf.StatusTableDialog('Warning', status, error_messages, image_paths)
-            msg.exec_()
+        arguments = []
+        for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
+            arguments.append((image_path, output_path, output_basename, projection_type, projection_zrange))
+        if not arguments:
+            return
+        nprocesses = min(len(arguments), self.nprocesses.value())
+
+        status_dialog = gf.StatusTableDialog(image_paths)
+        status_dialog.ok_button.setEnabled(False)
+        status_dialog.setModal(True)
+        status_dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        status_dialog.show()
+        QApplication.processEvents()
+        time.sleep(0.01)
+
+        with concurrent.futures.ProcessPoolExecutor(max_workers=nprocesses, initializer=process_initializer) as executor:
+            future_reg = {executor.submit(f.main, *args): i for i, args in enumerate(arguments)}
+            QApplication.processEvents()
+            time.sleep(0.01)
+            for future in concurrent.futures.as_completed(future_reg):
+                try:
+                    future.result()
+                    status_dialog.set_status(future_reg[future],'Success')
+                except Exception as e:
+                    self.logger.exception("An exception occurred")
+                    status_dialog.set_status(future_reg[future],'Failed',str(e))
+                QApplication.processEvents()
+                time.sleep(0.01)
+
+        # Restore cursor
+        QApplication.restoreOverrideCursor()
+        status_dialog.ok_button.setEnabled(True)
 
         # re-enable messagebox error handler
         if messagebox_error_handler is not None:

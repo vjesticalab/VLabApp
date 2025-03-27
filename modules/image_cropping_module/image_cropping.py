@@ -1,5 +1,8 @@
 import logging
 import os
+import sys
+import time
+import concurrent.futures
 import re
 from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QLabel, QFormLayout, QLineEdit, QApplication, QCheckBox, QSpinBox, QMessageBox, QFileDialog
 from PyQt5.QtCore import Qt, QRegExp
@@ -7,6 +10,10 @@ from PyQt5.QtGui import QCursor, QRegExpValidator
 from modules.image_cropping_module import image_cropping_functions as f
 from general import general_functions as gf
 from ome_types.model import CommentAnnotation
+
+
+def process_initializer():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s", handlers=[logging.StreamHandler(sys.stdout)], force=True)
 
 
 class ImageCropping(QWidget):
@@ -201,6 +208,16 @@ class ImageCropping(QWidget):
         button.clicked.connect(self.load_settings_from_image)
         layout2.addWidget(button, alignment=Qt.AlignCenter)
 
+        groupbox = QGroupBox("Multi-processing")
+        layout2 = QFormLayout()
+        self.nprocesses = QSpinBox()
+        self.nprocesses.setMinimum(1)
+        self.nprocesses.setMaximum(os.cpu_count())
+        self.nprocesses.setValue(1)
+        layout2.addRow("Number of processes:", self.nprocesses)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
         self.display_results = QCheckBox("Show (and edit) results in napari")
         self.display_results.setChecked(False)
         layout.addWidget(self.display_results)
@@ -391,33 +408,67 @@ class ImageCropping(QWidget):
                 logging.getLogger().removeHandler(messagebox_error_handler)
                 break
 
-        status = []
-        error_messages = []
-        for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
-            self.logger.info('Image cropping (image/mask %s)', image_path)
-            QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
-            QApplication.processEvents()
-            try:
-                f.main(image_path,
-                       output_path,
-                       output_basename,
-                       T_range,
-                       C_range,
-                       Z_range,
-                       Y_range,
-                       X_range,
-                       self.display_results.isChecked())
-                status.append('Success')
-                error_messages.append(None)
-            except Exception as e:
-                status.append('Failed')
-                error_messages.append(str(e))
-                self.logger.exception('Conversion failed')
-            QApplication.restoreOverrideCursor()
+        QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+        QApplication.processEvents()
 
-        if any(s != 'Success' for s in status):
-            msg = gf.StatusTableDialog('Warning', status, error_messages, image_paths)
-            msg.exec_()
+        arguments = []
+        for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
+            arguments.append((image_path,
+                              output_path,
+                              output_basename,
+                              T_range,
+                              C_range,
+                              Z_range,
+                              Y_range,
+                              X_range,
+                              self.display_results.isChecked()))
+        if not arguments:
+            return
+        nprocesses = min(len(arguments), self.nprocesses.value())
+
+        status_dialog = gf.StatusTableDialog(image_paths)
+        status_dialog.ok_button.setEnabled(False)
+        status_dialog.setModal(True)
+        status_dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        status_dialog.show()
+        QApplication.processEvents()
+        time.sleep(0.01)
+
+        hide_status_dialog = False
+        if self.display_results.isChecked():
+            QApplication.processEvents()
+            time.sleep(0.01)
+            hide_status_dialog = True
+            for i, args in enumerate(arguments):
+                try:
+                    f.main(*args)
+                    status_dialog.set_status(i,'Success')
+                except Exception as e:
+                    self.logger.exception("An exception occurred")
+                    status_dialog.set_status(i,'Failed',str(e))
+                    hide_status_dialog = False
+                QApplication.processEvents()
+                time.sleep(0.01)
+        else:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=nprocesses, initializer=process_initializer) as executor:
+                future_reg = {executor.submit(f.main, *args): i for i, args in enumerate(arguments)}
+                QApplication.processEvents()
+                time.sleep(0.01)
+                for future in concurrent.futures.as_completed(future_reg):
+                    try:
+                        future.result()
+                        status_dialog.set_status(future_reg[future],'Success')
+                    except Exception as e:
+                        self.logger.exception("An exception occurred")
+                        status_dialog.set_status(future_reg[future],'Failed',str(e))
+                    QApplication.processEvents()
+                    time.sleep(0.01)
+
+        # Restore cursor
+        QApplication.restoreOverrideCursor()
+        status_dialog.ok_button.setEnabled(True)
+        if hide_status_dialog:
+            status_dialog.hide()
 
         # re-enable messagebox error handler
         if messagebox_error_handler is not None:

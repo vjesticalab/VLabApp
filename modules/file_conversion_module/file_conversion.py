@@ -1,10 +1,17 @@
 import logging
 import os
+import sys
+import time
+import concurrent.futures
 from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QLabel, QFormLayout, QLineEdit, QComboBox, QApplication, QCheckBox, QSpinBox, QColorDialog
 from PyQt5.QtCore import Qt, QRegExp, QEvent
 from PyQt5.QtGui import QCursor, QRegExpValidator, QColor, QPixmap, QFontMetrics
 from modules.file_conversion_module import file_conversion_functions as f
 from general import general_functions as gf
+
+
+def process_initializer():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s", handlers=[logging.StreamHandler(sys.stdout)], force=True)
 
 
 class MaskGraphConversion(QWidget):
@@ -131,6 +138,16 @@ class MaskGraphConversion(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
+        groupbox = QGroupBox("Multi-processing")
+        layout2 = QFormLayout()
+        self.nprocesses = QSpinBox()
+        self.nprocesses.setMinimum(1)
+        self.nprocesses.setMaximum(os.cpu_count())
+        self.nprocesses.setValue(1)
+        layout2.addRow("Number of processes:", self.nprocesses)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
         self.submit_button = QPushButton('Submit')
         self.submit_button.clicked.connect(self.submit)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
@@ -229,32 +246,47 @@ class MaskGraphConversion(QWidget):
                 logging.getLogger().removeHandler(messagebox_error_handler)
                 break
 
-        status = []
-        error_messages = []
+        QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+        QApplication.processEvents()
+
+        arguments = []
         for mask_path, graph_path, output_path, output_basename in zip(mask_paths, graph_paths, output_paths, output_basenames):
-            self.logger.info('File conversion (mask %s, graph %s)', mask_path, graph_path)
+            arguments.append((mask_path,
+                              graph_path,
+                              output_path,
+                              output_basename,
+                              output_mask_format,
+                              output_graph_format,
+                              self.output_per_celltrack.isChecked()))
+        if not arguments:
+            return
+        nprocesses = min(len(arguments), self.nprocesses.value())
 
-            QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+        status_dialog = gf.StatusTableDialog(mask_paths)
+        status_dialog.ok_button.setEnabled(False)
+        status_dialog.setModal(True)
+        status_dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        status_dialog.show()
+        QApplication.processEvents()
+        time.sleep(0.01)
+
+        with concurrent.futures.ProcessPoolExecutor(max_workers=nprocesses, initializer=process_initializer) as executor:
+            future_reg = {executor.submit(f.convert_mask_and_graph, *args): i for i, args in enumerate(arguments)}
             QApplication.processEvents()
-            try:
-                f.convert_mask_and_graph(mask_path,
-                                         graph_path,
-                                         output_path,
-                                         output_basename,
-                                         output_mask_format,
-                                         output_graph_format,
-                                         self.output_per_celltrack.isChecked())
-                status.append('Success')
-                error_messages.append(None)
-            except Exception as e:
-                status.append('Failed')
-                error_messages.append(str(e))
-                self.logger.exception('Conversion failed')
-            QApplication.restoreOverrideCursor()
+            time.sleep(0.01)
+            for future in concurrent.futures.as_completed(future_reg):
+                try:
+                    future.result()
+                    status_dialog.set_status(future_reg[future],'Success')
+                except Exception as e:
+                    self.logger.exception("An exception occurred")
+                    status_dialog.set_status(future_reg[future],'Failed',str(e))
+                QApplication.processEvents()
+                time.sleep(0.01)
 
-        if any(s != 'Success' for s in status):
-            msg = gf.StatusTableDialog('Warning', status, error_messages, mask_paths)
-            msg.exec_()
+        # Restore cursor
+        QApplication.restoreOverrideCursor()
+        status_dialog.ok_button.setEnabled(True)
 
         # re-enable messagebox error handler
         if messagebox_error_handler is not None:
@@ -476,6 +508,16 @@ class ImageMaskConversion(QWidget):
         groupbox2.setLayout(layout3)
         layout2.addWidget(groupbox2)
 
+        groupbox = QGroupBox("Multi-processing")
+        layout2 = QFormLayout()
+        self.nprocesses = QSpinBox()
+        self.nprocesses.setMinimum(1)
+        self.nprocesses.setMaximum(os.cpu_count())
+        self.nprocesses.setValue(1)
+        layout2.addRow("Number of processes:", self.nprocesses)
+        groupbox.setLayout(layout2)
+        layout.addWidget(groupbox)
+
         self.submit_button = QPushButton('Submit')
         self.submit_button.clicked.connect(self.submit)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
@@ -577,36 +619,51 @@ class ImageMaskConversion(QWidget):
                 logging.getLogger().removeHandler(messagebox_error_handler)
                 break
 
-        status = []
-        error_messages = []
+        QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+        QApplication.processEvents()
+
+        arguments = []
         for image_path, output_path, output_basename in zip(image_paths, output_paths, output_basenames):
-            self.logger.info('File conversion (image/mask %s)', image_path)
+            arguments.append((image_path,
+                              output_path,
+                              output_basename,
+                              output_format,
+                              projection_type,
+                              projection_zrange,
+                              input_is_mask,
+                              colors,
+                              self.autocontrast.isChecked(),
+                              self.output_quality.value(),
+                              self.output_fps.value()))
+        if not arguments:
+            return
+        nprocesses = min(len(arguments), self.nprocesses.value())
 
-            QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+        status_dialog = gf.StatusTableDialog(image_paths)
+        status_dialog.ok_button.setEnabled(False)
+        status_dialog.setModal(True)
+        status_dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        status_dialog.show()
+        QApplication.processEvents()
+        time.sleep(0.01)
+
+        with concurrent.futures.ProcessPoolExecutor(max_workers=nprocesses, initializer=process_initializer) as executor:
+            future_reg = {executor.submit(f.convert_image_mask_to_lossy_preview, *args): i for i, args in enumerate(arguments)}
             QApplication.processEvents()
-            try:
-                f.convert_image_mask_to_lossy_preview(image_path,
-                                                      output_path,
-                                                      output_basename,
-                                                      output_format,
-                                                      projection_type,
-                                                      projection_zrange,
-                                                      input_is_mask,
-                                                      colors,
-                                                      self.autocontrast.isChecked(),
-                                                      quality=self.output_quality.value(),
-                                                      fps=self.output_fps.value())
-                status.append('Success')
-                error_messages.append(None)
-            except Exception as e:
-                status.append('Failed')
-                error_messages.append(str(e))
-                self.logger.exception('Conversion failed')
-            QApplication.restoreOverrideCursor()
+            time.sleep(0.01)
+            for future in concurrent.futures.as_completed(future_reg):
+                try:
+                    future.result()
+                    status_dialog.set_status(future_reg[future],'Success')
+                except Exception as e:
+                    self.logger.exception("An exception occurred")
+                    status_dialog.set_status(future_reg[future],'Failed',str(e))
+                QApplication.processEvents()
+                time.sleep(0.01)
 
-        if any(s != 'Success' for s in status):
-            msg = gf.StatusTableDialog('Warning', status, error_messages, image_paths)
-            msg.exec_()
+        # Restore cursor
+        QApplication.restoreOverrideCursor()
+        status_dialog.ok_button.setEnabled(True)
 
         # re-enable messagebox error handler
         if messagebox_error_handler is not None:

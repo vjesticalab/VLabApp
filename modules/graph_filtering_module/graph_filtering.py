@@ -1,4 +1,7 @@
 import os
+import sys
+import time
+import concurrent.futures
 import logging
 import igraph as ig
 from PyQt5.QtWidgets import QFileDialog, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QLabel, QFormLayout, QSpinBox, QCheckBox, QSizePolicy, QLineEdit
@@ -6,6 +9,10 @@ from PyQt5.QtCore import Qt, QRegExp
 from PyQt5.QtGui import QCursor, QRegExpValidator
 from modules.graph_filtering_module import graph_filtering_functions as f
 from general import general_functions as gf
+
+
+def process_initializer():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s (%(name)s) [%(levelname)s] %(message)s", handlers=[logging.StreamHandler(sys.stdout)], force=True)
 
 
 class GraphFiltering(QWidget):
@@ -314,6 +321,17 @@ class GraphFiltering(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
+        self.nprocesses = QSpinBox()
+        self.nprocesses.setMinimum(1)
+        self.nprocesses.setMaximum(os.cpu_count())
+        self.nprocesses.setValue(1)
+        if not self.pipeline_layout:
+            groupbox = QGroupBox("Multi-processing")
+            layout2 = QFormLayout()
+            layout2.addRow("Number of processes:", self.nprocesses)
+            groupbox.setLayout(layout2)
+            layout.addWidget(groupbox)
+
         self.display_results = QGroupBox("Show (and edit) results in napari")
         self.display_results.setCheckable(True)
         self.display_results.setChecked(False)
@@ -382,7 +400,8 @@ class GraphFiltering(QWidget):
             'filter_topology_yn': self.filter_topology_yn.isChecked(),
             'topologies': [t.isChecked() for t in self.topology_yn],
             'input_image': self.input_image.text(),
-            'display_results': self.display_results.isChecked()}
+            'display_results': self.display_results.isChecked(),
+            'nprocesses': self.nprocesses.value()}
         return widgets_state
 
     def set_widgets_state(self, widgets_state):
@@ -416,6 +435,7 @@ class GraphFiltering(QWidget):
             self.topology_yn[i].setChecked(checked)
         self.input_image.setText(widgets_state['input_image'])
         self.display_results.setChecked(widgets_state['display_results'])
+        self.nprocesses.setValue(widgets_state['nprocesses'])
 
     def submit(self):
         if self.input_image.isEnabled():
@@ -490,26 +510,59 @@ class GraphFiltering(QWidget):
                 logging.getLogger().removeHandler(messagebox_error_handler)
                 break
 
-        status = []
-        error_messages = []
+        QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+        QApplication.processEvents()
+
+        arguments = []
         for mask_path, graph_path, output_path, output_basename in zip(mask_paths, graph_paths, output_paths, output_basenames):
-            self.logger.info("Graph filtering (image %s, mask %s, graph %s)", image_path, mask_path, graph_path)
+            arguments.append((image_path, mask_path, graph_path, output_path, output_basename, filters, self.display_results.isChecked(), graph_topologies))
+        if not arguments:
+            return
+        nprocesses = min(len(arguments), self.nprocesses.value())
 
-            QApplication.setOverrideCursor(QCursor(Qt.BusyCursor))
+        status_dialog = gf.StatusTableDialog(mask_paths)
+        status_dialog.ok_button.setEnabled(False)
+        status_dialog.setModal(True)
+        status_dialog.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        status_dialog.show()
+        QApplication.processEvents()
+        time.sleep(0.01)
+
+        hide_status_dialog = False
+        if self.display_results.isChecked():
             QApplication.processEvents()
-            try:
-                f.main(image_path, mask_path, graph_path, output_path, output_basename, filters, display_results=self.display_results.isChecked(), graph_topologies=graph_topologies)
-                status.append("Success")
-                error_messages.append(None)
-            except Exception as e:
-                status.append("Failed")
-                error_messages.append(str(e))
-                self.logger.exception('Filtering failed')
-            QApplication.restoreOverrideCursor()
+            time.sleep(0.01)
+            hide_status_dialog = True
+            for i, args in enumerate(arguments):
+                try:
+                    f.main(*args)
+                    status_dialog.set_status(i,'Success')
+                except Exception as e:
+                    self.logger.exception("An exception occurred")
+                    status_dialog.set_status(i,'Failed',str(e))
+                    hide_status_dialog = False
+                QApplication.processEvents()
+                time.sleep(0.01)
+        else:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=nprocesses, initializer=process_initializer) as executor:
+                future_reg = {executor.submit(f.main, *args): i for i, args in enumerate(arguments)}
+                QApplication.processEvents()
+                time.sleep(0.01)
+                for future in concurrent.futures.as_completed(future_reg):
+                    try:
+                        future.result()
+                        status_dialog.set_status(future_reg[future],'Success')
+                    except Exception as e:
+                        self.logger.exception("An exception occurred")
+                        status_dialog.set_status(future_reg[future],'Failed',str(e))
+                    QApplication.processEvents()
+                    time.sleep(0.01)
 
-        if any(s != 'Success' for s in status):
-            msg = gf.StatusTableDialog('Warning', status, error_messages, mask_paths)
-            msg.exec_()
+        # Restore cursor
+        QApplication.restoreOverrideCursor()
+        status_dialog.ok_button.setEnabled(True)
+        if hide_status_dialog:
+            status_dialog.hide()
 
         # re-enable messagebox error handler
         if messagebox_error_handler is not None:

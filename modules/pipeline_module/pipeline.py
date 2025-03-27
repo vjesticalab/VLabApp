@@ -685,7 +685,7 @@ class Pipeline(QWidget):
                         projection_zrange = (settings['projection_mode_fixed_zmin'], settings['projection_mode_fixed_zmax'])
                     elif settings['projection_mode_all']:
                         projection_zrange = None
-                    n_count = 1 if coarse_grain or use_gpu else nprocesses
+                    nprocesses_segmentation = 1 if coarse_grain or use_gpu else nprocesses
                     run_parallel = not coarse_grain and not use_gpu
                     display_results = False
                     # check input
@@ -714,7 +714,7 @@ class Pipeline(QWidget):
                                                channel_position,
                                                projection_type,
                                                projection_zrange,
-                                               n_count,
+                                               nprocesses_segmentation,
                                                display_results,
                                                use_gpu,
                                                run_parallel),
