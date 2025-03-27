@@ -1,6 +1,7 @@
 name: venv_VLabApp
 channels:
     - pytorch
+    - nvidia
     - conda-forge
 dependencies:
     - aicsimageio==4.14.0
@@ -20,6 +21,7 @@ dependencies:
     - python==3.11.8
     - python-igraph==0.11.8
     - pytorch==2.5.1
+    - pytorch-cuda=12.4
     - roifile==2024.5.24
     - scikit-image==0.20.0
     - scipy==1.15.2
