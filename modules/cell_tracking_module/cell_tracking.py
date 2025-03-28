@@ -268,33 +268,6 @@ class CellTracking(QWidget):
         self.nprocesses.setValue(widgets_state['nprocesses'])
 
     def submit(self):
-        """
-        Retrieve the input parameters
-        Process the image in f.main()
-        """
-        def check_inputs(image_path, mask_paths, output_paths, output_basenames):
-            if image_path != '' and not os.path.isfile(image_path):
-                self.logger.error('Image: not a valid file')
-                self.input_image.setFocus()
-                return False
-            if len(mask_paths) == 0:
-                self.logger.error('Segmentation mask missing')
-                return False
-            for path in mask_paths:
-                if not os.path.isfile(path):
-                    self.logger.error('Segmentation mask not found: %s', path)
-                    return False
-            if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
-                self.logger.error('Output folder missing')
-                self.output_folder.setFocus()
-                return False
-            output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]
-            duplicates = [x for x, y in zip(mask_paths, output_files) if output_files.count(y) > 1]
-            if len(duplicates) > 0:
-                self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input mask folder as output folder or avoid processing masks from different input folders.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
-                return False
-            return True
-
         if self.input_image.isEnabled():
             image_path = self.input_image.text()
         else:
@@ -307,8 +280,35 @@ class CellTracking(QWidget):
         else:
             output_paths = [self.output_folder.text() for path in mask_paths]
 
-        if not check_inputs(image_path, mask_paths, output_paths, output_basenames):
+        # check inputs
+        if image_path != '' and not os.path.isfile(image_path):
+            self.logger.error('Image: not a valid file')
+            self.input_image.setFocus()
             return
+        if len(mask_paths) == 0:
+            self.logger.error('Segmentation mask missing')
+            return
+        for path in mask_paths:
+            if not os.path.isfile(path):
+                self.logger.error('Segmentation mask not found: %s', path)
+                return
+        if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
+            self.logger.error('Output folder missing')
+            self.output_folder.setFocus()
+            return
+        output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]
+        duplicates = [x for x, y in zip(mask_paths, output_files) if output_files.count(y) > 1]
+        if len(duplicates) > 0:
+            self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input mask folder as output folder or avoid processing masks from different input folders.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
+            return
+
+        # check input files are valid
+        for path in mask_paths:
+            try:
+                image = gf.Image(path)
+            except Exception:
+                self.logger.exception('Error loading:\n %s\n\nError message:', path)
+                return
 
         # disable messagebox error handler
         messagebox_error_handler = None

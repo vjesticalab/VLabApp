@@ -434,11 +434,6 @@ class Segmentation(QWidget):
             self.logger.error('Segment Anything for Microscopy is not available.')
 
     def submit(self):
-        """
-        Retrieve the input parameters
-        Iterate over the image paths given performing f.main() function
-        """
-
         channel_position = self.channel_position.value()
         projection_type = self.projection_type.currentText()
         if self.projection_mode_bestZ.isChecked():
@@ -496,6 +491,14 @@ class Segmentation(QWidget):
         if len(duplicates) > 0:
             self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input image folder as output folder or avoid processing images from different input folders.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
             return
+
+        # check input files are valid
+        for path in image_paths:
+            try:
+                image = gf.Image(path)
+            except Exception:
+                self.logger.exception('Error loading:\n %s\n\nError message:', path)
+                return
 
         # disable messagebox error handler
         messagebox_error_handler = None

@@ -401,6 +401,14 @@ class ImageCropping(QWidget):
             self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input image/mask folder as output folder or avoid processing image or masks from different input folders.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
             return
 
+        # check input files are valid
+        for path in image_paths:
+            try:
+                image = gf.Image(path)
+            except Exception:
+                self.logger.exception('Error loading:\n %s\n\nError message:', path)
+                return
+
         # disable messagebox error handler
         messagebox_error_handler = None
         for h in logging.getLogger().handlers:

@@ -287,32 +287,6 @@ class zProjection(QWidget):
         self.nprocesses.setValue(widgets_state['nprocesses'])
 
     def submit(self):
-        """
-        Retrieve the input parameters
-        Iterate over the image paths given performing projection with f.main() function
-        """
-        def check_inputs(image_paths, output_paths, output_basenames):
-            """
-            Check if the inputs are valid
-            Return: True if valid, False otherwise
-            """
-            if len(image_paths) == 0:
-                self.logger.error('Image missing')
-                return False
-            for path in image_paths:
-                if not os.path.isfile(path):
-                    self.logger.error('Image not found: %s', path)
-                    return False
-            if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
-                self.logger.error('Output folder missing')
-                self.output_folder.setFocus()
-                return False
-            output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]
-            duplicates = [x for x, y in zip(image_paths, output_files) if output_files.count(y) > 1]
-            if len(duplicates) > 0:
-                self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input image folder as output folder or avoid processing images from different input folders.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
-                return False
-            return True
 
         projection_type = self.projection_type.currentText()
         if self.projection_mode_bestZ.isChecked():
@@ -332,8 +306,31 @@ class zProjection(QWidget):
         else:
             output_paths = [self.output_folder.text() for path in image_paths]
 
-        if not check_inputs(image_paths, output_paths, output_basenames):
+        # check inputs
+        if len(image_paths) == 0:
+            self.logger.error('Image missing')
             return
+        for path in image_paths:
+            if not os.path.isfile(path):
+                self.logger.error('Image not found: %s', path)
+                return
+        if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
+            self.logger.error('Output folder missing')
+            self.output_folder.setFocus()
+            return
+        output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]
+        duplicates = [x for x, y in zip(image_paths, output_files) if output_files.count(y) > 1]
+        if len(duplicates) > 0:
+            self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input image folder as output folder or avoid processing images from different input folders.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
+            return
+
+        # check input files are valid
+        for path in image_paths:
+            try:
+                image = gf.Image(path)
+            except Exception:
+                self.logger.exception('Error loading:\n %s\n\nError message:', path)
+                return
 
         # disable messagebox error handler
         messagebox_error_handler = None

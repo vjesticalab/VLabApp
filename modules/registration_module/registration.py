@@ -111,8 +111,8 @@ class Perform(QWidget):
         self.registration_method.setCurrentText("feature matching (SIFT)")
         self.coalignment_yn = QCheckBox("Co-align files with the same unique identifier (part of the filename before the first \"_\")")
         self.skip_cropping_yn = QCheckBox("Do NOT crop aligned image")
-        self.register_button = QPushButton("Submit")
-        self.register_button.clicked.connect(self.register)
+        self.submit_button = QPushButton("Submit")
+        self.submit_button.clicked.connect(self.submit)
         self.nprocesses = QSpinBox()
         self.nprocesses.setMinimum(1)
         self.nprocesses.setMaximum(os.cpu_count())
@@ -255,7 +255,7 @@ class Perform(QWidget):
             layout2.addRow("Number of processes:", self.nprocesses)
             groupbox.setLayout(layout2)
             layout.addWidget(groupbox)
-            layout.addWidget(self.register_button, alignment=Qt.AlignCenter)
+            layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
 
@@ -313,24 +313,7 @@ class Perform(QWidget):
         self.skip_cropping_yn.setChecked(widgets_state['skip_cropping_yn'])
         self.nprocesses.setValue(widgets_state['nprocesses'])
 
-    def register(self):
-        """
-        Consider Unique Identifier as split('_')[0]
-        """
-        def check_inputs(image_paths):
-            """
-            Check if the inputs are valid
-            Return: True if valid, False otherwise
-            """
-            if len(image_paths) == 0:
-                self.logger.error('Image missing')
-                return False
-            for path in image_paths:
-                if not os.path.isfile(path):
-                    self.logger.error('Image not found\n%s', path)
-                    return False
-            return True
-
+    def submit(self):
         image_paths = self.image_list.get_file_list()
 
         # Arianna 26/07/23: added the three options channel_name, channel_position, projection_type
@@ -355,8 +338,14 @@ class Perform(QWidget):
         coalignment = self.coalignment_yn.isChecked()
         skip_crop_decision = self.skip_cropping_yn.isChecked()
 
-        if not check_inputs(image_paths):
+        # check inputs
+        if len(image_paths) == 0:
+            self.logger.error('Image missing')
             return
+        for path in image_paths:
+            if not os.path.isfile(path):
+                self.logger.error('Image not found\n%s', path)
+                return
 
         if self.use_input_folder.isChecked():
             output_paths = [os.path.dirname(path) for path in image_paths]
@@ -398,6 +387,14 @@ class Perform(QWidget):
             duplicates = list(dict.fromkeys(duplicates))
             if len(duplicates) > 0:
                 self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nAvoid processing images with same unique identifier when co-aligning files with same unique identifier.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
+                return
+
+        # check input files are valid
+        for path in input_files:
+            try:
+                image = gf.Image(path)
+            except Exception:
+                self.logger.exception('Error loading:\n %s\n\nError message:', path)
                 return
 
         # disable messagebox error handler
@@ -510,8 +507,8 @@ class Align(QWidget):
         self.output_filename_label.setEnabled(False)
 
         self.skip_cropping_yn = QCheckBox("Do NOT crop aligned image")
-        self.align_button = QPushButton("Submit")
-        self.align_button.clicked.connect(self.align)
+        self.submit_button = QPushButton("Submit")
+        self.submit_button.clicked.connect(self.submit)
 
         self.nprocesses = QSpinBox()
         self.nprocesses.setMinimum(1)
@@ -567,7 +564,7 @@ class Align(QWidget):
             layout2.addRow("Number of processes:", self.nprocesses)
             groupbox.setLayout(layout2)
             layout.addWidget(groupbox)
-            layout.addWidget(self.align_button, alignment=Qt.AlignCenter)
+            layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
 
@@ -605,34 +602,34 @@ class Align(QWidget):
         self.skip_cropping_yn.setChecked(widgets_state['skip_cropping_yn'])
         self.nprocesses.setValue(widgets_state['nprocesses'])
 
-    def align(self):
-        def check_inputs(image_paths, matrix_paths):
-            """
-            Check if the inputs are valid
-            Return: True if valid, False otherwise
-            """
-            if len(image_paths) == 0:
-                self.logger.error('Image missing')
-                return False
-            for path in image_paths:
-                if not os.path.isfile(path):
-                    self.logger.error('Image not found\n%s', path)
-                    return False
-            if len(matrix_paths) == 0:
-                self.logger.error('Matrix missing')
-                return False
-            for path in matrix_paths:
-                if not os.path.isfile(path):
-                    self.logger.error('Matrix not found\n%s', path)
-                    return False
-            return True
-
+    def submit(self):
         image_matrix_paths = self.image_matrix_table.get_file_table()
         image_paths = [image_path for image_path, matrix_path in image_matrix_paths]
         matrix_paths = [matrix_path for image_path, matrix_path in image_matrix_paths]
         skip_crop_decision = self.skip_cropping_yn.isChecked()
-        if not check_inputs(image_paths, matrix_paths):
+
+        # check inputs
+        if len(image_paths) == 0:
+            self.logger.error('Image missing')
             return
+        for path in image_paths:
+            if not os.path.isfile(path):
+                self.logger.error('Image not found\n%s', path)
+                return
+        if len(matrix_paths) == 0:
+            self.logger.error('Matrix missing')
+            return
+        for path in matrix_paths:
+            if not os.path.isfile(path):
+                self.logger.error('Matrix not found\n%s', path)
+                return
+        # check input files are valid
+        for path in image_paths:
+            try:
+                image = gf.Image(path)
+            except Exception:
+                self.logger.exception('Error loading:\n %s\n\nError message:', path)
+                return
 
         user_suffix = self.output_user_suffix.text()
         output_basenames = [gf.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
@@ -640,6 +637,7 @@ class Align(QWidget):
             output_paths = [os.path.dirname(path) for path in image_paths]
         else:
             output_paths = [self.output_folder.text() for path in image_paths]
+
 
         # disable messagebox error handler
         messagebox_error_handler = None
@@ -710,8 +708,8 @@ class Edit(QWidget):
         self.tmax.setMaximum(1000)
         self.tmax.setValue(1000)
         self.tmax.valueChanged.connect(self.tmax_changed)
-        self.edit_button = QPushButton('Submit')
-        self.edit_button.clicked.connect(self.edit)
+        self.submit_button = QPushButton('Submit')
+        self.submit_button.clicked.connect(self.submit)
         self.nprocesses = QSpinBox()
         self.nprocesses.setMinimum(1)
         self.nprocesses.setMaximum(os.cpu_count())
@@ -746,7 +744,7 @@ class Edit(QWidget):
         layout2.addRow("Number of processes:", self.nprocesses)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        layout.addWidget(self.edit_button, alignment=Qt.AlignCenter)
+        layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
 
@@ -758,27 +756,19 @@ class Edit(QWidget):
     def tmax_changed(self, value):
         self.tmin.setMaximum(value)
 
-    def edit(self):
-        def check_inputs(transfmat_paths):
-            """
-            Check if the inputs are valid
-            Return: True if valid, False otherwise
-            """
-            if len(transfmat_paths) == 0:
-                self.logger.error('Matrix missing')
-                return False
-            for path in transfmat_paths:
-                if not os.path.isfile(path):
-                    self.logger.error('Matrix not found\n%s', path)
-                    return False
-            return True
-
+    def submit(self):
         transfmat_paths = self.matrices_list.get_file_list()
         start_timepoint = self.tmin.value()
         end_timepoint = self.tmax.value()
 
-        if not check_inputs(transfmat_paths):
+        # check inputs
+        if len(transfmat_paths) == 0:
+            self.logger.error('Matrix missing')
             return
+        for path in transfmat_paths:
+            if not os.path.isfile(path):
+                self.logger.error('Matrix not found\n%s', path)
+                return
 
         # disable messagebox error handler
         messagebox_error_handler = None
@@ -843,8 +833,8 @@ class ManualEdit(QWidget):
         self.input_image.textChanged.connect(self.input_image_changed)
         self.input_matrix = gf.FileLineEdit(label='Transformation matrices', filetypes=gf.matrixtypes)
         self.input_matrix.textChanged.connect(self.input_matrix_changed)
-        self.button_edit = QPushButton('Submit')
-        self.button_edit.clicked.connect(self.edit)
+        self.button_submit = QPushButton('Submit')
+        self.button_submit.clicked.connect(self.submit)
 
         # Layout
         layout = QVBoxLayout()
@@ -863,7 +853,7 @@ class ManualEdit(QWidget):
         layout2.addWidget(self.input_matrix)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        layout.addWidget(self.button_edit, alignment=Qt.AlignCenter)
+        layout.addWidget(self.button_submit, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
 
@@ -900,30 +890,7 @@ class ManualEdit(QWidget):
                         self.input_image.setToolTip(image_path)
                         break
 
-    def edit(self):
-        def check_inputs(image_path, matrix_path):
-            """
-            Check if the inputs are valid
-            Return: True if valid, False otherwise
-            """
-            if image_path == '':
-                self.logger.error('Image missing')
-                self.input_image.setFocus()
-                return False
-            if not os.path.isfile(image_path):
-                self.logger.error('Image not found %s', image_path)
-                self.input_image.setFocus()
-                return False
-            if matrix_path == '':
-                self.logger.error('Matrix missing')
-                self.input_matrix.setFocus()
-                return False
-            if not os.path.isfile(matrix_path):
-                self.logger.error('Matrix not found %s', matrix_path)
-                self.input_matrix.setFocus()
-                return False
-            return True
-
+    def submit(self):
         image_path = self.input_image.text()
         if image_path == '':
             image_path = self.input_image.placeholderText()
@@ -931,8 +898,23 @@ class ManualEdit(QWidget):
         if matrix_path == '':
             matrix_path = self.input_matrix.placeholderText()
 
-        if not check_inputs(image_path, matrix_path):
+        if image_path == '':
+            self.logger.error('Image missing')
+            self.input_image.setFocus()
             return
+        if not os.path.isfile(image_path):
+            self.logger.error('Image not found %s', image_path)
+            self.input_image.setFocus()
+            return
+        if matrix_path == '':
+            self.logger.error('Matrix missing')
+            self.input_matrix.setFocus()
+            return
+        if not os.path.isfile(matrix_path):
+            self.logger.error('Matrix not found %s', matrix_path)
+            self.input_matrix.setFocus()
+            return
+
         self.logger.info('Manually editing %s (image: %s', matrix_path, image_path)
         try:
             f.manual_edit_main(image_path, matrix_path)

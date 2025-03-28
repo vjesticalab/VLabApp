@@ -502,6 +502,14 @@ class GraphFiltering(QWidget):
             self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input mask and graph folder as output folder or avoid processing masks and graphs from different input folders.\nProblematic input files (masks):\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
             return
 
+        # check input files are valid
+        for path in mask_paths:
+            try:
+                image = gf.Image(path)
+            except Exception:
+                self.logger.exception('Error loading:\n %s\n\nError message:', path)
+                return
+
         # disable messagebox error handler
         messagebox_error_handler = None
         for h in logging.getLogger().handlers:
