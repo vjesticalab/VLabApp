@@ -653,30 +653,55 @@ def main(image_path, output_path, output_basename, T_range, C_range, Z_range, Y_
         crop_Y = Y_range is not None
         crop_X = X_range is not None
         if crop_T:
+            if T_range[1]<0 or T_range[0]>=image.sizes['T']:
+                logger.error('Invalid T axis cropping range (axis length: %s, cropping range: from %s to %s)', image.sizes['T'], T_range[0], T_range[1])
+                # Remove all handlers for this module
+                remove_all_log_handlers()
+                raise TypeError(f"Invalid cropping range for T axis (axis length: {image.sizes['T']}, cropping range: from {T_range[0]} to {T_range[1]})")
             T_range = (min(T_range[0], image.sizes['T']-1), min(T_range[1], image.sizes['T']-1))
             # Logging with DEBUG level is ignored by BufferedHandler (and will not appear in logfile/metadata)
             logger.debug("Cropping T axis: from %s to %s", T_range[0], T_range[1])
         else:
             T_range = (0, image.sizes['T']-1)
         if crop_C:
+            if C_range[1]<0 or C_range[0]>=image.sizes['C']:
+                logger.error('Invalid C axis cropping range (axis length: %s, cropping range: from %s to %s)', image.sizes['C'], C_range[0], C_range[1])
+                # Remove all handlers for this module
+                remove_all_log_handlers()
+                raise TypeError(f"Invalid cropping range for C axis (axis length: {image.sizes['C']}, cropping range: from {C_range[0]} to {C_range[1]})")
             C_range = (min(C_range[0], image.sizes['C']-1), min(C_range[1], image.sizes['C']-1))
             # Logging with DEBUG level is ignored by BufferedHandler (and will not appear in logfile/metadata)
             logger.debug("Cropping C axis: from %s to %s", C_range[0], C_range[1])
         else:
             C_range = (0, image.sizes['C']-1)
         if crop_Z:
+            if Z_range[1]<0 or Z_range[0]>=image.sizes['Z']:
+                logger.error('Invalid Z axis cropping range (axis length: %s, cropping range: from %s to %s)', image.sizes['Z'], Z_range[0], Z_range[1])
+                # Remove all handlers for this module
+                remove_all_log_handlers()
+                raise TypeError(f"Invalid cropping range for Z axis (axis length: {image.sizes['Z']}, cropping range: from {Z_range[0]} to {Z_range[1]})")
             Z_range = (min(Z_range[0], image.sizes['Z']-1), min(Z_range[1], image.sizes['Z']-1))
             # Logging with DEBUG level is ignored by BufferedHandler (and will not appear in logfile/metadata)
             logger.debug("Cropping Z axis: from %s to %s", Z_range[0], Z_range[1])
         else:
             Z_range = (0, image.sizes['Z']-1)
         if crop_Y:
+            if Y_range[1]<0 or Y_range[0]>=image.sizes['Y']:
+                logger.error('Invalid Y axis cropping range (axis length: %s, cropping range: from %s to %s)', image.sizes['Y'], Y_range[0], Y_range[1])
+                # Remove all handlers for this module
+                remove_all_log_handlers()
+                raise TypeError(f"Invalid cropping range for Y axis (axis length: {image.sizes['Y']}, cropping range: from {Y_range[0]} to {Y_range[1]})")
             Y_range = (min(Y_range[0], image.sizes['Y']-1), min(Y_range[1], image.sizes['Y']-1))
             # Logging with DEBUG level is ignored by BufferedHandler (and will not appear in logfile/metadata)
             logger.debug("Cropping Y axis: from %s to %s", Y_range[0], Y_range[1])
         else:
             Y_range = (0, image.sizes['Y']-1)
         if crop_X:
+            if X_range[1]<0 or X_range[0]>=image.sizes['X']:
+                logger.error('Invalid X axis cropping range (axis length: %s, cropping range: from %s to %s)', image.sizes['X'], X_range[0], X_range[1])
+                # Remove all handlers for this module
+                remove_all_log_handlers()
+                raise TypeError(f"Invalid cropping range for X axis (axis length: {image.sizes['X']}, cropping range: from {X_range[0]} to {X_range[1]})")
             X_range = (min(X_range[0], image.sizes['X']-1), min(X_range[1], image.sizes['X']-1))
             # Logging with DEBUG level is ignored by BufferedHandler (and will not appear in logfile/metadata)
             logger.debug("Cropping X axis: from %s to %s", X_range[0], X_range[1])

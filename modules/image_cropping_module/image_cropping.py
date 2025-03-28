@@ -27,8 +27,10 @@ class ImageCropping(QWidget):
         # Documentation
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('Crop images and masks.<br>' +
-                                    'Input images can have any compbination of T, C, Z, Y and X axes.<br>'
-                                    'Note: cropping ranges are inclusive (e.g. when cropping axis T from 2 to 10, all time frames T=2, 3, ..., 10 are kept).')
+                                    'Input images can have any compbination of T, C, Z, Y and X axes.<br>' +
+                                    'Cropping ranges are inclusive, e.g. when cropping axis T from 2 to 10, all time frames T=2, 3, ..., 10 are kept.<br>' +
+                                    'Cropping ranges are clipped to axis range, e.g. cropping range from 2 to 10 for a T axis of size 4 (i.e. T=0, 1, 2 or 3) will be clipped to cropping range from 2 to 3.<br>' +
+                                    'Cropping ranges must overlap axis ranges, e.g. cropping range from 2 to 10 for a T axis of size 2 (i.e. T=0 or 1) will generate an error.')
         groupbox = QGroupBox('Documentation')
         layout2 = QVBoxLayout()
         layout2.addWidget(label_documentation)
@@ -358,7 +360,6 @@ class ImageCropping(QWidget):
         self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif")))
 
     def submit(self):
-
         image_paths = self.image_list.get_file_list()
         user_suffix = self.output_user_suffix.text()
         output_basenames = [gf.splitext(os.path.basename(image_path))[0] + self.output_suffix + user_suffix for image_path in image_paths]
