@@ -34,6 +34,13 @@ class MainWindow(QWidget):
         self.image.setPixmap(QPixmap("support_files/Vlab_icon_50x50-01.png"))
         self.image.setAlignment(Qt.AlignCenter)
 
+        self.status_line = QLineEdit()
+        self.status_line.setEnabled(False)
+        self.status_line.setFrame(False)
+        font = self.status_line.font()
+        font.setItalic(True)
+        self.status_line.setFont(font)
+
         self.module_list = QTreeWidget()
         self.module_list.setColumnCount(1)
         self.module_list.setSortingEnabled(False)
@@ -154,12 +161,6 @@ class MainWindow(QWidget):
         self.module_list.setCurrentItem(self.module_list.topLevelItem(0))
 
         layout = QHBoxLayout()
-        self.status_line = QLineEdit()
-        self.status_line.setEnabled(False)
-        self.status_line.setFrame(False)
-        font = self.status_line.font()
-        font.setItalic(True)
-        self.status_line.setFont(font)
         layout.addWidget(self.status_line)
 
         self.quit_button = QPushButton("Quit", self)
@@ -185,6 +186,8 @@ class MainWindow(QWidget):
 
     def module_list_current_item_changed(self, current, previous):
         self.right_panel.setCurrentIndex(current.data(0, Qt.UserRole))
+        self.setWindowTitle('VLabApp - '+current.text(0))
+        self.status_line.setText('')
         if current.childCount():
             current.setExpanded(True)
             self.module_list.setCurrentItem(current.child(0))
