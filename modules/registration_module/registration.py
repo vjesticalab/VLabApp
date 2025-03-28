@@ -384,7 +384,7 @@ class Perform(QWidget):
             coalign_image_paths_list = [None]*len(image_paths)
             coalign_output_basenames_list = [None]*len(image_paths)
 
-        input_files = image_paths
+        input_files = image_paths.copy()
         output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]
         duplicates = [x for x, y in zip(input_files, output_files) if output_files.count(y) > 1]
         if len(duplicates) > 0:
