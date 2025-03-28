@@ -233,12 +233,12 @@ class StatusTableDialog(QDialog):
         for f in input_files:
             self.table.insertRow(self.table.rowCount())
             item = QTableWidgetItem('')
-            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             item.setToolTip('')
             self.table.setItem(self.table.rowCount()-1, 0, item)
             item = QTableWidgetItem(f)
             item.setToolTip(f)
-            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(self.table.rowCount()-1, 1, item)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setStretchLastSection(True)
@@ -363,11 +363,11 @@ class DropFilesTableWidget2(QTableWidget):
             self.insertRow(self.rowCount())
             item = QTableWidgetItem(os.path.normpath(path_1))
             item.setToolTip(os.path.normpath(path_1))
-            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             self.setItem(self.rowCount()-1, 0, item)
             item = QTableWidgetItem(os.path.normpath(path_2))
             item.setToolTip(os.path.normpath(path_2))
-            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             self.setItem(self.rowCount()-1, 1, item)
 
 
@@ -512,11 +512,11 @@ class FileTableWidget2(QWidget):
             self.file_table.insertRow(self.file_table.rowCount())
             item = QTableWidgetItem(os.path.normpath(f1))
             item.setToolTip(os.path.normpath(f1))
-            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             self.file_table.setItem(self.file_table.rowCount()-1, 0, item)
             item = QTableWidgetItem(os.path.normpath(f2))
             item.setToolTip(os.path.normpath(f2))
-            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
 
 
@@ -667,11 +667,11 @@ class ImageMatrixTableWidget2(QWidget):
             self.file_table.insertRow(self.file_table.rowCount())
             item = QTableWidgetItem(os.path.normpath(f1))
             item.setToolTip(os.path.normpath(f1))
-            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             self.file_table.setItem(self.file_table.rowCount()-1, 0, item)
             item = QTableWidgetItem(os.path.normpath(f2))
             item.setToolTip(os.path.normpath(f2))
-            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
 
 

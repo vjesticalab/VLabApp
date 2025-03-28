@@ -307,7 +307,7 @@ class StandardItemModel(QStandardItemModel):
         flags = super().flags(index)
         # to prevent overwriting existing item
         if index.isValid():
-            flags = flags ^ Qt.ItemIsDropEnabled
+            flags = flags & ~Qt.ItemIsDropEnabled
         return flags
 
 
@@ -510,7 +510,7 @@ class StatusTableDialog(QDialog):
         for i in range(self.table.rowCount()):
             for j in range(self.table.columnCount()):
                 item = QTableWidgetItem()
-                item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                 item.setBackground(QBrush(QColor("#FFFFFF")))
                 self.table.setItem(i, j, item)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
