@@ -24,6 +24,8 @@
 * Registration module: fix selection of files to coalign (e.g. when registering image1_BF.ome.tif, do not coalign image10_BF.ome.tif).
 * Check images/masks are valid before starting processing (to avoid problems with parallel processing).
 * Registration module (alignment): check distinct input files generate distinct output files.
+* Cell tracking module: fix a crash when redrawing the mask and graph with option "show selected" labels.
+
 
 
 

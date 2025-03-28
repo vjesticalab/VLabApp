@@ -1325,6 +1325,8 @@ class CellTrackingWidget(QWidget):
         self.viewer_images.layers['Cell mask'].refresh()
 
         self.logger.debug("Plotting cell tracking graph")
+        # make sure all labels are visible to avoid problems with get_color
+        self.viewer_images.layers['Cell mask'].show_selected_label = False
         plot_cell_tracking_graph(self.viewer_graph,
                                  self.viewer_images,
                                  self.viewer_images.layers['Cell mask'],
@@ -1390,6 +1392,8 @@ class CellTrackingWidget(QWidget):
         self.viewer_images.layers['Cell mask'].refresh()
 
         self.logger.debug("Plotting cell tracking graph")
+        # make sure all labels are visible to avoid problems with get_color
+        self.viewer_images.layers['Cell mask'].show_selected_label = False
         plot_cell_tracking_graph(self.viewer_graph,
                                  self.viewer_images,
                                  self.viewer_images.layers['Cell mask'],
@@ -1448,6 +1452,8 @@ class CellTrackingWidget(QWidget):
             self.viewer_images.layers['Cell mask'].refresh()
 
             self.logger.debug("Plotting cell tracking graph")
+            # make sure all labels are visible to avoid problems with get_color
+            self.viewer_images.layers['Cell mask'].show_selected_label = False
             plot_cell_tracking_graph(self.viewer_graph,
                                      self.viewer_images,
                                      self.viewer_images.layers['Cell mask'],
@@ -1712,6 +1718,8 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
             viewer_graph.window._qt_viewer.dockLayerControls.toggleViewAction().trigger()
             viewer_graph.window._qt_viewer.dockLayerList.toggleViewAction().trigger()
             logger.debug("Plotting cell tracking graph")
+            # make sure all labels are visible to avoid problems with get_color
+            mask_layer.show_selected_label = False
             plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, cell_tracking_graph.get_graph(), mask_layer.get_color(range(mask.max()+1)))
 
             # Add CellTrackingWidget to napari
