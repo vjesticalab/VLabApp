@@ -42,7 +42,7 @@ class Segmentation(QWidget):
         doc_text += 'A user trained model can be obtained by finetuning a pretrained cellpose model on a collection of annotated images similar to the input images (see section "Training" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>). When using a user trained model it is not possible to choose the diameter, which is set to the median diameter estimated on the training set.'
         if microsam_available:
             doc_text += '<h3>Segment Anything for Microscopy</h3>'
-            doc_text += 'Segment Anything models vit_h, vit_l, vit_b, vit_t and Segment Anything for Microscopy models vit_l_lm, vit_b_lm, vit_t_lm, vit_l_em_organelles, vit_b_em_organelles and vit_t_em_organelles are available. For more information, see section "Finetuned Models" in Segment Anything for Microscopy documentation <a href="https://computational-cell-analytics.github.io/micro-sam/micro_sam.html">https://computational-cell-analytics.github.io/micro-sam/micro_sam.html</a>.'
+            doc_text += 'Segment Anything models vit_h, vit_l, vit_b and Segment Anything for Microscopy models vit_l_lm, vit_b_lm, vit_l_em_organelles and vit_b_em_organelles are available. For more information, see section "Finetuned Models" in Segment Anything for Microscopy documentation <a href="https://computational-cell-analytics.github.io/micro-sam/micro_sam.html">https://computational-cell-analytics.github.io/micro-sam/micro_sam.html</a>.'
         label_documentation = gf.CollapsibleLabel('',  collapsed=True)
         label_documentation.setText(doc_text)
 
@@ -114,13 +114,10 @@ class Segmentation(QWidget):
         self.microsam_model_type.addItem("vit_h")
         self.microsam_model_type.addItem("vit_l")
         self.microsam_model_type.addItem("vit_b")
-        self.microsam_model_type.addItem("vit_t")
         self.microsam_model_type.addItem("vit_l_lm")
         self.microsam_model_type.addItem("vit_b_lm")
-        self.microsam_model_type.addItem("vit_t_lm")
         self.microsam_model_type.addItem("vit_l_em_organelles")
         self.microsam_model_type.addItem("vit_b_em_organelles")
-        self.microsam_model_type.addItem("vit_t_em_organelles")
         self.microsam_model_type.setCurrentText("vit_l_lm")
 
         self.channel_position = QSpinBox()

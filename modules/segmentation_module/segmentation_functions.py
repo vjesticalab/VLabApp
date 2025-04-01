@@ -129,7 +129,7 @@ def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_pa
     cellpose_flow_threshold: float
         cellpose flow threshold. See cellpose documentation for more information https://cellpose.readthedocs.io/en/latest/index.html.
     microsam_model_type: str
-        Segment Anything for Microscopy model type ("vit_h", "vit_l", "vit_b", "vit_t", "vit_l_lm", "vit_b_lm", "vit_t_lm", "vit_l_em_organelles", "vit_b_em_organelles" or "vit_t_em_organelles").
+        Segment Anything for Microscopy model type ("vit_h", "vit_l", "vit_b", "vit_l_lm", "vit_b_lm", "vit_l_em_organelles" or "vit_b_em_organelles").
     output_path: str
         output directory
     output_basename: str
