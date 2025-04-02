@@ -4,8 +4,8 @@ import logging
 import multiprocessing as mp
 from functools import partial
 from PyQt5.QtCore import Qt, QSize, QTimer
-from PyQt5.QtGui import QPixmap, QIcon, QFontMetrics
-from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QTreeWidget, QAbstractItemView, QSplitter, QStackedWidget, QTreeWidgetItem, QTreeWidgetItemIterator
+from PyQt5.QtGui import QPixmap, QIcon, QFontMetrics, QKeySequence
+from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QTreeWidget, QAbstractItemView, QSplitter, QStackedWidget, QTreeWidgetItem, QTreeWidgetItemIterator, QShortcut
 
 from modules.registration_module import registration
 from modules.zprojection_module import zprojection
@@ -163,6 +163,10 @@ class MainWindow(QWidget):
         layout = QHBoxLayout()
         layout.addWidget(self.status_line)
 
+        shortcut_quit = QShortcut(QKeySequence.Quit,self)
+        shortcut_quit.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        shortcut_quit.activated.connect(QApplication.quit)
+
         self.quit_button = QPushButton("Quit", self)
         self.quit_button.clicked.connect(QApplication.quit)
         self.quit_button.setStyleSheet("background: darkred;")
@@ -184,6 +188,7 @@ class MainWindow(QWidget):
         self.qmessagebox_handler.name = 'messagebox_error_handler'
         logging.getLogger().addHandler(self.qmessagebox_handler)
 
+        self.setStyleSheet("QLineEdit:disabled {background-color: transparent;}")
         # Temporary workaround to ensure QGroupBox titles are not cropped
         self.setStyleSheet("QGroupBox::title {padding-right: 1px;}")
 
