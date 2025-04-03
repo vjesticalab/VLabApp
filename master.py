@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import sys
 import logging
@@ -188,9 +190,9 @@ class MainWindow(QWidget):
         self.qmessagebox_handler.name = 'messagebox_error_handler'
         logging.getLogger().addHandler(self.qmessagebox_handler)
 
-        self.setStyleSheet("QLineEdit:disabled {background-color: transparent;}")
         # Temporary workaround to ensure QGroupBox titles are not cropped
-        self.setStyleSheet("QGroupBox::title {padding-right: 1px;}")
+        self.setStyleSheet("QLineEdit:disabled {background: transparent} " +
+                           "QGroupBox::title {padding-right: 1px}")
 
     def module_list_current_item_changed(self, current, previous):
         self.right_panel.setCurrentIndex(current.data(0, Qt.UserRole))
