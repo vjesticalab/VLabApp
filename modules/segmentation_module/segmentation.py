@@ -4,8 +4,8 @@ import sys
 import time
 import concurrent
 from PyQt5.QtWidgets import QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QLabel, QLineEdit, QComboBox
-from PyQt5.QtCore import Qt, QRegExp
-from PyQt5.QtGui import QCursor, QDoubleValidator, QRegExpValidator
+from PyQt5.QtCore import Qt, QRegularExpression
+from PyQt5.QtGui import QCursor, QDoubleValidator, QRegularExpressionValidator
 from modules.segmentation_module import segmentation_functions as f
 from general import general_functions as gf
 import torch
@@ -61,7 +61,7 @@ class Segmentation(QWidget):
         self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
         self.output_user_suffix = QLineEdit()
         self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
-        self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
+        self.output_user_suffix.setValidator(QRegularExpressionValidator(QRegularExpression('[A-Za-z0-9-]*')))
         self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
         self.output_filename_label = QLineEdit()
         self.output_filename_label.setFrame(False)

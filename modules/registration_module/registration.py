@@ -4,9 +4,9 @@ import re
 import time
 import logging
 import concurrent.futures
-from PyQt5.QtCore import Qt, QRegExp
+from PyQt5.QtCore import Qt, QRegularExpression
 from PyQt5.QtWidgets import QCheckBox, QComboBox, QFormLayout, QPushButton, QVBoxLayout, QWidget, QGridLayout, QLabel, QLineEdit, QHBoxLayout, QApplication, QSpinBox, QRadioButton, QGroupBox, QFileDialog
-from PyQt5.QtGui import QCursor, QIntValidator, QRegExpValidator
+from PyQt5.QtGui import QCursor, QIntValidator, QRegularExpressionValidator
 import numpy as np
 from modules.registration_module import registration_functions as f
 from general import general_functions as gf
@@ -48,7 +48,7 @@ class Perform(QWidget):
         self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
         self.output_user_suffix = QLineEdit()
         self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
-        self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
+        self.output_user_suffix.setValidator(QRegularExpressionValidator(QRegularExpression('[A-Za-z0-9-]*')))
         self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
         self.output_filename_label1 = QLineEdit()
         self.output_filename_label1.setFrame(False)
@@ -500,7 +500,7 @@ class Align(QWidget):
         self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
         self.output_user_suffix = QLineEdit()
         self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
-        self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
+        self.output_user_suffix.setValidator(QRegularExpressionValidator(QRegularExpression('[A-Za-z0-9-]*')))
         self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
         self.output_filename_label = QLineEdit()
         self.output_filename_label.setFrame(False)

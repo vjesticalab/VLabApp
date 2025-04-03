@@ -4,8 +4,8 @@ import sys
 import time
 import concurrent.futures
 from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QLabel, QFormLayout, QLineEdit, QComboBox, QApplication, QCheckBox, QSpinBox, QColorDialog
-from PyQt5.QtCore import Qt, QRegExp, QEvent
-from PyQt5.QtGui import QCursor, QRegExpValidator, QColor, QPixmap, QFontMetrics
+from PyQt5.QtCore import Qt, QRegularExpression, QEvent
+from PyQt5.QtGui import QCursor, QRegularExpressionValidator, QColor, QPixmap, QFontMetrics
 from modules.file_conversion_module import file_conversion_functions as f
 from general import general_functions as gf
 
@@ -73,7 +73,7 @@ class MaskGraphConversion(QWidget):
         self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
         self.output_user_suffix = QLineEdit()
         self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
-        self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('_?[A-Za-z0-9-]*')))
+        self.output_user_suffix.setValidator(QRegularExpressionValidator(QRegularExpression('_?[A-Za-z0-9-]*')))
         self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
         self.output_filename_label_mask = QLineEdit()
         self.output_filename_label_mask.setFrame(False)
@@ -337,7 +337,7 @@ class ImageMaskConversion(QWidget):
         self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
         self.output_user_suffix = QLineEdit()
         self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
-        self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('_?[A-Za-z0-9-]*')))
+        self.output_user_suffix.setValidator(QRegularExpressionValidator(QRegularExpression('_?[A-Za-z0-9-]*')))
         self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
         self.output_filename_label = QLineEdit()
         self.output_filename_label.setFrame(False)

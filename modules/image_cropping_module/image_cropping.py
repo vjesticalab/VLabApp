@@ -5,8 +5,8 @@ import time
 import concurrent.futures
 import re
 from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QLabel, QFormLayout, QLineEdit, QApplication, QCheckBox, QSpinBox, QMessageBox, QFileDialog
-from PyQt5.QtCore import Qt, QRegExp
-from PyQt5.QtGui import QCursor, QRegExpValidator
+from PyQt5.QtCore import Qt, QRegularExpression
+from PyQt5.QtGui import QCursor, QRegularExpressionValidator
 from modules.image_cropping_module import image_cropping_functions as f
 from general import general_functions as gf
 from ome_types.model import CommentAnnotation
@@ -57,7 +57,7 @@ class ImageCropping(QWidget):
         self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
         self.output_user_suffix = QLineEdit()
         self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
-        self.output_user_suffix.setValidator(QRegExpValidator(QRegExp('[A-Za-z0-9-]*')))
+        self.output_user_suffix.setValidator(QRegularExpressionValidator(QRegularExpression('[A-Za-z0-9-]*')))
         self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
         self.output_filename_label = QLineEdit()
         self.output_filename_label.setFrame(False)
