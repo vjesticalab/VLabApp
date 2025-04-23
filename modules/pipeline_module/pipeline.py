@@ -31,7 +31,10 @@ class Pipeline(QWidget):
         super().__init__()
 
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
-        label_documentation.setText('Drag and drop modules in the list to create a pipeline.')
+        label_documentation.setText('Drag and drop modules in the list to create a pipeline.<br>' +
+                                    'Select the "Settings" module to access general pipeline settings (input files, output directory and multi-processing parameters).<br>' +
+                                    '<br>' +
+                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'pipeline_module', 'reference.html') + '">Documentation</a>')
 
         self.pipeline_modules_list = f.ListView(placeholder_text='Drop modules here')
         self.pipeline_modules_list.setModel(f.StandardItemModel(0, 1))

@@ -27,8 +27,9 @@ class Perform(QWidget):
         # Documentation
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('For each input image, estimate the shift between consecutive time frames, apply the resulting transformation matrix to the input image. Save the transformation matrix and the registered image.<br>' +
-                                    'Input images must have X, Y and T axes. Images with additional Z and/or C axis are supported (Z axis will be projected and only the chosen channel will be selected before evaluating the transformation).<br><br>' +
-                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
+                                    'Input images must have X, Y and T axes. Images with additional Z and/or C axis are supported (Z axis will be projected and only the chosen channel will be selected before evaluating the transformation).<br>' +
+                                    '<br>' +
+                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'registration_module', 'reference.html#registration') + '">Documentation</a>')
 
         self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='_BF', filenames_exclude_filter=self.output_suffix)
         self.channel_position = QSpinBox()
@@ -120,10 +121,10 @@ class Perform(QWidget):
 
         # T-range
         # all
-        self.time_mode_all = QRadioButton("All timepoints")
+        self.time_mode_all = QRadioButton("All time points")
         self.time_mode_all.setChecked(True)
         # fixed range
-        self.time_mode_fixed = QRadioButton("Timepoint range")
+        self.time_mode_fixed = QRadioButton("Time point range")
         self.time_mode_fixed.setChecked(False)
         self.time_mode_fixed_tmin = QSpinBox()
         self.time_mode_fixed_tmin.setMinimum(0)
@@ -432,10 +433,10 @@ class Perform(QWidget):
             for future in concurrent.futures.as_completed(future_reg):
                 try:
                     future.result()
-                    status_dialog.set_status(future_reg[future],'Success')
+                    status_dialog.set_status(future_reg[future], 'Success')
                 except Exception as e:
                     self.logger.exception("An exception occurred")
-                    status_dialog.set_status(future_reg[future],'Failed',str(e))
+                    status_dialog.set_status(future_reg[future], 'Failed', str(e))
                 QApplication.processEvents()
                 time.sleep(0.01)
         # Restore cursor
@@ -484,7 +485,9 @@ class Align(QWidget):
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('For each input image, load a pre-existing transformation matrix, apply the transformation matrix to the input image and save the resulting registered image.<br>' +
                                     'The transformation matrix must be in the same folder as the input image. Matching between image and transformation matrix is based on the unique identifier, i.e. part of the filename before the first \"_\".<br>' +
-                                    'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
+                                    'Input images must have X, Y and T axes and can optionally have Z and/or C axes.<br>' +
+                                    '<br>' +
+                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'registration_module', 'reference.html#alignment') + '">Documentation</a>')
 
         self.image_matrix_table = gf.ImageMatrixTableWidget2(filetypes=gf.imagetypes, filenames_filter='', filenames_exclude_filter=self.output_suffix)
 
@@ -677,10 +680,10 @@ class Align(QWidget):
             for future in concurrent.futures.as_completed(future_reg):
                 try:
                     future.result()
-                    status_dialog.set_status(future_reg[future],'Success')
+                    status_dialog.set_status(future_reg[future], 'Success')
                 except Exception as e:
                     self.logger.exception("An exception occurred")
-                    status_dialog.set_status(future_reg[future],'Failed',str(e))
+                    status_dialog.set_status(future_reg[future], 'Failed', str(e))
                 QApplication.processEvents()
                 time.sleep(0.01)
 
@@ -702,7 +705,9 @@ class Edit(QWidget):
         self.output_suffix = gf.output_suffixes['registration']
 
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
-        label_documentation.setText('Modify the start and end point of existing transformation matrices.')
+        label_documentation.setText('Modify the start and end point of existing transformation matrices.<br>' +
+                                    '<br>' +
+                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'registration_module', 'reference.html#editing-batch') + '">Documentation</a>')
         self.matrices_list = gf.FileListWidget(filetypes=gf.matrixtypes, filenames_filter=self.output_suffix)
         self.tmin = QSpinBox()
         self.tmin.setMinimum(0)
@@ -734,7 +739,7 @@ class Edit(QWidget):
         layout2.addWidget(self.matrices_list)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        groupbox = QGroupBox('New timepoint range')
+        groupbox = QGroupBox('New time point range')
         layout2 = QHBoxLayout()
         layout3 = QFormLayout()
         layout3.addRow("From:", self.tmin)
@@ -808,10 +813,10 @@ class Edit(QWidget):
             for future in concurrent.futures.as_completed(future_reg):
                 try:
                     future.result()
-                    status_dialog.set_status(future_reg[future],'Success')
+                    status_dialog.set_status(future_reg[future], 'Success')
                 except Exception as e:
                     self.logger.exception("An exception occurred")
-                    status_dialog.set_status(future_reg[future],'Failed',str(e))
+                    status_dialog.set_status(future_reg[future], 'Failed', str(e))
                 QApplication.processEvents()
                 time.sleep(0.01)
 
@@ -833,7 +838,9 @@ class ManualEdit(QWidget):
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('View and modify an existing transformation matrix in <a href="https://napari.org">napari</a>.<br>' +
                                     'Important: select an image that has not been registered.<br>' +
-                                    'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
+                                    'Input images must have X, Y and T axes and can optionally have Z and/or C axes.<br>' +
+                                    '<br>' +
+                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'registration_module', 'reference.html#editing-manual') + '">Documentation</a>')
         self.input_image = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
         self.input_image.textChanged.connect(self.input_image_changed)
         self.input_matrix = gf.FileLineEdit(label='Transformation matrices', filetypes=gf.matrixtypes)

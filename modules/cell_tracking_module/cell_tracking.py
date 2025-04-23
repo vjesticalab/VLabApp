@@ -25,8 +25,9 @@ class CellTracking(QWidget):
 
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('For each input segmentation mask, perform cell tracking, save the cell tracking graph and segmentation mask with relabelled cells.<br>' +
-                                    'Input segmentation mask must have X, Y and T axes. The optional input image must have X, Y and T axes and can optionally have C and/or Z axes.<br><br>' +
-                                    'Additional information: <a href="'+os.path.join(os.path.dirname(__file__), "doc", "METHODS.html")+'">Methods</a>')
+                                    'Input segmentation mask must have X, Y and T axes. The optional input image must have X, Y and T axes and can optionally have C and/or Z axes.<br>' +
+                                    '<br>' +
+                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'cell_tracking_module', 'reference.html') + '">Documentation</a>')
 
         self.mask_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter=self.mask_suffix)
         self.mask_list.file_list_changed.connect(self.mask_list_changed)
@@ -354,10 +355,10 @@ class CellTracking(QWidget):
             for i, args in enumerate(arguments):
                 try:
                     f.main(*args)
-                    status_dialog.set_status(i,'Success')
+                    status_dialog.set_status(i, 'Success')
                 except Exception as e:
                     self.logger.exception("An exception occurred")
-                    status_dialog.set_status(i,'Failed',str(e))
+                    status_dialog.set_status(i, 'Failed', str(e))
                     hide_status_dialog = False
                 QApplication.processEvents()
                 time.sleep(0.01)
@@ -369,10 +370,10 @@ class CellTracking(QWidget):
                 for future in concurrent.futures.as_completed(future_reg):
                     try:
                         future.result()
-                        status_dialog.set_status(future_reg[future],'Success')
+                        status_dialog.set_status(future_reg[future], 'Success')
                     except Exception as e:
                         self.logger.exception("An exception occurred")
-                        status_dialog.set_status(future_reg[future],'Failed',str(e))
+                        status_dialog.set_status(future_reg[future], 'Failed', str(e))
                     QApplication.processEvents()
                     time.sleep(0.01)
 

@@ -24,30 +24,8 @@ class MaskGraphConversion(QWidget):
         # Documentation
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('Convert segmentation masks and/or cell tracking graphs to various file formats. VLabApp metadata are lost during conversion. The resulting masks and graphs are not meant to be read by this application.<br>' +
-                                    '<h3>Available mask formats</h3>' +
-                                    '<b>ImageJ (.zip)</b><br>' +
-                                    '<a href="https://imagej.net/">ImageJ</a> ROI set (.zip), with ROIs named as "&lt;cell track id&gt;_&lt;time frame&gt;_&lt;mask id&gt;"' +
-                                    '<h3>Available graph formats</h3>' +
-                                    '<b>List of edges (.tsv)</b><br>' +
-                                    'List of edges in tab-separated values format, with header in first row and the following columns:<br>' +
-                                    '* id1: source vertex id (correspond to the ImageJ ROI name "&lt;cell_track_id&gt;_&lt;frame1&gt;_&lt;mask_id1&gt;")<br>' +
-                                    '* frame1: source vertex time frame<br>' +
-                                    '* mask_id1: source vertex mask id<br>' +
-                                    '* area1: source vertex area (number of pixels)<br>' +
-                                    '* id2: target vertex id (correspond to the ImageJ ROI name "&lt;cell_track_id&gt;_&lt;frame2&gt;_&lt;mask_id2&gt;")<br>' +
-                                    '* frame2: target vertex time frame<br>' +
-                                    '* mask_id2: target vertex mask id<br>' +
-                                    '* area2: target vertex area (number of pixels)<br>' +
-                                    '* overlap_area: overlap between source and target vertices (number of pixels)<br>' +
-                                    '* cell_track_id: cell track id<br>' +
-                                    'Isolated vertices appear in the list with target vertex and edge properties set to "nan".<br>' +
                                     '<br>' +
-                                    '<b>Graphviz (.dot)</b><br>' +
-                                    '<a href="https://www.graphviz.org/">Graphviz</a> format, with vertices named as "&lt;cell track id&gt;_&lt;time frame&gt;_&lt;mask id&gt;"<br>' +
-                                    '<br>' +
-                                    '<b>GraphML (.graphml)</b><br>' +
-                                    '<a href="http://graphml.graphdrawing.org/">GraphML</a> format (.graphml), with vertices named as "&lt;cell track id&gt;_&lt;time frame&gt;_&lt;mask id&gt;"<br>'
-                                    )
+                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'file_conversion_mask_graph_module', 'reference.html') + '">Documentation</a>')
         groupbox = QGroupBox('Documentation')
         layout2 = QVBoxLayout()
         layout2.addWidget(label_documentation)
@@ -311,7 +289,10 @@ class ImageMaskConversion(QWidget):
 
         # Documentation
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
-        label_documentation.setText('Convert images and masks to small file-size preview movie (mp4) or image (jpg). The resulting mp4 movies or jpg images are encoded using lossy compression, which results in data loss and distortion. These files should not be used for scientific applications. In addition, when converting to mp4 movie, X and Y axes are resized to the nearest multiple of 16.')
+        label_documentation.setText('Convert images and masks to small file-size preview movie (mp4) or image (jpg). The resulting mp4 movies or jpg images are encoded using lossy compression, which results in data loss and distortion. These files should not be used for scientific applications. In addition, when converting to mp4 movie, X and Y axes are resized to the nearest multiple of 16.<br>' +
+                                    '<br>' +
+                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'file_conversion_lossy_module', 'reference.html') + '">Documentation</a>')
+
         groupbox = QGroupBox('Documentation')
         layout2 = QVBoxLayout()
         layout2.addWidget(label_documentation)

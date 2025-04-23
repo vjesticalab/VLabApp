@@ -6,6 +6,7 @@
 * Segmentation module: add option to use Segment Anything for Microscopy.
 * File organization module: add option to select image cropping module files.
 * Add coarse-grained parallelization (registration, z-projection, cell tracking, graph filtering, file conversion and image cropping modules).
+* Add documentation (using MkDocs).
 
 ### Changed
 

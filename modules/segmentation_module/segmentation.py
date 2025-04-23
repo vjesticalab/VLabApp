@@ -29,20 +29,14 @@ class Segmentation(QWidget):
 
         self.pipeline_layout = pipeline_layout
 
-        doc_text = 'For each input image,  perform cell segmentation using <a href="https://www.cellpose.org/">cellpose</a> '
+        doc_text = 'For each input image,  perform cell segmentation using <a href="https://www.cellpose.org/">Cellpose</a> '
         if microsam_available:
             doc_text += 'or <a href="https://github.com/computational-cell-analytics/micro-sam">Segment Anything for Microscopy</a> '
         doc_text += 'and save the resulting mask.<br>'
         doc_text += 'Input images must have X and Y axes and can optionally have C, Z and/or T axes (Z axis will be projected and only the chosen channel will be selected before performing segmentation).<br>'
-        doc_text += '<h3>Cellpose</h3>'
-        doc_text += '<b>Built-in models</b><br>'
-        doc_text += 'Built-in models cyto, cyto2, cyto3, nuclei, tissuenet_cp3, livecell_cp3, yeast_PhC_cp3, yeast_BF_cp3, bact_phase_cp3, bact_fluor_cp3, deepbacs_cp3 and cyto2_cp3 are available. These models require a parameter "diameter", which should correspond to the expected diameter of the objects to segment. With cyto, cyto2, cyto3 or nuclei model types, the diameter can be estimated using cellpose built-in model by setting the parameter "diameter" to 0. For more information, see section "Models" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>'
         doc_text += '<br>'
-        doc_text += '<b>User trained model</b><br>'
-        doc_text += 'A user trained model can be obtained by finetuning a pretrained cellpose model on a collection of annotated images similar to the input images (see section "Training" in cellpose documentation <a href="https://cellpose.readthedocs.io">https://cellpose.readthedocs.io</a>). When using a user trained model it is not possible to choose the diameter, which is set to the median diameter estimated on the training set.'
-        if microsam_available:
-            doc_text += '<h3>Segment Anything for Microscopy</h3>'
-            doc_text += 'Segment Anything models vit_h, vit_l, vit_b and Segment Anything for Microscopy models vit_l_lm, vit_b_lm, vit_l_em_organelles and vit_b_em_organelles are available. For more information, see section "Finetuned Models" in Segment Anything for Microscopy documentation <a href="https://computational-cell-analytics.github.io/micro-sam/micro_sam.html">https://computational-cell-analytics.github.io/micro-sam/micro_sam.html</a>.'
+        doc_text += 'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'segmentation_module', 'reference.html') + '">Documentation</a>'
+
         label_documentation = gf.CollapsibleLabel('',  collapsed=True)
         label_documentation.setText(doc_text)
 
@@ -99,7 +93,7 @@ class Segmentation(QWidget):
         self.cellpose_diameter.setMinimum(0)
         self.cellpose_diameter.setMaximum(1000)
         self.cellpose_diameter.setValue(0)
-        self.cellpose_diameter.setToolTip('Expected cell diameter (pixel). If 0, use cellpose built-in model to estimate diameter (available only for cyto, cyto2, cyto3 and nuclei models).')
+        self.cellpose_diameter.setToolTip('Expected cell diameter (pixel). If 0, use Cellpose built-in model to estimate diameter (available only for cyto, cyto2, cyto3 and nuclei models).')
         self.cellpose_diameter.setVisible(False)
         self.cellpose_diameter_label = QLabel("Diameter:")
         self.cellpose_diameter_label.setVisible(False)
@@ -475,7 +469,7 @@ class Segmentation(QWidget):
                     self.cellpose_user_model.setFocus()
                     return
             elif cellpose_model_type not in ['cyto', 'cyto2', 'cyto3', 'nuclei'] and cellpose_diameter == 0:
-                self.logger.error('Diameter estimation using cellpose built-in model (i.e. diameter == 0) is only available for cyto, cyto2, cyto3 and nuclei models')
+                self.logger.error('Diameter estimation using Cellpose built-in model (i.e. diameter == 0) is only available for cyto, cyto2, cyto3 and nuclei models')
                 self.cellpose_diameter.setFocus()
                 return
 

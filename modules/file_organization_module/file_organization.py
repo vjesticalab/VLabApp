@@ -134,7 +134,9 @@ class FileOrganization(QWidget):
 
         # Documentation
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
-        label_documentation.setText('For each input folder, selected files types can be exported (i.e. moved or copied) to the specified directory or removed.')
+        label_documentation.setText('For each input folder, selected files types can be exported (i.e. moved or copied) to the specified directory or removed.<br>' +
+                                    '<br>' +
+                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'file_organization_module', 'reference.html') + '">Documentation</a>')
 
         # Input folders
         self.folder_list = gf.FolderListWidget()

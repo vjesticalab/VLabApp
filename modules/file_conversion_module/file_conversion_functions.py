@@ -208,7 +208,7 @@ def write_dot(filename, graph):
     logging.getLogger(__name__).info('Saving cell tracking graph to %s', filename)
     with open(filename, 'w') as f:
         f.write('digraph {\n')
-        f.write(' rankdir="BT"\n')
+        f.write(' rankdir="TB"\n')
         f.write(' nodesep=0.2\n')
         f.write(' outputorder=edgesfirst\n')
         f.write(' node[shape=rect margin="0.05,0.055" height=0.3 color=darkgray fillcolor=grey95 style=filled]\n')

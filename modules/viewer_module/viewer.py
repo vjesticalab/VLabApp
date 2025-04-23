@@ -19,7 +19,10 @@ class ImageMaskGraphViewer(QWidget):
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('View an image, a segmentation mask and/or a cell tracking graph in <a href="https://napari.org">napari</a>.<br>' +
                                     'Images and masks with X and Y axes and any combination of T, C and Z axes are supported.<br>' +
-                                    'Image, mask and graph are optional. However, a cell tracking graph cannot be viewed without the corresponding segmentation mask.')
+                                    'Image, mask and graph are optional. However, a cell tracking graph cannot be viewed without the corresponding segmentation mask.<br>' +
+                                    '<br>' +
+                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'viewer_image_mask_graph_module', 'reference.html') + '">Documentation</a>')
+
         self.input_image = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
         self.input_mask = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
         self.input_mask.textChanged.connect(self.input_mask_changed)
@@ -210,7 +213,9 @@ class RegistrationViewer(QWidget):
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('View a registration matrix in <a href="https://napari.org">napari</a>.<br>' +
                                     'Important: select an image that has not been registered.<br>' +
-                                    'Input images must have X, Y and T axes and can optionally have Z and/or C axes.')
+                                    'Input images must have X, Y and T axes and can optionally have Z and/or C axes.<br>' +
+                                    '<br>' +
+                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'viewer_registration_module', 'reference.html') + '">Documentation</a>')
         self.input_image = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
         self.input_image.textChanged.connect(self.input_image_changed)
         self.input_matrix = gf.FileLineEdit(label='Transformation matrices', filetypes=gf.matrixtypes)
@@ -338,7 +343,10 @@ class MetadataViewer(QWidget):
         self.filetypes = gf.imagetypes + gf.graphtypes + gf.matrixtypes
 
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
-        label_documentation.setText('Display the VLabApp metadata for a file generated with this software. The file can be an image, a segmentation mask, a cell tracking graph or a registration matrix).')
+        label_documentation.setText('Display the VLabApp metadata for a file generated with this software. The file can be an image, a segmentation mask, a cell tracking graph or a registration matrix).<br>' +
+                                    '<br>' +
+                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'viewer_metadata_module', 'reference.html') + '">Documentation</a>')
+
         self.input_file = gf.FileLineEdit(label='Images, cell tracking graphs or transformation matrices', filetypes=self.filetypes)
         self.input_file.textChanged.connect(self.input_file_changed)
 

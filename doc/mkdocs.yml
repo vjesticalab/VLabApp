@@ -1,0 +1,48 @@
+site_name: VLabApp
+nav:
+  - Home: index.md
+  - Getting started:
+    - general/installation.md
+    - general/tutorial.md
+  - Reference:
+    - general/files.md
+    - registration_module/reference.md
+    - zprojection_module/reference.md
+    - segmentation_module/reference.md
+    - cell_tracking_module/reference.md
+    - graph_filtering_module/reference.md
+    - pipeline_module/reference.md
+    - Tools:
+      - viewer_image_mask_graph_module/reference.md
+      - viewer_registration_module/reference.md
+      - viewer_metadata_module/reference.md
+      - file_organization_module/reference.md
+      - file_conversion_mask_graph_module/reference.md
+      - file_conversion_lossy_module/reference.md
+      - image_cropping_module/reference.md
+      - ground_truth_generator_module/reference.md
+use_directory_urls: false
+theme:
+  name: material
+  logo: logo.png
+  favicon: logo.png
+  features:
+    - search.suggest
+    - navigation.expand
+  palette: 
+    - scheme: default
+      primary: white
+plugins:
+  - search
+  - offline
+  - glightbox
+markdown_extensions:
+  - def_list
+  - pymdownx.arithmatex:
+      generic: true
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+exclude_docs: |
+  */images/README.md
+  */images_src/

@@ -794,47 +794,6 @@ class CellTrackingGraph:
 
         return self._graph
 
-    def write_dot(self, filename):
-        """
-        Save self._graph in graphviz dot format
-
-        Parameters
-        ----------
-        filename: str
-            output filename
-        """
-
-        # To create a pdf with graphviz: dot -Tpdf -o graph.pdf graph.dot
-        # Note: self._graph.write_dot() does not allow to specify nodes on same rank.
-        g = self.get_graph()
-
-        with open(filename, 'w') as f:
-            f.write("digraph {\n")
-            f.write(" rankdir=\"BT\"\n")
-            f.write(" nodesep=0.2\n")
-            f.write(" outputorder=edgesfirst\n")
-            f.write(" node[shape=rect margin=\"0.05,0.055\" height=0.3 color=darkgray fillcolor=grey95 style=filled]\n")
-            f.write(" edge[arrowhead=none color=darkgray]\n")
-            for v in g.vs:
-                f.write(" "+str(v.index)+"[\n")
-                f.write("  label="+str(v['mask_id'])+"\n")
-                f.write("  frame="+str(v['frame'])+"\n")
-                f.write("  mask_id="+str(v['mask_id'])+"\n")
-                f.write("  area="+str(v['area'])+"\n")
-                f.write("  width="+str(0.3 + 0.8 * v['area'] / max(g.vs['area']))+"\n")
-                f.write("  ];\n")
-            for e in g.es:
-                f.write(" "+str(e.source)+" -> "+str(e.target)+" [\n")
-                f.write("  overlap_area="+str(e['overlap_area'])+"\n")
-                f.write("  overlap_fraction_source=" + str(e['overlap_fraction_source'])+"\n")
-                f.write("  overlap_fraction_target=" + str(e['overlap_fraction_target'])+"\n")
-                f.write("  penwidth="+str(0.5 + 20 * min(e['overlap_fraction_target'], e['overlap_fraction_source']))+"\n")
-                f.write("  ];\n")
-            for frame1 in np.sort(np.unique(g.vs['frame'])):
-                # To align vertices with same frame
-                f.write(" {rank=same "+" ".join([str(v.index) for v in g.vs.select(frame=frame1)])+" }\n")
-            f.write("}")
-
     def _create_graph(self, mask):
         """
         Evaluate `self._graph_full` from `mask`
@@ -1489,9 +1448,6 @@ class CellTrackingWidget(QWidget):
         for x in self.mask_metadata:
             ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
         OmeTiffWriter.save(self.mask, output_file1, ome_xml=ome_metadata)
-        # output_file2 = os.path.join(self.output_path, self.output_basename+".dot")
-        # self.logger.info("Saving cell tracking graph to %s", output_file2)
-        # self.cell_tracking_graph.write_dot(output_file2)
 
         output_file3 = os.path.join(self.output_path, self.output_basename+".graphmlz")
         self.logger.info("Saving cell tracking graph to %s", output_file3)
@@ -1747,10 +1703,6 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
             for x in mask_metadata:
                 ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
             OmeTiffWriter.save(mask, output_file, ome_xml=ome_metadata)
-
-            # output_file = os.path.join(output_path, output_basename+".dot")
-            # logger.info("Saving cell tracking graph to %s", output_file)
-            # cell_tracking_graph.write_dot(output_file)
 
             output_file = os.path.join(output_path, output_basename+".graphmlz")
             logger.info("Saving cell tracking graph to %s", output_file)

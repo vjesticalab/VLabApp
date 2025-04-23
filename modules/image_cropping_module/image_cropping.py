@@ -30,7 +30,10 @@ class ImageCropping(QWidget):
                                     'Input images can have any compbination of T, C, Z, Y and X axes.<br>' +
                                     'Cropping ranges are inclusive, e.g. when cropping axis T from 2 to 10, all time frames T=2, 3, ..., 10 are kept.<br>' +
                                     'Cropping ranges are clipped to axis range, e.g. cropping range from 2 to 10 for a T axis of size 4 (i.e. T=0, 1, 2 or 3) will be clipped to cropping range from 2 to 3.<br>' +
-                                    'Cropping ranges must overlap axis ranges, e.g. cropping range from 2 to 10 for a T axis of size 2 (i.e. T=0 or 1) will generate an error.')
+                                    'Cropping ranges must overlap axis ranges, e.g. cropping range from 2 to 10 for a T axis of size 2 (i.e. T=0 or 1) will generate an error.<br>' +
+                                    '<br>' +
+                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'image_cropping_module', 'reference.html') + '">Documentation</a>')
+
         groupbox = QGroupBox('Documentation')
         layout2 = QVBoxLayout()
         layout2.addWidget(label_documentation)

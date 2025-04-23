@@ -25,8 +25,9 @@ class zProjection(QWidget):
         # Documentation
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
         label_documentation.setText('For each input image,  perform a z-stack projection and save the z-projected image.<br>' +
-                                    'Input images must have X, Y and Z axes and can optionally have C and/or T axes.<br><br>' +
-                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), "doc", "METHODS.html") + '">Methods</a>')
+                                    'Input images must have X, Y and Z axes and can optionally have C and/or T axes.<br>' +
+                                    '<br>' +
+                                    'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'zprojection_module', 'reference.html') + '">Documentation</a>')
 
         # Input images
         self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='')
@@ -365,10 +366,10 @@ class zProjection(QWidget):
             for future in concurrent.futures.as_completed(future_reg):
                 try:
                     future.result()
-                    status_dialog.set_status(future_reg[future],'Success')
+                    status_dialog.set_status(future_reg[future], 'Success')
                 except Exception as e:
                     self.logger.exception("An exception occurred")
-                    status_dialog.set_status(future_reg[future],'Failed',str(e))
+                    status_dialog.set_status(future_reg[future], 'Failed', str(e))
                 QApplication.processEvents()
                 time.sleep(0.01)
 

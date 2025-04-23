@@ -152,7 +152,14 @@ class CollapsibleLabel(QLabel):
             self.collapsed = True
             super().setText(self.elide_text(self.raw_text))
         else:
-            QDesktopServices.openUrl(QUrl.fromUserInput(link))
+            # deal with url fragment
+            tmp = link.split('#')
+            if len(tmp) == 2:
+                url = QUrl.fromUserInput(tmp[0])
+                url.setFragment(tmp[1])
+                QDesktopServices.openUrl(url)
+            else:
+                QDesktopServices.openUrl(QUrl.fromUserInput(link))
 
 
 class QLineEditHandler(logging.Handler):
@@ -446,7 +453,7 @@ class FileTableWidget2(QWidget):
         layout3.addRow(header_2 + " suffix:", self.suffix_2)
         layout2.addLayout(layout3)
         layout.addLayout(layout2)
-        help_label = QLabel("Corresponding " + header_1 + " and " + header_2 + " files must be in the same directory. Their filenames must share the same basename and end with the specified suffix (by default <basename>"+self.suffix_1.text()+" and <basename>"+self.suffix_2.text()+")")
+        help_label = QLabel("Corresponding " + header_1 + " and " + header_2 + " files must be in the same folder. Their filenames must share the same basename and end with the specified suffix (by default <basename>"+self.suffix_1.text()+" and <basename>"+self.suffix_2.text()+")")
         help_label.setWordWrap(True)
         layout.addWidget(help_label)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -582,7 +589,7 @@ class ImageMatrixTableWidget2(QWidget):
         layout2.addWidget(self.add_folder_button)
         layout2.addWidget(self.remove_file_button)
         layout.addLayout(layout2)
-        help_label = QLabel("Add "+self.image_label+"s to the list using \"Add files\", \"Add folder\" buttons or drag and drop. The corresponding matrix file must be in the same directory as the "+self.image_label+". Their filenames must share the same unique identifier (part of the filename before the first \"_\"). If multiple matrix files correspond to an "+self.image_label+", the matrix with shortest filename will be selected.")
+        help_label = QLabel("Add "+self.image_label+"s to the list using \"Add files\", \"Add folder\" buttons or drag and drop. The corresponding matrix file must be in the same folder as the "+self.image_label+". Their filenames must share the same unique identifier (part of the filename before the first \"_\"). If multiple matrix files correspond to an "+self.image_label+", the matrix with shortest filename will be selected.")
         help_label.setWordWrap(True)
         layout.addWidget(help_label)
         layout.setContentsMargins(0, 0, 0, 0)
