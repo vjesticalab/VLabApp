@@ -166,9 +166,9 @@ class GroundTruthGenerator(QWidget):
                 image_fluo2_path = os.path.join(os.path.dirname(image_fluo1_path), image_fluo_paths[0])
                 self.input_image_fluo2.setPlaceholderText(image_fluo2_path)
                 self.input_image_fluo2.setToolTip(image_fluo2_path)
-            image_mask_paths = [path for path in os.listdir(os.path.dirname(image_BF_path)) if any(path.endswith(imagetype) for imagetype in gf.imagetypes) and self.output_suffix in os.path.basename(path) and os.path.basename(path).split('_')[0] == os.path.basename(image_BF_path).split('_')[0]]
+            image_mask_paths = [path for path in os.listdir(os.path.dirname(image_fluo1_path)) if any(path.endswith(imagetype) for imagetype in gf.imagetypes) and self.output_suffix in os.path.basename(path) and os.path.basename(path).split('_')[0] == os.path.basename(image_fluo1_path).split('_')[0]]
             if len(image_mask_paths) == 1:
-                image_mask_path = os.path.join(os.path.dirname(image_BF_path), image_mask_paths[0])
+                image_mask_path = os.path.join(os.path.dirname(image_fluo1_path), image_mask_paths[0])
                 self.input_image_mask.setPlaceholderText(image_mask_path)
                 self.input_image_mask.setToolTip(image_mask_path)
 
@@ -195,9 +195,9 @@ class GroundTruthGenerator(QWidget):
                 image_fluo1_path = os.path.join(os.path.dirname(image_fluo2_path), image_fluo_paths[0])
                 self.input_image_fluo1.setPlaceholderText(image_fluo1_path)
                 self.input_image_fluo1.setToolTip(image_fluo1_path)
-            image_mask_paths = [path for path in os.listdir(os.path.dirname(image_BF_path)) if any(path.endswith(imagetype) for imagetype in gf.imagetypes) and self.output_suffix in os.path.basename(path) and os.path.basename(path).split('_')[0] == os.path.basename(image_BF_path).split('_')[0]]
+            image_mask_paths = [path for path in os.listdir(os.path.dirname(image_fluo2_path)) if any(path.endswith(imagetype) for imagetype in gf.imagetypes) and self.output_suffix in os.path.basename(path) and os.path.basename(path).split('_')[0] == os.path.basename(image_fluo2_path).split('_')[0]]
             if len(image_mask_paths) == 1:
-                image_mask_path = os.path.join(os.path.dirname(image_BF_path), image_mask_paths[0])
+                image_mask_path = os.path.join(os.path.dirname(image_fluo2_path), image_mask_paths[0])
                 self.input_image_mask.setPlaceholderText(image_mask_path)
                 self.input_image_mask.setToolTip(image_mask_path)
 
