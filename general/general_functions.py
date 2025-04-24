@@ -3,9 +3,10 @@ import os
 import tifffile
 import nd2
 import re
+import webbrowser
 from aicsimageio.readers import OmeTiffReader
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
-from PyQt5.QtGui import QBrush, QKeySequence, QPainter, QFontMetrics, QDesktopServices, QTextDocument, QColor
+from PyQt5.QtGui import QBrush, QKeySequence, QPainter, QFontMetrics, QTextDocument, QColor
 from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem, QDialog, QShortcut
 
 import logging
@@ -157,9 +158,9 @@ class CollapsibleLabel(QLabel):
             if len(tmp) == 2:
                 url = QUrl.fromUserInput(tmp[0])
                 url.setFragment(tmp[1])
-                QDesktopServices.openUrl(url)
             else:
-                QDesktopServices.openUrl(QUrl.fromUserInput(link))
+                url = QUrl.fromUserInput(link)
+            webbrowser.open(url.toString())
 
 
 class QLineEditHandler(logging.Handler):

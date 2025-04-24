@@ -27,6 +27,7 @@
 * Registration module (alignment): check distinct input files generate distinct output files.
 * Cell tracking module: fix a crash when redrawing the mask and graph with option "show selected" labels.
 * Ground truth generator module: fix a crash with image paths automatic filling.
+* Fix documentation widget links with fragments not opening on Windows.
 
 
 
