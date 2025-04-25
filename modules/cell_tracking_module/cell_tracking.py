@@ -59,7 +59,7 @@ class CellTracking(QWidget):
         self.min_area.setMinimum(0)
         self.min_area.setMaximum(10000)
         self.min_area.setValue(300)
-        self.min_area.setToolTip('Remove mask regions with area (number of pixels) below this value.')
+        self.min_area.setToolTip('Remove labelled regions with area (number of pixels) below this value.')
 
         self.max_delta_frame = QSpinBox()
         self.max_delta_frame.setMinimum(1)

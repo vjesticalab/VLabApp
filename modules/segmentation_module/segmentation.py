@@ -161,7 +161,7 @@ class Segmentation(QWidget):
         self.projection_type.setDisabled(self.projection_mode_bestZ.isChecked())
         self.projection_mode_bestZ.toggled.connect(self.projection_type.setDisabled)
 
-        self.use_gpu = QCheckBox("Activate GPU")
+        self.use_gpu = QCheckBox("Use GPU")
         device, gpu = assign_device(gpu=True)
         self.use_gpu.setChecked(gpu)
         self.use_gpu.setEnabled(gpu)

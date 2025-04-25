@@ -67,7 +67,7 @@ module](../zprojection_module/reference.md) for more information).
 Note that for best results, the segmentation model used should have
 been trained on the selected type of Z-projected images.
 
-Activate GPU
+Use GPU
 : Use a GPU if available. Using this option prevents from using CPU parallelization (use coarse grain parallelization and number of processes are ignored).
 
 Use coarse grain parallelization

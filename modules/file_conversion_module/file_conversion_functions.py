@@ -344,9 +344,9 @@ def convert_mask_and_graph(mask_path, graph_path, output_path, output_basename, 
             output_file = os.path.join(output_path, output_basename+'.zip')
             holes, multicomponents = write_ImagejRoi(output_file, mask, graph)
             if holes:
-                error_message += 'Regions in the segmentation mask contain holes, which cannot be exported to ImageJ ROI file format. Only outer boundaries were saved (holes were ignored). '
+                error_message += 'Labelled regions in the segmentation mask contain holes, which cannot be exported to ImageJ ROI file format. Only outer boundaries were saved (holes were ignored). '
             if multicomponents:
-                error_message += 'Regions in the segmentation mask consist in multiple disconnected components. For each region, all components will be saved with same ROI name, which may generate undefined behavior in ImageJ. '
+                error_message += 'Labelled regions in the segmentation mask consist in multiple disconnected components. For each region, all components will be saved with same ROI name, which may generate undefined behavior in ImageJ. '
 
         if error_message:
             raise ValueError(error_message.strip())
@@ -402,9 +402,9 @@ def convert_mask_and_graph(mask_path, graph_path, output_path, output_basename, 
 
         error_message = ''
         if holes:
-            error_message += 'Regions in the segmentation mask contain holes, which cannot be exported to ImageJ ROI file format. Only outer boundaries were saved (holes were ignored). '
+            error_message += 'Labelled regions in the segmentation mask contain holes, which cannot be exported to ImageJ ROI file format. Only outer boundaries were saved (holes were ignored). '
         if multicomponents:
-            error_message += 'Regions in the segmentation mask consist in multiple disconnected components. For each region, all components will be saved with same ROI name, which may generate undefined behavior in ImageJ. '
+            error_message += 'Labelled regions in the segmentation mask consist in multiple disconnected components. For each region, all components will be saved with same ROI name, which may generate undefined behavior in ImageJ. '
         if error_message:
             raise ValueError(error_message.strip())
 

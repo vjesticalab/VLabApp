@@ -107,7 +107,7 @@ Notes:
 
 Images and masks are multi-dimensional arrays with up to 5 dimensions. Depending on the module used, images and masks can have `T` (time), `C` (channel), `Z` (Z-section), `Y` and `X` axes.
 
-Masks should have the same dimension as the corresponding image (except for `C` axis) with a unique channel containing an integer mask ID (or label ID). All pixels assigned to the same segmented object should have the same ID integer value, while background pixels should have ID 0.
+Masks should have the same dimension as the corresponding image (except for `C` axis) with a unique channel containing an integer mask ID (or label ID). All pixels assigned to the same segmented object (*labelled region*) should have the same ID, while background pixels should have ID 0.
 
 
 **Input formats:**

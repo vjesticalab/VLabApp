@@ -15,7 +15,7 @@ class GroundTruthGenerator(QWidget):
 
         # Documentation
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
-        label_documentation.setText('Either create a cell mask using thresholding based segmentation of fluorescent image(s) with cell marker(s) or load an existing mask. The mask can then be manually edited. The bright-field image and the mask can be exported in a format that can be directly used as a training set by <a href="https://www.cellpose.org/">Cellpose</a> (one pair of bright-field image and mask in tif format per time frame) to fine-tune a segmentation model.<br>'
+        label_documentation.setText('Either create a segmentation mask using thresholding based segmentation of fluorescent image(s) with cell marker(s) or load an existing mask. The mask can then be manually edited. The bright-field image and the mask can be exported in a format that can be directly used as a training set by <a href="https://www.cellpose.org/">Cellpose</a> (one pair of bright-field image and mask in tif format per time frame) to fine-tune a segmentation model.<br>'
                                     + 'Bright-field and fluorescent images must have X and Y axes and can optionally have T or Z axes (in particular, each image must correspond to a unique channel). Bright-field and fluorescent images must have same axes sizes.<br>'
                                     + 'Input segmentation mask must have X and Y axes and can optionally have T axis. It must have same X, Y and T axes sizes as the bright-field image.<br>' +
                                     '<br>' +

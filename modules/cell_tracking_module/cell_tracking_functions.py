@@ -9,7 +9,7 @@ import igraph as ig
 from scipy.optimize import linear_sum_assignment
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QWidget, QPushButton, QLabel, QSpinBox, QScrollArea, QGroupBox, QCheckBox, QMessageBox
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QCursor
+from PyQt5.QtGui import QCursor, QKeySequence
 from general import general_functions as gf
 from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
@@ -47,7 +47,7 @@ def split_regions(mask):
 
 def remove_small_regions(mask, min_area):
     """
-    Remove (set to 0) mask regions with small area.
+    Remove (set to 0) labelled regions with small area.
     Note : 'mask' is modified in-place
 
     Parameters
@@ -55,7 +55,7 @@ def remove_small_regions(mask, min_area):
     mask: ndarray
         a 3D (TYX) 16bit unsigned integer (uint16) numpy array, modified in-place
     min_area: int
-        remove mask regions with area (number of pixels) below `min_area`
+        remove labelled regions with area (number of pixels) below `min_area`
     """
     logging.getLogger(__name__).debug("Removing small regions")
     for t in range(mask.shape[0]):
@@ -86,7 +86,7 @@ def interpolate_mask(mask, cell_tracking_graph, mask_ids, frame_start, frame_end
     max_delta_frame_interpolation: int
         number of previous and subsequent frames to consider for mask interpolation
     min_area: int
-        remove mask regions with area (number of pixels) below `min_area`
+        remove labelled regions with area (number of pixels) below `min_area`
     """
     logger = logging.getLogger(__name__)
     logger.debug("Interpolating mask")
@@ -193,7 +193,7 @@ def clean_mask(mask, cell_tracking_graph, max_delta_frame_interpolation=3, nfram
         edges stable = with overlap_fraction_target >= `stable_overlap_fraction`
                         and overlap_fraction_source >= `stable_overlap_fraction`
     min_area: int
-        remove mask regions with area (number of pixels) below `min_area`
+        remove labelled regions with area (number of pixels) below `min_area`
     only_missing: bool
         only consider missing vertices type of defect
 
@@ -310,12 +310,13 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
     edges_layer.editable = False
 
     # Add vertices
+    shift_str = QKeySequence(Qt.ShiftModifier).toString().rstrip('+').upper()
     if 'Vertices' not in viewer_graph.layers:
         vertices_layer = viewer_graph.add_points(name='Vertices', opacity=1)
         if selectable:
-            vertices_layer.help = "<left-click> to set view, <right-click> to select, <shift>+<right-click> to extend selection"
+            vertices_layer.help = "LEFT-CLICK to set view, RIGHT-CLICK to select, "+shift_str+" + RIGHT-CLICK to extend selection"
         else:
-            vertices_layer.help = "<left-click> to set view"
+            vertices_layer.help = "LEFT-CLICK to set view"
         vertices_layer_isnew = True
     else:
         vertices_layer = viewer_graph.layers['Vertices']
@@ -1005,7 +1006,8 @@ class CellTrackingWidget(QWidget):
         groupbox = QGroupBox("Help")
         layout2 = QVBoxLayout()
 
-        help_label = QLabel("Image viewer (this viewer):\n<left-click> on the Cell mask layer to center the view on the corresponding vertex in the cell tracking graph viewer. <right-click> to select the corresponding vertex in cell tracking graph and <shift>+<right-click> to extend selection.\nMask can be manually edited using the Cell mask layer controls. Once done, click on the \"Relabel\" button to update the cell tracking tracking graph.\n\nCell tracking graph viewer:\nVertices (squares) correspond to mask regions (mask id) at a given frame. Edges correspond to overlap between mask. Vertices are ordered by time along the horizontal axis (time increases from left to right).\n<left-click> on a vertex to center the view on the corresponding mask in this viewer. <right-click> to select a vertex and <shift>+<right-click> to extend selection.")
+        shift_str = QKeySequence(Qt.ShiftModifier).toString().rstrip('+').upper()
+        help_label = QLabel("Image viewer (this viewer):\nLEFT-CLICK on the Cell mask layer to center the view on the corresponding vertex in the cell tracking graph viewer. RIGHT-CLICK to select the corresponding vertex in cell tracking graph and "+shift_str+" + RIGHT-CLICK to extend selection.\nMask can be manually edited using the Cell mask layer controls. Once done, click on the \"Relabel\" button to update the cell tracking tracking graph.\n\nCell tracking graph viewer:\nVertices (squares) correspond to labelled regions (mask id) at a given frame. Edges correspond to overlap between mask. Vertices are ordered by time along the horizontal axis (time increases from left to right).\nLEFT-CLICK on a vertex to center the view on the corresponding mask in this viewer. RIGHT-CLICK to select a vertex and "+shift_str+" + RIGHT-CLICK to extend selection.")
         help_label.setWordWrap(True)
         help_label.setMinimumWidth(10)
         layout2.addWidget(help_label)
@@ -1061,7 +1063,7 @@ class CellTrackingWidget(QWidget):
         self.min_area.setMinimum(1)
         self.min_area.setMaximum(10000)
         self.min_area.setValue(int(min_area))
-        self.min_area.setToolTip('Remove mask regions with area (number of pixels) below this value')
+        self.min_area.setToolTip('Remove labelled regions with area (number of pixels) below this value')
         layout2.addWidget(QLabel("Min area:"), 5, 0)
         layout2.addWidget(self.min_area, 5, 1)
 
@@ -1104,7 +1106,7 @@ class CellTrackingWidget(QWidget):
         self.min_area2.setMinimum(1)
         self.min_area2.setMaximum(10000)
         self.min_area2.setValue(int(min_area))
-        self.min_area2.setToolTip('Remove mask regions with area (number of pixels) below this value')
+        self.min_area2.setToolTip('Remove labelled regions with area (number of pixels) below this value')
         layout2.addWidget(QLabel("Min area:"), 2, 0)
         layout2.addWidget(self.min_area2, 2, 1)
 
@@ -1114,7 +1116,7 @@ class CellTrackingWidget(QWidget):
 
         # Create a button to clean mask
         button = QPushButton("Interpolate selection")
-        button.setToolTip('Interpolated selected mask regions across neighboring frames.')
+        button.setToolTip('Interpolated selected labelled regions across neighboring frames.')
         button.clicked.connect(self.interpolate_mask)
         layout2.addWidget(button, 4, 0, 1, 2, Qt.AlignCenter)
 
@@ -1124,7 +1126,7 @@ class CellTrackingWidget(QWidget):
         groupbox = QGroupBox("Relabel mask and graph")
         layout2 = QGridLayout()
 
-        help_label = QLabel("Split disconnected mask regions, remove small mask regions, recompute cell tracking graph and relabel mask regions so as to have consistent mask ids in consecutive frames. Should be done if the mask are manually edited to synchronize cell tracking. It is also advised to do it before saving, to make sure to split disconnected mask regions.")
+        help_label = QLabel("Split disconnected labelled regions, remove small labelled regions, recompute cell tracking graph and relabel labelled regions so as to have consistent mask ids in consecutive frames. Should be done if the mask are manually edited to synchronize cell tracking. It is also advised to do it before saving, to make sure to split disconnected labelled regions.")
         help_label.setWordWrap(True)
         help_label.setMinimumWidth(10)
         layout2.addWidget(help_label, 0, 0, 1, 2)
@@ -1141,7 +1143,7 @@ class CellTrackingWidget(QWidget):
         self.min_area3.setMinimum(1)
         self.min_area3.setMaximum(10000)
         self.min_area3.setValue(int(min_area))
-        self.min_area3.setToolTip('Remove mask regions with area (number of pixels) below this value.')
+        self.min_area3.setToolTip('Remove labelled regions with area (number of pixels) below this value.')
         layout2.addWidget(QLabel("Min area:"), 2, 0)
         layout2.addWidget(self.min_area3, 2, 1)
 
@@ -1160,7 +1162,7 @@ class CellTrackingWidget(QWidget):
 
         # Create a button to relabel mask
         button = QPushButton("Relabel")
-        button.setToolTip('Split disconnected mask regions, recompute cell tracking graph and relabel mask (slow).')
+        button.setToolTip('Split disconnected labelled regions, recompute cell tracking graph and relabel mask (slow).')
         button.clicked.connect(self.relabel)
         layout2.addWidget(button, 5, 0, 1, 2, Qt.AlignCenter)
 
@@ -1505,7 +1507,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
     output_basename: str
         output basename. Output file will be saved as `output_path`/`output_basename`.ome.tif, `output_path`/`output_basename`.graphmlz and `output_path`/`output_basename`.log.
     min_area: int
-        remove mask regions with area (number of pixels) below `min_area`
+        remove labelled regions with area (number of pixels) below `min_area`
     max_delta_frame: int
         number of previous frames to consider when creating the cell tracking graph
     min_overlap_fraction: float
@@ -1639,7 +1641,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
                        nframes_defect=nframes_defect, nframes_stable=nframes_stable,
                        stable_overlap_fraction=stable_overlap_fraction, min_area=min_area, only_missing=False)
 
-            # relabel (to avoid problem with splitted mask regions)
+            # relabel (to avoid problem with splitted labelled regions)
             logger.info("Relabelling mask and graph: max delta frame=%s, min area=%s, min overlap fraction=%s%%", max_delta_frame, min_area, min_overlap_fraction*100)
             split_regions(mask)
             remove_small_regions(mask, min_area)

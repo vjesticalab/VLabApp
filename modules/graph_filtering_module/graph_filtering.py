@@ -178,7 +178,7 @@ class GraphFiltering(QWidget):
         self.filter_n_missing_yn.setCheckable(True)
         self.filter_n_missing_yn.setChecked(False)
         layout3 = QFormLayout()
-        help_label = QLabel("Keep only cell tracks with at most the selected number of missing cell mask.")
+        help_label = QLabel("Keep only cell tracks with at most the selected number of missing cells.")
         help_label.setWordWrap(True)
         help_label.setMinimumWidth(10)
         layout3.addRow(help_label)

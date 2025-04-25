@@ -172,7 +172,7 @@ class ImageMaskGraphViewer(QWidget):
             # mask_FTZYX.flags['WRITEABLE']=True
             mask_layer = viewer_images.add_labels(mask_FTZYX, name="Cell mask")
             viewer_images.dims.axis_labels = ('F', 'T', 'Z', 'Y', 'X')
-            mask_layer.help = "<left-click> to set view"
+            mask_layer.help = "LEFT-CLICK to set view"
             mask_layer.editable = False
 
         if graph_path != '':
@@ -186,7 +186,7 @@ class ImageMaskGraphViewer(QWidget):
             layout = QVBoxLayout()
             groupbox = QGroupBox("Help")
             layout2 = QVBoxLayout()
-            help_label = QLabel("Image viewer (this viewer):\n<left-click> on the Cell mask layer to center the view on the corresponding vertex in the cell tracking graph viewer.\n\nCell tracking graph viewer:\nVertices (squares) correspond to mask regions (mask id) at a given frame. Edges correspond to overlap between mask. Vertices are ordered by time along the horizontal axis (time increases from left to right).\n<left-click> on a vertex to center the view on the corresponding mask in this viewer.")
+            help_label = QLabel("Image viewer (this viewer):\nLEFT-CLICK on the Cell mask layer to center the view on the corresponding vertex in the cell tracking graph viewer.\n\nCell tracking graph viewer:\nVertices (squares) correspond to labelled regions (mask id) at a given frame. Edges correspond to overlap between mask. Vertices are ordered by time along the horizontal axis (time increases from left to right).\nLEFT-CLICK on a vertex to center the view on the corresponding mask in this viewer.")
             help_label.setWordWrap(True)
             help_label.setMinimumWidth(10)
             layout2.addWidget(help_label)

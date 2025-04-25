@@ -83,7 +83,7 @@ def segment_image(image, threshold=20):
     image: ndarray
         a 2D (YX) numpy array.
     threshold: int
-        threshold used for binary segmentation of cell regions (should be in the interval [0,255])
+        threshold used for binary segmentation (should be in the interval [0,255])
     """
 
     # convert to 8 bit

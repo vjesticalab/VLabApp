@@ -33,7 +33,7 @@ class MainWindow(QWidget):
         self.setWindowTitle(title)
 
         self.image = QLabel()
-        self.image.setPixmap(QPixmap("support_files/Vlab_icon_50x50-01.png"))
+        self.image.setPixmap(QPixmap("support_files/logo.png"))
         self.image.setAlignment(Qt.AlignCenter)
 
         self.status_line = QLineEdit()
@@ -218,7 +218,7 @@ if __name__ == "__main__":
     except RuntimeError:
         sys.exit(1)
     app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon('support_files/Vlab_icon_50x50-01.png'))
+    app.setWindowIcon(QIcon('support_files/logo.png'))
     w = MainWindow()
     w.show()
     w.resize(1000, 800)

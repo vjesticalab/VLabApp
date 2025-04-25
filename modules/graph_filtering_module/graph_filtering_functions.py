@@ -356,7 +356,7 @@ class CellTracksFiltering:
             mask_ids = np.unique(g2.vs['mask_id'])
             frame_min = np.min(g2.vs['frame'])
             frame_max = np.max(g2.vs['frame'])
-            # Number of missing mask regions (edges spanning more than 1 frame)
+            # Number of missing labelled regions (edges spanning more than 1 frame)
             n_missing = np.sum(e['frame_target'] - e['frame_source'] - 1 for e in g2.es)
             # Number fusion events with stable neighborhood
             if nframes_stable_fusion > 0:
@@ -460,12 +460,12 @@ class CellTracksFiltering:
 
     def filter_n_missing(self, n):
         """
-        Keep only cell tracks with at most `n` missing cell masks (i.e. edges spanning more than 1 frame).
+        Keep only cell tracks with at most `n` missing cells (i.e. edges spanning more than 1 frame).
 
         Parameters
         ----------
         n: int
-            maximum number of missing cell masks.
+            maximum number of missing cells.
         """
         self.logger.info("filtering number of missing cells (maximum number of missing cells: %s", n)
         self.selected_cell_track_ids = [i for i in self.selected_cell_track_ids if self.cell_tracks[i]['n_missing'] <= n]
@@ -542,7 +542,7 @@ class CellTracksFiltering:
         Returns
         -------
         ndarray
-            filtered cell mask
+            filtered mask
         """
         selected_cell_tracks = [self.cell_tracks[i] for i in self.selected_cell_track_ids]
         self.logger.debug("Selected cell tracks: %s/%s", len(selected_cell_tracks), len(self.cell_tracks))
@@ -614,7 +614,7 @@ class CellTracksFiltering:
 
     def save(self, output_path, output_basename, relabel_mask_ids=True):
         """
-        Save filtered cell tracking graph and cell mask as  `output_path`/`output_basename`.graphmlz and `output_path`/`output_basename`.ome.tif.
+        Save filtered cell tracking graph and mask as  `output_path`/`output_basename`.graphmlz and `output_path`/`output_basename`.ome.tif.
 
         Parameters
         ----------
@@ -779,7 +779,7 @@ class GraphFilteringWidget(QWidget):
         self.filter_n_missing_yn.setChecked(False)
         self.filter_n_missing_yn.toggled.connect(self.filters_changed)
         layout2 = QGridLayout()
-        help_label = QLabel("Keep only cell tracks with at most the selected number of missing cell mask.")
+        help_label = QLabel("Keep only cell tracks with at most the selected number of missing cells.")
         help_label.setWordWrap(True)
         help_label.setMinimumWidth(10)
         layout2.addWidget(help_label, 0, 0, 1, 2)

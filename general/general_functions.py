@@ -1552,7 +1552,7 @@ def evaluate_graph_properties(graph):
         mask_ids = np.unique(g2.vs['mask_id'])
         frame_min = np.min(g2.vs['frame'])
         frame_max = np.max(g2.vs['frame'])
-        # Number of missing mask regions (edges spanning more than 1 frame)
+        # Number of missing labelled regions (edges spanning more than 1 frame)
         n_missing = np.sum([e['frame_target'] - e['frame_source'] - 1 for e in g2.es])
         # Number fusion events with stable neighborhood
         n_fusions = np.sum([1 if v.indegree() > 1 and min(v2['stable_component_size'] for v2 in v.neighbors()) >= 1 else 0 for v in g2.vs])
