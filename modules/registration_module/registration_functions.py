@@ -500,6 +500,7 @@ def register_stack_phase_correlation(image, blur=5):
         prev = cv.normalize(image[0], None, 0, 1, cv.NORM_MINMAX, dtype=cv.CV_32F)
 
     for i in range(1, image.shape[0]):
+        logging.getLogger(__name__).debug("Evaluating transformation matrix (%s/%s)", i, image.shape[0]-1)
         if blur > 1:
             curr = cv.GaussianBlur(cv.normalize(image[i], None, 0, 1, cv.NORM_MINMAX, dtype=cv.CV_32F), (blur, blur), 0)
         else:
@@ -597,6 +598,7 @@ def register_stack_feature_matching(image, feature_type="ORB", blur=0, seed=7624
         prev = cv.normalize(image[0], None, 0, np.iinfo('uint8').max, cv.NORM_MINMAX, dtype=cv.CV_8U)
 
     for i in range(1, image.shape[0]):
+        logging.getLogger(__name__).debug("Evaluating transformation matrix (%s/%s)", i, image.shape[0]-1)
         if blur > 1:
             curr = cv.GaussianBlur(cv.normalize(image[i], None, 0, np.iinfo('uint8').max, cv.NORM_MINMAX, dtype=cv.CV_8U), (blur, blur), 0)
         else:
