@@ -7,8 +7,6 @@ Automating cellular image analysis
 
 ## About The Project
 
-<div align="center"><img src="support_files/Screenshot.png" alt="Logo" width="600"></div>
-
 The VLabApp is created with the aim of automating the cellular image analysis process, from the recording of the movies that come out of the microscope, to the tracking of the events within each time frame.
 
 The application is divided into several modules that can be used consecutively and/or independently:
