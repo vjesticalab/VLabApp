@@ -176,7 +176,8 @@ class Segmentation(QWidget):
         self.use_gpu.toggled.connect(nprocesses_label.setDisabled)
         self.use_gpu.toggled.connect(self.update_coarse_grain_status)
         self.use_gpu.toggled.connect(self.nprocesses.setDisabled)
-        self.use_gpu.setChecked(torch.cuda.is_available())
+        if self.use_gpu.isEnabled():
+            self.use_gpu.setChecked(torch.cuda.is_available())
 
         self.display_results = QCheckBox("Show results in napari")
         self.display_results.setChecked(False)
@@ -417,7 +418,8 @@ class Segmentation(QWidget):
         self.projection_mode_fixed_zmax.setValue(widgets_state['projection_mode_fixed_zmax'])
         self.projection_mode_all.setChecked(widgets_state['projection_mode_all'])
         self.projection_type.setCurrentText(widgets_state['projection_type'])
-        self.use_gpu.setChecked(widgets_state['use_gpu'])
+        if self.use_gpu.isEnabled():
+            self.use_gpu.setChecked(widgets_state['use_gpu'])
         self.coarse_grain.setChecked(widgets_state['coarse_grain'])
         self.nprocesses.setValue(widgets_state['nprocesses'])
         self.display_results.setChecked(widgets_state['display_results'])

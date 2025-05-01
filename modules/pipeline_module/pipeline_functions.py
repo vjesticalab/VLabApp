@@ -470,7 +470,8 @@ class GeneralSettings(QWidget):
 
     def set_widgets_state(self, widgets_state):
         self.set_input_type(widgets_state['input_type'])
-        self.use_gpu.setChecked(widgets_state['use_gpu'])
+        if self.use_gpu.isEnabled():
+            self.use_gpu.setChecked(widgets_state['use_gpu'])
         self.nprocesses.setValue(widgets_state['nprocesses'])
         self.coarse_grain.setChecked(widgets_state['coarse_grain'])
         self.use_input_folder.setChecked(widgets_state['use_input_folder'])
