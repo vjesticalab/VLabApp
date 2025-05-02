@@ -4,7 +4,8 @@ import sys
 import concurrent
 import time
 import numpy as np
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QAbstractItemView, QAction, QListView, QSizePolicy, QGroupBox, QApplication, QFileDialog
+from packaging.version import Version, InvalidVersion
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QAbstractItemView, QAction, QListView, QSizePolicy, QGroupBox, QApplication, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt, QEvent, QSettings
 from PyQt5.QtGui import QKeySequence, QStandardItem, QBrush, QColor, QCursor
 from modules.pipeline_module import pipeline_functions as f
@@ -314,7 +315,14 @@ class Pipeline(QWidget):
         if file_path != '' and os.path.exists(file_path):
             settings = QSettings(file_path, QSettings.IniFormat)
             version = settings.value('version')
-            # TODO: check version compatibility
+            try:
+                if Version(version) <= Version('2.3.0'):
+                    QMessageBox.warning(None, 'Unsupported file version', f"The file you are trying to load was created with an older version of VLabApp (version {version}).\nFiles created with VLabApp version 2.3.0 or earlier are not supported.", buttons=QMessageBox.Ok)
+                    return
+            except InvalidVersion:
+                QMessageBox.warning(None, 'Unsupported file version', f"The file you are trying to load was created with an older version of VLabApp.\nFiles created with VLabApp version 2.3.0 or earlier are not supported.", buttons=QMessageBox.Ok)
+                return
+
             module_count = settings.value('module_count', type=int)
 
             # remove all modules from self.pipeline_modules_list
