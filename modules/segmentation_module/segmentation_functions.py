@@ -282,7 +282,7 @@ def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_pa
         else:
             pbr = None
 
-        #limit number of theads used by torch on CPU
+        # limit number of theads used by torch on CPU
         set_num_threads(1)
 
         if segmentation_method == "cellpose":

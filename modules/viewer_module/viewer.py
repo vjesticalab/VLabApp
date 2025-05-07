@@ -1,7 +1,7 @@
 import os
 import re
 import logging
-from PyQt5.QtWidgets import QFileDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QScrollArea, QGroupBox, QTextEdit
+from PyQt5.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget, QScrollArea, QGroupBox, QTextEdit
 from PyQt5.QtCore import Qt
 from general import general_functions as gf
 import napari

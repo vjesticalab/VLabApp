@@ -325,7 +325,7 @@ class CellTracksFiltering:
 
         # Flag edges as stable if source vertex has a unique outgoing edge and target vertex has a unique incoming edge
         self.graph.es['stable'] = False
-        self.graph.es.select(lambda edge: abs(edge['frame_source']-edge['frame_target']) == 1 and edge['mask_id_source'] == edge['mask_id_target'] and self.graph.outdegree(edge.source) == 1 and self.graph.indegree(edge.target) == 1)['stable']=True
+        self.graph.es.select(lambda edge: abs(edge['frame_source']-edge['frame_target']) == 1 and edge['mask_id_source'] == edge['mask_id_target'] and self.graph.outdegree(edge.source) == 1 and self.graph.indegree(edge.target) == 1)['stable'] = True
         # Flag edge with low overlap as unstable
         self.graph.es.select(overlap_fraction_source_lt=stable_overlap_fraction)['stable'] = False
         self.graph.es.select(overlap_fraction_target_lt=stable_overlap_fraction)['stable'] = False

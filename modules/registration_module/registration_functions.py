@@ -79,7 +79,7 @@ class EditTransformationMatrix(QWidget):
         self.other_axis_indices = np.setdiff1d(range(viewer.dims.ndim), [self.T_axis_index, self.Y_axis_index, self.X_axis_index])
 
         # 3 columns: T, Y, X
-        points_TYX = np.column_stack((np.arange(self.tmat.shape[0]), self.tmat[:, (5,4)]))
+        points_TYX = np.column_stack((np.arange(self.tmat.shape[0]), self.tmat[:, (5, 4)]))
         # center
         shifty = np.round((points_TYX[:, 1].min() + points_TYX[:, 1].max()) / 2 - (self.viewer.dims.range[self.Y_axis_index][1]+1) / 2)
         shiftx = np.round((points_TYX[:, 2].min() + points_TYX[:, 2].max()) / 2 - (self.viewer.dims.range[self.X_axis_index][1]+1) / 2)
@@ -195,10 +195,10 @@ class EditTransformationMatrix(QWidget):
                             sel = np.round(self.layer_points.data[:, self.T_axis_index]) >= np.round(current_frame)
                         self.layer_points.data[sel,] = self.layer_points.data[sel,] + delta
                         self.update_tmat()
-                        #update point color
-                        modified_frames = (np.abs(self.tmat_saved_version[:,(4,5)]-self.tmat[:,(4,5)])>0.0001).all(axis=1).nonzero()
-                        layer.border_color[:,0:3] = self.point_color_default
-                        layer.border_color[np.isin(layer.data[:, self.T_axis_index],modified_frames),0:3] = self.point_color_modified
+                        # update point color
+                        modified_frames = (np.abs(self.tmat_saved_version[:, (4, 5)]-self.tmat[:, (4, 5)]) > 0.0001).all(axis=1).nonzero()
+                        layer.border_color[:, 0:3] = self.point_color_default
+                        layer.border_color[np.isin(layer.data[:, self.T_axis_index], modified_frames), 0:3] = self.point_color_modified
 
                         layer.refresh()
 
@@ -254,8 +254,8 @@ class EditTransformationMatrix(QWidget):
         self.start_frame.setMaximum(self.end_frame.value())
         self.end_frame.setMinimum(self.start_frame.value())
         # adjust point transparency
-        self.layer_points.border_color[:,3] = self.point_alpha_inactive
-        self.layer_points.border_color[(self.start_frame.value() <= self.layer_points.data[:, self.T_axis_index]) & (self.layer_points.data[:, self.T_axis_index] <= self.end_frame.value()),3] = self.point_alpha_active
+        self.layer_points.border_color[:, 3] = self.point_alpha_inactive
+        self.layer_points.border_color[(self.start_frame.value() <= self.layer_points.data[:, self.T_axis_index]) & (self.layer_points.data[:, self.T_axis_index] <= self.end_frame.value()), 3] = self.point_alpha_active
         self.update_tmat()
         self.layer_points.refresh()
 
@@ -278,8 +278,8 @@ class EditTransformationMatrix(QWidget):
                 header += x
             np.savetxt(filename, self.tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
             self.tmat_saved_version = self.tmat.copy()
-            #update point color
-            self.layer_points.border_color[:,0:3] = self.point_color_default
+            # update point color
+            self.layer_points.border_color[:, 0:3] = self.point_color_default
             self.layer_points.refresh()
 
     def __del__(self):
@@ -689,8 +689,8 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
                     registered_image[0, timepoint, c, z, :, :] = np.roll(image6D[0, timepoint, c, z, :, :], xyShift, axis=(1, 0))
 
     if skip_crop:
-        t_start = np.nonzero(tmat_int[:,3])[0].min()
-        t_end = np.nonzero(tmat_int[:,3])[0].max() + 1
+        t_start = np.nonzero(tmat_int[:, 3])[0].min()
+        t_end = np.nonzero(tmat_int[:, 3])[0].max() + 1
         registered_image = registered_image[:, t_start:t_end, :, :, :, :]
         # Save the registered and un-cropped image
         logging.getLogger(__name__).info('Saving transformed image to %s', registeredFilepath)
@@ -710,8 +710,8 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
         y_end = image.sizes['Y'] - max(d[2] for d in tmat_int if d[3] == 1)
         x_start = 0 - min([d[1] for d in tmat_int if d[3] == 1])
         x_end = image.sizes['X'] - max(d[1] for d in tmat_int if d[3] == 1)
-        t_start = np.nonzero(tmat_int[:,3])[0].min()
-        t_end = np.nonzero(tmat_int[:,3])[0].max() + 1
+        t_start = np.nonzero(tmat_int[:, 3])[0].min()
+        t_end = np.nonzero(tmat_int[:, 3])[0].max() + 1
 
         # Crop along the y-axis
         image_cropped = registered_image[:, t_start:t_end, :, :, y_start:y_end, x_start:x_end]
@@ -874,7 +874,7 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
 ################################################################
 
 
-def registration_main(image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, registration_method, coalign_image_paths=None , coalign_output_basenames=None):
+def registration_main(image_path, output_path, output_basename, channel_position, projection_type, projection_zrange, timepoint_range, skip_crop_decision, registration_method, coalign_image_paths=None, coalign_output_basenames=None):
 
     try:
         # Setup logging to file in output_path
@@ -967,8 +967,6 @@ def registration_main(image_path, output_path, output_basename, channel_position
             for coalign_image_path, coalign_output_basename in zip(coalign_image_paths, coalign_output_basenames):
                 logger.info("Co-aligning image: %s", image_path)
                 alignment_main(coalign_image_path, tmat_path, output_path, coalign_output_basename, skip_crop_decision)
-
-
 
     except Exception:
         # Remove all handlers for this module
@@ -1135,7 +1133,6 @@ def edit_main(reference_matrix_path, range_start, range_end):
         raise
 
 
-
 ################################################################
 
 
@@ -1227,4 +1224,3 @@ def manual_edit_main(image_path, matrix_path):
         except:
             pass
         raise
-

@@ -262,10 +262,10 @@ class MaskGraphConversion(QWidget):
             for future in concurrent.futures.as_completed(future_reg):
                 try:
                     future.result()
-                    status_dialog.set_status(future_reg[future],'Success')
+                    status_dialog.set_status(future_reg[future], 'Success')
                 except Exception as e:
                     self.logger.exception("An exception occurred")
-                    status_dialog.set_status(future_reg[future],'Failed',str(e))
+                    status_dialog.set_status(future_reg[future], 'Failed', str(e))
                 QApplication.processEvents()
                 time.sleep(0.01)
 
@@ -649,10 +649,10 @@ class ImageMaskConversion(QWidget):
             for future in concurrent.futures.as_completed(future_reg):
                 try:
                     future.result()
-                    status_dialog.set_status(future_reg[future],'Success')
+                    status_dialog.set_status(future_reg[future], 'Success')
                 except Exception as e:
                     self.logger.exception("An exception occurred")
-                    status_dialog.set_status(future_reg[future],'Failed',str(e))
+                    status_dialog.set_status(future_reg[future], 'Failed', str(e))
                 QApplication.processEvents()
                 time.sleep(0.01)
 

@@ -2,7 +2,7 @@ import logging
 import os
 import re
 import shutil
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QFileDialog, QLabel, QFormLayout, QLineEdit, QCheckBox, QDialog, QDialogButtonBox, QTableWidget, QAbstractItemView, QTableWidgetItem, QHeaderView, QListWidget, QListWidgetItem, QMessageBox
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QLabel, QFormLayout, QLineEdit, QCheckBox, QDialog, QDialogButtonBox, QTableWidget, QAbstractItemView, QTableWidgetItem, QHeaderView, QListWidget, QListWidgetItem, QMessageBox
 from PyQt5.QtCore import Qt
 from general import general_functions as gf
 
@@ -230,7 +230,6 @@ class FileOrganization(QWidget):
         layout2.addStretch()
         layout.addLayout(layout2)
 
-
         self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
@@ -256,7 +255,7 @@ class FileOrganization(QWidget):
         except Exception:
             self.logger.exception("Error")
 
-    def export(self, move = False):
+    def export(self, move=False):
         if move:
             self.logger.info('Moving files')
         else:

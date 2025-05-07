@@ -5,9 +5,8 @@ import time
 import logging
 import concurrent.futures
 from PyQt5.QtCore import Qt, QRegularExpression
-from PyQt5.QtWidgets import QCheckBox, QComboBox, QFormLayout, QPushButton, QVBoxLayout, QWidget, QGridLayout, QLabel, QLineEdit, QHBoxLayout, QApplication, QSpinBox, QRadioButton, QGroupBox, QFileDialog
-from PyQt5.QtGui import QCursor, QIntValidator, QRegularExpressionValidator
-import numpy as np
+from PyQt5.QtWidgets import QCheckBox, QComboBox, QFormLayout, QPushButton, QVBoxLayout, QWidget, QLabel, QLineEdit, QHBoxLayout, QApplication, QSpinBox, QRadioButton, QGroupBox
+from PyQt5.QtGui import QCursor, QRegularExpressionValidator
 from modules.registration_module import registration_functions as f
 from general import general_functions as gf
 
@@ -724,7 +723,6 @@ class Edit(QWidget):
         self.nprocesses.setMinimum(1)
         self.nprocesses.setMaximum(os.cpu_count())
         self.nprocesses.setValue(1)
-
 
         # Layout
         layout = QVBoxLayout()

@@ -553,10 +553,10 @@ class Segmentation(QWidget):
             for i, args in enumerate(arguments):
                 try:
                     f.main(*args, run_parallel=run_parallel)
-                    status_dialog.set_status(i,'Success')
+                    status_dialog.set_status(i, 'Success')
                 except Exception as e:
                     self.logger.exception("Segmentation failed")
-                    status_dialog.set_status(i,'Failed',str(e))
+                    status_dialog.set_status(i, 'Failed', str(e))
                     hide_status_dialog = False
                 QApplication.processEvents()
                 time.sleep(0.01)
@@ -569,10 +569,10 @@ class Segmentation(QWidget):
                 for future in concurrent.futures.as_completed(future_reg):
                     try:
                         future.result()
-                        status_dialog.set_status(future_reg[future],'Success')
+                        status_dialog.set_status(future_reg[future], 'Success')
                     except Exception as e:
                         self.logger.exception("Segmentation failed")
-                        status_dialog.set_status(future_reg[future],'Failed',str(e))
+                        status_dialog.set_status(future_reg[future], 'Failed', str(e))
                     QApplication.processEvents()
                     time.sleep(0.01)
 

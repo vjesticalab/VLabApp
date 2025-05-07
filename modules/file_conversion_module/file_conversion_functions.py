@@ -502,7 +502,7 @@ def convert_image_mask_to_lossy_preview(image_path, output_path, output_basename
     ###########################
     # Prepare image
     ###########################
-    if output_format == 'jpg' and image.sizes['T']>1:
+    if output_format == 'jpg' and image.sizes['T'] > 1:
         logger.info('Preparing image: keeping only first frame')
         # keep only first time frame
         image.crop('T', 0, 1)

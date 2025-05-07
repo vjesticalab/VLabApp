@@ -1,6 +1,6 @@
 import os
 import logging
-from PyQt5.QtWidgets import QVBoxLayout, QRadioButton, QGroupBox, QHBoxLayout, QFileDialog, QPushButton, QWidget, QLineEdit, QLabel, QFormLayout, QMessageBox
+from PyQt5.QtWidgets import QVBoxLayout, QRadioButton, QGroupBox, QHBoxLayout, QPushButton, QWidget, QLineEdit, QLabel, QFormLayout, QMessageBox
 from PyQt5.QtCore import Qt, QRegularExpression
 from PyQt5.QtGui import QRegularExpressionValidator
 from modules.ground_truth_generator_module import ground_truth_generator_functions as f
@@ -20,7 +20,6 @@ class GroundTruthGenerator(QWidget):
                                     + 'Input segmentation mask must have X and Y axes and can optionally have T axis. It must have same X, Y and T axes sizes as the bright-field image.<br>' +
                                     '<br>' +
                                     'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'ground_truth_generator_module', 'reference.html') + '">Documentation</a>')
-
 
         # Input widgets
         self.input_image_BF = gf.FileLineEdit(label='Images', filetypes=gf.imagetypes)
@@ -74,7 +73,7 @@ class GroundTruthGenerator(QWidget):
         layout2.addWidget(self.input_image_fluo1)
         layout2.addWidget(QLabel("Fluorescent image with cell marker 2 (optional):"))
         layout2.addWidget(self.input_image_fluo2)
-        collapsible = gf.CollapsibleWidget("",collapsed_icon="▶ [show more]", expanded_icon="▼ [hide]", expanded=False)
+        collapsible = gf.CollapsibleWidget("", collapsed_icon="▶ [show more]", expanded_icon="▼ [hide]", expanded=False)
         layout3 = QVBoxLayout()
         collapsible.content.setLayout(layout3)
         layout3.addWidget(QLabel("Segmentation mask (optional):"))

@@ -257,17 +257,17 @@ class StatusTableDialog(QDialog):
         self.setLayout(layout)
 
     def set_status(self, row, status, error_message=''):
-        self.table.item(row,0).setText(status)
-        self.table.item(row,0).setToolTip(error_message)
+        self.table.item(row, 0).setText(status)
+        self.table.item(row, 0).setToolTip(error_message)
         if status == 'Success':
-            self.table.item(row,0).setBackground(QBrush(QColor('#00ff00')))
-            self.table.item(row,0).setForeground(QBrush(QColor('#000000')))
+            self.table.item(row, 0).setBackground(QBrush(QColor('#00ff00')))
+            self.table.item(row, 0).setForeground(QBrush(QColor('#000000')))
         elif status == 'Failed':
-            self.table.item(row,0).setBackground(QBrush(QColor('#ff0000')))
-            self.table.item(row,0).setForeground(QBrush(QColor('#000000')))
+            self.table.item(row, 0).setBackground(QBrush(QColor('#ff0000')))
+            self.table.item(row, 0).setForeground(QBrush(QColor('#000000')))
         else:
-            self.table.item(row,0).setBackground(self.table.palette().base())
-            self.table.item(row,0).setForeground(self.table.palette().text())
+            self.table.item(row, 0).setBackground(self.table.palette().base())
+            self.table.item(row, 0).setForeground(self.table.palette().text())
 
     def keyPressEvent(self, event):
         # to disable reject() with escape key
@@ -880,7 +880,7 @@ class DropFoldersListWidget(QListWidget):
 
     def add_folders(self, foldernames):
         foldernames = self.filter_folders_callback(foldernames)
-        self.addItems([os.path.join(os.path.normpath(d),'') for d in foldernames])
+        self.addItems([os.path.join(os.path.normpath(d), '') for d in foldernames])
 
 
 class FolderListWidget(QWidget):
@@ -957,7 +957,7 @@ class FolderListWidget(QWidget):
     def filter_folders(self, foldernames):
         filtered_foldernames = []
         for folder_path in foldernames:
-            folder_path = os.path.join(os.path.normpath(folder_path),'')
+            folder_path = os.path.join(os.path.normpath(folder_path), '')
             if self.filter_name.text() in os.path.basename(os.path.normpath(folder_path)):
                 if self.filter_name_exclude.text() == '' or self.filter_name_exclude.text() not in os.path.basename(os.path.normpath(folder_path)):
                     if os.path.isdir(folder_path):
@@ -972,7 +972,7 @@ class FolderListWidget(QWidget):
     def set_folder_list(self, folders):
         self.folder_list.clear()
         for f in folders:
-            self.folder_list.addItem(os.path.join(os.path.normpath(f),''))
+            self.folder_list.addItem(os.path.join(os.path.normpath(f), ''))
 
 
 class DropFileLineEdit(QLineEdit):
@@ -1496,7 +1496,7 @@ class Image:
         self.image = self.image[tuple(slices)]
         self.shape = self.image.shape
         for i, a in enumerate(self._axes):
-             self.sizes[a] = self.shape[i]
+            self.sizes[a] = self.shape[i]
         if axis == 'C':
             self.channel_names = self.channel_names[start:end]
 

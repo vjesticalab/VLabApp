@@ -3,7 +3,7 @@ import sys
 import time
 import concurrent.futures
 import logging
-from PyQt5.QtWidgets import QFileDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QLineEdit
+from PyQt5.QtWidgets import QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QLineEdit
 from PyQt5.QtCore import Qt, QRegularExpression
 from PyQt5.QtGui import QCursor, QRegularExpressionValidator
 from modules.cell_tracking_module import cell_tracking_functions as f

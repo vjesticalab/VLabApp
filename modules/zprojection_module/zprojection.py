@@ -3,7 +3,7 @@ import os
 import sys
 import time
 import concurrent.futures
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QFileDialog, QComboBox, QSpinBox, QLabel, QFormLayout, QLineEdit
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QComboBox, QSpinBox, QLabel, QFormLayout, QLineEdit
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.zprojection_module import zprojection_functions as f

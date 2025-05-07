@@ -653,7 +653,7 @@ def main(image_path, output_path, output_basename, T_range, C_range, Z_range, Y_
         crop_Y = Y_range is not None
         crop_X = X_range is not None
         if crop_T:
-            if T_range[1]<0 or T_range[0]>=image.sizes['T']:
+            if T_range[1] < 0 or T_range[0] >= image.sizes['T']:
                 logger.error('Invalid T axis cropping range (axis length: %s, cropping range: from %s to %s)', image.sizes['T'], T_range[0], T_range[1])
                 # Remove all handlers for this module
                 remove_all_log_handlers()
@@ -664,7 +664,7 @@ def main(image_path, output_path, output_basename, T_range, C_range, Z_range, Y_
         else:
             T_range = (0, image.sizes['T']-1)
         if crop_C:
-            if C_range[1]<0 or C_range[0]>=image.sizes['C']:
+            if C_range[1] < 0 or C_range[0] >= image.sizes['C']:
                 logger.error('Invalid C axis cropping range (axis length: %s, cropping range: from %s to %s)', image.sizes['C'], C_range[0], C_range[1])
                 # Remove all handlers for this module
                 remove_all_log_handlers()
@@ -675,7 +675,7 @@ def main(image_path, output_path, output_basename, T_range, C_range, Z_range, Y_
         else:
             C_range = (0, image.sizes['C']-1)
         if crop_Z:
-            if Z_range[1]<0 or Z_range[0]>=image.sizes['Z']:
+            if Z_range[1] < 0 or Z_range[0] >= image.sizes['Z']:
                 logger.error('Invalid Z axis cropping range (axis length: %s, cropping range: from %s to %s)', image.sizes['Z'], Z_range[0], Z_range[1])
                 # Remove all handlers for this module
                 remove_all_log_handlers()
@@ -686,7 +686,7 @@ def main(image_path, output_path, output_basename, T_range, C_range, Z_range, Y_
         else:
             Z_range = (0, image.sizes['Z']-1)
         if crop_Y:
-            if Y_range[1]<0 or Y_range[0]>=image.sizes['Y']:
+            if Y_range[1] < 0 or Y_range[0] >= image.sizes['Y']:
                 logger.error('Invalid Y axis cropping range (axis length: %s, cropping range: from %s to %s)', image.sizes['Y'], Y_range[0], Y_range[1])
                 # Remove all handlers for this module
                 remove_all_log_handlers()
@@ -697,7 +697,7 @@ def main(image_path, output_path, output_basename, T_range, C_range, Z_range, Y_
         else:
             Y_range = (0, image.sizes['Y']-1)
         if crop_X:
-            if X_range[1]<0 or X_range[0]>=image.sizes['X']:
+            if X_range[1] < 0 or X_range[0] >= image.sizes['X']:
                 logger.error('Invalid X axis cropping range (axis length: %s, cropping range: from %s to %s)', image.sizes['X'], X_range[0], X_range[1])
                 # Remove all handlers for this module
                 remove_all_log_handlers()

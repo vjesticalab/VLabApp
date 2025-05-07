@@ -320,7 +320,7 @@ class Pipeline(QWidget):
                     QMessageBox.warning(None, 'Unsupported file version', f"The file you are trying to load was created with an older version of VLabApp (version {version}).\nFiles created with VLabApp version 2.3.0 or earlier are not supported.", buttons=QMessageBox.Ok)
                     return
             except InvalidVersion:
-                QMessageBox.warning(None, 'Unsupported file version', f"The file you are trying to load was created with an older version of VLabApp.\nFiles created with VLabApp version 2.3.0 or earlier are not supported.", buttons=QMessageBox.Ok)
+                QMessageBox.warning(None, 'Unsupported file version', 'The file you are trying to load was created with an older version of VLabApp.\nFiles created with VLabApp version 2.3.0 or earlier are not supported.', buttons=QMessageBox.Ok)
                 return
 
             module_count = settings.value('module_count', type=int)

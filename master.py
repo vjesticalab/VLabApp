@@ -165,7 +165,7 @@ class MainWindow(QWidget):
         layout = QHBoxLayout()
         layout.addWidget(self.status_line)
 
-        shortcut_quit = QShortcut(QKeySequence.Quit,self)
+        shortcut_quit = QShortcut(QKeySequence.Quit, self)
         shortcut_quit.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         shortcut_quit.activated.connect(QApplication.quit)
 

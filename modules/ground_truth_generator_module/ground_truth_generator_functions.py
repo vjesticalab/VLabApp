@@ -105,7 +105,7 @@ def segment_image(image, threshold=20):
     # Extract contours
     contours, _ = cv.findContours(image=image, mode=cv.RETR_EXTERNAL, method=cv.CHAIN_APPROX_NONE)
     # filter out small contours
-    contours = [holder for holder in contours if cv.contourArea(holder)>1000]
+    contours = [holder for holder in contours if cv.contourArea(holder) > 1000]
 
     # Dilate-Erode individual contours
     mask = np.zeros(image.shape, dtype='uint16')

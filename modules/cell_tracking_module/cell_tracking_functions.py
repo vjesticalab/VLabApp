@@ -717,7 +717,7 @@ class CellTrackingGraph:
         # Search for stable portions of the graph (vertices connected only to vertices in consecutive frames with same mask_id)
         # Flag edges as stable if source vertex has a unique outgoing edge and target vertex has a unique incoming edge
         g.es['stable'] = False
-        g.es.select(lambda edge: abs(g.vs[edge.source]['frame']-g.vs[edge.target]['frame']) == 1 and g.vs[edge.source]['mask_id'] == g.vs[edge.target]['mask_id'] and g.outdegree(edge.source) == 1 and g.indegree(edge.target) == 1)['stable']=True
+        g.es.select(lambda edge: abs(g.vs[edge.source]['frame']-g.vs[edge.target]['frame']) == 1 and g.vs[edge.source]['mask_id'] == g.vs[edge.target]['mask_id'] and g.outdegree(edge.source) == 1 and g.indegree(edge.target) == 1)['stable'] = True
         # Flag edge with low overlap as unstable
         g.es.select(overlap_fraction_source_lt=stable_overlap_fraction)['stable'] = False
         g.es.select(overlap_fraction_target_lt=stable_overlap_fraction)['stable'] = False

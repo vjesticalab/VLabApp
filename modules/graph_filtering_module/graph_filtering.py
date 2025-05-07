@@ -4,7 +4,7 @@ import time
 import concurrent.futures
 import logging
 import igraph as ig
-from PyQt5.QtWidgets import QFileDialog, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QLabel, QFormLayout, QSpinBox, QCheckBox, QSizePolicy, QLineEdit
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QLabel, QFormLayout, QSpinBox, QCheckBox, QSizePolicy, QLineEdit
 from PyQt5.QtCore import Qt, QRegularExpression
 from PyQt5.QtGui import QCursor, QRegularExpressionValidator
 from modules.graph_filtering_module import graph_filtering_functions as f
@@ -547,10 +547,10 @@ class GraphFiltering(QWidget):
             for i, args in enumerate(arguments):
                 try:
                     f.main(*args)
-                    status_dialog.set_status(i,'Success')
+                    status_dialog.set_status(i, 'Success')
                 except Exception as e:
                     self.logger.exception("An exception occurred")
-                    status_dialog.set_status(i,'Failed',str(e))
+                    status_dialog.set_status(i, 'Failed', str(e))
                     hide_status_dialog = False
                 QApplication.processEvents()
                 time.sleep(0.01)
@@ -562,10 +562,10 @@ class GraphFiltering(QWidget):
                 for future in concurrent.futures.as_completed(future_reg):
                     try:
                         future.result()
-                        status_dialog.set_status(future_reg[future],'Success')
+                        status_dialog.set_status(future_reg[future], 'Success')
                     except Exception as e:
                         self.logger.exception("An exception occurred")
-                        status_dialog.set_status(future_reg[future],'Failed',str(e))
+                        status_dialog.set_status(future_reg[future], 'Failed', str(e))
                     QApplication.processEvents()
                     time.sleep(0.01)
 
