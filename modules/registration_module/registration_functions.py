@@ -63,9 +63,9 @@ class EditTransformationMatrix(QWidget):
         self.viewer = viewer
         self.input_filename = input_filename
         self.read_only = read_only
-        self.tmat, self.tmat_metadata = read_transfMat(input_filename)
+        self.tmat, self.tmat_metadata = read_transformation_matrix(input_filename)
         self.tmat_saved_version = self.tmat.copy()
-        tmat_active_frames = np.nonzero(self.tmat[:, 3])[0]
+        tmat_active_frames = np.nonzero(self.tmat[:, 2])[0]
         if len(tmat_active_frames) > 0:
             tmat_start = tmat_active_frames.min()
             tmat_end = tmat_active_frames.max()
@@ -79,7 +79,7 @@ class EditTransformationMatrix(QWidget):
         self.other_axis_indices = np.setdiff1d(range(viewer.dims.ndim), [self.T_axis_index, self.Y_axis_index, self.X_axis_index])
 
         # 3 columns: T, Y, X
-        points_TYX = np.column_stack((np.arange(self.tmat.shape[0]), self.tmat[:, (5, 4)]))
+        points_TYX = np.column_stack((np.arange(self.tmat.shape[0]), self.tmat[:, (4, 3)]))
         # center
         shifty = np.round((points_TYX[:, 1].min() + points_TYX[:, 1].max()) / 2 - (self.viewer.dims.range[self.Y_axis_index][1]+1) / 2)
         shiftx = np.round((points_TYX[:, 2].min() + points_TYX[:, 2].max()) / 2 - (self.viewer.dims.range[self.X_axis_index][1]+1) / 2)
@@ -196,7 +196,7 @@ class EditTransformationMatrix(QWidget):
                         self.layer_points.data[sel,] = self.layer_points.data[sel,] + delta
                         self.update_tmat()
                         # update point color
-                        modified_frames = (np.abs(self.tmat_saved_version[:, (4, 5)]-self.tmat[:, (4, 5)]) > 0.0001).all(axis=1).nonzero()
+                        modified_frames = (np.abs(self.tmat_saved_version[:, (3, 4)]-self.tmat[:, (3, 4)]) > 0.0001).all(axis=1).nonzero()
                         layer.border_color[:, 0:3] = self.point_color_default
                         layer.border_color[np.isin(layer.data[:, self.T_axis_index], modified_frames), 0:3] = self.point_color_modified
 
@@ -217,8 +217,8 @@ class EditTransformationMatrix(QWidget):
                 if self.shift_view.isChecked():
                     last_frame = self.dims_last_step[self.T_axis_index]
                     current_frame = self.viewer.dims.current_step[self.T_axis_index]
-                    dx = self.tmat[current_frame, 4] - self.tmat[last_frame, 4]
-                    dy = self.tmat[current_frame, 5] - self.tmat[last_frame, 5]
+                    dx = self.tmat[current_frame, 3] - self.tmat[last_frame, 3]
+                    dy = self.tmat[current_frame, 4] - self.tmat[last_frame, 4]
                     self.viewer.camera.center = (0, self.viewer.camera.center[1]+dy, self.viewer.camera.center[2]+dx)
                 self.dims_last_step = self.viewer.dims.current_step
         except IndexError:
@@ -233,21 +233,21 @@ class EditTransformationMatrix(QWidget):
         rows_to_keep = (self.layer_points.data[:, column_mask] == min_values).all(axis=1)
         data_subset = self.layer_points.data[rows_to_keep]
 
-        self.tmat[:, 3] = 0
-        self.tmat[self.start_frame.value():self.end_frame.value() + 1, 3] = 1
+        self.tmat[:, 2] = 0
+        self.tmat[self.start_frame.value():self.end_frame.value() + 1, 2] = 1
         # raw transformation
-        self.tmat[:, 4] = data_subset[:, self.X_axis_index]
-        self.tmat[:, 5] = data_subset[:, self.Y_axis_index]
+        self.tmat[:, 3] = data_subset[:, self.X_axis_index]
+        self.tmat[:, 4] = data_subset[:, self.Y_axis_index]
+        self.tmat[:, 3] = self.tmat[:, 3] - self.tmat[0, 3]
         self.tmat[:, 4] = self.tmat[:, 4] - self.tmat[0, 4]
-        self.tmat[:, 5] = self.tmat[:, 5] - self.tmat[0, 5]
         # final transformation
+        self.tmat[:, 0] = self.tmat[:, 3] - self.tmat[self.start_frame.value(), 3]
         self.tmat[:, 1] = self.tmat[:, 4] - self.tmat[self.start_frame.value(), 4]
-        self.tmat[:, 2] = self.tmat[:, 5] - self.tmat[self.start_frame.value(), 5]
+        self.tmat[:self.start_frame.value(), 0] = self.tmat[self.start_frame.value(), 0]
         self.tmat[:self.start_frame.value(), 1] = self.tmat[self.start_frame.value(), 1]
-        self.tmat[:self.start_frame.value(), 2] = self.tmat[self.start_frame.value(), 2]
         if self.end_frame.value() < self.tmat.shape[0]:
+            self.tmat[self.end_frame.value():, 0] = self.tmat[self.end_frame.value(), 0]
             self.tmat[self.end_frame.value():, 1] = self.tmat[self.end_frame.value(), 1]
-            self.tmat[self.end_frame.value():, 2] = self.tmat[self.end_frame.value(), 2]
         self.tmat_changed.emit(self.tmat)
 
     def time_range_changed(self):
@@ -276,7 +276,15 @@ class EditTransformationMatrix(QWidget):
             header = buffered_handler.get_messages()
             for x in self.tmat_metadata:
                 header += x
-            np.savetxt(filename, self.tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
+            # for backward compatibility, add columns timepoint, image width and height
+            nframes = self.viewer.layers[0].data.shape[self.T_axis_index]
+            width = self.viewer.layers[0].data.shape[self.X_axis_index]
+            height = self.viewer.layers[0].data.shape[self.Y_axis_index]
+            tmat = np.column_stack((np.arange(1, nframes+1),
+                                    self.tmat.copy(),
+                                    np.repeat(width, nframes),
+                                    np.repeat(height, nframes)))
+            np.savetxt(filename, tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
             self.tmat_saved_version = self.tmat.copy()
             # update point color
             self.layer_points.border_color[:, 0:3] = self.point_color_default
@@ -311,10 +319,10 @@ class PlotTransformation(QWidget):
         self.ax.set(xlabel='Frame', ylabel='Transformation (offset)')
         x = np.arange(0, tmat.shape[0])
         self.vline = self.ax.axvline(x=self.viewer.dims.current_step[self.T_axis_index], ymin=0, ymax=1, color="black", alpha=0.1)
-        (self.line_x_all,) = self.ax.plot(x, tmat[:, 4], color="#E41A1C", linestyle=":", label="x (all frames)", alpha=0.8)
-        (self.line_y_all,) = self.ax.plot(x, tmat[:, 5], color="#377EB8", linestyle=":", label="y (all frames)", alpha=0.8)
-        (self.line_x_active,) = self.ax.plot(x[tmat[:, 3] == 1], tmat[tmat[:, 3] == 1, 1], color="#E41A1C", linestyle="-", marker='o', label="x (selected frames)")
-        (self.line_y_active,) = self.ax.plot(x[tmat[:, 3] == 1], tmat[tmat[:, 3] == 1, 2], color="#377EB8", linestyle="-", marker='o', label="y (selected frames)")
+        (self.line_x_all,) = self.ax.plot(x, tmat[:, 3], color="#E41A1C", linestyle=":", label="x (all frames)", alpha=0.8)
+        (self.line_y_all,) = self.ax.plot(x, tmat[:, 4], color="#377EB8", linestyle=":", label="y (all frames)", alpha=0.8)
+        (self.line_x_active,) = self.ax.plot(x[tmat[:, 2] == 1], tmat[tmat[:, 2] == 1, 0], color="#E41A1C", linestyle="-", marker='o', label="x (selected frames)")
+        (self.line_y_active,) = self.ax.plot(x[tmat[:, 2] == 1], tmat[tmat[:, 2] == 1, 1], color="#377EB8", linestyle="-", marker='o', label="y (selected frames)")
         self.ax.legend()
 
         layout = QVBoxLayout()
@@ -334,12 +342,12 @@ class PlotTransformation(QWidget):
 
     def update(self, tmat):
         x = np.arange(0, tmat.shape[0])
-        self.line_x_all.set_ydata(tmat[:, 4])
-        self.line_y_all.set_ydata(tmat[:, 5])
-        self.line_x_active.set_xdata(x[tmat[:, 3] == 1])
-        self.line_x_active.set_ydata(tmat[tmat[:, 3] == 1, 1])
-        self.line_y_active.set_xdata(x[tmat[:, 3] == 1])
-        self.line_y_active.set_ydata(tmat[tmat[:, 3] == 1, 2])
+        self.line_x_all.set_ydata(tmat[:, 3])
+        self.line_y_all.set_ydata(tmat[:, 4])
+        self.line_x_active.set_xdata(x[tmat[:, 2] == 1])
+        self.line_x_active.set_ydata(tmat[tmat[:, 2] == 1, 0])
+        self.line_y_active.set_xdata(x[tmat[:, 2] == 1])
+        self.line_y_active.set_ydata(tmat[tmat[:, 2] == 1, 1])
         self.ax.relim()
         self.ax.autoscale_view(scalex=False, scaley=True)
         self.fig.canvas.draw()
@@ -440,9 +448,12 @@ class MoveTransform(ProjectiveTransform):
         return self.params[0:self.dimensionality, self.dimensionality]
 
 
-def read_transfMat(tmat_path):
+def read_transformation_matrix(tmat_path):
     try:
-        tmat_string = np.loadtxt(tmat_path, delimiter=",", dtype=str)
+        tmat = np.loadtxt(tmat_path, delimiter=",", dtype=int, converters=lambda x: np.round(float(x)))
+        # ignore columns 0, 6 and 7
+        tmat = tmat[:, (1, 2, 3, 4, 5)]
+
         # read metadata
         tmat_metadata = []
         metadata_tmp = ''
@@ -465,9 +476,7 @@ def read_transfMat(tmat_path):
         logging.getLogger(__name__).exception('Load transformation matrix failed')
         raise
 
-    tmat_float = tmat_string.astype(float)
-    tmat_int = tmat_float.astype(int)
-    return tmat_int, tmat_metadata
+    return tmat, tmat_metadata
 
 
 def register_stack_phase_correlation(image, blur=5):
@@ -651,14 +660,14 @@ def register_stack_feature_matching(image, feature_type="ORB", blur=0, seed=7624
     return [(-x, -y) for x, y in shifts]
 
 
-def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basename, metadata):
+def registration_with_tmat(tmat, image, skip_crop, output_path, output_basename, metadata):
     """
     This function uses a transformation matrix to performs registration and eventually cropping of an image
     Note - always assuming FoV dimension of the image as empty
 
     Parameters
     ---------------------
-    tmat_int:
+    tmat:
         transformation matrix
     image: Image object
     skip_crop: boolean
@@ -684,13 +693,13 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
     for z in range(0, image.sizes['Z']):
         for c in range(0, image.sizes['C']):
             for timepoint in range(0, image.sizes['T']):
-                if tmat_int[timepoint, 3] == 1:
-                    xyShift = (tmat_int[timepoint, 1]*-1, tmat_int[timepoint, 2]*-1)
+                if tmat[timepoint, 2] == 1:
+                    xyShift = (-tmat[timepoint, 0], -tmat[timepoint, 1])
                     registered_image[0, timepoint, c, z, :, :] = np.roll(image6D[0, timepoint, c, z, :, :], xyShift, axis=(1, 0))
 
     if skip_crop:
-        t_start = np.nonzero(tmat_int[:, 3])[0].min()
-        t_end = np.nonzero(tmat_int[:, 3])[0].max() + 1
+        t_start = np.nonzero(tmat[:, 2])[0].min()
+        t_end = np.nonzero(tmat[:, 2])[0].max() + 1
         registered_image = registered_image[:, t_start:t_end, :, :, :, :]
         # Save the registered and un-cropped image
         logging.getLogger(__name__).info('Saving transformed image to %s', registeredFilepath)
@@ -706,12 +715,12 @@ def registration_with_tmat(tmat_int, image, skip_crop, output_path, output_basen
     else:
         logging.getLogger(__name__).info('Cropping image')
         # Crop to desired area
-        y_start = 0 - min(d[2] for d in tmat_int if d[3] == 1)
-        y_end = image.sizes['Y'] - max(d[2] for d in tmat_int if d[3] == 1)
-        x_start = 0 - min([d[1] for d in tmat_int if d[3] == 1])
-        x_end = image.sizes['X'] - max(d[1] for d in tmat_int if d[3] == 1)
-        t_start = np.nonzero(tmat_int[:, 3])[0].min()
-        t_end = np.nonzero(tmat_int[:, 3])[0].max() + 1
+        y_start = 0 - min(d[1] for d in tmat if d[2] == 1)
+        y_end = image.sizes['Y'] - max(d[1] for d in tmat if d[2] == 1)
+        x_start = 0 - min([d[0] for d in tmat if d[2] == 1])
+        x_end = image.sizes['X'] - max(d[0] for d in tmat if d[2] == 1)
+        t_start = np.nonzero(tmat[:, 2])[0].min()
+        t_end = np.nonzero(tmat[:, 2])[0].max() + 1
 
         # Crop along the y-axis
         image_cropped = registered_image[:, t_start:t_end, :, :, y_start:y_end, x_start:x_end]
@@ -765,7 +774,7 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
 
     Returns
     ---------------------
-    tmats :
+    tmat:
         integer pixel values transformation matrix
 
     Saves
@@ -813,8 +822,8 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         # Translation = only movements on x and y axis
         sr = StackReg(StackReg.TRANSLATION)
         # Align each frame at the previous one
-        tmats = sr.register_stack(image3D, reference='previous')
-        shifts = tmats[:, 0:2, 2]
+        tmat = sr.register_stack(image3D, reference='previous')
+        shifts = tmat[:, 0:2, 2]
     elif registration_method == "phase correlation":
         logging.getLogger(__name__).info('Evaluating transformation matrix with phase correlation')
         shifts = register_stack_phase_correlation(image3D, blur=5)
@@ -844,21 +853,18 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
 
     # Transformation matrix has 6 columns:
     # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
-    transformation_matrices = np.zeros((image.sizes['T'], 8), dtype=int)
-    transformation_matrices[:, 0] = np.arange(1, image.sizes['T']+1)
+    transformation_matrices = np.zeros((image.sizes['T'], 5), dtype=int)
     if timepoint_range is not None:
-        transformation_matrices[timepoint_range[0]:(timepoint_range[1]+1), 1:3] = np.round(shifts).astype(int)
-        transformation_matrices[timepoint_range[0]:(timepoint_range[1]+1), 4:6] = np.round(shifts).astype(int)
-        transformation_matrices[timepoint_range[0]:(timepoint_range[1]+1), 3] = 1
+        transformation_matrices[timepoint_range[0]:(timepoint_range[1]+1), 0:2] = np.round(shifts).astype(int)
+        transformation_matrices[timepoint_range[0]:(timepoint_range[1]+1), 3:5] = np.round(shifts).astype(int)
+        transformation_matrices[timepoint_range[0]:(timepoint_range[1]+1), 2] = 1
         if timepoint_range[1] < transformation_matrices.shape[0]:
-            transformation_matrices[timepoint_range[1]:, 1:3] = transformation_matrices[timepoint_range[1], 1:3]
-            transformation_matrices[timepoint_range[1]:, 4:6] = transformation_matrices[timepoint_range[1], 4:6]
+            transformation_matrices[timepoint_range[1]:, 0:2] = transformation_matrices[timepoint_range[1], 0:2]
+            transformation_matrices[timepoint_range[1]:, 3:5] = transformation_matrices[timepoint_range[1], 3:5]
     else:
-        transformation_matrices[:, 1:3] = np.round(shifts).astype(int)
-        transformation_matrices[:, 4:6] = np.round(shifts).astype(int)
-        transformation_matrices[:, 3] = 1
-    transformation_matrices[:, 6] = image.sizes['X']
-    transformation_matrices[:, 7] = image.sizes['Y']
+        transformation_matrices[:, 0:2] = np.round(shifts).astype(int)
+        transformation_matrices[:, 3:5] = np.round(shifts).astype(int)
+        transformation_matrices[:, 2] = 1
 
     # Save the txt file with the translation matrix
     txt_name = os.path.join(output_path, output_basename+'.csv')
@@ -866,7 +872,12 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
     header = buffered_handler.get_messages()
     for x in metadata:
         header += x
-    np.savetxt(txt_name, transformation_matrices, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
+    # for backward compatibility, add columns timepoint, image width and height
+    transformation_matrices_tmp = np.column_stack((np.arange(1, image.sizes['T']+1),
+                                                   transformation_matrices.copy(),
+                                                   np.repeat(image.sizes['X'], image.sizes['T']),
+                                                   np.repeat(image.sizes['Y'], image.sizes['T'])))
+    np.savetxt(txt_name, transformation_matrices_tmp, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
 
     return transformation_matrices
 
@@ -1033,20 +1044,25 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
 
         try:
             logger.debug('loading %s', tmat_path)
-            tmat_int, tmat_metadata = read_transfMat(tmat_path)
+            tmat, tmat_metadata = read_transformation_matrix(tmat_path)
         except Exception:
             logging.getLogger(__name__).exception('Error loading transformation matrix for image %s', image_path)
             remove_all_log_handlers()
             raise
+        # Check image and transformation matrix have same number of time frames
+        if image.sizes['T'] != tmat.shape[0]:
+            logging.getLogger(__name__).error('Image and transformation matrix do not have the same number of time frames')
+            remove_all_log_handlers()
+            raise TypeError('Image and transformation matrix do not have the same number of time frames')
         # Check 'F' axis has size 1
         if image.sizes['F'] != 1:
-            logging.getLogger(__name__).error('Image %s has a F axis with size > 1', str(image_path))
+            logging.getLogger(__name__).error('Image %s has a F axis with size > 1', image_path)
             remove_all_log_handlers()
             raise TypeError(f"Image {image_path} has a F axis with size > 1")
 
         # Align and save - registration works with multidimensional files, as long as the TYX axes are specified
         try:
-            registration_with_tmat(tmat_int, image, skip_crop_decision, output_path, output_basename, image_metadata+tmat_metadata)
+            registration_with_tmat(tmat, image, skip_crop_decision, output_path, output_basename, image_metadata+tmat_metadata)
         except Exception:
             logging.getLogger(__name__).exception('Alignment failed for image %s', image_path)
             remove_all_log_handlers()
@@ -1099,7 +1115,7 @@ def edit_main(reference_matrix_path, range_start, range_end):
 
         # Load the transformation matrix
         logger.debug("loading: %s", reference_matrix_path)
-        tmat, tmat_metadata = read_transfMat(reference_matrix_path)
+        tmat, tmat_metadata = read_transformation_matrix(reference_matrix_path)
 
         if range_start >= tmat.shape[0]:
             logger.error('Invalid timepoint range')
@@ -1108,21 +1124,26 @@ def edit_main(reference_matrix_path, range_start, range_end):
 
         # Update transformation matrix
         logger.info("Editing transformation matrix (start=%s, end=%s)", range_start, range_end)
-        tmat[:, 3] = 0
-        tmat[range_start:(range_end+1), 3] = 1
+        tmat[:, 2] = 0
+        tmat[range_start:(range_end+1), 2] = 1
+        tmat[:, 0] = tmat[:, 3] - tmat[range_start, 3]
         tmat[:, 1] = tmat[:, 4] - tmat[range_start, 4]
-        tmat[:, 2] = tmat[:, 5] - tmat[range_start, 5]
+        tmat[:range_start, 0] = tmat[range_start, 0]
         tmat[:range_start, 1] = tmat[range_start, 1]
-        tmat[:range_start, 2] = tmat[range_start, 2]
         if range_end < tmat.shape[0]:
+            tmat[range_end:, 0] = tmat[range_end, 0]
             tmat[range_end:, 1] = tmat[range_end, 1]
-            tmat[range_end:, 2] = tmat[range_end, 2]
 
         # Save the new matrix
         logger.info("Saving transformation matrix to %s", reference_matrix_path)
         header = buffered_handler.get_messages()
         for x in tmat_metadata:
             header += x
+        # quick and dirty hack for backward compatibility, add columns timepoint, image width and height
+        width_height = np.loadtxt(reference_matrix_path, delimiter=",", dtype=int, converters=lambda x: np.round(float(x)))[:, (6, 7)]
+        tmat = np.column_stack((np.arange(1, tmat.shape[0]+1),
+                                tmat.copy(),
+                                width_height))
         np.savetxt(reference_matrix_path, tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
 
         remove_all_log_handlers()
