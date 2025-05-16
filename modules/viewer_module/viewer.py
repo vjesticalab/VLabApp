@@ -254,7 +254,7 @@ class RegistrationViewer(QWidget):
         self.input_matrix.setToolTip('')
         if os.path.isfile(image_path):
             # get path with matrix filetype (self.matricestype), containing gf.output_suffixes['registration'] and with same unique identifier
-            matrix_paths = [path for path in os.listdir(os.path.dirname(image_path)) if any(path.endswith(matricestype) for matricestype in gf.matrixtypes) and gf.output_suffixes['registration'] in path and os.path.basename(path).split('_')[0] == os.path.basename(image_path).split('_')[0]]
+            matrix_paths = [path for path in os.listdir(os.path.dirname(image_path)) if any(path.endswith(matricestype) for matricestype in gf.matrixtypes) and gf.output_suffixes['registration'] in path and os.path.basename(path).split('_')[0] == gf.splitext(os.path.basename(image_path))[0].split('_')[0]]
             if len(matrix_paths) > 0:
                 matrix_path = os.path.join(os.path.dirname(image_path), sorted(matrix_paths, key=len)[0])
                 if os.path.isfile(matrix_path):

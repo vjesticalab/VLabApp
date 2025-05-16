@@ -28,6 +28,7 @@
 * Cell tracking module: fix a crash when redrawing the mask and graph with option "show selected" labels.
 * Ground truth generator module: fix a crash with image paths automatic filling.
 * Fix documentation widget links with fragments not opening on Windows.
+* Registration (Alignment): fix matching image to transformation matrix when image filename does not contain a '_'.
 
 
 

@@ -561,7 +561,7 @@ class Pipeline(QWidget):
                     coalign_image_paths = []
                     coalign_output_basenames = []
                     if settings['coalignment_yn']:
-                        unique_identifier = os.path.basename(image_path).split('_')[0]
+                        unique_identifier = gf.splitext(os.path.basename(image_path))[0].split('_')[0]
                         for im in os.listdir(os.path.dirname(image_path)):
                             if im.startswith(unique_identifier+'_') and output_suffix not in im and any(im.endswith(imagetype) for imagetype in gf.imagetypes):
                                 coalign_image_path = os.path.join(os.path.dirname(image_path), im)

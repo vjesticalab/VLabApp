@@ -628,7 +628,7 @@ class ImageMatrixTableWidget2(QWidget):
                         if os.path.isfile(image_path):
                             if len(self.file_table.findItems(image_path, Qt.MatchExactly)) == 0:
                                 # search for candidate registration matrix paths
-                                candidate_paths = [path for path in os.listdir(os.path.dirname(image_path)) if any(path.endswith(matricestype) for matricestype in matrixtypes) and output_suffixes['registration'] in path and os.path.basename(path).split('_')[0] == os.path.basename(image_path).split('_')[0]]
+                                candidate_paths = [path for path in os.listdir(os.path.dirname(image_path)) if any(path.endswith(matricestype) for matricestype in matrixtypes) and output_suffixes['registration'] in path and os.path.basename(path).split('_')[0] == splitext(os.path.basename(image_path))[0].split('_')[0]]
                                 # sort by path length
                                 candidate_paths = [os.path.normpath(os.path.join(os.path.dirname(image_path), path)) for path in sorted(candidate_paths, key=len)]
                                 if len(candidate_paths) == 0:
