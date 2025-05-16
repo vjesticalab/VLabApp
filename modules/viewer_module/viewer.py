@@ -401,10 +401,10 @@ class MetadataViewer(QWidget):
             metadata_tmp = ''
             with open(file_path) as f:
                 for line in f:
-                    if line.startswith('# Metadata for') and not line.startswith("# timePoint,"):
+                    if line.startswith('# Metadata for') and not (line.startswith("# timePoint,") or line.startswith("# x,")):
                         vlabapp_metadata.append(metadata_tmp)
                         metadata_tmp = ''
-                    if line.startswith('# ') and not line.startswith("# timePoint,"):
+                    if line.startswith('# ') and not (line.startswith("# timePoint,") or line.startswith("# x,")):
                         metadata_tmp += line[2:]
             if metadata_tmp:
                 vlabapp_metadata.append(metadata_tmp)

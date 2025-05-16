@@ -183,6 +183,14 @@ Transformation matrices are generated the registration module and encode the shi
 
 * comma-separated values format (`.csv`), with optional metadata rows (starting with `#`) followed a header and the following columns:
 
+    * `x`: shift along X (pixels) axis since first kept time frame (i.e. first time frame with column `keep` set to 1).
+    * `y`: shift along Y (pixels) axis since first kept time frame (i.e. first time frame with column `keep` set to 1).
+    * `keep`: keep (1) or discard (0) time frame when applying the transformation.
+    * `x_raw`: shift along X axis (pixels) since first time frame.
+    * `y_raw`: shift along Y axis (pixels) since first time frame.
+
+    For backward compatibility, input files with the following 8 columns are also accepted as input:
+    
     * `timePoint`: time frame (1-based indexing!)
     * `align_t_x`: shift along X (pixels) axis since first kept time frame (i.e. first time frame with column `align_0_1` set to 1).
     * `align_t_y`: shift along Y (pixels) axis since first kept time frame (i.e. first time frame with column `align_0_1` set to 1).

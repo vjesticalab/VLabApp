@@ -14,6 +14,7 @@
 * Use napari v0.5.6 (instead of v0.4.19).
 * Graph filtering module: when showing results in napari, images with more than T,Y,X axes are allowed (e.g. T,C,Z,Y,X).
 * Image cropping module: raise an error if the cropping range does not include valid axis values (e.g. cropping range from 2 to 4 for a T axis of lenght 1).
+* Registration: transformation matrix file format changed to 5 columns (x, y, keep, x_raw, y_raw) instead of 8 columns (timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y, x, y). File with 8 columns are still accepted as input.
 
 ### Removed
 

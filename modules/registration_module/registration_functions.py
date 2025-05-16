@@ -276,15 +276,7 @@ class EditTransformationMatrix(QWidget):
             header = buffered_handler.get_messages()
             for x in self.tmat_metadata:
                 header += x
-            # for backward compatibility, add columns timepoint, image width and height
-            nframes = self.viewer.layers[0].data.shape[self.T_axis_index]
-            width = self.viewer.layers[0].data.shape[self.X_axis_index]
-            height = self.viewer.layers[0].data.shape[self.Y_axis_index]
-            tmat = np.column_stack((np.arange(1, nframes+1),
-                                    self.tmat.copy(),
-                                    np.repeat(width, nframes),
-                                    np.repeat(height, nframes)))
-            np.savetxt(filename, tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
+            np.savetxt(filename, self.tmat, fmt='%d,%d,%d,%d,%d', header=header+'x,y,keep,x_raw,y_raw', delimiter='\t')
             self.tmat_saved_version = self.tmat.copy()
             # update point color
             self.layer_points.border_color[:, 0:3] = self.point_color_default
@@ -450,22 +442,27 @@ class MoveTransform(ProjectiveTransform):
 
 def read_transformation_matrix(tmat_path):
     try:
+        # Expect 5 columns x, y, keep, x_raw, y_raw
         tmat = np.loadtxt(tmat_path, delimiter=",", dtype=int, converters=lambda x: np.round(float(x)))
-        # ignore columns 0, 6 and 7
-        tmat = tmat[:, (1, 2, 3, 4, 5)]
+        if tmat.shape[1] == 8:
+            # For backward compatibility with old format (columns timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y, x, y)
+            # ignore columns 0, 6 and 7
+            tmat = tmat[:, (1, 2, 3, 4, 5)]
+        elif tmat.shape[1] != 5:
+            raise ValueError("Invalid transformation matrix file format.")
 
         # read metadata
         tmat_metadata = []
         metadata_tmp = ''
         with open(tmat_path) as f:
             for line in f:
-                if line.startswith('# Metadata for') and not line.startswith("# timePoint,"):
+                if line.startswith('# Metadata for') and not (line.startswith("# timePoint,") or line.startswith("# x,")):
                     if len(tmat_metadata) == 0:
                         tmat_metadata.append("Metadata for matrix "+tmat_path+":\n"+metadata_tmp)
                     else:
                         tmat_metadata.append(metadata_tmp)
                     metadata_tmp = ''
-                if line.startswith('# ') and not line.startswith("# timePoint,"):
+                if line.startswith('# ') and not (line.startswith("# timePoint,") or line.startswith("# x,")):
                     metadata_tmp += line[2:]
         if metadata_tmp:
             if len(tmat_metadata) == 0:
@@ -851,8 +848,8 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         remove_all_log_handlers()
         raise ValueError(f"Error unknown registration method {registration_method}")
 
-    # Transformation matrix has 6 columns:
-    # timePoint, align_t_x, align_t_y, align_0_1, raw_t_x, raw_t_y (align_ and raw_ values are identical, useful then for the alignment)
+    # Transformation matrix has 5 columns:
+    # x, y, keep, x_raw, y_raw 
     transformation_matrices = np.zeros((image.sizes['T'], 5), dtype=int)
     if timepoint_range is not None:
         transformation_matrices[timepoint_range[0]:(timepoint_range[1]+1), 0:2] = np.round(shifts).astype(int)
@@ -867,17 +864,12 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         transformation_matrices[:, 2] = 1
 
     # Save the txt file with the translation matrix
-    txt_name = os.path.join(output_path, output_basename+'.csv')
-    logging.getLogger(__name__).info("Saving transformation matrix to %s", txt_name)
+    filename = os.path.join(output_path, output_basename+'.csv')
+    logging.getLogger(__name__).info("Saving transformation matrix to %s", filename)
     header = buffered_handler.get_messages()
     for x in metadata:
         header += x
-    # for backward compatibility, add columns timepoint, image width and height
-    transformation_matrices_tmp = np.column_stack((np.arange(1, image.sizes['T']+1),
-                                                   transformation_matrices.copy(),
-                                                   np.repeat(image.sizes['X'], image.sizes['T']),
-                                                   np.repeat(image.sizes['Y'], image.sizes['T'])))
-    np.savetxt(txt_name, transformation_matrices_tmp, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
+    np.savetxt(filename, transformation_matrices, fmt='%d,%d,%d,%d,%d', header=header+'x,y,keep,x_raw,y_raw', delimiter='\t')
 
     return transformation_matrices
 
@@ -1139,12 +1131,7 @@ def edit_main(reference_matrix_path, range_start, range_end):
         header = buffered_handler.get_messages()
         for x in tmat_metadata:
             header += x
-        # quick and dirty hack for backward compatibility, add columns timepoint, image width and height
-        width_height = np.loadtxt(reference_matrix_path, delimiter=",", dtype=int, converters=lambda x: np.round(float(x)))[:, (6, 7)]
-        tmat = np.column_stack((np.arange(1, tmat.shape[0]+1),
-                                tmat.copy(),
-                                width_height))
-        np.savetxt(reference_matrix_path, tmat, fmt='%d,%d,%d,%d,%d,%d,%d,%d', header=header+'timePoint,align_t_x,align_t_y,align_0_1,raw_t_x,raw_t_y,x,y', delimiter='\t')
+        np.savetxt(reference_matrix_path, tmat, fmt='%d,%d,%d,%d,%d', header=header+'x,y,keep,x_raw,y_raw', delimiter='\t')
 
         remove_all_log_handlers()
 
