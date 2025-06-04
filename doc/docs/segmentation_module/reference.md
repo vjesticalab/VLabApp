@@ -1,6 +1,6 @@
 # Segmentation module
 
-The segmentation module use [Cellpose](https://www.cellpose.org/) [1-3] or [Segment Anything for Microscopy](https://github.com/computational-cell-analytics/micro-sam) [4] (if installed) to perform cell segmentation and generate a segmentation mask.
+The segmentation module use [Cellpose](https://www.cellpose.org/) v3 [1-3] or [Segment Anything for Microscopy](https://github.com/computational-cell-analytics/micro-sam) [4] (if installed) to perform cell segmentation and generate a segmentation mask.
 
 
 ## Input files
@@ -35,7 +35,7 @@ Segmentation method
 Model type
 : For Cellpose:
     
-    * `User trained model`: a user trained model can be obtained by finetuning a pretrained Cellpose model on a collection of annotated images similar to the input images (see section "Training" in Cellpose documentation <https://cellpose.readthedocs.io>). Note that the [Ground truth generator](../ground_truth_generator_module/reference.md) module can be used to generate a collection of annotated images (training set) for Cellpose.
+    * `User trained model`: a user trained model can be obtained by finetuning a pretrained Cellpose model on a collection of annotated images similar to the input images (see section "Training" in Cellpose documentation <https://cellpose.readthedocs.io/en/v3.1.1.1/>). Note that the [Ground truth generator](../ground_truth_generator_module/reference.md) module can be used to generate a collection of annotated images (training set) for Cellpose.
     * Built-in models: use one of the Cellpose built-in models (`cyto`, `cyto2`, `cyto3`, `nuclei`, `tissuenet_cp3`, `livecell_cp3`, `yeast_PhC_cp3`, `yeast_BF_cp3`, `bact_phase_cp3`, `bact_fluor_cp3`, `deepbacs_cp3` and `cyto2_cp3`).
     
     For Segment Anything for Microscopy:
@@ -46,13 +46,13 @@ Model
 : path to the Cellpose user trained model. To select a model, either paste the path into the text box, click on the <kbd>Browse</kbd> button, or drag and drop a file from an external file manager. This parameter is available only for Cellpose user trained models.
 
 Diameter
-: Expected cell diameter (pixel). If 0, use Cellpose built-in model to estimate diameter (available only for `cyto`, `cyto2`, `cyto3` and `nuclei` models). For more information, see section "Models" in Cellpose documentation <https://cellpose.readthedocs.io>. This parameter is available only for Cellpose built-in models. For user trained models, the median diameter estimated on the training set is used.
+: Expected cell diameter (pixel). If 0, use Cellpose built-in model to estimate diameter (available only for `cyto`, `cyto2`, `cyto3` and `nuclei` models). For more information, see section "Models" in Cellpose documentation <https://cellpose.readthedocs.io/en/v3.1.1.1/>. This parameter is available only for Cellpose built-in models. For user trained models, the median diameter estimated on the training set is used.
 
 Cellprob threshold
-: cellprob threshold for Cellpose. For more information, see section "Settings" in Cellpose documentation <https://cellpose.readthedocs.io>. This parameter is available only for Cellpose, click on `▶` to show.
+: cellprob threshold for Cellpose. For more information, see section "Settings" in Cellpose documentation <https://cellpose.readthedocs.io/en/v3.1.1.1/>. This parameter is available only for Cellpose, click on `▶` to show.
 
 Flow threshold
-: cellprob threshold for Cellpose. For more information, see section "Settings" in Cellpose documentation <https://cellpose.readthedocs.io>. This parameter is available only for Cellpose, click on `▶` to show.
+: cellprob threshold for Cellpose. For more information, see section "Settings" in Cellpose documentation <https://cellpose.readthedocs.io/en/v3.1.1.1/>. This parameter is available only for Cellpose, click on `▶` to show.
 
 Channel position
 : If the input image contains more than one channel (`C` axis), the

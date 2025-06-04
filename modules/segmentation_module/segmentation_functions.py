@@ -16,6 +16,7 @@ from aicsimageio.writers import OmeTiffWriter
 from aicsimageio.types import PhysicalPixelSizes
 from ome_types.model import CommentAnnotation
 from version import __version__ as vlabapp_version
+from packaging.version import Version
 try:
     from micro_sam import __version__ as microsam_version
     from micro_sam.automatic_segmentation import get_predictor_and_segmenter, automatic_instance_segmentation
@@ -119,11 +120,11 @@ def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_pa
     segmentation_method: str
         Segmentation method ("cellpose" or "Segment Anything for Microscopy").
     cellpose_model_type: str
-        cellpose model type. Either "User trained model" or one of the cellpose built-in model names (cyto, cyto2, cyto3, nuclei, tissuenet_cp3, livecell_cp3, yeast_PhC_cp3, yeast_BF_cp3, bact_phase_cp3, bact_fluor_cp3, deepbacs_cp3 or cyto2_cp3).
+        cellpose model type. Either "User trained model" or one of the cellpose built-in model names (for cellpose 3: cyto, cyto2, cyto3, nuclei, tissuenet_cp3, livecell_cp3, yeast_PhC_cp3, yeast_BF_cp3, bact_phase_cp3, bact_fluor_cp3, deepbacs_cp3 or cyto2_cp3. For cellpose 4: cpsam).
     cellpose_model_path: str
         cellpose pretrained model path (only used if `cellpose_model_type` == "User trained model").
     cellpose_diameter: int
-        expected cell diameter for cellpose  (only used if `cellpose_model_type` != "User trained model"). If 0, use cellpose built-in model to estimate diameter (available only for cellpose_model_type cyto, cyto2, cyto3 and nuclei). See cellpose documentation for more information https://cellpose.readthedocs.io/en/latest/index.html.
+        expected cell diameter for cellpose  (only used if `cellpose_model_type` != "User trained model"). If 0, use cellpose built-in model to estimate diameter (available only for cellpose_model_type cyto, cyto2, cyto3, nuclei and cpsam). See cellpose documentation for more information https://cellpose.readthedocs.io/en/latest/index.html.
     cellpose_cellprob_threshold: float
         cellpose cellprob threshold. See cellpose documentation for more information https://cellpose.readthedocs.io/en/latest/index.html.
     cellpose_flow_threshold: float
@@ -287,18 +288,29 @@ def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_pa
 
         if segmentation_method == "cellpose":
             # Create cellpose model
-            if cellpose_model_type == "User trained model":
-                logger.debug("loading cellpose model %s", cellpose_model_path)
-                cellpose_model = models.CellposeModel(gpu=use_gpu, pretrained_model=cellpose_model_path)
-                cellpose_diameter = cellpose_model.diam_labels
-            elif cellpose_model_type in ['cyto', 'cyto2', 'cyto3', 'nuclei']:
-                logger.debug("loading cellpose model %s", cellpose_model_type)
-                cellpose_model = models.Cellpose(gpu=use_gpu, model_type=cellpose_model_type)
-                if cellpose_diameter == 0:
+            if Version(cellpose_version).major == 4:
+                if cellpose_model_type == "User trained model":
+                    logger.debug("loading cellpose model %s", cellpose_model_path)
+                    cellpose_model = models.CellposeModel(gpu=use_gpu, pretrained_model=cellpose_model_path)
                     cellpose_diameter = None
-            else:
-                logger.debug("loading cellpose model %s", cellpose_model_type)
-                cellpose_model = models.CellposeModel(gpu=use_gpu, model_type=cellpose_model_type)
+                else:
+                    logger.debug("loading cellpose model %s", cellpose_model_type)
+                    cellpose_model = models.CellposeModel(gpu=use_gpu, pretrained_model=cellpose_model_type)
+                    if cellpose_diameter == 0:
+                        cellpose_diameter = None
+            elif Version(cellpose_version).major == 3:
+                if cellpose_model_type == "User trained model":
+                    logger.debug("loading cellpose model %s", cellpose_model_path)
+                    cellpose_model = models.CellposeModel(gpu=use_gpu, pretrained_model=cellpose_model_path)
+                    cellpose_diameter = cellpose_model.diam_labels
+                elif cellpose_model_type in ['cyto', 'cyto2', 'cyto3', 'nuclei']:
+                    logger.debug("loading cellpose model %s", cellpose_model_type)
+                    cellpose_model = models.Cellpose(gpu=use_gpu, model_type=cellpose_model_type)
+                    if cellpose_diameter == 0:
+                        cellpose_diameter = None
+                else:
+                    logger.debug("loading cellpose model %s", cellpose_model_type)
+                    cellpose_model = models.CellposeModel(gpu=use_gpu, model_type=cellpose_model_type)
 
             # Cellpose segmentation
             logger.info("Cellpose segmentation (diameter=%s)", cellpose_diameter)

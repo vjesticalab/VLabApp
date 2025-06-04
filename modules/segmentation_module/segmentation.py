@@ -10,6 +10,8 @@ from modules.segmentation_module import segmentation_functions as f
 from general import general_functions as gf
 import torch
 from cellpose.core import assign_device
+from cellpose import version as cellpose_version
+from packaging.version import Version
 try:
     from micro_sam.automatic_segmentation import get_predictor_and_segmenter, automatic_instance_segmentation
     microsam_available = True
@@ -72,19 +74,23 @@ class Segmentation(QWidget):
         self.cellpose_model_type = QComboBox()
         self.cellpose_model_type.addItem("User trained model")
         self.cellpose_model_type.insertSeparator(self.cellpose_model_type.count())
-        self.cellpose_model_type.addItem("cyto3")
-        self.cellpose_model_type.addItem("cyto2")
-        self.cellpose_model_type.addItem("cyto")
-        self.cellpose_model_type.addItem("nuclei")
-        self.cellpose_model_type.insertSeparator(self.cellpose_model_type.count())
-        self.cellpose_model_type.addItem("tissuenet_cp3")
-        self.cellpose_model_type.addItem("livecell_cp3")
-        self.cellpose_model_type.addItem("yeast_PhC_cp3")
-        self.cellpose_model_type.addItem("yeast_BF_cp3")
-        self.cellpose_model_type.addItem("bact_phase_cp3")
-        self.cellpose_model_type.addItem("bact_fluor_cp3")
-        self.cellpose_model_type.addItem("deepbacs_cp3")
-        self.cellpose_model_type.addItem("cyto2_cp3")
+        if Version(cellpose_version).major == 4:
+            self.cellpose_model_type.addItem("cpsam")
+        elif Version(cellpose_version).major == 3:
+            self.cellpose_model_type.addItem("cyto3")
+            self.cellpose_model_type.addItem("cyto2")
+            self.cellpose_model_type.addItem("cyto")
+            self.cellpose_model_type.addItem("nuclei")
+            self.cellpose_model_type.insertSeparator(self.cellpose_model_type.count())
+            self.cellpose_model_type.addItem("tissuenet_cp3")
+            self.cellpose_model_type.addItem("livecell_cp3")
+            self.cellpose_model_type.addItem("yeast_PhC_cp3")
+            self.cellpose_model_type.addItem("yeast_BF_cp3")
+            self.cellpose_model_type.addItem("bact_phase_cp3")
+            self.cellpose_model_type.addItem("bact_fluor_cp3")
+            self.cellpose_model_type.addItem("deepbacs_cp3")
+            self.cellpose_model_type.addItem("cyto2_cp3")
+
         self.cellpose_model_type.setCurrentText("User trained model")
         self.cellpose_model_type.currentTextChanged.connect(self.cellpose_model_type_changed)
         self.cellpose_user_model = gf.FileLineEdit()
@@ -93,7 +99,10 @@ class Segmentation(QWidget):
         self.cellpose_diameter.setMinimum(0)
         self.cellpose_diameter.setMaximum(1000)
         self.cellpose_diameter.setValue(0)
-        self.cellpose_diameter.setToolTip('Expected cell diameter (pixel). If 0, use Cellpose built-in model to estimate diameter (available only for cyto, cyto2, cyto3 and nuclei models).')
+        if Version(cellpose_version).major == 4:
+            self.cellpose_diameter.setToolTip('Expected cell diameter (pixel). The cpsam model was trained with a range of diameters from 7.5 to 120 pixels. To segment larger objects, specify a diameter larger than 30. The image will be downsampled by a factor `diameter`/30 before segmentation.')
+        elif Version(cellpose_version).major == 3:
+            self.cellpose_diameter.setToolTip('Expected cell diameter (pixel). If 0, use Cellpose built-in model to estimate diameter (available only for cyto, cyto2, cyto3 and nuclei models).')
         self.cellpose_diameter.setVisible(False)
         self.cellpose_diameter_label = QLabel("Diameter:")
         self.cellpose_diameter_label.setVisible(False)
@@ -470,7 +479,7 @@ class Segmentation(QWidget):
                     self.logger.error('Model not found: %s', cellpose_model_path)
                     self.cellpose_user_model.setFocus()
                     return
-            elif cellpose_model_type not in ['cyto', 'cyto2', 'cyto3', 'nuclei'] and cellpose_diameter == 0:
+            elif cellpose_model_type not in ['cyto', 'cyto2', 'cyto3', 'nuclei','cpsam'] and cellpose_diameter == 0:
                 self.logger.error('Diameter estimation using Cellpose built-in model (i.e. diameter == 0) is only available for cyto, cyto2, cyto3 and nuclei models')
                 self.cellpose_diameter.setFocus()
                 return
