@@ -18,6 +18,9 @@
 
 ### Removed
 
+* Remove Registration - Editing (batch) sub-module.
+* Remove Events filter module.
+
 ### Fixed
 
 * Cell tracking module: add missing axes to layer showing mask modifications (when showing results in napari).
