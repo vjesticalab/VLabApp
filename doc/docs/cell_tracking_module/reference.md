@@ -191,7 +191,7 @@ smp01_BF_vSM_vTG.log
 
 ### Cell tracking
 
-#### Terminology:
+#### Terminology
 
 Terminology is illustrated in Figure 3:
 

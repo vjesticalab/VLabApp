@@ -33,7 +33,7 @@ class zProjection(QWidget):
         self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='')
 
         # Output folders
-        self.use_input_folder = QRadioButton("Use input file folder")
+        self.use_input_folder = QRadioButton("Use input image folder")
         self.use_input_folder.setChecked(True)
         self.use_input_folder.toggled.connect(self.update_output_filename_label)
         self.use_custom_folder = QRadioButton("Use custom folder (same for all the input files)")

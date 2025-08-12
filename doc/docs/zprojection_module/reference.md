@@ -24,7 +24,7 @@ resulting in data corruption.
 
 Output suffix
 : The output filename will correspond to the input filename with an
-additional `_vPR<ref><range><proj>`, where `<ref>` is the reference Z-section (`b` for best focus or `f` for fixed range), `<range>` is the range of Z-sections (one integer for range around Z-section with best focus or two integers  min and max separated by a `-` for fixed Z-section range) and `<proj>` is the projection type (`none`, `max`, `min`, `mean`, `median` or `std`).  The resulting output filenames are shown below the suffix. It is not possible to set a user defined suffix in this module.
+additional `_vPR<ref><range><proj>` suffix, where `<ref>` is the reference Z-section (`b` for best focus or `f` for fixed range), `<range>` is the range of Z-sections (one integer for range around Z-section with best focus or two integers  min and max separated by a `-` for fixed Z-section range) and `<proj>` is the projection type (`none`, `max`, `min`, `mean`, `median` or `std`).  The resulting output filenames are shown below the suffix. It is not possible to set a user defined suffix in this module.
 
 Projection range
 : Range of Z sections to project.

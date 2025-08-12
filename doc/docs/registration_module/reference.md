@@ -113,7 +113,7 @@ smp01_BF_vRG.log
 
 ## Alignment
 
-This module apply existing transformation matrices (created with the registration module) to an input image to generate a registered image.
+This module apply existing transformation matrices (created with the registration module) to input images to generate registered images.
 
 ### Input files
 
@@ -245,9 +245,9 @@ The transformation matrix is also represented by a green control point (Figure 1
 
 By default, the control point is placed at the center of the image. However, it might be better to place it at a more remarkable position (e.g. at the center of a cell). To globally move the control point for all time frames (without changing the transformation matrix), click at the desired position while pressing the <kbd>SHIFT</kbd> key (make sure that the layer "Alignment points" is selected, Figure 1B).
 
-The transformation matrix is modified by adjusting the position of the control point at the current time frame (selected with the Z slider), from first to current time frame, or from current time frame to last (the desired behavior can be selected in the right part of the screen, Figure 1G). To move the control point for the selected range of frame, click at the desired position while pressing the <kbd>CTRL</kbd> key (or <kbd>CMD</kbd> key with Mac OS X).
+The transformation matrix is modified by adjusting the position of the control point at the current time frame (selected with the Z slider), from first to current time frame, or from current time frame to last (the desired behavior can be selected in the right part of the window, Figure 1G). To move the control point for the selected range of frame, click at the desired position while pressing the <kbd>CTRL</kbd> key (or <kbd>CMD</kbd> key with Mac OS X).
 
-The range of time frames to use for the transformation can be set using the "From" and "To" fields in the right part of the screen (Figure 1H).
+The range of time frames to use for the transformation can be set using the "From" and "To" fields in the right part of the window (Figure 1H).
 
 To save the transformation matrix, click on the <kbd>Save</kbd> button (Figure 1I).
 Note that with this module, the transformation matrix file is only modified when clicking on the <kbd>Save</kbd> button.

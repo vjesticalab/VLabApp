@@ -343,7 +343,7 @@ class MetadataViewer(QWidget):
         self.filetypes = gf.imagetypes + gf.graphtypes + gf.matrixtypes
 
         label_documentation = gf.CollapsibleLabel('', collapsed=True)
-        label_documentation.setText('Display the VLabApp metadata for a file generated with this software. The file can be an image, a segmentation mask, a cell tracking graph or a registration matrix).<br>' +
+        label_documentation.setText('Display the VLabApp metadata for a file generated with this software. The file can be an image, a segmentation mask, a cell tracking graph or a registration matrix.<br>' +
                                     '<br>' +
                                     'Additional information: <a href="' + os.path.join(os.path.dirname(__file__), '..', '..', 'doc', 'site', 'viewer_metadata_module', 'reference.html') + '">Documentation</a>')
 
