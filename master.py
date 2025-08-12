@@ -80,10 +80,6 @@ class MainWindow(QWidget):
         subitem.setData(0, Qt.UserRole, self.right_panel.count())
         self.right_panel.addWidget(gf.Page(widget=registration.Align()))
 
-        subitem = QTreeWidgetItem(item, ["Editing (batch)"])
-        subitem.setData(0, Qt.UserRole, self.right_panel.count())
-        self.right_panel.addWidget(gf.Page(widget=registration.Edit()))
-
         subitem = QTreeWidgetItem(item, ["Editing (manual)"])
         subitem.setData(0, Qt.UserRole, self.right_panel.count())
         self.right_panel.addWidget(gf.Page(widget=registration.ManualEdit()))
