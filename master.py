@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+import importlib
 import multiprocessing as mp
 from functools import partial
 from PyQt5.QtCore import Qt, QSize, QTimer
@@ -139,6 +140,28 @@ class MainWindow(QWidget):
         subitem = QTreeWidgetItem(item, ["Ground truth generator"])
         subitem.setData(0, Qt.UserRole, self.right_panel.count())
         self.right_panel.addWidget(gf.Page(widget=ground_truth_generator.GroundTruthGenerator()))
+
+        ## add plugins
+        plugins_path = os.path.join(os.path.dirname(__file__), 'plugins')
+        plugins_list = []
+        for p in os.listdir(plugins_path):
+            if os.path.isfile(os.path.join(plugins_path, p, '__init__.py')):
+                module = importlib.import_module('plugins.' + p)
+                try:
+                    name = module.NAME
+                except AttributeError:
+                    name = module.__name__.replace('plugins.', '')
+                plugins_list.append((name, module))
+        if plugins_list:
+            item = QTreeWidgetItem(self.module_list, ["Plugins"])
+            item.setData(0, Qt.UserRole, self.right_panel.count())
+            item.setFlags(item.flags() & ~Qt.ItemIsSelectable)
+            self.right_panel.addWidget(gf.Page(widget=QWidget()))
+            # add plugins (alphabetical order)
+            for name, plugin in sorted(plugins_list, key=lambda x: (x[0].lower())):
+                subitem = QTreeWidgetItem(item, [name])
+                subitem.setData(0, Qt.UserRole, self.right_panel.count())
+                self.right_panel.addWidget(gf.Page(widget=plugin.Widget()))
 
         w = self.module_list.sizeHintForColumn(0)
         h = round(1.5*self.module_list.sizeHintForRow(0))

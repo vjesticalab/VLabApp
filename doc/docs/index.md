@@ -23,6 +23,8 @@
     * [File conversion (lossy preview)](file_conversion_lossy_module/reference.md)
     * [Image cropping](image_cropping_module/reference.md)
     * [Ground truth generator](ground_truth_generator_module/reference.md)
+* [Plugins](general/plugins.md)
+
 
 ## Citation
 

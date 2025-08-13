@@ -8,6 +8,7 @@
 * Add coarse-grained parallelization (registration, z-projection, cell tracking, graph filtering, file conversion and image cropping modules).
 * Add documentation (using MkDocs).
 * Add small sample images and cellpose model fine-tuned for bright-field images of yeast cells.
+* Add simple plugins system.
 
 ### Changed
 

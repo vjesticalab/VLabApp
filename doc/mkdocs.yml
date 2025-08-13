@@ -21,6 +21,7 @@ nav:
       - file_conversion_lossy_module/reference.md
       - image_cropping_module/reference.md
       - ground_truth_generator_module/reference.md
+    - general/plugins.md
 use_directory_urls: false
 theme:
   name: material
