@@ -94,7 +94,7 @@ By default, only files with a filename containing `_BF` (image with a unique bri
 
 By default, the output files (transformation matrix and registered image) are saved in the same folder as the input image. To save in another folder, check the "Use custom folder" checkbox in the "Output" panel and specify an output folder in the text box (use the <kbd>Browse</kbd> button, or drag and drop a folder from an external file manager).
 Output filenames will correspond to the input filename with an additional `_vRG` suffix, optionally followed by a user defined suffix. The resulting output filenames are shown below the suffix.
-For this tutorial, we will keep the default "Use input image folder" and leave the user suffix empty.
+For this tutorial, we will keep the default "Use input folder" and leave the user suffix empty.
 
 The "Options" panel contains several options specific to the this module (see [Registration module - Registration](../registration_module/reference.md#registration) for more information). Keep all settings to their default value, except the "Co-align files with the same unique identifier" checkbox which should be checked. With this option, all files with same unique identifier (starting with `smp01`) will be also transformed using the transformation matrix evaluated on the input image.
 
@@ -346,7 +346,7 @@ However, using the Z-projection module to generate a projected image can still b
 
 Select "Z-Projection" from the left panel. Add the registered bright-field image (`smp01_BF_vRG.ome.tif`) to the list of input files (use the <kbd>Add files</kbd> button below the list or drag and drop the files from an external file manager).
 
-By default, the output file (Z-projected image) is saved in the same folder as the input image. To save in another folder, check the "Use custom folder" checkbox in the "Output" panel and specify an output folder in the text box (use the <kbd>Browse</kbd> button, or drag and drop a folder from an external file manager). For this tutorial, we will keep the default "Use input image folder".
+By default, the output file (Z-projected image) is saved in the same folder as the input image. To save in another folder, check the "Use custom folder" checkbox in the "Output" panel and specify an output folder in the text box (use the <kbd>Browse</kbd> button, or drag and drop a folder from an external file manager). For this tutorial, we will keep the default "Use input folder".
 The output filename will correspond to the input filename with an additional `_vPR<ref><range><proj>` suffix, where `<ref>` is the reference Z-section (`b` for best focus or `f` for fixed range), `<range>` is the range of Z-sections (one integer for range around Z-section with best focus or two integers  min and max separated by a `-` for fixed Z-section range) and `<proj>` is the projection type (`none`, `max`, `min`, `mean`, `median` or `std`).  The resulting output filename is shown below the suffix. It is not possible to set a user defined suffix in this module.
 
 The "Options" panel contains several options specific to the this module (see [Z-Projection module](../zprojection_module/reference.md) for more information). Set the "Projection range" to "Z section with best focus" to keep only the Z section with best focus.
@@ -420,7 +420,7 @@ To segment the registered bright-field image, select the "Registration" module i
 By default, only files with a filename containing `_BF` (image with a unique bright-field channel) and ending with one of the supported file extensions (`.nd2`, `.tif`, `.tiff`, `.ome.tif`, `.ome.tiff`) are accepted. To modify this behavior, click on `▶` above the list and adjust the filters.
 
 By default, the output file (segmentation mask) is saved in the same folder as the input image. To save in another folder, check the "Use custom folder" checkbox in the "Output" panel and specify an output folder in the text box (use the <kbd>Browse</kbd> button, or drag and drop a folder from an external file manager).
-Output filename will correspond to the input filename with an additional `_vSM` suffix, optionally followed by a user defined suffix. The resulting output filename is shown below the suffix. For this tutorial, keep the default "Use input image folder" and leave the user suffix empty.
+Output filename will correspond to the input filename with an additional `_vSM` suffix, optionally followed by a user defined suffix. The resulting output filename is shown below the suffix. For this tutorial, keep the default "Use input folder" and leave the user suffix empty.
 
 The "Options" panel contains several options specific to the this module (see [Segmentation module](../segmentation_module/reference.md) for more information).
 In the segmentation section, ensure that "Method" is set to "cellpose" and "Model type" is set to "User trained model".

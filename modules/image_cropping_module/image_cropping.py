@@ -4,9 +4,9 @@ import sys
 import time
 import concurrent.futures
 import re
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QLabel, QFormLayout, QLineEdit, QApplication, QCheckBox, QSpinBox, QMessageBox, QFileDialog
-from PyQt5.QtCore import Qt, QRegularExpression
-from PyQt5.QtGui import QCursor, QRegularExpressionValidator
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QFormLayout, QApplication, QCheckBox, QSpinBox, QMessageBox, QFileDialog
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QCursor
 from modules.image_cropping_module import image_cropping_functions as f
 from general import general_functions as gf
 from ome_types.model import CommentAnnotation
@@ -48,43 +48,10 @@ class ImageCropping(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        self.use_input_folder = QRadioButton('Use input image/mask folder')
-        self.use_input_folder.setChecked(True)
-        self.use_input_folder.toggled.connect(self.update_output_filename_label)
-        self.use_custom_folder = QRadioButton('Use custom folder (same for all the input files)')
-        self.use_custom_folder.setChecked(False)
-        self.use_custom_folder.toggled.connect(self.update_output_filename_label)
-        self.output_folder = gf.FolderLineEdit()
-        self.output_folder.textChanged.connect(self.update_output_filename_label)
-        self.output_folder.setVisible(self.use_custom_folder.isChecked())
-        self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
-        self.output_user_suffix = QLineEdit()
-        self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
-        self.output_user_suffix.setValidator(QRegularExpressionValidator(QRegularExpression('[A-Za-z0-9-]*')))
-        self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
-        self.output_filename_label = QLineEdit()
-        self.output_filename_label.setFrame(False)
-        self.output_filename_label.setEnabled(False)
-        self.output_filename_label.textChanged.connect(self.output_filename_label.setToolTip)
+        self.output_settings = gf.OutputSettings(extensions=['.ome.tif'], output_suffix=self.output_suffix)
         groupbox = QGroupBox('Output')
         layout2 = QVBoxLayout()
-        layout2.addWidget(QLabel('Folder:'))
-        layout2.addWidget(self.use_input_folder)
-        layout2.addWidget(self.use_custom_folder)
-        layout2.addWidget(self.output_folder)
-        layout3 = QFormLayout()
-        layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
-        layout4 = QHBoxLayout()
-        layout4.setSpacing(0)
-        suffix = QLineEdit(self.output_suffix)
-        suffix.setDisabled(True)
-        suffix.setFixedWidth(suffix.fontMetrics().width(suffix.text()+"  "))
-        suffix.setAlignment(Qt.AlignRight)
-        layout4.addWidget(suffix)
-        layout4.addWidget(self.output_user_suffix)
-        layout3.addRow("Suffix:", layout4)
-        layout3.addRow("Filename:", self.output_filename_label)
-        layout2.addLayout(layout3)
+        layout2.addWidget(self.output_settings)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
@@ -235,8 +202,6 @@ class ImageCropping(QWidget):
 
         self.logger = logging.getLogger(__name__)
 
-        self.update_output_filename_label()
-
     def image_list_changed(self):
         if self.image_list.count() > 1:
             self.display_results.setChecked(False)
@@ -354,22 +319,10 @@ class ImageCropping(QWidget):
     def crop_X_max_changed(self, value):
         self.crop_X_min.setMaximum(value)
 
-    def update_output_filename_label(self):
-        if self.use_input_folder.isChecked():
-            output_path = '<input folder>'
-        else:
-            output_path = os.path.abspath(self.output_folder.text())
-
-        self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif")))
-
     def submit(self):
         image_paths = self.image_list.get_file_list()
-        user_suffix = self.output_user_suffix.text()
-        output_basenames = [gf.splitext(os.path.basename(image_path))[0] + self.output_suffix + user_suffix for image_path in image_paths]
-        if self.use_input_folder.isChecked():
-            output_paths = [os.path.dirname(image_path) for image_path in image_paths]
-        else:
-            output_paths = [self.output_folder.text() for path in image_paths]
+        output_basenames = [self.output_settings.get_basename(image_path) for image_path in image_paths]
+        output_paths = [self.output_settings.get_path(image_path) for image_path in image_paths]
 
         # check input
         if len(image_paths) == 0:
@@ -379,9 +332,9 @@ class ImageCropping(QWidget):
             if not os.path.isfile(image_path):
                 self.logger.error('Image or mask not found: %s', image_path)
                 return
-        if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
+        if self.output_settings.output_folder.text() == '' and not self.output_settings.use_input_folder.isChecked():
             self.logger.error('Output folder missing')
-            self.output_folder.setFocus()
+            self.output_settings.output_folder.setFocus()
             return
         if not any([self.crop_T.isChecked(),
                     self.crop_C.isChecked(),

@@ -3,9 +3,9 @@ import os
 import sys
 import time
 import concurrent.futures
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QLabel, QFormLayout, QLineEdit, QComboBox, QApplication, QCheckBox, QSpinBox, QColorDialog
-from PyQt5.QtCore import Qt, QRegularExpression, QEvent
-from PyQt5.QtGui import QCursor, QRegularExpressionValidator, QColor, QPixmap, QFontMetrics
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QLabel, QFormLayout, QComboBox, QApplication, QCheckBox, QSpinBox, QColorDialog
+from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtGui import QCursor, QColor, QPixmap, QFontMetrics
 from modules.file_conversion_module import file_conversion_functions as f
 from general import general_functions as gf
 
@@ -39,43 +39,10 @@ class MaskGraphConversion(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        self.use_input_folder = QRadioButton('Use input mask and graph folder')
-        self.use_input_folder.setChecked(True)
-        self.use_input_folder.toggled.connect(self.update_output_filename_label)
-        self.use_custom_folder = QRadioButton('Use custom folder (same for all the input files)')
-        self.use_custom_folder.setChecked(False)
-        self.use_custom_folder.toggled.connect(self.update_output_filename_label)
-        self.output_folder = gf.FolderLineEdit()
-        self.output_folder.textChanged.connect(self.update_output_filename_label)
-        self.output_folder.setVisible(self.use_custom_folder.isChecked())
-        self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
-        self.output_user_suffix = QLineEdit()
-        self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
-        self.output_user_suffix.setValidator(QRegularExpressionValidator(QRegularExpression('_?[A-Za-z0-9-]*')))
-        self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
-        self.output_filename_label_mask = QLineEdit()
-        self.output_filename_label_mask.setFrame(False)
-        self.output_filename_label_mask.setEnabled(False)
-        self.output_filename_label_mask.textChanged.connect(self.output_filename_label_mask.setToolTip)
-        self.output_filename_label_graph = QLineEdit()
-        self.output_filename_label_graph.setFrame(False)
-        self.output_filename_label_graph.setEnabled(False)
-        self.output_filename_label_graph.textChanged.connect(self.output_filename_label_graph.setToolTip)
+        self.output_settings = gf.OutputSettings(extensions=['.zip', '.tsv'])
         groupbox = QGroupBox('Output')
         layout2 = QVBoxLayout()
-        layout2.addWidget(QLabel('Folder:'))
-        layout2.addWidget(self.use_input_folder)
-        layout2.addWidget(self.use_custom_folder)
-        layout2.addWidget(self.output_folder)
-        layout3 = QFormLayout()
-        layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
-        layout3.addRow('Suffix:', self.output_user_suffix)
-        layout4 = QVBoxLayout()
-        layout4.setSpacing(0)
-        layout4.addWidget(self.output_filename_label_mask)
-        layout4.addWidget(self.output_filename_label_graph)
-        layout3.addRow('Filename:', layout4)
-        layout2.addLayout(layout3)
+        layout2.addWidget(self.output_settings)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
@@ -83,7 +50,7 @@ class MaskGraphConversion(QWidget):
         layout2 = QVBoxLayout()
         self.convert_mask = QGroupBox('Convert segmentation mask')
         self.convert_mask.setCheckable(True)
-        self.convert_mask.toggled.connect(self.output_filename_label_mask.setVisible)
+        self.convert_mask.toggled.connect(self.output_settings.output_filename_labels[0].setVisible)
         layout3 = QFormLayout()
         label_documentation_mask = QLabel('Export segmentation mask as <a href="https://imagej.net/">ImageJ</a> ROI set (.zip)')
         label_documentation_mask.setOpenExternalLinks(True)
@@ -93,7 +60,7 @@ class MaskGraphConversion(QWidget):
         layout2.addWidget(self.convert_mask)
         self.convert_graph = QGroupBox('Convert cell tracking graph')
         self.convert_graph.setCheckable(True)
-        self.convert_graph.toggled.connect(self.output_filename_label_graph.setVisible)
+        self.convert_graph.toggled.connect(self.output_settings.output_filename_labels[1].setVisible)
         layout3 = QFormLayout()
         self.output_graph_format = QComboBox()
         self.output_graph_format.addItem('List of edges (.tsv)')
@@ -146,11 +113,6 @@ class MaskGraphConversion(QWidget):
             self.label_documentation_graph.setText('Export cell tracking graph in <a href="http://graphml.graphdrawing.org/">GraphML</a> format.')
 
     def update_output_filename_label(self):
-        if self.use_input_folder.isChecked():
-            output_path = '<input folder>'
-        else:
-            output_path = os.path.abspath(self.output_folder.text())
-
         mask_ext = '.zip'
         if self.output_graph_format.currentText() == 'List of edges (.tsv)':
             graph_ext = '.tsv'
@@ -164,20 +126,17 @@ class MaskGraphConversion(QWidget):
         else:
             celltrack_suffix = ''
 
-        self.output_filename_label_mask.setText(os.path.normpath(os.path.join(output_path, '<input basename>' + self.output_user_suffix.text() + celltrack_suffix + mask_ext)))
-        self.output_filename_label_graph.setText(os.path.normpath(os.path.join(output_path, '<input basename>' + self.output_user_suffix.text() + celltrack_suffix + graph_ext)))
+        self.output_settings.extensions = [mask_ext, graph_ext]
+        self.output_settings.suffix = celltrack_suffix
+        self.output_settings.update_output_filename_labels()
 
     def submit(self):
 
         mask_graph_paths = self.mask_graph_table.get_file_table()
         mask_paths = [mask_path for mask_path, graph_path in mask_graph_paths]
         graph_paths = [graph_path for mask_path, graph_path in mask_graph_paths]
-        user_suffix = self.output_user_suffix.text()
-        output_basenames = [gf.splitext(os.path.basename(mask_path))[0] + user_suffix for mask_path in mask_paths]
-        if self.use_input_folder.isChecked():
-            output_paths = [os.path.dirname(mask_path) for mask_path in mask_paths]
-        else:
-            output_paths = [self.output_folder.text() for path in mask_paths]
+        output_basenames = [self.output_settings.get_basename(mask_path) for mask_path in mask_paths]
+        output_paths = [self.output_settings.get_path(mask_path) for mask_path in mask_paths]
 
         output_mask_format = 'imagejroi' if self.convert_mask.isChecked() else None
         output_graph_format = None
@@ -201,9 +160,9 @@ class MaskGraphConversion(QWidget):
             if not os.path.isfile(graph_path):
                 self.logger.error('Cell tracking graph not found: %s', graph_path)
                 return
-        if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
+        if self.output_settings.output_folder.text() == '' and not self.output_settings.use_input_folder.isChecked():
             self.logger.error('Output folder missing')
-            self.output_folder.setFocus()
+            self.output_settings.output_folder.setFocus()
             return
         if not self.convert_graph.isChecked() and not self.convert_mask.isChecked():
             self.logger.error('Al least one of the conversion options (mask or graph) must be selected.')
@@ -306,38 +265,10 @@ class ImageMaskConversion(QWidget):
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
-        self.use_input_folder = QRadioButton('Use input image/mask folder')
-        self.use_input_folder.setChecked(True)
-        self.use_input_folder.toggled.connect(self.update_output_filename_label)
-        self.use_custom_folder = QRadioButton('Use custom folder (same for all the input files)')
-        self.use_custom_folder.setChecked(False)
-        self.use_custom_folder.toggled.connect(self.update_output_filename_label)
-        self.output_folder = gf.FolderLineEdit()
-        self.output_folder.textChanged.connect(self.update_output_filename_label)
-        self.output_folder.setVisible(self.use_custom_folder.isChecked())
-        self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
-        self.output_user_suffix = QLineEdit()
-        self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
-        self.output_user_suffix.setValidator(QRegularExpressionValidator(QRegularExpression('_?[A-Za-z0-9-]*')))
-        self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
-        self.output_filename_label = QLineEdit()
-        self.output_filename_label.setFrame(False)
-        self.output_filename_label.setEnabled(False)
-        self.output_filename_label.textChanged.connect(self.output_filename_label.setToolTip)
+        self.output_settings = gf.OutputSettings(extensions=['.mp4 or .jpg'])
         groupbox = QGroupBox('Output')
         layout2 = QVBoxLayout()
-        layout2.addWidget(QLabel('Folder:'))
-        layout2.addWidget(self.use_input_folder)
-        layout2.addWidget(self.use_custom_folder)
-        layout2.addWidget(self.output_folder)
-        layout3 = QFormLayout()
-        layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
-        layout3.addRow('Suffix:', self.output_user_suffix)
-        layout4 = QVBoxLayout()
-        layout4.setSpacing(0)
-        layout4.addWidget(self.output_filename_label)
-        layout3.addRow('Filename:', layout4)
-        layout2.addLayout(layout3)
+        layout2.addWidget(self.output_settings)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
@@ -517,17 +448,13 @@ class ImageMaskConversion(QWidget):
         self.update_output_filename_label()
 
     def update_output_filename_label(self):
-        if self.use_input_folder.isChecked():
-            output_path = '<input folder>'
-        else:
-            output_path = os.path.abspath(self.output_folder.text())
-
         if self.output_format_mp4.isChecked():
-            self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, '<input basename>' + self.output_user_suffix.text() + '.mp4')))
+            self.output_settings.extensions = ['.mp4']
         elif self.output_format_jpg.isChecked():
-            self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, '<input basename>' + self.output_user_suffix.text() + '.jpg')))
+            self.output_settings.extensions = ['.jpg']
         else:
-            self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, '<input basename>' + self.output_user_suffix.text() + '.mp4 or .jpg')))
+            self.output_settings.extensions = ['.mp4 or jpg']
+        self.output_settings.update_output_filename_labels()
 
     def projection_mode_fixed_zmin_changed(self, value):
         self.projection_mode_fixed_zmax.setMinimum(value)
@@ -573,12 +500,8 @@ class ImageMaskConversion(QWidget):
             output_format = 'auto'
 
         image_paths = self.image_list.get_file_list()
-        user_suffix = self.output_user_suffix.text()
-        output_basenames = [gf.splitext(os.path.basename(image_path))[0] + user_suffix for image_path in image_paths]
-        if self.use_input_folder.isChecked():
-            output_paths = [os.path.dirname(image_path) for image_path in image_paths]
-        else:
-            output_paths = [self.output_folder.text() for path in image_paths]
+        output_basenames = [self.output_settings.get_basename(image_path) for image_path in image_paths]
+        output_paths = [self.output_settings.get_path(image_path) for image_path in image_paths]
 
         # check input
         if len(image_paths) == 0:
@@ -588,9 +511,9 @@ class ImageMaskConversion(QWidget):
             if not os.path.isfile(image_path):
                 self.logger.error('Image or mask not found: %s', image_path)
                 return
-        if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
+        if self.output_settings.output_folder.text() == '' and not self.output_settings.use_input_folder.isChecked():
             self.logger.error('Output folder missing')
-            self.output_folder.setFocus()
+            self.output_settings.output_folder.setFocus()
             return
 
         output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]

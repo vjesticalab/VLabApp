@@ -1,8 +1,7 @@
 import os
 import logging
-from PyQt5.QtWidgets import QVBoxLayout, QRadioButton, QGroupBox, QHBoxLayout, QPushButton, QWidget, QLineEdit, QLabel, QFormLayout, QMessageBox
-from PyQt5.QtCore import Qt, QRegularExpression
-from PyQt5.QtGui import QRegularExpressionValidator
+from PyQt5.QtWidgets import QVBoxLayout, QGroupBox, QPushButton, QWidget, QLabel, QMessageBox
+from PyQt5.QtCore import Qt
 from modules.ground_truth_generator_module import ground_truth_generator_functions as f
 from general import general_functions as gf
 
@@ -32,24 +31,7 @@ class GroundTruthGenerator(QWidget):
         self.input_image_mask.textChanged.connect(self.input_image_mask_changed)
 
         # Output widgets
-        self.use_input_folder = QRadioButton("Use input image folder")
-        self.use_input_folder.setChecked(True)
-        self.use_input_folder.toggled.connect(self.update_output_filename_label)
-        self.use_custom_folder = QRadioButton("Use custom folder")
-        self.use_custom_folder.setChecked(False)
-        self.use_custom_folder.toggled.connect(self.update_output_filename_label)
-        self.output_folder = gf.FolderLineEdit()
-        self.output_folder.textChanged.connect(self.update_output_filename_label)
-        self.output_folder.setVisible(self.use_custom_folder.isChecked())
-        self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
-        self.output_user_suffix = QLineEdit()
-        self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
-        self.output_user_suffix.setValidator(QRegularExpressionValidator(QRegularExpression('[A-Za-z0-9-]*')))
-        self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
-        self.output_filename_label = QLineEdit()
-        self.output_filename_label.setFrame(False)
-        self.output_filename_label.setEnabled(False)
-        self.output_filename_label.textChanged.connect(self.output_filename_label.setToolTip)
+        self.output_settings = gf.OutputSettings(extensions=['.ome.tif'], output_suffix=self.output_suffix)
         # Submit
         self.submit_button = QPushButton("Submit", self)
         self.submit_button.clicked.connect(self.submit)
@@ -85,31 +67,13 @@ class GroundTruthGenerator(QWidget):
         # Output infos
         groupbox = QGroupBox("Output")
         layout2 = QVBoxLayout()
-        layout2.addWidget(QLabel("Folder:"))
-        layout2.addWidget(self.use_input_folder)
-        layout2.addWidget(self.use_custom_folder)
-        layout2.addWidget(self.output_folder)
-        layout3 = QFormLayout()
-        layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
-        layout4 = QHBoxLayout()
-        layout4.setSpacing(0)
-        suffix = QLineEdit(self.output_suffix)
-        suffix.setDisabled(True)
-        suffix.setFixedWidth(suffix.fontMetrics().width(suffix.text() + '  '))
-        suffix.setAlignment(Qt.AlignRight)
-        layout4.addWidget(suffix)
-        layout4.addWidget(self.output_user_suffix)
-        layout3.addRow("Suffix:", layout4)
-        layout3.addRow("Filename:", self.output_filename_label)
-        layout2.addLayout(layout3)
+        layout2.addWidget(self.output_settings)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
         layout.addWidget(self.submit_button, alignment=Qt.AlignCenter)
         self.setLayout(layout)
 
         self.logger = logging.getLogger(__name__)
-
-        self.update_output_filename_label()
 
     def input_image_BF_changed(self):
         fluo_suffix = 'WL'
@@ -231,14 +195,6 @@ class GroundTruthGenerator(QWidget):
                 self.input_image_fluo2.setPlaceholderText(image_fluo2_path)
                 self.input_image_fluo2.setToolTip(image_fluo2_path)
 
-    def update_output_filename_label(self):
-        if self.use_input_folder.isChecked():
-            output_path = "<input folder>"
-        else:
-            output_path = os.path.abspath(self.output_folder.text())
-
-        self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif")))
-
     def submit(self):
         image_BF_path = self.input_image_BF.text()
         if image_BF_path == '':
@@ -277,17 +233,13 @@ class GroundTruthGenerator(QWidget):
             self.logger.error('Image not found: %s', image_mask_path)
             self.input_image_mask.setFocus()
             return
-        if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
+        if self.output_settings.output_folder.text() == '' and not self.output_settings.use_input_folder.isChecked():
             self.logger.error('Output folder missing')
-            self.output_folder.setFocus()
+            self.output_settings.output_folder.setFocus()
             return
 
-        user_suffix = self.output_user_suffix.text()
-        output_basename = gf.splitext(os.path.basename(image_BF_path))[0] + self.output_suffix + user_suffix
-        if self.use_input_folder.isChecked():
-            output_path = os.path.dirname(image_BF_path)
-        else:
-            output_path = self.output_folder.text()
+        output_basename = self.output_settings.get_basename(image_BF_path)
+        output_path = self.output_settings.get_path(image_BF_path)
 
         if os.path.normpath(os.path.abspath(image_mask_path)) == os.path.normpath(os.path.join(output_path, output_basename+".ome.tif")):
             res = QMessageBox.information(self, 'Information', 'The segmentation mask used as input will be overwritten by the mask generated in this module.\nOverwrite?', QMessageBox.Yes | QMessageBox.No, defaultButton=QMessageBox.Yes)

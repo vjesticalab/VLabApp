@@ -4,9 +4,9 @@ import time
 import concurrent.futures
 import logging
 import igraph as ig
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QLabel, QFormLayout, QSpinBox, QCheckBox, QSizePolicy, QLineEdit
-from PyQt5.QtCore import Qt, QRegularExpression
-from PyQt5.QtGui import QCursor, QRegularExpressionValidator
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QApplication, QLabel, QFormLayout, QSpinBox, QCheckBox, QSizePolicy
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QCursor
 from modules.graph_filtering_module import graph_filtering_functions as f
 from general import general_functions as gf
 
@@ -47,52 +47,10 @@ class GraphFiltering(QWidget):
             groupbox.setLayout(layout2)
             layout.addWidget(groupbox)
 
-        self.use_input_folder = QRadioButton("Use input mask and graph folder")
-        self.use_input_folder.setChecked(True)
-        self.use_input_folder.toggled.connect(self.update_output_filename_label)
-        self.use_custom_folder = QRadioButton("Use custom folder (same for all the input files)")
-        self.use_custom_folder.setChecked(False)
-        self.use_custom_folder.toggled.connect(self.update_output_filename_label)
-        self.output_folder = gf.FolderLineEdit()
-        self.output_folder.textChanged.connect(self.update_output_filename_label)
-        self.output_folder.setVisible(self.use_custom_folder.isChecked())
-        self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
-        self.output_user_suffix = QLineEdit()
-        self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
-        self.output_user_suffix.setValidator(QRegularExpressionValidator(QRegularExpression('[A-Za-z0-9-]*')))
-        self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
-        self.output_filename_label1 = QLineEdit()
-        self.output_filename_label1.setFrame(False)
-        self.output_filename_label1.setEnabled(False)
-        self.output_filename_label1.textChanged.connect(self.output_filename_label1.setToolTip)
-        self.output_filename_label2 = QLineEdit()
-        self.output_filename_label2.setFrame(False)
-        self.output_filename_label2.setEnabled(False)
-        self.output_filename_label2.textChanged.connect(self.output_filename_label2.setToolTip)
+        self.output_settings = gf.OutputSettings(extensions=['.ome.tif', '.graphmlz'], output_suffix=self.output_suffix, pipeline_layout=self.pipeline_layout)
         groupbox = QGroupBox("Output")
         layout2 = QVBoxLayout()
-        if not self.pipeline_layout:
-            layout2.addWidget(QLabel("Folder:"))
-            layout2.addWidget(self.use_input_folder)
-            layout2.addWidget(self.use_custom_folder)
-            layout2.addWidget(self.output_folder)
-        layout3 = QFormLayout()
-        layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
-        layout4 = QHBoxLayout()
-        layout4.setSpacing(0)
-        suffix = QLineEdit(self.output_suffix)
-        suffix.setDisabled(True)
-        suffix.setFixedWidth(suffix.fontMetrics().width(suffix.text()+"  "))
-        suffix.setAlignment(Qt.AlignRight)
-        layout4.addWidget(suffix)
-        layout4.addWidget(self.output_user_suffix)
-        layout3.addRow("Suffix:", layout4)
-        layout4 = QVBoxLayout()
-        layout4.setSpacing(0)
-        layout4.addWidget(self.output_filename_label1)
-        layout4.addWidget(self.output_filename_label2)
-        layout3.addRow("Filename:", layout4)
-        layout2.addLayout(layout3)
+        layout2.addWidget(self.output_settings)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
@@ -355,31 +313,18 @@ class GraphFiltering(QWidget):
 
         self.logger = logging.getLogger(__name__)
 
-        self.update_output_filename_label()
-
     def mask_graph_table_changed(self):
         if self.mask_graph_table.rowCount() > 1:
             self.display_results.setChecked(False)
         self.display_results.setEnabled(self.mask_graph_table.rowCount() <= 1)
 
-    def update_output_filename_label(self):
-        if self.pipeline_layout:
-            output_path = "<output folder>"
-        elif self.use_input_folder.isChecked():
-            output_path = "<input folder>"
-        else:
-            output_path = os.path.abspath(self.output_folder.text())
-
-        self.output_filename_label1.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif")))
-        self.output_filename_label2.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".graphmlz")))
-
     def get_widgets_state(self):
         widgets_state = {
             'mask_graph_table': self.mask_graph_table.get_file_table(),
-            'use_input_folder': self.use_input_folder.isChecked(),
-            'use_custom_folder': self.use_custom_folder.isChecked(),
-            'output_folder': self.output_folder.text(),
-            'output_user_suffix': self.output_user_suffix.text(),
+            'use_input_folder': self.output_settings.use_input_folder.isChecked(),
+            'use_custom_folder': self.output_settings.use_custom_folder.isChecked(),
+            'output_folder': self.output_settings.output_folder.text(),
+            'output_user_suffix': self.output_settings.output_user_suffix.text(),
             'filter_border_yn': self.filter_border_yn.isChecked(),
             'border_width': self.border_width.value(),
             'filter_all_cells_area_yn': self.filter_all_cells_area_yn.isChecked(),
@@ -409,10 +354,10 @@ class GraphFiltering(QWidget):
 
     def set_widgets_state(self, widgets_state):
         self.mask_graph_table.set_file_table(widgets_state['mask_graph_table'])
-        self.use_input_folder.setChecked(widgets_state['use_input_folder'])
-        self.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
-        self.output_folder.setText(widgets_state['output_folder'])
-        self.output_user_suffix.setText(widgets_state['output_user_suffix'])
+        self.output_settings.use_input_folder.setChecked(widgets_state['use_input_folder'])
+        self.output_settings.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
+        self.output_settings.output_folder.setText(widgets_state['output_folder'])
+        self.output_settings.output_user_suffix.setText(widgets_state['output_user_suffix'])
         self.filter_border_yn.setChecked(widgets_state['filter_border_yn'])
         self.border_width.setValue(widgets_state['border_width'])
         self.filter_all_cells_area_yn.setChecked(widgets_state['filter_all_cells_area_yn'])
@@ -449,12 +394,8 @@ class GraphFiltering(QWidget):
         mask_graph_paths = self.mask_graph_table.get_file_table()
         mask_paths = [mask_path for mask_path, graph_path in mask_graph_paths]
         graph_paths = [graph_path for mask_path, graph_path in mask_graph_paths]
-        user_suffix = self.output_user_suffix.text()
-        output_basenames = [gf.splitext(os.path.basename(mask_path))[0] + self.output_suffix + user_suffix for mask_path in mask_paths]
-        if self.use_input_folder.isChecked():
-            output_paths = [os.path.dirname(mask_path) for mask_path in mask_paths]
-        else:
-            output_paths = [self.output_folder.text() for path in mask_paths]
+        output_basenames = [self.output_settings.get_basename(mask_path) for mask_path in mask_paths]
+        output_paths = [self.output_settings.get_path(mask_path) for mask_path in mask_paths]
 
         filters = []
         graph_topologies = None
@@ -495,9 +436,9 @@ class GraphFiltering(QWidget):
             if not os.path.isfile(graph_path):
                 self.logger.error('Cell tracking graph not found: %s', graph_path)
                 return
-        if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
+        if self.output_settings.output_folder.text() == '' and not self.output_settings.use_input_folder.isChecked():
             self.logger.error('Output folder missing')
-            self.output_folder.setFocus()
+            self.output_settings.output_folder.setFocus()
             return
         output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]
         duplicates = [x for x, y in zip(mask_paths, output_files) if output_files.count(y) > 1]

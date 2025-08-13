@@ -4,8 +4,8 @@ import sys
 import time
 import concurrent
 from PyQt5.QtWidgets import QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QLabel, QLineEdit, QComboBox
-from PyQt5.QtCore import Qt, QRegularExpression
-from PyQt5.QtGui import QCursor, QDoubleValidator, QRegularExpressionValidator
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QCursor, QDoubleValidator
 from modules.segmentation_module import segmentation_functions as f
 from general import general_functions as gf
 import torch
@@ -45,24 +45,7 @@ class Segmentation(QWidget):
         self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='_BF')
         self.image_list.file_list_changed.connect(self.image_list_changed)
 
-        self.use_input_folder = QRadioButton("Use input image folder")
-        self.use_input_folder.setChecked(True)
-        self.use_input_folder.toggled.connect(self.update_output_filename_label)
-        self.use_custom_folder = QRadioButton("Use custom folder (same for all the input files)")
-        self.use_custom_folder.setChecked(False)
-        self.use_custom_folder.toggled.connect(self.update_output_filename_label)
-        self.output_folder = gf.FolderLineEdit()
-        self.output_folder.textChanged.connect(self.update_output_filename_label)
-        self.output_folder.setVisible(self.use_custom_folder.isChecked())
-        self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
-        self.output_user_suffix = QLineEdit()
-        self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
-        self.output_user_suffix.setValidator(QRegularExpressionValidator(QRegularExpression('[A-Za-z0-9-]*')))
-        self.output_user_suffix.textChanged.connect(self.update_output_filename_label)
-        self.output_filename_label = QLineEdit()
-        self.output_filename_label.setFrame(False)
-        self.output_filename_label.setEnabled(False)
-        self.output_filename_label.textChanged.connect(self.output_filename_label.setToolTip)
+        self.output_settings = gf.OutputSettings(extensions=['.ome.tif'], output_suffix=self.output_suffix, pipeline_layout=self.pipeline_layout)
 
         self.segmentation_method = QComboBox()
         self.segmentation_method.addItem("cellpose")
@@ -210,24 +193,7 @@ class Segmentation(QWidget):
 
         groupbox = QGroupBox("Output")
         layout2 = QVBoxLayout()
-        if not self.pipeline_layout:
-            layout2.addWidget(QLabel("Folder:"))
-            layout2.addWidget(self.use_input_folder)
-            layout2.addWidget(self.use_custom_folder)
-            layout2.addWidget(self.output_folder)
-        layout3 = QFormLayout()
-        layout3.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
-        layout4 = QHBoxLayout()
-        layout4.setSpacing(0)
-        suffix = QLineEdit(self.output_suffix)
-        suffix.setDisabled(True)
-        suffix.setFixedWidth(suffix.fontMetrics().width(suffix.text()+"  "))
-        suffix.setAlignment(Qt.AlignRight)
-        layout4.addWidget(suffix)
-        layout4.addWidget(self.output_user_suffix)
-        layout3.addRow("Suffix:", layout4)
-        layout3.addRow("Filename:", self.output_filename_label)
-        layout2.addLayout(layout3)
+        layout2.addWidget(self.output_settings)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
@@ -324,8 +290,6 @@ class Segmentation(QWidget):
 
         self.logger = logging.getLogger(__name__)
 
-        self.update_output_filename_label()
-
     def segmentation_method_changed(self, method):
         if method == 'cellpose':
             self.segmentation_settings_cellpose.setVisible(True)
@@ -360,16 +324,6 @@ class Segmentation(QWidget):
             self.coarse_grain.setChecked(False)
         self.coarse_grain.setEnabled(self.image_list.count() > 1 and not self.use_gpu.isChecked())
 
-    def update_output_filename_label(self):
-        if self.pipeline_layout:
-            output_path = "<output folder>"
-        elif self.use_input_folder.isChecked():
-            output_path = "<input folder>"
-        else:
-            output_path = os.path.abspath(self.output_folder.text())
-
-        self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + ".ome.tif")))
-
     def projection_mode_fixed_zmin_changed(self, value):
         self.projection_mode_fixed_zmax.setMinimum(value)
 
@@ -379,9 +333,9 @@ class Segmentation(QWidget):
     def get_widgets_state(self):
         widgets_state = {
             'image_list': self.image_list.get_file_list(),
-            'use_input_folder': self.use_input_folder.isChecked(),
-            'use_custom_folder': self.use_custom_folder.isChecked(),
-            'output_folder': self.output_folder.text(),
+            'use_input_folder': self.output_settings.use_input_folder.isChecked(),
+            'use_custom_folder': self.output_settings.use_custom_folder.isChecked(),
+            'output_folder': self.output_settings.output_folder.text(),
             'segmentation_method': self.segmentation_method.currentText(),
             'cellpose_model_type': self.cellpose_model_type.currentText(),
             'cellpose_user_model': self.cellpose_user_model.text(),
@@ -389,7 +343,7 @@ class Segmentation(QWidget):
             'cellpose_cellprob_threshold': self.cellpose_cellprob_threshold.text() if self.cellpose_cellprob_threshold.text() != '' else self.cellpose_cellprob_threshold.placeholderText(),
             'cellpose_flow_threshold':  self.cellpose_flow_threshold.text() if self.cellpose_flow_threshold.text() != '' else self.cellpose_flow_threshold.placeholderText(),
             'microsam_model_type': self.microsam_model_type.currentText(),
-            'output_user_suffix': self.output_user_suffix.text(),
+            'output_user_suffix': self.output_settings.output_user_suffix.text(),
             'channel_position': self.channel_position.value(),
             'projection_mode_bestZ': self.projection_mode_bestZ.isChecked(),
             'projection_mode_around_bestZ': self.projection_mode_around_bestZ.isChecked(),
@@ -407,9 +361,9 @@ class Segmentation(QWidget):
 
     def set_widgets_state(self, widgets_state):
         self.image_list.set_file_list(widgets_state['image_list'])
-        self.use_input_folder.setChecked(widgets_state['use_input_folder'])
-        self.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
-        self.output_folder.setText(widgets_state['output_folder'])
+        self.output_settings.use_input_folder.setChecked(widgets_state['use_input_folder'])
+        self.output_settings.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
+        self.output_settings.output_folder.setText(widgets_state['output_folder'])
         self.segmentation_method.setCurrentText(widgets_state['segmentation_method'])
         self.cellpose_model_type.setCurrentText(widgets_state['cellpose_model_type'])
         self.cellpose_user_model.setText(widgets_state['cellpose_user_model'])
@@ -417,7 +371,7 @@ class Segmentation(QWidget):
         self.cellpose_cellprob_threshold.setText(widgets_state['cellpose_cellprob_threshold'])
         self.cellpose_flow_threshold.setText(widgets_state['cellpose_flow_threshold'])
         self.microsam_model_type.setCurrentText(widgets_state['microsam_model_type'])
-        self.output_user_suffix.setText(widgets_state['output_user_suffix'])
+        self.output_settings.output_user_suffix.setText(widgets_state['output_user_suffix'])
         self.channel_position.setValue(widgets_state['channel_position'])
         self.projection_mode_bestZ.setChecked(widgets_state['projection_mode_bestZ'])
         self.projection_mode_around_bestZ.setChecked(widgets_state['projection_mode_around_bestZ'])
@@ -455,12 +409,8 @@ class Segmentation(QWidget):
         cellpose_cellprob_threshold = float(self.cellpose_cellprob_threshold.text()) if self.cellpose_cellprob_threshold.text() != '' else float(self.cellpose_cellprob_threshold.placeholderText())
         cellpose_flow_threshold = float(self.cellpose_flow_threshold.text()) if self.cellpose_flow_threshold.text() != '' else float(self.cellpose_flow_threshold.placeholderText())
         microsam_model_type = self.microsam_model_type.currentText()
-        user_suffix = self.output_user_suffix.text()
-        output_basenames = [gf.splitext(os.path.basename(path))[0] + self.output_suffix + user_suffix for path in image_paths]
-        if self.use_input_folder.isChecked():
-            output_paths = [os.path.dirname(path) for path in image_paths]
-        else:
-            output_paths = [self.output_folder.text() for path in image_paths]
+        output_basenames = [self.output_settings.get_basename(path) for path in image_paths]
+        output_paths = [self.output_settings.get_path(path) for path in image_paths]
 
         if len(image_paths) == 0:
             self.logger.error('Image missing')
@@ -479,14 +429,14 @@ class Segmentation(QWidget):
                     self.logger.error('Model not found: %s', cellpose_model_path)
                     self.cellpose_user_model.setFocus()
                     return
-            elif cellpose_model_type not in ['cyto', 'cyto2', 'cyto3', 'nuclei','cpsam'] and cellpose_diameter == 0:
+            elif cellpose_model_type not in ['cyto', 'cyto2', 'cyto3', 'nuclei', 'cpsam'] and cellpose_diameter == 0:
                 self.logger.error('Diameter estimation using Cellpose built-in model (i.e. diameter == 0) is only available for cyto, cyto2, cyto3 and nuclei models')
                 self.cellpose_diameter.setFocus()
                 return
 
-        if self.output_folder.text() == '' and not self.use_input_folder.isChecked():
+        if self.output_settings.output_folder.text() == '' and not self.output_settings.use_input_folder.isChecked():
             self.logger.error('Output folder missing')
-            self.output_folder.setFocus()
+            self.output_settings.output_folder.setFocus()
             return
         output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]
         duplicates = [x for x, y in zip(image_paths, output_files) if output_files.count(y) > 1]

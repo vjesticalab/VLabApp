@@ -5,9 +5,9 @@ import nd2
 import re
 import webbrowser
 from aicsimageio.readers import OmeTiffReader
-from PyQt5.QtCore import Qt, pyqtSignal, QUrl
-from PyQt5.QtGui import QBrush, QKeySequence, QPainter, QFontMetrics, QTextDocument, QColor
-from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem, QDialog, QShortcut
+from PyQt5.QtCore import Qt, pyqtSignal, QUrl, QRegularExpression
+from PyQt5.QtGui import QBrush, QKeySequence, QPainter, QFontMetrics, QTextDocument, QColor, QRegularExpressionValidator
+from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem, QDialog, QShortcut, QRadioButton
 
 import logging
 import igraph as ig
@@ -1181,6 +1181,101 @@ class FolderLineEdit(QWidget):
             self.line_edit.setText(folder)
         else:
             self.line_edit.setText(os.path.join(os.path.normpath(folder), ''))
+
+
+class OutputSettings(QWidget):
+    """
+    A QWidget to enter output settings.
+    """
+
+    def __init__(self, parent=None, output_suffix='', extensions=None, pipeline_layout=False):
+        """
+        Parameters
+        ----------
+        output_suffix: str
+            output suffix.
+        extensions: list of str
+            list of filename extensions including the '.' (one extension per output file). E.g. ['.csv','.ome.tif'].
+            Only used to display output filenames.
+        pipeline_layout: bool
+            the widget is used in the pipeline module and the choice of folder is not shown.
+        """
+        super().__init__(parent)
+
+        self.output_suffix = output_suffix
+        self.extensions = extensions
+        self.pipeline_layout = pipeline_layout
+
+        self.use_input_folder = QRadioButton("Use input folder")
+        self.use_input_folder.setChecked(True)
+        self.use_input_folder.toggled.connect(self.update_output_filename_labels)
+        self.use_custom_folder = QRadioButton("Use custom folder (same for all the input files)")
+        self.use_custom_folder.setChecked(False)
+        self.use_custom_folder.toggled.connect(self.update_output_filename_labels)
+        self.output_folder = FolderLineEdit()
+        self.output_folder.textChanged.connect(self.update_output_filename_labels)
+        self.output_folder.setVisible(self.use_custom_folder.isChecked())
+        self.use_custom_folder.toggled.connect(self.output_folder.setVisible)
+        self.output_user_suffix = QLineEdit()
+        self.output_user_suffix.setToolTip('Allowed characters: A-Z, a-z, 0-9 and -')
+        self.output_user_suffix.setValidator(QRegularExpressionValidator(QRegularExpression('[A-Za-z0-9-]*')))
+        self.output_user_suffix.textChanged.connect(self.update_output_filename_labels)
+        self.output_filename_labels = []
+        for i in range(len(self.extensions)):
+            label = QLineEdit()
+            label.setFrame(False)
+            label.setEnabled(False)
+            label.textChanged.connect(label.setToolTip)
+            self.output_filename_labels.append(label)
+
+        layout = QVBoxLayout()
+        if not self.pipeline_layout:
+            layout.addWidget(QLabel("Folder:"))
+            layout.addWidget(self.use_input_folder)
+            layout.addWidget(self.use_custom_folder)
+            layout.addWidget(self.output_folder)
+        layout2 = QFormLayout()
+        layout2.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        layout3 = QHBoxLayout()
+        layout3.setSpacing(0)
+        if output_suffix:
+            suffix = QLineEdit(self.output_suffix)
+            suffix.setDisabled(True)
+            suffix.setFixedWidth(suffix.fontMetrics().width(suffix.text()+"  "))
+            suffix.setAlignment(Qt.AlignRight)
+            layout3.addWidget(suffix)
+        layout3.addWidget(self.output_user_suffix)
+        layout2.addRow("Suffix:", layout3)
+        layout3 = QVBoxLayout()
+        layout3.setSpacing(0)
+        for label in self.output_filename_labels:
+            layout3.addWidget(label)
+        layout2.addRow("Filename:", layout3)
+        layout.addLayout(layout2)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(layout)
+        self.update_output_filename_labels()
+
+
+    def update_output_filename_labels(self):
+        if self.pipeline_layout:
+            output_path = "<output folder>"
+        elif self.use_input_folder.isChecked():
+            output_path = "<input folder>"
+        else:
+            output_path = os.path.abspath(self.output_folder.text())
+
+        for label, extension in zip(self.output_filename_labels, self.extensions):
+            label.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + self.output_user_suffix.text() + extension)))
+
+    def get_basename(self, input_filename):
+        return splitext(os.path.basename(input_filename))[0] + self.output_suffix + self.output_user_suffix.text()
+
+    def get_path(self, input_filename):
+        if self.use_input_folder.isChecked():
+            return os.path.dirname(input_filename)
+        else:
+            return self.output_folder.text()
 
 
 class Page(QWidget):

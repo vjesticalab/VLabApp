@@ -33,7 +33,7 @@ class zProjection(QWidget):
         self.image_list = gf.FileListWidget(filetypes=gf.imagetypes, filenames_filter='')
 
         # Output folders
-        self.use_input_folder = QRadioButton("Use input image folder")
+        self.use_input_folder = QRadioButton("Use input folder")
         self.use_input_folder.setChecked(True)
         self.use_input_folder.toggled.connect(self.update_output_filename_label)
         self.use_custom_folder = QRadioButton("Use custom folder (same for all the input files)")
@@ -322,7 +322,7 @@ class zProjection(QWidget):
         output_files = [os.path.join(d, f) for d, f in zip(output_paths, output_basenames)]
         duplicates = [x for x, y in zip(image_paths, output_files) if output_files.count(y) > 1]
         if len(duplicates) > 0:
-            self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input image folder as output folder or avoid processing images from different input folders.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
+            self.logger.error('More than one input file will output to the same file (output files will be overwritten).\nEither use input folder as output folder or avoid processing images from different input folders.\nProblematic input files:\n%s', '\n'.join(duplicates[:4] + (['...'] if len(duplicates) > 4 else [])))
             return
 
         # check input files are valid
