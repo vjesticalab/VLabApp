@@ -70,14 +70,6 @@ By default, VLabApp output files are saved in the working directory containing t
     *  `smp04_vRG_vPRb3mean_vSM_vTG_vGF.ome.tif`
     *  `smp04_vRG_vPRb3mean_vSM_vTG_vGF.graphmlz`
 
-`_vEF`
-: Output of events filter module.
-    
-    Examples:
-    
-    *  `smp01_vRG_vSM_vTG_vEF.ome.tif`
-    *  `smp01_vRG_vSM_vTG_vEF.graphmlz`
-  
 `_vCR`
 : Output of image cropping module.
     
