@@ -192,8 +192,7 @@ class ImageMaskGraphViewer(QWidget):
             layout2.addWidget(help_label)
             # Create a button to quit
             button = QPushButton("Quit")
-            button.clicked.connect(viewer_graph.close)
-            button.clicked.connect(viewer_images.close)
+            button.clicked.connect(self.quit)
             layout2.addWidget(button)
             groupbox.setLayout(layout2)
             layout.addWidget(groupbox)
@@ -204,6 +203,12 @@ class ImageMaskGraphViewer(QWidget):
             scroll_area.setWidget(QWidget())
             scroll_area.widget().setLayout(layout)
             viewer_images.window.add_dock_widget(scroll_area, area='right', name="Cell tracking")
+
+    def quit(self):
+        # TODO: currently, all napari viewers are closed (including viewers opened by other modules). Find a way to close only viewer_graph and viewer_images (avoid errors if one of the viewers is already closed).
+        while napari.current_viewer() is not None:
+            napari.current_viewer().close()
+
 
 
 class RegistrationViewer(QWidget):

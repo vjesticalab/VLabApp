@@ -35,7 +35,7 @@
 * Ground truth generator module: fix a crash with image paths automatic filling.
 * Fix documentation widget links with fragments not opening on Windows.
 * Registration (Alignment): fix matching image to transformation matrix when image filename does not contain a '_'.
-
+* Cell tracking module and Viewer module: fix a crash when clicking the Quit button in the mask/image viewer after the graph viewer has been closed.
 
 
 

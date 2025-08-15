@@ -1471,8 +1471,9 @@ class CellTrackingWidget(QWidget):
         QMessageBox.information(self, 'Files saved', 'Mask and graph saved to\n' + output_file1 + "\n" + output_file3)
 
     def quit(self):
-        self.viewer_images.close()
-        self.viewer_graph.close()
+        # TODO: currently, all napari viewers are closed (including viewers opened by other modules). Find a way to close only viewer_graph and viewer_images (avoid errors if one of the viewers is already closed).
+        while napari.current_viewer() is not None:
+            napari.current_viewer().close()
 
     def on_viewer_images_close(self):
         # Restore cursor
