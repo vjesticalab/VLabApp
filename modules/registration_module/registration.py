@@ -38,47 +38,9 @@ class Perform(QWidget):
 
         self.output_settings = gf.OutputSettings(extensions=['.csv', '.ome.tif'], output_suffix=self.output_suffix, pipeline_layout=self.pipeline_layout)
 
-        # Z-Projection range
-        # only bestZ
-        self.projection_mode_bestZ = QRadioButton("Z section with best focus")
-        self.projection_mode_bestZ.setChecked(False)
-        self.projection_mode_bestZ.setToolTip('Keep only Z section with best focus.')
-        # around bestZ
-        self.projection_mode_around_bestZ = QRadioButton("Range around Z section with best focus")
-        self.projection_mode_around_bestZ.setChecked(True)
-        self.projection_mode_around_bestZ.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
-        self.projection_mode_around_bestZ_zrange = QSpinBox()
-        self.projection_mode_around_bestZ_zrange.setMinimum(0)
-        self.projection_mode_around_bestZ_zrange.setMaximum(20)
-        self.projection_mode_around_bestZ_zrange.setValue(3)
-        # fixed range
-        self.projection_mode_fixed = QRadioButton("Fixed range")
-        self.projection_mode_fixed.setChecked(False)
-        self.projection_mode_fixed.setToolTip('Project all Z sections with Z in the interval [from,to].')
-        self.projection_mode_fixed_zmin = QSpinBox()
-        self.projection_mode_fixed_zmin.setMinimum(0)
-        self.projection_mode_fixed_zmin.setMaximum(6)
-        self.projection_mode_fixed_zmin.setValue(4)
-        self.projection_mode_fixed_zmin.valueChanged.connect(self.projection_mode_fixed_zmin_changed)
-        self.projection_mode_fixed_zmax = QSpinBox()
-        self.projection_mode_fixed_zmax.setMinimum(4)
-        self.projection_mode_fixed_zmax.setMaximum(20)
-        self.projection_mode_fixed_zmax.setValue(6)
-        self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
-        # all
-        self.projection_mode_all = QRadioButton("All Z sections")
-        self.projection_mode_all.setChecked(False)
-        self.projection_mode_all.setToolTip('Project all Z sections.')
-        # Z-Projection type
-        self.projection_type = QComboBox()
-        self.projection_type.addItem("max")
-        self.projection_type.addItem("min")
-        self.projection_type.addItem("mean")
-        self.projection_type.addItem("median")
-        self.projection_type.addItem("std")
-        self.projection_type.setCurrentText("std")
-        self.projection_type.setDisabled(self.projection_mode_bestZ.isChecked())
-        self.projection_mode_bestZ.toggled.connect(self.projection_type.setDisabled)
+        # Z-Projection
+        self.zprojection_settings = gf.ZProjectionSettings()
+        self.zprojection_settings.projection_type.setCurrentText("std")
         # registration method
         self.registration_method = QComboBox()
         self.registration_method.addItem("stackreg")
@@ -137,74 +99,44 @@ class Perform(QWidget):
         layout.addWidget(groupbox)
 
         groupbox = QGroupBox("Options")
-        layout3 = QFormLayout()
-        layout3.setLabelAlignment(Qt.AlignLeft)
-        layout3.setFormAlignment(Qt.AlignLeft)
+        layout2 = QFormLayout()
+        layout2.setLabelAlignment(Qt.AlignLeft)
+        layout2.setFormAlignment(Qt.AlignLeft)
         groupbox2 = QGroupBox("If multiple channels:")
-        layout4 = QFormLayout()
-        layout4.addRow("Channel position:", self.channel_position)
-        groupbox2.setLayout(layout4)
-        layout3.addRow(groupbox2)
+        layout3 = QFormLayout()
+        layout3.addRow("Channel position:", self.channel_position)
+        groupbox2.setLayout(layout3)
+        layout2.addRow(groupbox2)
 
         groupbox2 = QGroupBox("If multiple z:")
-        layout4 = QFormLayout()
-        # Z-Projection range
-        widget = QWidget()
-        layout5 = QVBoxLayout()
-        layout5.addWidget(self.projection_mode_bestZ)
-        layout5.addWidget(self.projection_mode_around_bestZ)
-        groupbox3 = QGroupBox()
-        groupbox3.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
-        groupbox3.setVisible(self.projection_mode_around_bestZ.isChecked())
-        self.projection_mode_around_bestZ.toggled.connect(groupbox3.setVisible)
-        layout6 = QFormLayout()
-        layout6.addRow("Range:", self.projection_mode_around_bestZ_zrange)
-        groupbox3.setLayout(layout6)
-        layout5.addWidget(groupbox3)
-        layout5.addWidget(self.projection_mode_fixed)
-        groupbox3 = QGroupBox()
-        groupbox3.setToolTip('Project all Z sections with Z in the interval [from,to].')
-        groupbox3.setVisible(self.projection_mode_fixed.isChecked())
-        self.projection_mode_fixed.toggled.connect(groupbox3.setVisible)
-        layout6 = QHBoxLayout()
-        layout7 = QFormLayout()
-        layout7.addRow("From:", self.projection_mode_fixed_zmin)
-        layout6.addLayout(layout7)
-        layout7 = QFormLayout()
-        layout7.addRow("To:", self.projection_mode_fixed_zmax)
-        layout6.addLayout(layout7)
-        groupbox3.setLayout(layout6)
-        layout5.addWidget(groupbox3)
-        layout5.addWidget(self.projection_mode_all)
-        widget.setLayout(layout5)
-        layout4.addRow("Projection range:", widget)
-        layout4.addRow("Projection type:", self.projection_type)
-        groupbox2.setLayout(layout4)
-        layout3.addRow(groupbox2)
+        layout3 = QVBoxLayout()
+        layout3.addWidget(self.zprojection_settings)
+        groupbox2.setLayout(layout3)
+        layout2.addRow(groupbox2)
 
         groupbox2 = QGroupBox("If multiple time points:")
-        layout8 = QVBoxLayout()
-        layout8.addWidget(self.time_mode_all)
-        groupbox2.setLayout(layout8)
-        layout8.addWidget(self.time_mode_fixed)
+        layout3 = QVBoxLayout()
+        layout3.addWidget(self.time_mode_all)
+        groupbox2.setLayout(layout3)
+        layout3.addWidget(self.time_mode_fixed)
         groupboxt1 = QGroupBox()
         groupboxt1.setVisible(self.time_mode_fixed.isChecked())
         self.time_mode_fixed.toggled.connect(groupboxt1.setVisible)
-        layout9 = QHBoxLayout()
-        layout10 = QFormLayout()
-        layout10.addRow("From:", self.time_mode_fixed_tmin)
-        layout9.addLayout(layout10)
-        layout10 = QFormLayout()
-        layout10.addRow("To:", self.time_mode_fixed_tmax)
-        layout9.addLayout(layout10)
-        groupboxt1.setLayout(layout9)
-        layout8.addWidget(groupboxt1)
-        layout3.addRow(groupbox2)
+        layout4 = QHBoxLayout()
+        layout5 = QFormLayout()
+        layout5.addRow("From:", self.time_mode_fixed_tmin)
+        layout4.addLayout(layout5)
+        layout5 = QFormLayout()
+        layout5.addRow("To:", self.time_mode_fixed_tmax)
+        layout4.addLayout(layout5)
+        groupboxt1.setLayout(layout4)
+        layout3.addWidget(groupboxt1)
+        layout2.addRow(groupbox2)
 
-        layout3.addRow("Registration method:", self.registration_method)
-        layout3.addRow(self.coalignment_yn)
-        layout3.addRow(self.skip_cropping_yn)
-        groupbox.setLayout(layout3)
+        layout2.addRow("Registration method:", self.registration_method)
+        layout2.addRow(self.coalignment_yn)
+        layout2.addRow(self.skip_cropping_yn)
+        groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
 
         if not self.pipeline_layout:
@@ -228,14 +160,14 @@ class Perform(QWidget):
             'output_folder': self.output_settings.output_folder.text(),
             'output_user_suffix': self.output_settings.output_user_suffix.text(),
             'channel_position': self.channel_position.value(),
-            'projection_mode_bestZ': self.projection_mode_bestZ.isChecked(),
-            'projection_mode_around_bestZ': self.projection_mode_around_bestZ.isChecked(),
-            'projection_mode_around_bestZ_zrange': self.projection_mode_around_bestZ_zrange.value(),
-            'projection_mode_fixed': self.projection_mode_fixed.isChecked(),
-            'projection_mode_fixed_zmin': self.projection_mode_fixed_zmin.value(),
-            'projection_mode_fixed_zmax': self.projection_mode_fixed_zmax.value(),
-            'projection_mode_all': self.projection_mode_all.isChecked(),
-            'projection_type': self.projection_type.currentText(),
+            'projection_mode_bestZ': self.zprojection_settings.projection_mode_bestZ.isChecked(),
+            'projection_mode_around_bestZ': self.zprojection_settings.projection_mode_around_bestZ.isChecked(),
+            'projection_mode_around_bestZ_zrange': self.zprojection_settings.projection_mode_around_bestZ_zrange.value(),
+            'projection_mode_fixed': self.zprojection_settings.projection_mode_fixed.isChecked(),
+            'projection_mode_fixed_zmin': self.zprojection_settings.projection_mode_fixed_zmin.value(),
+            'projection_mode_fixed_zmax': self.zprojection_settings.projection_mode_fixed_zmax.value(),
+            'projection_mode_all': self.zprojection_settings.projection_mode_all.isChecked(),
+            'projection_type': self.zprojection_settings.projection_type.currentText(),
             'time_mode_all': self.time_mode_all.isChecked(),
             'time_mode_fixed': self.time_mode_fixed.isChecked(),
             'time_mode_fixed_tmin': self.time_mode_fixed_tmin.value(),
@@ -253,14 +185,14 @@ class Perform(QWidget):
         self.output_settings.output_folder.setText(widgets_state['output_folder'])
         self.output_settings.output_user_suffix.setText(widgets_state['output_user_suffix'])
         self.channel_position.setValue(widgets_state['channel_position'])
-        self.projection_mode_bestZ.setChecked(widgets_state['projection_mode_bestZ'])
-        self.projection_mode_around_bestZ.setChecked(widgets_state['projection_mode_around_bestZ'])
-        self.projection_mode_around_bestZ_zrange.setValue(widgets_state['projection_mode_around_bestZ_zrange'])
-        self.projection_mode_fixed.setChecked(widgets_state['projection_mode_fixed'])
-        self.projection_mode_fixed_zmin.setValue(widgets_state['projection_mode_fixed_zmin'])
-        self.projection_mode_fixed_zmax.setValue(widgets_state['projection_mode_fixed_zmax'])
-        self.projection_mode_all.setChecked(widgets_state['projection_mode_all'])
-        self.projection_type.setCurrentText(widgets_state['projection_type'])
+        self.zprojection_settings.projection_mode_bestZ.setChecked(widgets_state['projection_mode_bestZ'])
+        self.zprojection_settings.projection_mode_around_bestZ.setChecked(widgets_state['projection_mode_around_bestZ'])
+        self.zprojection_settings.projection_mode_around_bestZ_zrange.setValue(widgets_state['projection_mode_around_bestZ_zrange'])
+        self.zprojection_settings.projection_mode_fixed.setChecked(widgets_state['projection_mode_fixed'])
+        self.zprojection_settings.projection_mode_fixed_zmin.setValue(widgets_state['projection_mode_fixed_zmin'])
+        self.zprojection_settings.projection_mode_fixed_zmax.setValue(widgets_state['projection_mode_fixed_zmax'])
+        self.zprojection_settings.projection_mode_all.setChecked(widgets_state['projection_mode_all'])
+        self.zprojection_settings.projection_type.setCurrentText(widgets_state['projection_type'])
         self.time_mode_all.setChecked(widgets_state['time_mode_all'])
         self.time_mode_fixed.setChecked(widgets_state['time_mode_fixed'])
         self.time_mode_fixed_tmin.setValue(widgets_state['time_mode_fixed_tmin'])
@@ -273,18 +205,9 @@ class Perform(QWidget):
     def submit(self):
         image_paths = self.image_list.get_file_list()
 
-        # Arianna 26/07/23: added the three options channel_name, channel_position, projection_type
-        # Arianna 06/03/24: added the time points option
         channel_position = self.channel_position.value()
-        projection_type = self.projection_type.currentText()
-        if self.projection_mode_bestZ.isChecked():
-            projection_zrange = 0
-        elif self.projection_mode_around_bestZ.isChecked():
-            projection_zrange = self.projection_mode_around_bestZ_zrange.value()
-        elif self.projection_mode_fixed.isChecked():
-            projection_zrange = (self.projection_mode_fixed_zmin.value(), self.projection_mode_fixed_zmax.value())
-        elif self.projection_mode_all.isChecked():
-            projection_zrange = None
+        projection_type = self.zprojection_settings.get_projection_type()
+        projection_zrange = self.zprojection_settings.get_projection_zrange()
 
         if self.time_mode_fixed.isChecked():
             timepoint_range = (self.time_mode_fixed_tmin.value(), self.time_mode_fixed_tmax.value())
@@ -400,12 +323,6 @@ class Perform(QWidget):
             logging.getLogger().addHandler(messagebox_error_handler)
 
         self.logger.info("Done")
-
-    def projection_mode_fixed_zmin_changed(self, value):
-        self.projection_mode_fixed_zmax.setMinimum(value)
-
-    def projection_mode_fixed_zmax_changed(self, value):
-        self.projection_mode_fixed_zmin.setMaximum(value)
 
     def time_mode_fixed_tmin_changed(self, value):
         self.time_mode_fixed_tmax.setMinimum(value)

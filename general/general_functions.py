@@ -7,7 +7,7 @@ import webbrowser
 from aicsimageio.readers import OmeTiffReader
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl, QRegularExpression
 from PyQt5.QtGui import QBrush, QKeySequence, QPainter, QFontMetrics, QTextDocument, QColor, QRegularExpressionValidator
-from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem, QDialog, QShortcut, QRadioButton
+from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem, QDialog, QShortcut, QRadioButton, QSpinBox, QComboBox, QGroupBox
 
 import logging
 import igraph as ig
@@ -1256,7 +1256,6 @@ class OutputSettings(QWidget):
         self.setLayout(layout)
         self.update_output_filename_labels()
 
-
     def update_output_filename_labels(self):
         if self.pipeline_layout:
             output_path = "<output folder>"
@@ -1276,6 +1275,121 @@ class OutputSettings(QWidget):
             return os.path.dirname(input_filename)
         else:
             return self.output_folder.text()
+
+
+class ZProjectionSettings(QWidget):
+    """
+    A QWidget to enter Z-projection settings.
+    """
+    changed = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        # only bestZ
+        self.projection_mode_bestZ = QRadioButton("Z section with best focus")
+        self.projection_mode_bestZ.setChecked(False)
+        self.projection_mode_bestZ.setToolTip('Keep only Z section with best focus.')
+        # around bestZ
+        self.projection_mode_around_bestZ = QRadioButton("Range around Z section with best focus")
+        self.projection_mode_around_bestZ.setChecked(True)
+        self.projection_mode_around_bestZ.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
+        self.projection_mode_around_bestZ_zrange = QSpinBox()
+        self.projection_mode_around_bestZ_zrange.setMinimum(0)
+        self.projection_mode_around_bestZ_zrange.setMaximum(99)
+        self.projection_mode_around_bestZ_zrange.setValue(3)
+        # fixed range
+        self.projection_mode_fixed = QRadioButton("Fixed range")
+        self.projection_mode_fixed.setChecked(False)
+        self.projection_mode_fixed.setToolTip('Project all Z sections with Z in the interval [from,to].')
+        self.projection_mode_fixed_zmin = QSpinBox()
+        self.projection_mode_fixed_zmin.setMinimum(0)
+        self.projection_mode_fixed_zmin.setMaximum(6)
+        self.projection_mode_fixed_zmin.setValue(4)
+        self.projection_mode_fixed_zmin.valueChanged.connect(self.projection_mode_fixed_zmin_changed)
+        self.projection_mode_fixed_zmax = QSpinBox()
+        self.projection_mode_fixed_zmax.setMinimum(4)
+        self.projection_mode_fixed_zmax.setMaximum(99)
+        self.projection_mode_fixed_zmax.setValue(6)
+        self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
+        # all
+        self.projection_mode_all = QRadioButton("All Z sections")
+        self.projection_mode_all.setChecked(False)
+        self.projection_mode_all.setToolTip('Project all Z sections.')
+        # Z-Projection type
+        self.projection_type = QComboBox()
+        self.projection_type.addItem("max")
+        self.projection_type.addItem("min")
+        self.projection_type.addItem("mean")
+        self.projection_type.addItem("median")
+        self.projection_type.addItem("std")
+        self.projection_type.setCurrentText("mean")
+        self.projection_type.setDisabled(self.projection_mode_bestZ.isChecked())
+        self.projection_mode_bestZ.toggled.connect(self.projection_type.setDisabled)
+
+        self.projection_mode_around_bestZ.toggled.connect(self.changed)
+        self.projection_mode_around_bestZ_zrange.valueChanged.connect(self.changed)
+        self.projection_mode_fixed.toggled.connect(self.changed)
+        self.projection_mode_fixed_zmin.valueChanged.connect(self.changed)
+        self.projection_mode_fixed_zmax.valueChanged.connect(self.changed)
+        self.projection_mode_all.toggled.connect(self.changed)
+        self.projection_type.currentTextChanged.connect(self.changed)
+
+        layout = QFormLayout()
+        # Z-Projection range
+        widget = QWidget()
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.projection_mode_bestZ)
+        layout2.addWidget(self.projection_mode_around_bestZ)
+        groupbox3 = QGroupBox()
+        groupbox3.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
+        groupbox3.setVisible(self.projection_mode_around_bestZ.isChecked())
+        self.projection_mode_around_bestZ.toggled.connect(groupbox3.setVisible)
+        layout3 = QFormLayout()
+        layout3.addRow("Range:", self.projection_mode_around_bestZ_zrange)
+        groupbox3.setLayout(layout3)
+        layout2.addWidget(groupbox3)
+        layout2.addWidget(self.projection_mode_fixed)
+        groupbox3 = QGroupBox()
+        groupbox3.setToolTip('Project all Z sections with Z in the interval [from,to].')
+        groupbox3.setVisible(self.projection_mode_fixed.isChecked())
+        self.projection_mode_fixed.toggled.connect(groupbox3.setVisible)
+        layout3 = QHBoxLayout()
+        layout4 = QFormLayout()
+        layout4.addRow("From:", self.projection_mode_fixed_zmin)
+        layout3.addLayout(layout4)
+        layout4 = QFormLayout()
+        layout4.addRow("To:", self.projection_mode_fixed_zmax)
+        layout3.addLayout(layout4)
+        groupbox3.setLayout(layout3)
+        layout2.addWidget(groupbox3)
+        layout2.addWidget(self.projection_mode_all)
+        widget.setLayout(layout2)
+        layout.addRow("Projection range:", widget)
+        layout.addRow("Projection type:", self.projection_type)
+
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(layout)
+
+    def projection_mode_fixed_zmin_changed(self, value):
+        self.projection_mode_fixed_zmax.setMinimum(value)
+
+    def projection_mode_fixed_zmax_changed(self, value):
+        self.projection_mode_fixed_zmin.setMaximum(value)
+
+    def get_projection_type(self):
+        return self.projection_type.currentText()
+
+    def get_projection_zrange(self):
+        if self.projection_mode_bestZ.isChecked():
+            projection_zrange = 0
+        elif self.projection_mode_around_bestZ.isChecked():
+            projection_zrange = self.projection_mode_around_bestZ_zrange.value()
+        elif self.projection_mode_fixed.isChecked():
+            projection_zrange = (self.projection_mode_fixed_zmin.value(), self.projection_mode_fixed_zmax.value())
+        elif self.projection_mode_all.isChecked():
+            projection_zrange = None
+        return projection_zrange
 
 
 class Page(QWidget):

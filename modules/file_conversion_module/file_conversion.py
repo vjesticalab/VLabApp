@@ -3,7 +3,7 @@ import os
 import sys
 import time
 import concurrent.futures
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QLabel, QFormLayout, QComboBox, QApplication, QCheckBox, QSpinBox, QColorDialog
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QWidget, QGroupBox, QRadioButton, QLabel, QFormLayout, QComboBox, QApplication, QCheckBox, QSpinBox, QColorDialog
 from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QCursor, QColor, QPixmap, QFontMetrics
 from modules.file_conversion_module import file_conversion_functions as f
@@ -317,78 +317,11 @@ class ImageMaskConversion(QWidget):
         layout2.addWidget(groupbox2)
 
         groupbox2 = QGroupBox('If multiple z:')
-        layout3 = QFormLayout()
-        # Z-Projection range
-        # only bestZ
-        self.projection_mode_bestZ = QRadioButton('Z section with best focus')
-        self.projection_mode_bestZ.setChecked(True)
-        self.projection_mode_bestZ.setToolTip('Keep only Z section with best focus.')
-        # around bestZ
-        self.projection_mode_around_bestZ = QRadioButton('Range around Z section with best focus')
-        self.projection_mode_around_bestZ.setChecked(False)
-        self.projection_mode_around_bestZ.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
-        self.projection_mode_around_bestZ_zrange = QSpinBox()
-        self.projection_mode_around_bestZ_zrange.setMinimum(0)
-        self.projection_mode_around_bestZ_zrange.setMaximum(20)
-        self.projection_mode_around_bestZ_zrange.setValue(3)
-        # fixed range
-        self.projection_mode_fixed = QRadioButton('Fixed range')
-        self.projection_mode_fixed.setChecked(False)
-        self.projection_mode_fixed.setToolTip('Project all Z sections with Z in the interval [from,to].')
-        self.projection_mode_fixed_zmin = QSpinBox()
-        self.projection_mode_fixed_zmin.setMinimum(0)
-        self.projection_mode_fixed_zmin.setMaximum(6)
-        self.projection_mode_fixed_zmin.setValue(4)
-        self.projection_mode_fixed_zmin.valueChanged.connect(self.projection_mode_fixed_zmin_changed)
-        self.projection_mode_fixed_zmax = QSpinBox()
-        self.projection_mode_fixed_zmax.setMinimum(4)
-        self.projection_mode_fixed_zmax.setMaximum(20)
-        self.projection_mode_fixed_zmax.setValue(6)
-        self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
-        # all
-        self.projection_mode_all = QRadioButton('All Z sections')
-        self.projection_mode_all.setChecked(False)
-        self.projection_mode_all.setToolTip('Project all Z sections.')
-        widget = QWidget()
-        layout4 = QVBoxLayout()
-        layout4.addWidget(self.projection_mode_bestZ)
-        layout4.addWidget(self.projection_mode_around_bestZ)
-        groupbox3 = QGroupBox()
-        groupbox3.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
-        groupbox3.setVisible(self.projection_mode_around_bestZ.isChecked())
-        self.projection_mode_around_bestZ.toggled.connect(groupbox3.setVisible)
-        layout5 = QFormLayout()
-        layout5.addRow('Range:', self.projection_mode_around_bestZ_zrange)
-        groupbox3.setLayout(layout5)
-        layout4.addWidget(groupbox3)
-        layout4.addWidget(self.projection_mode_fixed)
-        groupbox3 = QGroupBox()
-        groupbox3.setToolTip('Project all Z sections with Z in the interval [from,to].')
-        groupbox3.setVisible(self.projection_mode_fixed.isChecked())
-        self.projection_mode_fixed.toggled.connect(groupbox3.setVisible)
-        layout5 = QHBoxLayout()
-        layout6 = QFormLayout()
-        layout6.addRow('From:', self.projection_mode_fixed_zmin)
-        layout5.addLayout(layout6)
-        layout6 = QFormLayout()
-        layout6.addRow('To:', self.projection_mode_fixed_zmax)
-        layout5.addLayout(layout6)
-        groupbox3.setLayout(layout5)
-        layout4.addWidget(groupbox3)
-        layout4.addWidget(self.projection_mode_all)
-        widget.setLayout(layout4)
-        layout3.addRow('Projection range:', widget)
-        # Z-Projection type
-        self.projection_type = QComboBox()
-        self.projection_type.addItem('max')
-        self.projection_type.addItem('min')
-        self.projection_type.addItem('mean')
-        self.projection_type.addItem('median')
-        self.projection_type.addItem('std')
-        self.projection_type.setCurrentText('mean')
-        self.projection_type.setDisabled(self.projection_mode_bestZ.isChecked())
-        self.projection_mode_bestZ.toggled.connect(self.projection_type.setDisabled)
-        layout3.addRow('Projection type:', self.projection_type)
+        layout3 = QVBoxLayout()
+        self.zprojection_settings = gf.ZProjectionSettings()
+        self.zprojection_settings.projection_type.setCurrentText("mean")
+        self.zprojection_settings.projection_mode_bestZ.setChecked(True)
+        layout3.addWidget(self.zprojection_settings)
         groupbox2.setLayout(layout3)
         layout2.addWidget(groupbox2)
 
@@ -456,12 +389,6 @@ class ImageMaskConversion(QWidget):
             self.output_settings.extensions = ['.mp4 or jpg']
         self.output_settings.update_output_filename_labels()
 
-    def projection_mode_fixed_zmin_changed(self, value):
-        self.projection_mode_fixed_zmax.setMinimum(value)
-
-    def projection_mode_fixed_zmax_changed(self, value):
-        self.projection_mode_fixed_zmin.setMaximum(value)
-
     def eventFilter(self, target, event):
         if target in self.channel_colors and event.type() == QEvent.MouseButtonRelease:
             color = QColorDialog.getColor(initial=target.pixmap().toImage().pixelColor(0, 0))
@@ -472,15 +399,8 @@ class ImageMaskConversion(QWidget):
         return False
 
     def submit(self):
-        projection_type = self.projection_type.currentText()
-        if self.projection_mode_bestZ.isChecked():
-            projection_zrange = 0
-        elif self.projection_mode_around_bestZ.isChecked():
-            projection_zrange = self.projection_mode_around_bestZ_zrange.value()
-        elif self.projection_mode_fixed.isChecked():
-            projection_zrange = (self.projection_mode_fixed_zmin.value(), self.projection_mode_fixed_zmax.value())
-        elif self.projection_mode_all.isChecked():
-            projection_zrange = None
+        projection_type = self.zprojection_settings.get_projection_type()
+        projection_zrange = self.zprojection_settings.get_projection_zrange()
 
         colors = [x.pixmap().toImage().pixelColor(0, 0) for x in self.channel_colors]
         colors = [(x.red(), x.green(), x.blue()) for x in colors]

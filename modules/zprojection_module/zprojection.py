@@ -3,7 +3,7 @@ import os
 import sys
 import time
 import concurrent.futures
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QComboBox, QSpinBox, QLabel, QFormLayout, QLineEdit
+from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QLabel, QFormLayout, QLineEdit
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
 from modules.zprojection_module import zprojection_functions as f
@@ -48,55 +48,10 @@ class zProjection(QWidget):
         self.output_filename_label.setEnabled(False)
         self.output_filename_label.textChanged.connect(self.output_filename_label.setToolTip)
 
-        # Z-Projection range
-        # only bestZ
-        self.projection_mode_bestZ = QRadioButton("Z section with best focus")
-        self.projection_mode_bestZ.setChecked(False)
-        self.projection_mode_bestZ.setToolTip('Keep only Z section with best focus.')
-        self.projection_mode_bestZ.toggled.connect(self.update_output_filename_label)
-        # around bestZ
-        self.projection_mode_around_bestZ = QRadioButton("Range around Z section with best focus")
-        self.projection_mode_around_bestZ.setChecked(True)
-        self.projection_mode_around_bestZ.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
-        self.projection_mode_around_bestZ.toggled.connect(self.update_output_filename_label)
-        self.projection_mode_around_bestZ_zrange = QSpinBox()
-        self.projection_mode_around_bestZ_zrange.setMinimum(1)
-        self.projection_mode_around_bestZ_zrange.setMaximum(20)
-        self.projection_mode_around_bestZ_zrange.setValue(3)
-        self.projection_mode_around_bestZ_zrange.valueChanged.connect(self.update_output_filename_label)
-        # fixed range
-        self.projection_mode_fixed = QRadioButton("Fixed range")
-        self.projection_mode_fixed.setChecked(False)
-        self.projection_mode_fixed.setToolTip('Project all Z sections with Z in the interval [from,to].')
-        self.projection_mode_fixed.toggled.connect(self.update_output_filename_label)
-        self.projection_mode_fixed_zmin = QSpinBox()
-        self.projection_mode_fixed_zmin.setMinimum(0)
-        self.projection_mode_fixed_zmin.setMaximum(6)
-        self.projection_mode_fixed_zmin.setValue(4)
-        self.projection_mode_fixed_zmin.valueChanged.connect(self.projection_mode_fixed_zmin_changed)
-        self.projection_mode_fixed_zmin.valueChanged.connect(self.update_output_filename_label)
-        self.projection_mode_fixed_zmax = QSpinBox()
-        self.projection_mode_fixed_zmax.setMinimum(4)
-        self.projection_mode_fixed_zmax.setMaximum(20)
-        self.projection_mode_fixed_zmax.setValue(6)
-        self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
-        self.projection_mode_fixed_zmax.valueChanged.connect(self.update_output_filename_label)
-        # all
-        self.projection_mode_all = QRadioButton("All Z sections")
-        self.projection_mode_all.setChecked(False)
-        self.projection_mode_all.setToolTip('Project all Z sections.')
-        self.projection_mode_all.toggled.connect(self.update_output_filename_label)
-        # Z-Projection type
-        self.projection_type = QComboBox()
-        self.projection_type.addItem("max")
-        self.projection_type.addItem("min")
-        self.projection_type.addItem("mean")
-        self.projection_type.addItem("median")
-        self.projection_type.addItem("std")
-        self.projection_type.setCurrentText("mean")
-        self.projection_type.setDisabled(self.projection_mode_bestZ.isChecked())
-        self.projection_type.currentTextChanged.connect(self.update_output_filename_label)
-        self.projection_mode_bestZ.toggled.connect(self.projection_type.setDisabled)
+        # Z-Projection
+        self.zprojection_settings = gf.ZProjectionSettings()
+        self.zprojection_settings.projection_type.setCurrentText("mean")
+        self.zprojection_settings.changed.connect(self.update_output_filename_label)
 
         self.nprocesses = QSpinBox()
         self.nprocesses.setMinimum(1)
@@ -145,47 +100,11 @@ class zProjection(QWidget):
         layout.addWidget(groupbox)
 
         groupbox = QGroupBox("Options")
-        layout2 = QFormLayout()
-        # Z-Projection range
-        widget = QWidget()
-        layout3 = QVBoxLayout()
-        # only bestZ
-        layout3.addWidget(self.projection_mode_bestZ)
-        # around bestZ
-        layout3.addWidget(self.projection_mode_around_bestZ)
-        groupbox2 = QGroupBox()
-        groupbox2.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
-        groupbox2.setVisible(self.projection_mode_around_bestZ.isChecked())
-        self.projection_mode_around_bestZ.toggled.connect(groupbox2.setVisible)
-        layout4 = QFormLayout()
-        layout4.addRow("Range:", self.projection_mode_around_bestZ_zrange)
-        groupbox2.setLayout(layout4)
-        layout3.addWidget(groupbox2)
-        # fixed range
-        layout3.addWidget(self.projection_mode_fixed)
-        groupbox2 = QGroupBox()
-        groupbox2.setToolTip('Project all Z sections with Z in the interval [from,to].')
-        groupbox2.setVisible(self.projection_mode_fixed.isChecked())
-        self.projection_mode_fixed.toggled.connect(groupbox2.setVisible)
-        layout4 = QHBoxLayout()
-        layout5 = QFormLayout()
-        layout5.addRow("From:", self.projection_mode_fixed_zmin)
-        layout4.addLayout(layout5)
-        layout5 = QFormLayout()
-        layout5.addRow("To:", self.projection_mode_fixed_zmax)
-        layout4.addLayout(layout5)
-        groupbox2.setLayout(layout4)
-        layout3.addWidget(groupbox2)
-        # all
-        layout3.addWidget(self.projection_mode_all)
-        widget.setLayout(layout3)
-        layout2.addRow("Projection range:", widget)
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.zprojection_settings)
         groupbox.setLayout(layout2)
         layout.addWidget(groupbox)
-        # Z-Projection type
-        layout2.addRow("Projection type:", self.projection_type)
 
-        # Submit
         if not self.pipeline_layout:
             groupbox = QGroupBox("Multi-processing")
             layout2 = QFormLayout()
@@ -200,12 +119,6 @@ class zProjection(QWidget):
 
         self.update_output_filename_label()
 
-    def projection_mode_fixed_zmin_changed(self, value):
-        self.projection_mode_fixed_zmax.setMinimum(value)
-
-    def projection_mode_fixed_zmax_changed(self, value):
-        self.projection_mode_fixed_zmin.setMaximum(value)
-
     def update_output_filename_label(self):
         if self.pipeline_layout:
             output_path = "<output folder>"
@@ -213,15 +126,8 @@ class zProjection(QWidget):
             output_path = "<input folder>"
         else:
             output_path = os.path.abspath(self.output_folder.text())
-        projection_type = self.projection_type.currentText()
-        if self.projection_mode_bestZ.isChecked():
-            projection_zrange = 0
-        elif self.projection_mode_around_bestZ.isChecked():
-            projection_zrange = self.projection_mode_around_bestZ_zrange.value()
-        elif self.projection_mode_fixed.isChecked():
-            projection_zrange = (self.projection_mode_fixed_zmin.value(), self.projection_mode_fixed_zmax.value())
-        elif self.projection_mode_all.isChecked():
-            projection_zrange = None
+        projection_type = self.zprojection_settings.get_projection_type()
+        projection_zrange = self.zprojection_settings.get_projection_zrange()
         projection_suffix = self.get_projection_suffix(None, projection_zrange, projection_type)
 
         self.output_filename_label.setText(os.path.normpath(os.path.join(output_path, "<input basename>" + self.output_suffix + projection_suffix + ".ome.tif")))
@@ -261,14 +167,14 @@ class zProjection(QWidget):
             'use_input_folder': self.use_input_folder.isChecked(),
             'use_custom_folder': self.use_custom_folder.isChecked(),
             'output_folder': self.output_folder.text(),
-            'projection_mode_bestZ': self.projection_mode_bestZ.isChecked(),
-            'projection_mode_around_bestZ': self.projection_mode_around_bestZ.isChecked(),
-            'projection_mode_around_bestZ_zrange': self.projection_mode_around_bestZ_zrange.value(),
-            'projection_mode_fixed': self.projection_mode_fixed.isChecked(),
-            'projection_mode_fixed_zmin': self.projection_mode_fixed_zmin.value(),
-            'projection_mode_fixed_zmax': self.projection_mode_fixed_zmax.value(),
-            'projection_mode_all': self.projection_mode_all.isChecked(),
-            'projection_type': self.projection_type.currentText(),
+            'projection_mode_bestZ': self.zprojection_settings.projection_mode_bestZ.isChecked(),
+            'projection_mode_around_bestZ': self.zprojection_settings.projection_mode_around_bestZ.isChecked(),
+            'projection_mode_around_bestZ_zrange': self.zprojection_settings.projection_mode_around_bestZ_zrange.value(),
+            'projection_mode_fixed': self.zprojection_settings.projection_mode_fixed.isChecked(),
+            'projection_mode_fixed_zmin': self.zprojection_settings.projection_mode_fixed_zmin.value(),
+            'projection_mode_fixed_zmax': self.zprojection_settings.projection_mode_fixed_zmax.value(),
+            'projection_mode_all': self.zprojection_settings.projection_mode_all.isChecked(),
+            'projection_type': self.zprojection_settings.projection_type.currentText(),
             'nprocesses': self.nprocesses.value()}
         return widgets_state
 
@@ -277,27 +183,19 @@ class zProjection(QWidget):
         self.use_input_folder.setChecked(widgets_state['use_input_folder'])
         self.use_custom_folder.setChecked(widgets_state['use_custom_folder'])
         self.output_folder.setText(widgets_state['output_folder'])
-        self.projection_mode_bestZ.setChecked(widgets_state['projection_mode_bestZ'])
-        self.projection_mode_around_bestZ.setChecked(widgets_state['projection_mode_around_bestZ'])
-        self.projection_mode_around_bestZ_zrange.setValue(widgets_state['projection_mode_around_bestZ_zrange'])
-        self.projection_mode_fixed.setChecked(widgets_state['projection_mode_fixed'])
-        self.projection_mode_fixed_zmin.setValue(widgets_state['projection_mode_fixed_zmin'])
-        self.projection_mode_fixed_zmax.setValue(widgets_state['projection_mode_fixed_zmax'])
-        self.projection_mode_all.setChecked(widgets_state['projection_mode_all'])
-        self.projection_type.setCurrentText(widgets_state['projection_type'])
+        self.zprojection_settings.projection_mode_bestZ.setChecked(widgets_state['projection_mode_bestZ'])
+        self.zprojection_settings.projection_mode_around_bestZ.setChecked(widgets_state['projection_mode_around_bestZ'])
+        self.zprojection_settings.projection_mode_around_bestZ_zrange.setValue(widgets_state['projection_mode_around_bestZ_zrange'])
+        self.zprojection_settings.projection_mode_fixed.setChecked(widgets_state['projection_mode_fixed'])
+        self.zprojection_settings.projection_mode_fixed_zmin.setValue(widgets_state['projection_mode_fixed_zmin'])
+        self.zprojection_settings.projection_mode_fixed_zmax.setValue(widgets_state['projection_mode_fixed_zmax'])
+        self.zprojection_settings.projection_mode_all.setChecked(widgets_state['projection_mode_all'])
+        self.zprojection_settings.projection_type.setCurrentText(widgets_state['projection_type'])
         self.nprocesses.setValue(widgets_state['nprocesses'])
 
     def submit(self):
-
-        projection_type = self.projection_type.currentText()
-        if self.projection_mode_bestZ.isChecked():
-            projection_zrange = 0
-        elif self.projection_mode_around_bestZ.isChecked():
-            projection_zrange = self.projection_mode_around_bestZ_zrange.value()
-        elif self.projection_mode_fixed.isChecked():
-            projection_zrange = (self.projection_mode_fixed_zmin.value(), self.projection_mode_fixed_zmax.value())
-        elif self.projection_mode_all.isChecked():
-            projection_zrange = None
+        projection_type = self.zprojection_settings.get_projection_type()
+        projection_zrange = self.zprojection_settings.get_projection_zrange()
 
         image_paths = self.image_list.get_file_list()
         # prepare output suffix (incl. projection)

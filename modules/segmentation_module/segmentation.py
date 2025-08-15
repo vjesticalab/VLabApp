@@ -3,7 +3,7 @@ import os
 import sys
 import time
 import concurrent
-from PyQt5.QtWidgets import QCheckBox, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QRadioButton, QApplication, QSpinBox, QFormLayout, QLabel, QLineEdit, QComboBox
+from PyQt5.QtWidgets import QCheckBox, QPushButton, QVBoxLayout, QWidget, QGroupBox, QApplication, QSpinBox, QFormLayout, QLabel, QLineEdit, QComboBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor, QDoubleValidator
 from modules.segmentation_module import segmentation_functions as f
@@ -111,47 +111,8 @@ class Segmentation(QWidget):
         self.channel_position.setMaximum(100)
         self.channel_position.setValue(0)
 
-        # Z-Projection range
-        # only bestZ
-        self.projection_mode_bestZ = QRadioButton("Z section with best focus")
-        self.projection_mode_bestZ.setChecked(False)
-        self.projection_mode_bestZ.setToolTip('Keep only Z section with best focus.')
-        # around bestZ
-        self.projection_mode_around_bestZ = QRadioButton("Range around Z section with best focus")
-        self.projection_mode_around_bestZ.setChecked(True)
-        self.projection_mode_around_bestZ.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
-        self.projection_mode_around_bestZ_zrange = QSpinBox()
-        self.projection_mode_around_bestZ_zrange.setMinimum(0)
-        self.projection_mode_around_bestZ_zrange.setMaximum(20)
-        self.projection_mode_around_bestZ_zrange.setValue(3)
-        # fixed range
-        self.projection_mode_fixed = QRadioButton("Fixed range")
-        self.projection_mode_fixed.setChecked(False)
-        self.projection_mode_fixed.setToolTip('Project all Z sections with Z in the interval [from,to].')
-        self.projection_mode_fixed_zmin = QSpinBox()
-        self.projection_mode_fixed_zmin.setMinimum(0)
-        self.projection_mode_fixed_zmin.setMaximum(6)
-        self.projection_mode_fixed_zmin.setValue(4)
-        self.projection_mode_fixed_zmin.valueChanged.connect(self.projection_mode_fixed_zmin_changed)
-        self.projection_mode_fixed_zmax = QSpinBox()
-        self.projection_mode_fixed_zmax.setMinimum(4)
-        self.projection_mode_fixed_zmax.setMaximum(20)
-        self.projection_mode_fixed_zmax.setValue(6)
-        self.projection_mode_fixed_zmax.valueChanged.connect(self.projection_mode_fixed_zmax_changed)
-        # all
-        self.projection_mode_all = QRadioButton("All Z sections")
-        self.projection_mode_all.setChecked(False)
-        self.projection_mode_all.setToolTip('Project all Z sections.')
-        # Z-Projection type
-        self.projection_type = QComboBox()
-        self.projection_type.addItem("max")
-        self.projection_type.addItem("min")
-        self.projection_type.addItem("mean")
-        self.projection_type.addItem("median")
-        self.projection_type.addItem("std")
-        self.projection_type.setCurrentText("mean")
-        self.projection_type.setDisabled(self.projection_mode_bestZ.isChecked())
-        self.projection_mode_bestZ.toggled.connect(self.projection_type.setDisabled)
+        self.zprojection_settings = gf.ZProjectionSettings()
+        self.zprojection_settings.projection_type.setCurrentText("mean")
 
         self.use_gpu = QCheckBox("Use GPU")
         device, gpu = assign_device(gpu=True)
@@ -236,40 +197,11 @@ class Segmentation(QWidget):
         layout3.addWidget(groupbox2)
 
         groupbox2 = QGroupBox("If multiple z:")
-        layout4 = QFormLayout()
-        # Z-Projection range
-        widget = QWidget()
-        layout5 = QVBoxLayout()
-        layout5.addWidget(self.projection_mode_bestZ)
-        layout5.addWidget(self.projection_mode_around_bestZ)
-        groupbox3 = QGroupBox()
-        groupbox3.setToolTip('Project all Z sections with Z in the interval [bestZ-range,bestZ+range], where bestZ is the Z section with best focus.')
-        groupbox3.setVisible(self.projection_mode_around_bestZ.isChecked())
-        self.projection_mode_around_bestZ.toggled.connect(groupbox3.setVisible)
-        layout6 = QFormLayout()
-        layout6.addRow("Range:", self.projection_mode_around_bestZ_zrange)
-        groupbox3.setLayout(layout6)
-        layout5.addWidget(groupbox3)
-        layout5.addWidget(self.projection_mode_fixed)
-        groupbox3 = QGroupBox()
-        groupbox3.setToolTip('Project all Z sections with Z in the interval [from,to].')
-        groupbox3.setVisible(self.projection_mode_fixed.isChecked())
-        self.projection_mode_fixed.toggled.connect(groupbox3.setVisible)
-        layout6 = QHBoxLayout()
-        layout7 = QFormLayout()
-        layout7.addRow("From:", self.projection_mode_fixed_zmin)
-        layout6.addLayout(layout7)
-        layout7 = QFormLayout()
-        layout7.addRow("To:", self.projection_mode_fixed_zmax)
-        layout6.addLayout(layout7)
-        groupbox3.setLayout(layout6)
-        layout5.addWidget(groupbox3)
-        layout5.addWidget(self.projection_mode_all)
-        widget.setLayout(layout5)
-        layout4.addRow("Projection range:", widget)
-        layout4.addRow("Projection type:", self.projection_type)
+        layout4 = QVBoxLayout()
+        layout4.addWidget(self.zprojection_settings)
         groupbox2.setLayout(layout4)
         layout3.addWidget(groupbox2)
+
         groupbox.setLayout(layout3)
         layout.addWidget(groupbox)
 
@@ -324,12 +256,6 @@ class Segmentation(QWidget):
             self.coarse_grain.setChecked(False)
         self.coarse_grain.setEnabled(self.image_list.count() > 1 and not self.use_gpu.isChecked())
 
-    def projection_mode_fixed_zmin_changed(self, value):
-        self.projection_mode_fixed_zmax.setMinimum(value)
-
-    def projection_mode_fixed_zmax_changed(self, value):
-        self.projection_mode_fixed_zmin.setMaximum(value)
-
     def get_widgets_state(self):
         widgets_state = {
             'image_list': self.image_list.get_file_list(),
@@ -345,14 +271,14 @@ class Segmentation(QWidget):
             'microsam_model_type': self.microsam_model_type.currentText(),
             'output_user_suffix': self.output_settings.output_user_suffix.text(),
             'channel_position': self.channel_position.value(),
-            'projection_mode_bestZ': self.projection_mode_bestZ.isChecked(),
-            'projection_mode_around_bestZ': self.projection_mode_around_bestZ.isChecked(),
-            'projection_mode_around_bestZ_zrange': self.projection_mode_around_bestZ_zrange.value(),
-            'projection_mode_fixed': self.projection_mode_fixed.isChecked(),
-            'projection_mode_fixed_zmin': self.projection_mode_fixed_zmin.value(),
-            'projection_mode_fixed_zmax': self.projection_mode_fixed_zmax.value(),
-            'projection_mode_all': self.projection_mode_all.isChecked(),
-            'projection_type': self.projection_type.currentText(),
+            'projection_mode_bestZ': self.zprojection_settings.projection_mode_bestZ.isChecked(),
+            'projection_mode_around_bestZ': self.zprojection_settings.projection_mode_around_bestZ.isChecked(),
+            'projection_mode_around_bestZ_zrange': self.zprojection_settings.projection_mode_around_bestZ_zrange.value(),
+            'projection_mode_fixed': self.zprojection_settings.projection_mode_fixed.isChecked(),
+            'projection_mode_fixed_zmin': self.zprojection_settings.projection_mode_fixed_zmin.value(),
+            'projection_mode_fixed_zmax': self.zprojection_settings.projection_mode_fixed_zmax.value(),
+            'projection_mode_all': self.zprojection_settings.projection_mode_all.isChecked(),
+            'projection_type': self.zprojection_settings.projection_type.currentText(),
             'use_gpu': self.use_gpu.isChecked(),
             'coarse_grain': self.coarse_grain.isChecked(),
             'nprocesses': self.nprocesses.value(),
@@ -373,14 +299,14 @@ class Segmentation(QWidget):
         self.microsam_model_type.setCurrentText(widgets_state['microsam_model_type'])
         self.output_settings.output_user_suffix.setText(widgets_state['output_user_suffix'])
         self.channel_position.setValue(widgets_state['channel_position'])
-        self.projection_mode_bestZ.setChecked(widgets_state['projection_mode_bestZ'])
-        self.projection_mode_around_bestZ.setChecked(widgets_state['projection_mode_around_bestZ'])
-        self.projection_mode_around_bestZ_zrange.setValue(widgets_state['projection_mode_around_bestZ_zrange'])
-        self.projection_mode_fixed.setChecked(widgets_state['projection_mode_fixed'])
-        self.projection_mode_fixed_zmin.setValue(widgets_state['projection_mode_fixed_zmin'])
-        self.projection_mode_fixed_zmax.setValue(widgets_state['projection_mode_fixed_zmax'])
-        self.projection_mode_all.setChecked(widgets_state['projection_mode_all'])
-        self.projection_type.setCurrentText(widgets_state['projection_type'])
+        self.zprojection_settings.projection_mode_bestZ.setChecked(widgets_state['projection_mode_bestZ'])
+        self.zprojection_settings.projection_mode_around_bestZ.setChecked(widgets_state['projection_mode_around_bestZ'])
+        self.zprojection_settings.projection_mode_around_bestZ_zrange.setValue(widgets_state['projection_mode_around_bestZ_zrange'])
+        self.zprojection_settings.projection_mode_fixed.setChecked(widgets_state['projection_mode_fixed'])
+        self.zprojection_settings.projection_mode_fixed_zmin.setValue(widgets_state['projection_mode_fixed_zmin'])
+        self.zprojection_settings.projection_mode_fixed_zmax.setValue(widgets_state['projection_mode_fixed_zmax'])
+        self.zprojection_settings.projection_mode_all.setChecked(widgets_state['projection_mode_all'])
+        self.zprojection_settings.projection_type.setCurrentText(widgets_state['projection_type'])
         if self.use_gpu.isEnabled():
             self.use_gpu.setChecked(widgets_state['use_gpu'])
         self.coarse_grain.setChecked(widgets_state['coarse_grain'])
@@ -391,15 +317,8 @@ class Segmentation(QWidget):
 
     def submit(self):
         channel_position = self.channel_position.value()
-        projection_type = self.projection_type.currentText()
-        if self.projection_mode_bestZ.isChecked():
-            projection_zrange = 0
-        elif self.projection_mode_around_bestZ.isChecked():
-            projection_zrange = self.projection_mode_around_bestZ_zrange.value()
-        elif self.projection_mode_fixed.isChecked():
-            projection_zrange = (self.projection_mode_fixed_zmin.value(), self.projection_mode_fixed_zmax.value())
-        elif self.projection_mode_all.isChecked():
-            projection_zrange = None
+        projection_type = self.zprojection_settings.get_projection_type()
+        projection_zrange = self.zprojection_settings.get_projection_zrange()
 
         image_paths = self.image_list.get_file_list()
         segmentation_method = self.segmentation_method.currentText()
