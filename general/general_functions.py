@@ -87,7 +87,7 @@ class CollapsibleWidget(QWidget):
         self.button = QPushButton()
         self.button.setCheckable(True)
         self.button.setChecked(expanded)
-        self.button.setStyleSheet("border: none;padding-left: 0px; padding-right: 0px;padding-top: 0px; padding-bottom: 0px;")
+        self.button.setStyleSheet("border: none;background: none;padding-left: 0px; padding-right: 0px;padding-top: 0px; padding-bottom: 0px;")
         self.content = QWidget()
         layout2.addWidget(self.button, alignment=Qt.AlignLeft)
         layout2.addWidget(QLabel(text))
