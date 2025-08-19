@@ -20,6 +20,7 @@ output_suffixes = {'zprojection': '_vPR',
                    'segmentation': '_vSM',
                    'cell_tracking': '_vTG',
                    'graph_filtering': '_vGF',
+                   'events_selection': '_vES',
                    'image_cropping': '_vCR'}
 imagetypes = ['.nd2', '.tif', '.tiff', '.ome.tif', '.ome.tiff']
 graphtypes = ['.graphmlz']

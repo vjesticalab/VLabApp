@@ -13,6 +13,7 @@
 * [Segmentation module](segmentation_module/reference.md)
 * [Cell tracking module](cell_tracking_module/reference.md)
 * [Graph filtering module](graph_filtering_module/reference.md)
+* [Events selection module](events_selection_module/reference.md)
 * [Pipeline module](pipeline_module/reference.md)
 * Tools:
     * [View image, mask and graph](viewer_image_mask_graph_module/reference.md)

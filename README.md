@@ -15,6 +15,7 @@ The application is divided into several modules that can be used consecutively a
 * **Segmentation** - to segment the images and generate the corresponding masks.
 * **Cell tracking** - to track segmented cells over time and create the cell tracking graph.
 * **Graph filtering** - to filter and clean the graph and the corresponding mask.
+* **Events selection** - to extract fusion or division events from the graph and the corresponding mask.
 * **Pipeline** - to create a pipeline by combining individual modules.
 * **Viewers** - to easily view the generated images, masks, graphs, registration matrix in Napari.
 * **File organization** - to export or clean generated output.

@@ -16,6 +16,7 @@ from modules.ground_truth_generator_module import ground_truth_generator
 from modules.segmentation_module import segmentation
 from modules.cell_tracking_module import cell_tracking
 from modules.graph_filtering_module import graph_filtering
+from modules.events_selection_module import events_selection
 from modules.viewer_module import viewer
 from modules.file_organization_module import file_organization
 from modules.file_conversion_module import file_conversion
@@ -99,6 +100,10 @@ class MainWindow(QWidget):
         item = QTreeWidgetItem(self.module_list, ["Graph filtering"])
         item.setData(0, Qt.UserRole, self.right_panel.count())
         self.right_panel.addWidget(gf.Page(widget=graph_filtering.GraphFiltering()))
+
+        item = QTreeWidgetItem(self.module_list, ["Events selection"])
+        item.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=events_selection.EventsSelection()))
 
         item = QTreeWidgetItem(self.module_list, ["Pipeline"])
         item.setData(0, Qt.UserRole, self.right_panel.count())
