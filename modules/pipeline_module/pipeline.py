@@ -19,6 +19,8 @@ from modules.cell_tracking_module import cell_tracking
 from modules.cell_tracking_module import cell_tracking_functions
 from modules.graph_filtering_module import graph_filtering
 from modules.graph_filtering_module import graph_filtering_functions
+from modules.events_selection_module import events_selection
+from modules.events_selection_module import events_selection_functions
 from general import general_functions as gf
 from version import __version__ as vlabapp_version
 
@@ -125,6 +127,7 @@ class Pipeline(QWidget):
         self.module_settings_widgets['segmentation'] = segmentation.Segmentation(pipeline_layout=True)
         self.module_settings_widgets['cell_tracking'] = cell_tracking.CellTracking(pipeline_layout=True)
         self.module_settings_widgets['graph_filtering'] = graph_filtering.GraphFiltering(pipeline_layout=True)
+        self.module_settings_widgets['events_selection'] = events_selection.EventsSelection(pipeline_layout=True)
         for m in self.module_settings_widgets:
             self.module_settings_widgets[m].hide()
             layout2.addWidget(self.module_settings_widgets[m])
@@ -189,6 +192,13 @@ class Pipeline(QWidget):
         description = 'Input: segmentation mask and cell tracking graph\nOutput: filtered segmentation mask and cell tracking graph'
         item.setEditable(False)
         item.setData({'name': 'graph_filtering', 'description': description, 'input_types': ['mask', 'graph'], 'output_types': ['mask', 'graph']}, Qt.UserRole+1)
+        item.setToolTip(description)
+        self.available_modules_list.model().appendRow(item)
+        self.store_settings_data(item.index())
+        item = QStandardItem('Events selection')
+        description = 'Input: segmentation mask and cell tracking graph\nOutput: filtered segmentation mask and cell tracking graph'
+        item.setEditable(False)
+        item.setData({'name': 'events_selection', 'description': description, 'input_types': ['mask', 'graph'], 'output_types': ['mask', 'graph']}, Qt.UserRole+1)
         item.setToolTip(description)
         self.available_modules_list.model().appendRow(item)
         self.store_settings_data(item.index())
@@ -512,7 +522,7 @@ class Pipeline(QWidget):
                 if not (image.sizes['F'] == 1 and image.sizes['Y'] > 1 and image.sizes['X'] > 1):
                     self.logger.error('Invalid image:\n %s\n\nImage must have X and Y axes and can optionally have T, C or Z axes.', path)
                     return
-        if first_module_name in ['cell_tracking', 'graph_filtering']:
+        if first_module_name in ['cell_tracking', 'graph_filtering', 'events_selection']:
             for path in input_mask_paths:
                 try:
                     mask = gf.Image(path)
@@ -821,6 +831,43 @@ class Pipeline(QWidget):
                                                filters,
                                                display_results,
                                                graph_topologies),
+                                 'depends': [last_job_with_same_input_idx] if last_job_with_same_input_idx is not None else [],
+                                 'module_label': module_label,
+                                 'module_idx': module_idx,
+                                 'input_idx': input_idx,
+                                 'use_gpu': False,
+                                 'output_files': [os.path.join(output_path, output_basename)]})
+                    # to be used by next module
+                    next_image_path = None
+                    next_mask_path = os.path.join(output_path, output_basename+'.ome.tif')
+                    next_graph_path = os.path.join(output_path, output_basename+'.graphmlz')
+                    next_matrix_path = None
+                    last_job_with_same_input_idx = len(jobs) - 1
+                elif module_name == 'events_selection':
+                    mask_path = next_mask_path
+                    graph_path = next_graph_path
+                    output_suffix = gf.output_suffixes['events_selection']
+                    user_suffix = settings['output_user_suffix']
+                    output_basename = gf.splitext(os.path.basename(mask_path))[0] + output_suffix + user_suffix
+                    events_type = settings['events_type']
+                    nframes_before = settings['nframes_before']
+                    nframes_after = settings['nframes_after']
+                    filter_border = settings['filter_border_yn']
+                    border_width = settings['border_width']
+                    filter_nmissing = settings['filter_nmissing_yn']
+                    nmissing = settings['nmissing']
+                    jobs.append({'function': events_selection_functions.main,
+                                 'arguments': (mask_path,
+                                               graph_path,
+                                               output_path,
+                                               output_basename,
+                                               events_type,
+                                               nframes_before,
+                                               nframes_after,
+                                               filter_border,
+                                               border_width,
+                                               filter_nmissing,
+                                               nmissing),
                                  'depends': [last_job_with_same_input_idx] if last_job_with_same_input_idx is not None else [],
                                  'module_label': module_label,
                                  'module_idx': module_idx,
