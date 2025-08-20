@@ -1190,6 +1190,37 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
         ###########################
         # filter
         ###########################
+        if graph.vcount() == 0:
+            logger.warning("Input mask and graph are empty")
+            if display_results:
+                QMessageBox.warning(None, 'Warning', 'Input mask and graph are empty. Aborting.')
+            else:
+                logger.info("Selected cell tracks: 0/0")
+                output_file = os.path.join(output_path, output_basename+".ome.tif")
+                metadata=mask_metadata+graph_metadata
+                logger.info("Saving segmentation mask to %s", output_file)
+                ome_metadata = OmeTiffWriter.build_ome(data_shapes=[mask.image[0, :, 0, 0, :, :].shape],
+                                                       data_types=[mask.dtype],
+                                                       dimension_order=["TYX"],
+                                                       channel_names=[mask.channel_names],
+                                                       physical_pixel_sizes=[PhysicalPixelSizes(X=mask.physical_pixel_sizes[0], Y=mask.physical_pixel_sizes[1], Z=mask.physical_pixel_sizes[2])])
+                ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))
+                for x in metadata:
+                    ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
+                OmeTiffWriter.save(mask.image[0, :, 0, 0, :, :], output_file, ome_xml=ome_metadata)
+
+                output_file = os.path.join(output_path, output_basename+".graphmlz")
+                logger.info("Saving cell tracking graph to %s", output_file)
+                # add metadata
+                graph['VLabApp:Annotation:1'] = buffered_handler.get_messages()
+                for i, x in enumerate(metadata):
+                    graph['VLabApp:Annotation:'+str(i+2)] = x
+                graph.write_graphmlz(output_file)
+
+            # Remove all handlers for this module
+            remove_all_log_handlers()
+            return
+
 
         if display_results:
             logger.debug("displaying image and mask")

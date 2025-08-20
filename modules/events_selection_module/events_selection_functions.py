@@ -299,61 +299,66 @@ def main(mask_path, graph_path, output_path, output_basename, events_type, nfram
         ###########################
         # select events
         ###########################
-        logger.info("Selecting events: type of events_type=%s, number frames before=%s, number frames after=%s, missing cells filter=%s, max missing cell=%s", events_type, nframes_before, nframes_after, filter_nmissing, nmissing)
-        graph = filter_graph(graph, events_type, nframes_before, nframes_after, filter_nmissing, nmissing)
-        logger.info("Selected events: %s", len(set(graph.vs['event_id'])))
+        if graph.vcount() == 0:
+            logger.warning("Input mask and graph are empty")
+            logger.info("Selected events: %s", 0)
+        else:
+            logger.info("Selecting events: type of events_type=%s, number frames before=%s, number frames after=%s, missing cells filter=%s, max missing cell=%s", events_type, nframes_before, nframes_after, filter_nmissing, nmissing)
+            graph = filter_graph(graph, events_type, nframes_before, nframes_after, filter_nmissing, nmissing)
+            logger.info("Selected events: %s", len(set(graph.vs['event_id'])))
 
-        # Relabel mask and graph
-        logger.info("Relabelling mask and graph")
-        mask_id_event_id = sorted(set(zip(graph.vs['mask_id'], graph.vs['event_id'])))
-        mask_id_event_id_to_new_mask_ids = {pair: i+1 for i, pair in enumerate(mask_id_event_id)}
-        frame_to_mask_id_new_mask_id = {frame: {(mask_id, mask_id_event_id_to_new_mask_ids[(mask_id, event_id)]) for mask_id, event_id in zip(graph.vs.select(frame_eq=frame)['mask_id'], graph.vs.select(frame_eq=frame)['event_id'])} for frame in range(mask.sizes['T'])}
-        for frame in range(mask.sizes['T']):
-            map_id = np.repeat(0, mask.image[:, frame, :, :, :, :].max()+1).astype(mask.dtype)
-            for mask_id, new_mask_id in frame_to_mask_id_new_mask_id[frame]:
-                map_id[mask_id] = new_mask_id
-            mask.image[:, frame, :, :, :, :] = map_id[mask.image[:, frame, :, :, :, :]]
-            graph.vs.select(frame_eq=frame)['mask_id'] = map_id[graph.vs.select(frame_eq=frame)['mask_id']]
-            graph.es.select(frame_source_eq=frame)['mask_id_source'] = map_id[graph.es.select(frame_source_eq=frame)['mask_id_source']]
-            graph.es.select(frame_target_eq=frame)['mask_id_target'] = map_id[graph.es.select(frame_target_eq=frame)['mask_id_target']]
+            # Relabel mask and graph
+            logger.info("Relabelling mask and graph")
+            mask_id_event_id = sorted(set(zip(graph.vs['mask_id'], graph.vs['event_id'])))
+            mask_id_event_id_to_new_mask_ids = {pair: i+1 for i, pair in enumerate(mask_id_event_id)}
+            frame_to_mask_id_new_mask_id = {frame: {(mask_id, mask_id_event_id_to_new_mask_ids[(mask_id, event_id)]) for mask_id, event_id in zip(graph.vs.select(frame_eq=frame)['mask_id'], graph.vs.select(frame_eq=frame)['event_id'])} for frame in range(mask.sizes['T'])}
+            for frame in range(mask.sizes['T']):
+                map_id = np.repeat(0, mask.image[:, frame, :, :, :, :].max()+1).astype(mask.dtype)
+                for mask_id, new_mask_id in frame_to_mask_id_new_mask_id[frame]:
+                    map_id[mask_id] = new_mask_id
+                mask.image[:, frame, :, :, :, :] = map_id[mask.image[:, frame, :, :, :, :]]
+                graph.vs.select(frame_eq=frame)['mask_id'] = map_id[graph.vs.select(frame_eq=frame)['mask_id']]
+                graph.es.select(frame_source_eq=frame)['mask_id_source'] = map_id[graph.es.select(frame_source_eq=frame)['mask_id_source']]
+                graph.es.select(frame_target_eq=frame)['mask_id_target'] = map_id[graph.es.select(frame_target_eq=frame)['mask_id_target']]
 
-        if filter_border:
-            border_mask_ids = np.unique(
-                np.concatenate([
-                    np.unique(mask.image[:, :, :, :, :border_width, :]),
-                    np.unique(mask.image[:, :, :, :, -border_width:, :]),
-                    np.unique(mask.image[:, :, :, :, :, :border_width]),
-                    np.unique(mask.image[:, :, :, :, :, -border_width:])]))
-            border_mask_ids = border_mask_ids[border_mask_ids > 0]
-            # search for event_ids to remove
-            event_ids_to_remove = set(graph.vs.select(mask_id_in=border_mask_ids)['event_id'])
-            logger.info("Filtering cells touching the border (border width: %s): removing %s events", border_width, len(event_ids_to_remove))
-            # mask_ids to keep
-            mask_ids_to_keep = set(graph.vs.select(event_id_notin=event_ids_to_remove)['mask_id'])
-            # filter graph
-            graph = graph.subgraph([v.index for v in graph.vs.select(mask_id_in=mask_ids_to_keep)])
+            if filter_border:
+                border_mask_ids = np.unique(
+                    np.concatenate([
+                        np.unique(mask.image[:, :, :, :, :border_width, :]),
+                        np.unique(mask.image[:, :, :, :, -border_width:, :]),
+                        np.unique(mask.image[:, :, :, :, :, :border_width]),
+                        np.unique(mask.image[:, :, :, :, :, -border_width:])]))
+                border_mask_ids = border_mask_ids[border_mask_ids > 0]
+                # search for event_ids to remove
+                event_ids_to_remove = set(graph.vs.select(mask_id_in=border_mask_ids)['event_id'])
+                logger.info("Filtering cells touching the border (border width: %s): removing %s events", border_width, len(event_ids_to_remove))
+                # mask_ids to keep
+                mask_ids_to_keep = set(graph.vs.select(event_id_notin=event_ids_to_remove)['mask_id'])
+                # filter graph
+                graph = graph.subgraph([v.index for v in graph.vs.select(mask_id_in=mask_ids_to_keep)])
 
-            # relabel
-            map_id = np.repeat(0, mask.image.max()+1).astype(mask.dtype)
-            n_ids = 1
-            for mask_id in mask_ids_to_keep:
-                map_id[mask_id] = n_ids
-                n_ids += 1
-            mask.image = map_id[mask.image]
-            graph.vs['mask_id'] = map_id[graph.vs['mask_id']]
-            graph.es['mask_id_source'] = map_id[graph.es['mask_id_source']]
-            graph.es['mask_id_target'] = map_id[graph.es['mask_id_target']]
+                # relabel
+                map_id = np.repeat(0, mask.image.max()+1).astype(mask.dtype)
+                n_ids = 1
+                for mask_id in mask_ids_to_keep:
+                    map_id[mask_id] = n_ids
+                    n_ids += 1
+                mask.image = map_id[mask.image]
+                graph.vs['mask_id'] = map_id[graph.vs['mask_id']]
+                graph.es['mask_id_source'] = map_id[graph.es['mask_id_source']]
+                graph.es['mask_id_target'] = map_id[graph.es['mask_id_target']]
 
+
+            nevents = len(set(graph.vs['event_id']))
+            if nevents == 0:
+                logger.warning("No events found: output mask and cell tracking graph are empty.")
+
+            # remove temporary attribute
+            del graph.vs['event_id']
 
         ###########################
         # save
         ###########################
-        nevents = len(set(graph.vs['event_id']))
-        if nevents == 0:
-            logger.warning("No events found: output mask and cell tracking graph are empty.")
-
-        # remove temporary attribute
-        del graph.vs['event_id']
         save(mask, graph, output_path, output_basename, metadata=mask_metadata+graph_metadata)
 
         # Remove all handlers for this module

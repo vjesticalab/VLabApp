@@ -37,6 +37,7 @@
 * Fix documentation widget links with fragments not opening on Windows.
 * Registration (Alignment): fix matching image to transformation matrix when image filename does not contain a '_'.
 * Cell tracking module and Viewer module: fix a crash when clicking the Quit button in the mask/image viewer after the graph viewer has been closed.
+* Graph filtering module and Events selection module: fix a crash when input mask and graph are empty.
 
 
 
