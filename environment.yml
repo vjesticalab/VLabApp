@@ -6,7 +6,7 @@ dependencies:
     - cellpose==3.1.0
     - imageio[ffmpeg]==2.27.0
     - matplotlib-base==3.10.1
-    - micro_sam==1.4.0
+    - micro_sam==1.6.1
     - napari==0.5.5
     - nd2==0.10.1
     - numpy==1.26.4
