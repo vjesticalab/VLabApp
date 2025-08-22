@@ -357,17 +357,17 @@ class CellTracksFiltering:
             frame_min = np.min(g2.vs['frame'])
             frame_max = np.max(g2.vs['frame'])
             # Number of missing labelled regions (edges spanning more than 1 frame)
-            n_missing = np.sum(e['frame_target'] - e['frame_source'] - 1 for e in g2.es)
+            n_missing = np.sum([e['frame_target'] - e['frame_source'] - 1 for e in g2.es])
             # Number fusion events with stable neighborhood
             if nframes_stable_fusion > 0:
-                n_fusions = np.sum(1 if v.indegree() > 1 and v.outdegree() == 1 and min(v2['stable_component_size'] for v2 in v.neighbors()) >= nframes_stable_fusion+1 and all(v2.indegree() <= 1 and v2.outdegree() <= 1 for v2 in v.neighbors()) else 0 for v in g2.vs)
+                n_fusions = np.sum([1 if v.indegree() > 1 and v.outdegree() == 1 and min(v2['stable_component_size'] for v2 in v.neighbors()) >= nframes_stable_fusion+1 and all(v2.indegree() <= 1 and v2.outdegree() <= 1 for v2 in v.neighbors()) else 0 for v in g2.vs])
             else:
-                n_fusions = np.sum(1 if v.indegree() > 1 and v.outdegree() <= 1 else 0 for v in g2.vs)
+                n_fusions = np.sum([1 if v.indegree() > 1 and v.outdegree() <= 1 else 0 for v in g2.vs])
             # Number division events with stable neighborhood
             if nframes_stable_division > 0:
-                n_divisions = np.sum(1 if v.outdegree() > 1 and v.indegree() == 1 and min(v2['stable_component_size'] for v2 in v.neighbors()) >= nframes_stable_division+1 and all(v2.indegree() <= 1 and v2.outdegree() <= 1 for v2 in v.neighbors()) else 0 for v in g2.vs)
+                n_divisions = np.sum([1 if v.outdegree() > 1 and v.indegree() == 1 and min(v2['stable_component_size'] for v2 in v.neighbors()) >= nframes_stable_division+1 and all(v2.indegree() <= 1 and v2.outdegree() <= 1 for v2 in v.neighbors()) else 0 for v in g2.vs])
             else:
-                n_divisions = np.sum(1 if v.outdegree() > 1 and v.indegree() <= 1 else 0 for v in g2.vs)
+                n_divisions = np.sum([1 if v.outdegree() > 1 and v.indegree() <= 1 else 0 for v in g2.vs])
             min_area = np.min(g2.vs['area'])
             max_area = np.max(g2.vs['area'])
             # Topology
