@@ -24,6 +24,95 @@ from modules.image_cropping_module import image_cropping
 from modules.pipeline_module import pipeline
 from general import general_functions as gf
 
+from platform import python_version, platform
+from cellpose import version as cellpose_version
+from napari import __version__ as napari_version
+from numpy import __version__ as numpy_version
+from torch import __version__ as torch_version
+from version import __version__ as vlabapp_version
+from cv2 import __version__ as opencv_version
+from igraph import __version__ as igraph_version
+from packaging.version import Version
+from pystackreg import __version__ as pystackreg_version
+from skimage import __version__ as skimage_version
+from scipy import __version__ as scipy_version
+from roifile import __version__ as roifile_version
+from ome_types import __version__ as ometypes_version
+from aicsimageio import __version__ as aicsimageio_version
+from imageio import __version__ as imageio_version
+from imageio_ffmpeg import __version__ as imageioffmpeg_version
+from tifffile import __version__ as tifffile_version
+from matplotlib import __version__ as matplotlib_version
+from nd2 import __version__ as nd2_version
+from pandas import __version__ as pandas_version
+from PyQt5.QtCore import PYQT_VERSION_STR as pyqt_version
+try:
+    from micro_sam import __version__ as microsam_version
+    microsam_available = True
+except ImportError:
+    microsam_available = False
+
+class AboutVLabApp(QWidget):
+    def __init__(self, pipeline_layout=False):
+        super().__init__()
+        layout = QVBoxLayout()
+        logo = QLabel()
+        logo.setPixmap(QPixmap(os.path.join(os.path.dirname(__file__),'support_files/logo.png')))
+        logo.setAlignment(Qt.AlignCenter)
+        layout.addWidget(logo)
+        label = QLabel()
+        label.setTextFormat(Qt.RichText)
+        label.setWordWrap(True)
+        label.setOpenExternalLinks(True)
+        label.setText('<h2>VLabApp</h2>' +
+                      'Home page:<br><a href="https://github.com/vjesticalab/VLabApp">https://github.com/vjesticalab/VLabApp</a><br><br>' +
+                      'Documentation:<br><a href="' + os.path.join(os.path.dirname(__file__), 'doc', 'site', 'index.html') + '">' + os.path.normpath(os.path.join(os.path.dirname(__file__), 'doc', 'site', 'index.html')) + '</a>' +
+                      '<h3>Citation</h3>' +
+                      'If you use VLabApp in your research, please cite the VLabApp paper:' +
+                      '<blockquote>J. Dorier, A. Raverra and A. Vjestica. In preparation</blockquote>' +
+                      'If you use the registration module with <a href="https://bigwww.epfl.ch/thevenaz/stackreg/">stackreg</a>, please cite the following <a href="https://doi.org/10.1109/83.650848">publication</a>:' +
+                      '<blockquote>P. Thevenaz, U. E. Ruttimann and M. Unser (1998). A pyramid approach to subpixel registration based on intensity. IEEE Transactions on Image Processing, 7(1), 27–41.</blockquote>' +
+                      'If you use the segmentation module with <a href="https://www.cellpose.org/">Cellpose</a>, please cite the Cellpose 1.0 <a href="https://doi.org/10.1038/s41592-020-01018-x">publication</a>:' +
+                      '<blockquote>C. Stringer, T. Wang, M. Michaelos and M. Pachitariu (2021). Cellpose: a generalist algorithm for cellular segmentation. Nature Methods 18, 100–106.</blockquote>' +
+                      'If you fine-tune a Cellpose model, please cite the Cellpose 2.0 <a href="https://doi.org/10.1038/s41592-022-01663-4">publication</a>:' +
+                      '<blockquote>M. Pachitariu and C. Stringer (2022). Cellpose 2.0: how to train your own model. Nature Methods 19, 1634–1641.</blockquote>' +
+                      'If you use the segmentation module with the `cyto3` Cellpose model, please cite the Cellpose 3.0 <a href="https://doi.org/10.1038/s41592-025-02595-5">publication</a>:' +
+                      '<blockquote>C. Stringer and M. Pachitariu (2025). Cellpose3: one-click image restoration for improved cellular segmentation. Nature Methods 22, 592-599.</blockquote>' +
+                      'If you use the segmentation module with  <a href="https://github.com/computational-cell-analytics/micro-sam">Segment Anything for Microscopy</a>, please cite the Segment Anything for Microscopy <a href="https://doi.org/10.1038/s41592-024-02580-4">publication</a>:' +
+                      '<blockquote>A. Archit, L. Freckmann, S. Nair et al. (2025). Segment Anything for Microscopy. Nature Methods 22, 579-591.</blockquote>' +
+                      'as well as the original <a href="https://segment-anything.com/">Segment Anything</a> <a href="https://doi.org/10.48550/arXiv.2304.02643">publication</a>:' +
+                      '<blockquote>A. Kirillov, E. Mintun, N. Ravi et al. (2023). Segment Anything. http://arxiv.org/abs/2304.02643</blockquote>'+
+                      '<h3>System information</h3>' +
+                      '<b>VLabApp:</b> ' + vlabapp_version + '<br>' +
+                      '<b>platform:</b> ' + platform() + '<br>' +
+                      '<b>python:</b> ' + python_version() + '<br>' +
+                      '<b>aicsimageio:</b> ' + aicsimageio_version + '<br>' +
+                      '<b>cellpose:</b> ' + cellpose_version + '<br>' +
+                      '<b>igraph:</b> ' + igraph_version + '<br>' +
+                      '<b>imageio:</b> ' + imageio_version + '<br>' +
+                      '<b>imageio-ffmpeg:</b> ' + imageioffmpeg_version + '<br>' +
+                      '<b>matplotlib:</b> ' + matplotlib_version + '<br>' +
+                      ('<b>micro_sam:</b> ' + microsam_version + '<br>'  if microsam_available else '' ) +
+                      '<b>napari:</b> ' + napari_version + '<br>' +
+                      '<b>nd2:</b> ' + nd2_version + '<br>' +
+                      '<b>numpy:</b> ' + numpy_version + '<br>' +
+                      '<b>ome-types:</b> ' + ometypes_version + '<br>' +
+                      '<b>opencv:</b> ' + opencv_version + '<br>' +
+                      '<b>pandas:</b> ' + pandas_version + '<br>' +
+                      '<b>pyqt:</b> ' + pyqt_version + '<br>' +
+                      '<b>pystackreg:</b> ' + pystackreg_version + '<br>' +
+                      '<b>pytorch:</b> ' + torch_version + '<br>' +
+                      '<b>roifile:</b> ' + roifile_version + '<br>' +
+                      '<b>scikit-image:</b> ' + skimage_version + '<br>' +
+                      '<b>scipy:</b> ' + scipy_version + '<br>' +
+                      '<b>tifffile:</b> ' + tifffile_version +
+                      '<h3>Credits</h3>' +
+                      'Julien Dorier - Bioinformatics Competence Center, <a href="https://www.unil.ch">University of Lausanne</a>.<br>' +
+                      'Arianna Ravera - Scientific Computing and Research Support Unit, <a href="https://www.unil.ch">University of Lausanne</a>.<br>' +
+                      'Aleksandar Vjestica - Center for Integrative Genomics, <a href="https://www.unil.ch">University of Lausanne</a>.<br>')
+        layout.addWidget(label)
+        self.setLayout(layout)
+
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -32,10 +121,6 @@ class MainWindow(QWidget):
 
         title = "VLabApp"
         self.setWindowTitle(title)
-
-        self.image = QLabel()
-        self.image.setPixmap(QPixmap("support_files/logo.png"))
-        self.image.setAlignment(Qt.AlignCenter)
 
         self.status_line = QLineEdit()
         self.status_line.setEnabled(False)
@@ -58,8 +143,6 @@ class MainWindow(QWidget):
         self.left_panel = QWidget()
         self.left_panel.setLayout(QVBoxLayout())
         self.left_panel.layout().setContentsMargins(0, 0, 0, 0)
-        if not self.image.pixmap().isNull():
-            self.left_panel.layout().addWidget(self.image)
         self.left_panel.layout().addWidget(self.module_list)
         splitter.addWidget(self.left_panel)
         splitter.addWidget(self.right_panel)
@@ -68,9 +151,14 @@ class MainWindow(QWidget):
         splitter.setStretchFactor(1, 5)
         window.addWidget(splitter)
 
+        item = QTreeWidgetItem(self.module_list, ["About VLabApp"])
+        item.setData(0, Qt.UserRole, self.right_panel.count())
+        self.right_panel.addWidget(gf.Page(widget=AboutVLabApp()))
+
         item = QTreeWidgetItem(self.module_list, ["Registration"])
         item.setData(0, Qt.UserRole, self.right_panel.count())
         item.setFlags(item.flags() & ~Qt.ItemIsSelectable)
+        item.setExpanded(True)
         self.right_panel.addWidget(gf.Page(widget=QWidget()))
 
         subitem = QTreeWidgetItem(item, ["Registration"])
@@ -112,6 +200,7 @@ class MainWindow(QWidget):
         item = QTreeWidgetItem(self.module_list, ["Tools"])
         item.setData(0, Qt.UserRole, self.right_panel.count())
         item.setFlags(item.flags() & ~Qt.ItemIsSelectable)
+        item.setExpanded(True)
         self.right_panel.addWidget(gf.Page(widget=QWidget()))
 
         subitem = QTreeWidgetItem(item, ["View image, mask and graph"])
@@ -161,6 +250,7 @@ class MainWindow(QWidget):
             item = QTreeWidgetItem(self.module_list, ["Plugins"])
             item.setData(0, Qt.UserRole, self.right_panel.count())
             item.setFlags(item.flags() & ~Qt.ItemIsSelectable)
+            item.setExpanded(True)
             self.right_panel.addWidget(gf.Page(widget=QWidget()))
             # add plugins (alphabetical order)
             for name, plugin in sorted(plugins_list, key=lambda x: (x[0].lower())):
@@ -237,7 +327,7 @@ if __name__ == "__main__":
     except RuntimeError:
         sys.exit(1)
     app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon('support_files/logo.png'))
+    app.setWindowIcon(QIcon(os.path.join(os.path.dirname(__file__),'support_files/logo.png')))
     w = MainWindow()
     w.show()
     w.resize(1000, 800)

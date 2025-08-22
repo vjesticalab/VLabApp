@@ -10,6 +10,7 @@
 * Add small sample images and cellpose model fine-tuned for bright-field images of yeast cells.
 * Add simple plugins system.
 * Add a new Events selection module.
+* Add About VLabApp.
 
 ### Changed
 
