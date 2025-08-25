@@ -8,6 +8,7 @@
 
 ### Fixed
 
+* Fix dependency error when using ome-zarr version 0.12.2 (force version 0.11.1).
 
 
 
