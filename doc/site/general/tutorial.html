@@ -1,0 +1,1475 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="installation.html">
+      
+      
+        <link rel="next" href="files.html">
+      
+      
+      <link rel="icon" href="../logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.11">
+    
+    
+      
+        <title>Tutorial - VLabApp</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.4af4bdda.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+        <script src="https://unpkg.com/iframe-worker/shim"></script>
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+   <link href="../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+    html.glightbox-open { overflow: initial; height: 100%; }
+    .gslide-title { margin-top: 0px; user-select: text; }
+    .gslide-desc { color: #666; user-select: text; }
+    .gslide-image img { background: white; }
+    .gscrollbar-fixer { padding-right: 15px; }
+    .gdesc-inner { font-size: 0.75rem; }
+    body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
+    body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../assets/javascripts/glightbox.min.js"></script></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tutorial" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../index.html" title="VLabApp" class="md-header__button md-logo" aria-label="VLabApp" data-md-component="logo">
+      
+  <img src="../logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            VLabApp
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Tutorial
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="indigo"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../index.html" title="VLabApp" class="md-nav__button md-logo" aria-label="VLabApp" data-md-component="logo">
+      
+  <img src="../logo.png" alt="logo">
+
+    </a>
+    VLabApp
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../index.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Getting started
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="installation.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Tutorial
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="tutorial.html" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tutorial
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#preparation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Preparation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vlabapp-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      VLabApp interface
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#viewing-images-and-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      Viewing images and metadata
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Registration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Registration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#registration-manual-editing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Registration - manual editing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registration-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Registration - Alignment
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#z-projection" class="md-nav__link">
+    <span class="md-ellipsis">
+      Z-projection
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#segmentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Segmentation
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Reference
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="files.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    File naming conventions and supported formats
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../registration_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Registration module
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../zprojection_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Z-Projection module
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../segmentation_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Segmentation module
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cell_tracking_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Cell tracking module
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../graph_filtering_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Graph filtering module
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../events_selection_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Events selection module
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Pipeline module
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_9" id="__nav_3_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Tools
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_9">
+            <span class="md-nav__icon md-icon"></span>
+            Tools
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../viewer_image_mask_graph_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    View image, mask and graph
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../viewer_registration_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    View registration matrix
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../viewer_metadata_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    View metadata
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../file_organization_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    File organization
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../file_conversion_mask_graph_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    File conversion (masks and graphs)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../file_conversion_lossy_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    File conversion (lossy preview)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../image_cropping_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Image cropping
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ground_truth_generator_module/reference.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Ground truth generator
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="plugins.html" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Plugins
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#preparation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Preparation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vlabapp-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      VLabApp interface
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#viewing-images-and-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      Viewing images and metadata
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Registration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Registration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#registration-manual-editing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Registration - manual editing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registration-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Registration - Alignment
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#z-projection" class="md-nav__link">
+    <span class="md-ellipsis">
+      Z-projection
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#segmentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Segmentation
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="tutorial">Tutorial</h1>
+<h2 id="preparation">Preparation</h2>
+<p>If not done yet, install VLabApp (see <a href="installation.html">Installation</a> for more information).</p>
+<p>Create a working directory <code>example1/</code> and copy the sample bright-field image (<a href="../../data/smp01_BF.ome.tif">doc/data/smp01_BF.ome.tif</a>) and fluorescent image (<a href="../../data/smp01_WL450.ome.tif">doc/data/smp01_WL450.ome.tif</a>) from the VLabApp sub-folder <code>doc/data/</code> to the working directory <code>example1/</code>:</p>
+<p>Open a terminal or anaconda powershell prompt (Windows) and navigate to the VLabApp folder.
+Activate the conda environment</p>
+<pre><code>conda activate venv_VLabApp
+</code></pre>
+<p>and start VLabApp with</p>
+<pre><code>python master.py
+</code></pre>
+<h2 id="vlabapp-interface">VLabApp interface</h2>
+<p>VLabApp is a collection of independent modules. Each module loads selected input files, processes them, and saves the resulting output files in the same folder (unless otherwise specified).</p>
+<p>The interface is composed of two panels: a list of modules on the left (Figure 1A), and a panel that provides settings and controls for the selected module on the right (Figure 1B).</p>
+<figure>
+<a class="glightbox" href="images/interface.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img src="images/interface.png" alt="VLabApp interface"/></a>
+<figcaption>Figure 1: VLabApp user interface.</figcaption>
+</figure>
+
+<h2 id="viewing-images-and-metadata">Viewing images and metadata</h2>
+<p>Select "View metadata" from the left panel (Figure 1C).
+The right panel will display the settings for this module. All modules begin with a "Documentation" section, which can be expanded by clicking "[show more]". This section contains basic information about the module and the expected input files. For additional information, click the "Documentation" link at the end of the section. This will open the VLabApp documentation in a web browser.</p>
+<p>Click the  <kbd>Browse</kbd> button to open a file selection dialog. Navigate to the <code>example1/</code> folder and select the bright-field image <code>smp01_BF.ome.tif</code>. Alternatively, paste the path to the image into the text box, or drag and drop the image from an external file manager into the text box.</p>
+<p>The image metadata will be displayed in the lower part of the panel:</p>
+<pre><code>Dimensions: (T: 30, Z: 7, Y: 635, X: 651)
+Channel names: &quot;BF&quot;
+Physical pixel sizes: (X: 0.065015720421583 μm, Y: 0.065015720421583 μm, Z: 1.0 μm)
+Data type: uint8
+</code></pre>
+<p>Note that this module focuses on metadata generated by VLabApp. Only a limited subset of other image metadata is shown.</p>
+<p>This image consists of a time series of 30 frames (<code>T</code> axis), each containing 7 Z-sections (<code>Z</code> axis). Each Z-section is a 651x635 pixels 2D image (<code>X</code> and <code>Y</code> axes).
+The image has a single channel named "BF". Each pixel has size 0.065 μm in both the X and Y directions and the Z-sections are separated by 1 μm. The data are stored as 8-bit unsigned integers.</p>
+<p>Repeat the operation with the second sample image <code>smp01_WL450.ome.tif</code> (either adjust the text, use the <kbd>Browse</kbd> button, or drop the file on the text box). The metadata will update to:</p>
+<pre><code>Dimensions: (T: 30, Y: 635, X: 651)
+Channel names: &quot;2-BFP&quot;
+Physical pixel sizes: (X: 0.065015720421583 μm, Y: 0.065015720421583 μm, Z: 1.0 μm)
+Data type: uint8
+</code></pre>
+<p>This image has the same number of time frames and the same X and Y dimensions as the bright-field image, but it does not have multiple Z-sections. It has a single channel named "2-BFP". The physical pixel sizes and data type are the same as those of the bright-field image.
+See <a href="../viewer_metadata_module/reference.html">View metadata</a> for more information on this module.</p>
+<p>To view images using <a href="https://napari.org">napari</a>, select "View image, mask and graph" from the left panel (Figure 1D).
+In the "Image" field, select the bright-field image <code>smp01_BF.ome.tif</code> (use the <kbd>Browse</kbd> button, or drag and drop the file from an external file manager), then click the <kbd>Open napari</kbd> button.</p>
+<p>A napari window opens with the bright-field image displayed in the "Image [BF]" layer.
+The mouse or touchpad can be used to pan and zoom the view (<code>X</code> and <code>Y</code> axes).
+The <code>T</code> and <code>Z</code> sliders below the image allow navigation through time frames and Z-sections, respectively.</p>
+<p>Layer-specific controls are available in the "Layer controls" panel (top left). Image contrast can be adjusted using the "contrast limits" slider, and the colormap can be changed using the corresponding dropdown. See <a href="https://napari.org/stable/howtos/layers/image.html">https://napari.org/stable/howtos/layers/image.html</a> for more information on the napari user interface.</p>
+<p>The <code>Z</code> slider below the image allows navigation through Z-sections. Note how the Z-sections transition from out of focus (Z=0) to best focus (Z=3) and back to out of focus (Z=6).</p>
+<p>Set the <code>Z</code> slider to the section with best focus (Z=3), and navigate through time frames using the <code>T</code> slider. Note how the cells drift to the left.</p>
+<p>Close the napari window using the window close button or the "Close window" option in the "File" menu. Do not use the "Exit" option in the "File" menu, as it will close the full VLabApp application.</p>
+<p>Repeat the operation with the second sample image <code>smp01_WL450.ome.tif</code> (either adjust the text, use the <kbd>Browse</kbd> button, or drop the file on the text box).</p>
+<p>See <a href="../viewer_image_mask_graph_module/reference.html">View image, mask and graph</a> for more information on this module.</p>
+<h2 id="registration">Registration</h2>
+<p>To correct the drift observed in the previous section, select the "Registration" module in the left panel.</p>
+<p>Add the bright-field image to the list of input files by clicking the <kbd>Add files</kbd> button below the list. In the file selection dialog, navigate to the <code>example1/</code> folder and select the bright-field image <code>smp01_BF.ome.tif</code>. To add all images from a folder, click the <kbd>Add folder</kbd> button and select a folder. To remove an image from the list, select the image and click <kbd>Remove selected</kbd>. It is also possible to drag and drop images or folders from an external file manager into the list.
+By default, only files with a filename containing <code>_BF</code> (image with a unique bright-field channel), not containing <code>_vRG</code> (to avoid already registered images), and ending with one of the supported file extensions (<code>.nd2</code>, <code>.tif</code>, <code>.tiff</code>, <code>.ome.tif</code>, <code>.ome.tiff</code>) are accepted. To modify this behavior, click on <code>▶</code> above the list and adjust the filters.</p>
+<p>By default, the output files (transformation matrix and registered image) are saved in the same folder as the input image. To save in another folder, check the "Use custom folder" checkbox in the "Output" panel and specify an output folder in the text box (use the <kbd>Browse</kbd> button, or drag and drop a folder from an external file manager).
+Output filenames will correspond to the input filename with an additional <code>_vRG</code> suffix, optionally followed by a user defined suffix. The resulting output filenames are shown below the suffix.
+For this tutorial, we will keep the default "Use input folder" and leave the user suffix empty.</p>
+<p>The "Options" panel contains several options specific to the this module (see <a href="../registration_module/reference.html#registration">Registration module - Registration</a> for more information). Keep all settings to their default value, except the "Co-align files with the same unique identifier" checkbox which should be checked. With this option, all files with same unique identifier (starting with <code>smp01</code>) will be also transformed using the transformation matrix evaluated on the input image.</p>
+<p>Click <kbd>Submit</kbd> to start the registration module.</p>
+<p>A status dialog will open, displaying one row per input file (in this example, only one row). When the registration process completes, the column Status will indicate the outcome ("Success" or "Failed").
+In case of an error, hover the cursor over the cell marked as "Failed" to view the error message as a tooltip.</p>
+<p>Click <kbd>OK</kbd> to close the dialog.</p>
+<p>The <code>example1/</code> folder should contain the following files:</p>
+<pre><code>example1/
+├── smp01_BF.ome.tif
+├── smp01_BF_vRG.csv
+├── smp01_BF_vRG.log
+├── smp01_BF_vRG.ome.tif
+├── smp01_WL450.ome.tif
+├── smp01_WL450_vRG.log
+└── smp01_WL450_vRG.ome.tif
+</code></pre>
+<p>In addition to the original input files (<code>smp01_BF.ome.tif</code> and <code>smp01_WL450.ome.tif</code>), the folder contains several files with the suffix <code>_vRG</code>, indicating that they were generated by the registration module:</p>
+<ul>
+<li><code>smp01_BF_vRG.csv</code> contains the transformation parameters (shifts) detected from the image <code>smp01_BF.ome.tif</code></li>
+<li><code>smp01_BF_vRG.ome.tif</code> is the registered bright-field image, generated by applying the transformation matrix <code>smp01_BF_vRG.csv</code> to the original bright-field image <code>smp01_BF.ome.tif</code>.</li>
+<li><code>smp01_BF_vRG.log</code> contains a log of the operations performed to generate both <code>smp01_BF_vRG.csv</code> and <code>smp01_BF_vRG.ome.tif</code>.</li>
+<li><code>smp01_WL450_vRG.ome.tif</code> is the registered fluorescent image, generated by applying the same transformation matrix <code>smp01_BF_vRG.csv</code> to the original fluorescent image <code>smp01_WL450.ome.tif</code>. This output was produced because co-alignment was requested for images sharing the same unique identifier (<code>smp01</code>).</li>
+<li><code>smp01_WL450_vRG.log</code> contains a log of the operations performed to generate <code>smp01_WL450_vRG.ome.tif</code>.</li>
+</ul>
+<p>All operations performed to generate output files are recorded in the corresponding log file. For example, consider the log file <code>smp01_BF_vRG.log</code>, which documents the steps taken to produce <code>smp01_BF_vRG.csv</code> and <code>smp01_BF_vRG.ome.tif</code>:</p>
+<pre><code>2025-06-16 10:59:45,292 [INFO] System info:
+2025-06-16 10:59:45,292 [INFO] - platform: Linux-6.14.9-200.fc41.x86_64-x86_64-with-glibc2.40
+2025-06-16 10:59:45,292 [INFO] - python version: 3.11.11
+2025-06-16 10:59:45,292 [INFO] - VLabApp version: 2.3.0
+2025-06-16 10:59:45,292 [INFO] - numpy version: 1.26.4
+2025-06-16 10:59:45,292 [INFO] - pystackreg version: 0.2.8
+2025-06-16 10:59:45,292 [INFO] - opencv version: 4.11.0
+2025-06-16 10:59:45,292 [INFO] - skimage version: 0.20.0
+2025-06-16 10:59:45,292 [INFO] Input image path: /home/jdoe/example1/smp01_BF.ome.tif
+2025-06-16 10:59:45,292 [INFO] Registration method: feature matching (SIFT)
+2025-06-16 10:59:45,469 [INFO] Preparing image to evaluate transformation matrix: performing Z-projection
+2025-06-16 10:59:45,469 [INFO] Z-Projection: projection type=std, zrange=3 (Range 3 around Z section with best focus), focus method=tenengrad_var, z shift=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+2025-06-16 10:59:45,508 [INFO] Z-Projection (F: 0, T: 0, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,540 [INFO] Z-Projection (F: 0, T: 1, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,574 [INFO] Z-Projection (F: 0, T: 2, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,607 [INFO] Z-Projection (F: 0, T: 3, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,638 [INFO] Z-Projection (F: 0, T: 4, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,669 [INFO] Z-Projection (F: 0, T: 5, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,701 [INFO] Z-Projection (F: 0, T: 6, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,729 [INFO] Z-Projection (F: 0, T: 7, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,758 [INFO] Z-Projection (F: 0, T: 8, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,787 [INFO] Z-Projection (F: 0, T: 9, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,816 [INFO] Z-Projection (F: 0, T: 10, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,844 [INFO] Z-Projection (F: 0, T: 11, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,870 [INFO] Z-Projection (F: 0, T: 12, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,895 [INFO] Z-Projection (F: 0, T: 13, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,922 [INFO] Z-Projection (F: 0, T: 14, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,948 [INFO] Z-Projection (F: 0, T: 15, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,973 [INFO] Z-Projection (F: 0, T: 16, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,000 [INFO] Z-Projection (F: 0, T: 17, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,025 [INFO] Z-Projection (F: 0, T: 18, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,051 [INFO] Z-Projection (F: 0, T: 19, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,077 [INFO] Z-Projection (F: 0, T: 20, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,102 [INFO] Z-Projection (F: 0, T: 21, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,127 [INFO] Z-Projection (F: 0, T: 22, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,151 [INFO] Z-Projection (F: 0, T: 23, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,175 [INFO] Z-Projection (F: 0, T: 24, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,201 [INFO] Z-Projection (F: 0, T: 25, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,225 [INFO] Z-Projection (F: 0, T: 26, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,249 [INFO] Z-Projection (F: 0, T: 27, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,273 [INFO] Z-Projection (F: 0, T: 28, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,301 [INFO] Z-Projection (F: 0, T: 29, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,311 [INFO] Preparing image to evaluate transformation matrix: selecting channel 0
+2025-06-16 10:59:46,312 [INFO] Evaluating transformation matrix with feature matching (SIFT)
+2025-06-16 10:59:51,447 [INFO] Saving transformation matrix to /home/jdoe/example1/smp01_BF_vRG.csv
+2025-06-16 10:59:51,448 [INFO] Transforming image
+2025-06-16 10:59:51,474 [INFO] Cropping image
+2025-06-16 10:59:51,474 [INFO] Saving transformed image to /home/jdoe/example1/smp01_BF_vRG.ome.tif
+</code></pre>
+<p>It starts with system information, followed by a list of the operations performed to generate the transformation matrix and the registered image: input file, registration method, projection of the Z-stack, channel selection, method used to evaluate the transformation matrix and output file.</p>
+<p>The same information is also stored in the metadata of both output files: <code>smp01_BF_vRG.csv</code> and <code>smp01_BF_vRG.ome.tif</code>.
+To view the metadata, select "View metadata" from the left panel and add <code>smp01_BF_vRG.csv</code> to the "File" text box. Repeat the process with <code>smp01_BF_vRG.ome.tif</code> to inspect its metadata as well.</p>
+<p>Similarly, the log file <code>smp01_WL450_vRG.log</code> documents the steps taken to produce <code>smp01_WL450_vRG.ome.tif</code>:</p>
+<pre><code>2025-06-16 10:59:52,002 [INFO] System info:
+2025-06-16 10:59:52,002 [INFO] - platform: Linux-6.14.9-200.fc41.x86_64-x86_64-with-glibc2.40
+2025-06-16 10:59:52,002 [INFO] - python version: 3.11.11
+2025-06-16 10:59:52,002 [INFO] - VLabApp version: 2.3.0
+2025-06-16 10:59:52,002 [INFO] - numpy version: 1.26.4
+2025-06-16 10:59:52,002 [INFO] - pystackreg version: 0.2.8
+2025-06-16 10:59:52,002 [INFO] - opencv version: 4.11.0
+2025-06-16 10:59:52,002 [INFO] - skimage version: 0.20.0
+2025-06-16 10:59:52,002 [INFO] Input image path: /home/jdoe/example1/smp01_WL450.ome.tif
+2025-06-16 10:59:52,002 [INFO] Input transformation matrix path: /home/jdoe/example1/smp01_BF_vRG.csv
+2025-06-16 10:59:52,062 [INFO] Transforming image
+2025-06-16 10:59:52,065 [INFO] Cropping image
+2025-06-16 10:59:52,065 [INFO] Saving transformed image to /home/jdoe/example1/smp01_WL450_vRG.ome.tif
+</code></pre>
+<p>Note that the information is limited to the transformation of the image <code>smp01_WL450.ome.tif</code>: input files (image and transformation matrix), transformation, cropping and output file.</p>
+<p>This information is also stored in the metadata of <code>smp01_WL450_vRG.ome.tif</code>, which can be viewed using the "View metadata" module in the left panel:</p>
+<pre><code>Dimensions: (T: 30, Y: 603, X: 572)
+Channel names: &quot;2-BFP&quot;
+Physical pixel sizes: (X: 0.065015720421583 μm, Y: 0.065015720421583 μm, Z: 1.0 μm)
+Data type: uint8
+
+---------------------------------------------
+
+2025-06-16 10:59:52,002 (VLabApp - registration module) [INFO] System info:
+2025-06-16 10:59:52,002 (VLabApp - registration module) [INFO] - platform: Linux-6.14.9-200.fc41.x86_64-x86_64-with-glibc2.40
+2025-06-16 10:59:52,002 (VLabApp - registration module) [INFO] - python version: 3.11.11
+2025-06-16 10:59:52,002 (VLabApp - registration module) [INFO] - VLabApp version: 2.3.0
+2025-06-16 10:59:52,002 (VLabApp - registration module) [INFO] - numpy version: 1.26.4
+2025-06-16 10:59:52,002 (VLabApp - registration module) [INFO] - pystackreg version: 0.2.8
+2025-06-16 10:59:52,002 (VLabApp - registration module) [INFO] - opencv version: 4.11.0
+2025-06-16 10:59:52,002 (VLabApp - registration module) [INFO] - skimage version: 0.20.0
+2025-06-16 10:59:52,002 (VLabApp - registration module) [INFO] Input image path: /home/jdoe/example1/smp01_WL450.ome.tif
+2025-06-16 10:59:52,002 (VLabApp - registration module) [INFO] Input transformation matrix path: /home/jdoe/example1/smp01_BF_vRG.csv
+2025-06-16 10:59:52,062 (VLabApp - registration module) [INFO] Transforming image
+2025-06-16 10:59:52,065 (VLabApp - registration module) [INFO] Cropping image
+2025-06-16 10:59:52,065 (VLabApp - registration module) [INFO] Saving transformed image to /home/jdoe/example1/smp01_WL450_vRG.ome.tif
+
+
+Metadata for matrix /home/jdoe/example1/smp01_BF_vRG.csv:
+2025-06-16 10:59:45,292 (VLabApp - registration module) [INFO] System info:
+2025-06-16 10:59:45,292 (VLabApp - registration module) [INFO] - platform: Linux-6.14.9-200.fc41.x86_64-x86_64-with-glibc2.40
+2025-06-16 10:59:45,292 (VLabApp - registration module) [INFO] - python version: 3.11.11
+2025-06-16 10:59:45,292 (VLabApp - registration module) [INFO] - VLabApp version: 2.3.0
+2025-06-16 10:59:45,292 (VLabApp - registration module) [INFO] - numpy version: 1.26.4
+2025-06-16 10:59:45,292 (VLabApp - registration module) [INFO] - pystackreg version: 0.2.8
+2025-06-16 10:59:45,292 (VLabApp - registration module) [INFO] - opencv version: 4.11.0
+2025-06-16 10:59:45,292 (VLabApp - registration module) [INFO] - skimage version: 0.20.0
+2025-06-16 10:59:45,292 (VLabApp - registration module) [INFO] Input image path: /home/jdoe/example1/smp01_BF.ome.tif
+2025-06-16 10:59:45,292 (VLabApp - registration module) [INFO] Registration method: feature matching (SIFT)
+2025-06-16 10:59:45,469 (VLabApp - registration module) [INFO] Preparing image to evaluate transformation matrix: performing Z-projection
+2025-06-16 10:59:45,469 (VLabApp - registration module) [INFO] Z-Projection: projection type=std, zrange=3 (Range 3 around Z section with best focus), focus method=tenengrad_var, z shift=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+2025-06-16 10:59:45,508 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 0, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,540 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 1, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,574 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 2, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,607 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 3, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,638 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 4, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,669 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 5, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,701 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 6, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,729 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 7, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,758 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 8, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,787 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 9, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,816 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 10, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,844 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 11, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,870 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 12, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,895 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 13, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,922 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 14, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,948 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 15, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:45,973 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 16, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,000 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 17, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,025 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 18, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,051 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 19, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,077 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 20, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,102 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 21, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,127 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 22, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,151 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 23, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,175 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 24, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,201 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 25, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,225 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 26, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,249 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 27, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,273 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 28, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,301 (VLabApp - registration module) [INFO] Z-Projection (F: 0, T: 29, C: 0): std over z in [0, 1, 2, 3, 4, 5, 6] (Best z=3, z shift=0)
+2025-06-16 10:59:46,311 (VLabApp - registration module) [INFO] Preparing image to evaluate transformation matrix: selecting channel 0
+2025-06-16 10:59:46,312 (VLabApp - registration module) [INFO] Evaluating transformation matrix with feature matching (SIFT)
+2025-06-16 10:59:51,447 (VLabApp - registration module) [INFO] Saving transformation matrix to /home/jdoe/example1/smp01_BF_vRG.csv
+</code></pre>
+<p>It begins with a limited subset of important image metadata (dimension, channel names, physical pixel sizes and data type), followed by the metadata generated by VLabApp. The first block contains the operations used to transform the image (the information contained in the log file <code>smp01_BF_vRG.log</code>). Subsequent blocks contain a recursive listing of the metadata from all input files (in this example: only the transformation matrix <code>smp01_BF_vRG.csv</code>).
+By recursively storing the metadata of all input files, each file contains a complete record of how it was generated. </p>
+<p>It is recommended to verify the results of the registration.  This can be done in two ways:</p>
+<ol>
+<li>
+<p>Use the "View image, mask and graph" module in the left panel to view the registered image <code>smp01_BF_vRG.ome.tif</code> (add <code>smp01_BF_vRG.ome.tif</code> to the "Image" text box and click <kbd>Open napari</kbd>). If the registration procedure was successful, the cells should be globally stable when navigating through time frames with the <code>T</code> slider. Note:</p>
+<ul>
+<li>Although the <code>Z</code> axis was projected to evaluate the transformation matrix, the registered image still includes all seven Z-sections from the input image.</li>
+<li>The <code>X</code> and <code>Y</code> axes of the registered image have been cropped to the common region shared by all time frames.</li>
+</ul>
+</li>
+<li>
+<p>Select "View registration matrix" from the left panel. This module requires two input files: the original image (<code>smp01_BF.ome.tif</code>), which was used as input for the registration module and the corresponding transformation matrix (<code>smp01_BF_vRG.csv</code>). Use the <kbd>Browse</kbd> button in the "Registration matrix" box to select the registration matrix <code>smp01_BF_vRG.csv</code>. Alternatively, paste the path in the text box or drag and drop the file from an external file manager. The "Image (before registration)" field should automatically populate with the original bright-field image <code>smp01_BF.ome.tif</code> (if not, use the <kbd>Browse</kbd> button to select the image). Click <kbd>Open napari</kbd>. If the registration procedure was successful, the cells should be globally stable when navigating through time frames with the <code>T</code> slider (see <a href="../viewer_registration_module/reference.html">View registration matrix</a> for more information on this module).</p>
+</li>
+</ol>
+<p>In case of registration failure, select an alternative registration method ("Registration method" dropdown list in the Registration module settings) and rerun the registration. If this still fails, it is possible to manually correct the transformation using manual editing (see next section).</p>
+<h3 id="registration-manual-editing">Registration - manual editing</h3>
+<p>For more information on this module, see <a href="../registration_module/reference.html#editing-manual">Registration module - Editing (manual)</a>.</p>
+<p>From the left panel, select "Editing (manual)" under the "Registration" group.
+This module requires the same two input files as the "View registration matrix" module: the original image (<code>smp01_BF.ome.tif</code>), which was used as input for the registration module and the corresponding transformation matrix (<code>smp01_BF_vRG.csv</code>). Use the <kbd>Browse</kbd> button in the "Registration matrix" box to select the registration matrix <code>smp01_BF_vRG.csv</code>. Alternatively, paste the path in the text box or drag and drop the file from an external file manager. The "Image (before registration)" field should automatically populate with the original bright-field image <code>smp01_BF.ome.tif</code> (if not, use the <kbd>Browse</kbd> button to select the image). Click <kbd>Submit</kbd>.</p>
+<figure>
+<a class="glightbox" href="images/registration_manual_editing.png" data-type="image" data-width="auto" data-height="auto" data-desc-position="bottom"><img src="images/registration_manual_editing.png" alt="Manually editing the registration matrix with napari"/></a>
+<figcaption>Figure 2: Manually editing the registration matrix with napari</figcaption>
+</figure>
+
+<p>The unregistered image opens in  <a href="https://napari.org">napari</a> (Figure 2A), with a graphical representation of the transformation matrix in the lower part of the window (Figure 2B) showing x (red) and y (blue) coordinates of the image offset (vertical axis) as a function of time (horizontal axis). </p>
+<p>The transformation matrix is also represented by a green control point (Figure 2C) overlaid on the image (layer "Alignment points"). The position of the control point is transformed using the transformation matrix (i.e. it should ideally follow the cells in the image). If needed, the transformation matrix can be modified by adjusting the position of the control point at the current time frame (selected with the Z slider), from first to current time frame, or from current time frame to last (the desired behavior can be selected in the right part of the screen, Figure 2D). To move the control point for the selected range of frame, make sure the layer "Alignment points" is selected (Figure 2E), then click at the desired position while pressing the <kbd>CTRL</kbd> key (or <kbd>CMD</kbd> key with Mac OS X).</p>
+<p>It is also possible to adjust the range of time frames to use for the transformation by modifying the "From" and "To" fields (Figure 2F).
+Registered images generated using a transformation matrix with a limited range of time frames will include only those specified time frames.
+As an example, set the range of time frame "From" 2 "to" 27 (Figure 2F).</p>
+<p>To save the transformation matrix (and overwrite the original transformation matrix file), click on the <kbd>Save</kbd> button (Figure 2G), then close the napari window using the window close button or the "Close window" option in the "File" menu. Do not use the "Exit" option in the "File" menu, as it will close the full VLabApp application. To ignore the modifications, close the napari window without saving.</p>
+<p>Check the metadata of the transformation matrix <code>smp01_BF_vRG.csv</code>. A new block has been added at the beginning, indicating that manual editing was performed.</p>
+<p>When the transformation matrix is modified using this module, previously registered images are not updated.
+The registered images must be regenerated by applying the updated transformation matrix to the original images <code>smp01_BF.ome.tif</code> and <code>smp01_WL450.ome.tif</code>, using the "Alignment" module (see next section).</p>
+<h3 id="registration-alignment">Registration - Alignment</h3>
+<p>This module applies existing transformation matrices (created with the registration module) to input images to generate registered images. For more information on this module, see <a href="../registration_module/reference.html#alignment">Registration module - Alignment</a>.</p>
+<p>From the left panel, select the "Alignment" module under the "Registration" group.</p>
+<p>Add the original bright-field image (<code>smp01_BF.ome.tif</code>) and fluorescent image (<code>smp01_WL450.ome.tif</code>) by clicking the <kbd>Add files</kbd> button below the list. For each image, the corresponding transformation matrix will be added automatically by searching for transformation matrix files with same unique identifier (<code>smp01</code>) in the same folder as the image.
+To add all images from a folder, click the <kbd>Add folder</kbd> button and select a folder. To remove an image from the list, select the image and click <kbd>Remove selected</kbd>. It is also possible to drag and drop images or folders from an external file manager into the list.
+By default, only files not containing <code>_vRG</code> (to avoid already registered images), and ending with one of the supported file extensions (<code>.nd2</code>, <code>.tif</code>, <code>.tiff</code>, <code>.ome.tif</code>, <code>.ome.tiff</code>) are accepted. To modify this behavior, click on <code>▶</code> above the list and adjust the filters.</p>
+<p>Click <kbd>Submit</kbd> to start aligning the images.</p>
+<p>This operation will replace the registered images and corresponding log files:</p>
+<pre><code>smp01_BF_vRG.log
+smp01_BF_vRG.ome.tif
+smp01_WL450_vRG.log
+smp01_WL450_vRG.ome.tif
+</code></pre>
+<p>Check the metadata of the registered images using "View metadata" module, or inspect the registered images using "View image, mask and graph" module. Both images have a <code>T</code> axis of size 26, which corresponds to the range of time frames (from 2 to 27) specified when updating the transformation matrix.</p>
+<h2 id="z-projection">Z-projection</h2>
+<p>The Z-projection module removes the <code>Z</code> axis from an image by projecting a user-selected subset of Z-sections and saves the resulting image. For more information on this module, see <a href="../zprojection_module/reference.html">Z-Projection module</a>.</p>
+<p>Note that this step is optional, as the modules that require a Z-projected image as input (the registration and segmentation modules) can perform the projection on the fly.
+However, using the Z-projection module to generate a projected image can still be useful for instance, to visually inspect the projection result or to save the projected image for subsequent reuse.</p>
+<p>Select "Z-Projection" from the left panel. Add the registered bright-field image (<code>smp01_BF_vRG.ome.tif</code>) to the list of input files (use the <kbd>Add files</kbd> button below the list or drag and drop the files from an external file manager).</p>
+<p>By default, the output file (Z-projected image) is saved in the same folder as the input image. To save in another folder, check the "Use custom folder" checkbox in the "Output" panel and specify an output folder in the text box (use the <kbd>Browse</kbd> button, or drag and drop a folder from an external file manager). For this tutorial, we will keep the default "Use input folder".
+The output filename will correspond to the input filename with an additional <code>_vPR&lt;ref&gt;&lt;range&gt;&lt;proj&gt;</code> suffix, where <code>&lt;ref&gt;</code> is the reference Z-section (<code>b</code> for best focus or <code>f</code> for fixed range), <code>&lt;range&gt;</code> is the range of Z-sections (one integer for range around Z-section with best focus or two integers  min and max separated by a <code>-</code> for fixed Z-section range) and <code>&lt;proj&gt;</code> is the projection type (<code>none</code>, <code>max</code>, <code>min</code>, <code>mean</code>, <code>median</code> or <code>std</code>).  The resulting output filename is shown below the suffix. It is not possible to set a user defined suffix in this module.</p>
+<p>The "Options" panel contains several options specific to the this module (see <a href="../zprojection_module/reference.html">Z-Projection module</a> for more information). Set the "Projection range" to "Z section with best focus" to keep only the Z section with best focus.</p>
+<p>Click <kbd>Submit</kbd> to start the Z-projection module.</p>
+<p>A status dialog will open, displaying one row per input file (in this example, only one row). When the registration process completes, the column Status will indicate the outcome ("Success" or "Failed"). In case of an error, hover the cursor over the cell marked as "Failed" to view the error message as a tooltip.
+Click <kbd>OK</kbd> to close the dialog.</p>
+<p>The <code>example1/</code> folder should contain two new files with the suffix <code>_vPRb0none</code>, indicating that they were generated by the Z-projection module (<code>_vPR</code>), using only the Z-section with best focus (<code>b0none</code>):</p>
+<ul>
+<li><code>smp01_BF_vRG_vPRb0none.ome.tif</code> is the Z-projected registered bright-field image, generated by applying the selected Z-projection to <code>smp01_BF_vRG.ome.tif</code>.</li>
+<li><code>smp01_BF_vRG_vPRb0none.log</code> contains a log of the operations performed to generate <code>smp01_BF_vRG_vPRb0none.ome.tif</code>.</li>
+</ul>
+<p>Check the metadata of the Z-projected image <code>smp01_BF_vRG_vPRb0none.ome.tif</code> using the "View metadata" module. Since the <code>Z</code> axis is removed by the Z-projection, the Z-projected image should only have <code>T</code>, <code>Y</code> and <code>X</code> axes:</p>
+<pre><code>Dimensions: (T: 26, Y: 603, X: 573)
+</code></pre>
+<p>The first block of metadata contains the operations performed by the Z-projection module:</p>
+<pre><code>2025-06-27 15:45:57,015 (VLabApp - z-projection module) [INFO] System info:
+2025-06-27 15:45:57,015 (VLabApp - z-projection module) [INFO] - platform: Linux-6.15.3-100.fc41.x86_64-x86_64-with-glibc2.40
+2025-06-27 15:45:57,015 (VLabApp - z-projection module) [INFO] - python version: 3.11.11
+2025-06-27 15:45:57,015 (VLabApp - z-projection module) [INFO] - VLabApp version: 2.3.0
+2025-06-27 15:45:57,015 (VLabApp - z-projection module) [INFO] - numpy version: 1.26.4
+2025-06-27 15:45:57,015 (VLabApp - z-projection module) [INFO] - opencv version: 4.11.0
+2025-06-27 15:45:57,015 (VLabApp - z-projection module) [INFO] Input image path: /home/jdoe/example1/smp01_BF_vRG.ome.tif
+2025-06-27 15:45:57,154 (VLabApp - z-projection module) [INFO] Z-Projection: projection type=mean, zrange=0 (Z section with best focus), focus method=tenengrad_var, z shift=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+2025-06-27 15:45:57,183 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 0, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,211 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 1, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,238 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 2, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,265 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 3, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,290 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 4, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,317 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 5, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,342 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 6, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,367 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 7, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,392 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 8, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,416 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 9, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,441 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 10, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,465 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 11, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,490 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 12, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,515 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 13, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,540 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 14, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,567 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 15, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,594 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 16, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,624 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 17, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,655 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 18, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,683 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 19, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,708 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 20, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,733 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 21, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,759 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 22, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,785 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 23, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,810 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 24, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,835 (VLabApp - z-projection module) [INFO] Z-Projection (F: 0, T: 25, C: 0): mean over z in [3] (Best z=3, z shift=0)
+2025-06-27 15:45:57,835 (VLabApp - z-projection module) [INFO] Saving projected image to /home/jdoe/example1/smp01_BF_vRG_vPRb0none.ome.tif
+</code></pre>
+<p>For each time frame (<code>T</code>), the projection operation  (<code>mean over z in [3]</code>) and the estimated Z section with best focus (<code>Best z=3</code>) are indicated. Note that when the projection is performed over a single Z-section (here z=3), computing the mean is equivalent to selecting that Z-section directly.</p>
+<p>Next, inspect the Z-projected image <code>smp01_BF_vRG_vPRb0none.ome.tif</code> using "View image, mask and graph" module. Use the <code>T</code> slider below the image to verify that each time frame corresponds to the Z-section with best focus. If needed, the original image <code>smp01_BF_vRG.ome.tif</code> can also be opened the "View image, mask and graph" module to verify which Z-section corresponds to the best focus.</p>
+<p>The algorithm used to detect the Z-section with best focus occasionally produce incorrect results.
+If this occurs, an alternative approach is to set the "Projection range" option to "Fixed range" and manually specify the range of Z-sections to project. In this example, set "From" to 3 and "To" to 3 to select only the Z-section corresponding to best focus (Z=3).</p>
+<h2 id="segmentation">Segmentation</h2>
+<p>To segment the registered bright-field image, select the "Registration" module in the left panel. Add the registered bright-field image (<code>smp01_BF_vRG.ome.tif</code>) to the list of input files (use the <kbd>Add files</kbd> button below the list or drag and drop the files from an external file manager).
+By default, only files with a filename containing <code>_BF</code> (image with a unique bright-field channel) and ending with one of the supported file extensions (<code>.nd2</code>, <code>.tif</code>, <code>.tiff</code>, <code>.ome.tif</code>, <code>.ome.tiff</code>) are accepted. To modify this behavior, click on <code>▶</code> above the list and adjust the filters.</p>
+<p>By default, the output file (segmentation mask) is saved in the same folder as the input image. To save in another folder, check the "Use custom folder" checkbox in the "Output" panel and specify an output folder in the text box (use the <kbd>Browse</kbd> button, or drag and drop a folder from an external file manager).
+Output filename will correspond to the input filename with an additional <code>_vSM</code> suffix, optionally followed by a user defined suffix. The resulting output filename is shown below the suffix. For this tutorial, keep the default "Use input folder" and leave the user suffix empty.</p>
+<p>The "Options" panel contains several options specific to the this module (see <a href="../segmentation_module/reference.html">Segmentation module</a> for more information).
+In the segmentation section, ensure that "Method" is set to "cellpose" and "Model type" is set to "User trained model".
+In the "Model" field, select the file <a href="../../data/cellpose_BF_yeast">doc/data/cellpose_BF_yeast</a> located in the VLabApp sub-folder <code>doc/data/</code> (use the <kbd>Browse</kbd> button, or drag and drop the file from an external file manager into the text box). This model was obtained by fine-tuning the cellpose cyto2 model on bright-field images of yeast cells (using Z-section with best focus).
+In no "User trained model" is available, it is possible to use one of the built-in cellpose models, such as the "cyto3" generalist model.</p>
+<p>Since the input file (<code>smp01_BF_vRG.ome.tif</code>) contains a <code>Z</code> axis, it is necessary to specify how to project it before performing segmentation. It is recommended to use the same Z-projection as the one applied to the images used for training the segmentation model. If this information is available, a reasonable alternative is to use the "Z section with best focus".
+Set the "Projection range" to "Z section with best focus" to keep only the Z section with best focus.
+Click <kbd>Submit</kbd> to start the segmentation module.</p>
+<p>The <code>example1/</code> folder should contain two new files with the suffix <code>_vSM</code>, indicating that they were generated by the segmentation module</p>
+<ul>
+<li><code>smp01_BF_vRG_vSM.ome.tif</code> is the segmentation mask.</li>
+<li><code>smp01_BF_vRG_vSM.log</code> contains a log of the operations performed to generate <code>smp01_BF_vRG_vSM.ome.tif</code>.</li>
+</ul>
+<p>To inspect the segmentation mask, select the "View image, mask and graph" module in the left panel and add the segmentation mask <code>smp01_BF_vRG_vSM.ome.tif</code> to the "Segmentation mask" box  (use the <kbd>Browse</kbd> button, or drag and drop from an external file manager). The "Image" field should automatically populate with the registered bright-field image <code>smp01_BF_vRG.ome.tif</code> (if not, use the <kbd>Browse</kbd> button to select the image). Click <kbd>Open napari</kbd>. See <a href="../viewer_image_mask_graph_module/reference.html">View image, mask and graph</a> for more information on this module.</p>
+<p>A napari window opens with the bright-field image displayed in the "Image [BF]" layer and the segmentation mask in the "Cell mask" layer (See <a href="https://napari.org/stable/howtos/layers/image.html">https://napari.org/stable/howtos/layers/image.html</a> and <a href="https://napari.org/stable/howtos/layers/labels.html">https://napari.org/stable/howtos/layers/labels.html</a> for more information on the napari user interface for image and labels layers respectively). Note that editing tools are intentionally disabled to prevent modifications of the segmentation mask. 
+The <code>Z</code> slider controls the displayed Z-section of the bright-field image (the segmentation mask has no <code>Z</code> axis and is not affected by this setting).
+Use the <code>T</code> slider below the image to navigate through time frames and inspect the segmentation mask.
+Note how the segmented cell labels (colors) are not consistent over time. Because segmentation is performed independently for each time frames, there is no guarantee that the same cell will receive the same label (color) in consecutive time frames.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["search.suggest", "navigation.expand"], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c8b220af.min.js"></script>
+      
+        <script src="../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  <script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(() => { lightbox.reload() });
+</script></body>
+</html>
