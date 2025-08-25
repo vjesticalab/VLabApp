@@ -11,6 +11,7 @@ dependencies:
     - nd2==0.10.1
     - numpy==1.26.4
     - ome-types==0.6.0
+    - ome-zarr==0.11.1
     - pandas==2.2.3
     - py-opencv==4.11.0=headless*
     - pyqt==5.15.9
