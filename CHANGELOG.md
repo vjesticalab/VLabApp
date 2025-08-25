@@ -1,15 +1,8 @@
-## [Unreleased]
-
-### Added
-
-### Changed
-
-### Removed
+## [v2.4.1] 2025-08-25
 
 ### Fixed
 
 * Fix dependency error when using ome-zarr version 0.12.2 (force version 0.11.1).
-
 
 
 
