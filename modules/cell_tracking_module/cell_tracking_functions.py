@@ -1622,6 +1622,49 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
                     else:
                         mask_metadata.append(x.value)
 
+        if mask.max() == 0:
+            logger.warning("Input mask is empty")
+            if display_results:
+                QMessageBox.warning(None, 'Warning', 'Input mask is empty. Aborting.')
+            else:
+                logger.info("Creating cell tracking graph and relabelling mask: max delta frame=%s, min overlap fraction=%s%%, min area=%s", max_delta_frame, min_overlap_fraction*100, min_area)
+                output_file = os.path.join(output_path, output_basename+".ome.tif")
+                logger.info("Saving segmentation mask to %s", output_file)
+                ome_metadata = OmeTiffWriter.build_ome(data_shapes=[mask.shape],
+                                                       data_types=[mask.dtype],
+                                                       dimension_order=["TYX"],
+                                                       channel_names=[mask_image.channel_names],
+                                                       physical_pixel_sizes=[PhysicalPixelSizes(X=mask_image.physical_pixel_sizes[0], Y=mask_image.physical_pixel_sizes[1], Z=mask_image.physical_pixel_sizes[2])])
+                ome_metadata.structured_annotations.append(CommentAnnotation(value=buffered_handler.get_messages(), namespace="VLabApp"))
+                for x in mask_metadata:
+                    ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
+                OmeTiffWriter.save(mask, output_file, ome_xml=ome_metadata)
+
+                output_file = os.path.join(output_path, output_basename+".graphmlz")
+                logger.info("Saving cell tracking graph to %s", output_file)
+                # create empty graph
+                g =  ig.Graph(directed=True)
+                # add attributes
+                g.vs['frame'] = []
+                g.vs['mask_id'] = []
+                g.vs['area'] = []
+                g.es['overlap_area'] = []
+                g.es['overlap_fraction_source'] = []
+                g.es['overlap_fraction_target'] = []
+                g.es['frame_source'] = []
+                g.es['frame_target'] = []
+                g.es['mask_id_source'] = []
+                g.es['mask_id_target'] = []
+                # add metadata
+                g['VLabApp:Annotation:1'] = buffered_handler.get_messages()
+                for i, x in enumerate(mask_metadata):
+                    g['VLabApp:Annotation:'+str(i+2)] = x
+                g.write_graphmlz(output_file)
+
+            # Remove all handlers for this module
+            remove_all_log_handlers()
+            return
+
         ###########################
         # Cell tracking
         ###########################

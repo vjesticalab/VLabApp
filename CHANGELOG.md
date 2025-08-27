@@ -8,6 +8,9 @@
 
 ### Fixed
 
+* Cell tracking module: fix a crash when input mask is empty.
+
+
 
 
 
