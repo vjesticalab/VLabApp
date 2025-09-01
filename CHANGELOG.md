@@ -1,19 +1,12 @@
-## [Unreleased]
-
-### Added
+## [v2.4.2] 2025-09-01
 
 ### Changed
 
 * Cell tracking module: add option to select missing vertices in the graph (when showing results in napari).
 
-### Removed
-
 ### Fixed
 
 * Cell tracking module: fix a crash when input mask is empty.
-
-
-
 
 
 
