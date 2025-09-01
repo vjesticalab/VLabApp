@@ -69,7 +69,7 @@ class AboutVLabApp(QWidget):
                       'Documentation:<br><a href="' + os.path.join(os.path.dirname(__file__), 'doc', 'site', 'index.html') + '">' + os.path.normpath(os.path.join(os.path.dirname(__file__), 'doc', 'site', 'index.html')) + '</a>' +
                       '<h3>Citation</h3>' +
                       'If you use VLabApp in your research, please cite the VLabApp paper:' +
-                      '<blockquote>J. Dorier, A. Raverra and A. Vjestica. In preparation</blockquote>' +
+                      '<blockquote>J. Dorier, A. Ravera and A. Vjestica. In preparation</blockquote>' +
                       'If you use the registration module with <a href="https://bigwww.epfl.ch/thevenaz/stackreg/">stackreg</a>, please cite the following <a href="https://doi.org/10.1109/83.650848">publication</a>:' +
                       '<blockquote>P. Thevenaz, U. E. Ruttimann and M. Unser (1998). A pyramid approach to subpixel registration based on intensity. IEEE Transactions on Image Processing, 7(1), 27–41.</blockquote>' +
                       'If you use the segmentation module with <a href="https://www.cellpose.org/">Cellpose</a>, please cite the Cellpose 1.0 <a href="https://doi.org/10.1038/s41592-020-01018-x">publication</a>:' +
