@@ -333,6 +333,42 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
         vertices_layer.properties = {'frame': graph.vs['frame'],
                                      'mask_id': graph.vs['mask_id'],
                                      'selected': np.repeat(False, graph.vcount())}
+
+    # Add missing vertices (on edges spanning more than 1 frame)
+    es_missing = graph.es.select(lambda edge: edge['frame_target']-edge['frame_source'] > 1)
+    if len(es_missing) > 0:
+        missing_x = []
+        missing_y = []
+        missing_frame = []
+        missing_mask_id = []
+        for edge in es_missing:
+            vsource = graph.vs[edge.source]
+            vtarget = graph.vs[edge.target]
+            if vsource['mask_id'] == vtarget['mask_id']:
+                mask_id = vsource['mask_id']
+            elif vsource.outdegree() == 1:
+                mask_id = vsource['mask_id']
+            elif vtarget.outdegree() == 1:
+                mask_id = vtarget['mask_id']
+            else:
+                mask_id = vsource['mask_id']
+            frame_source = vsource['frame']
+            frame_target = vtarget['frame']
+            for frame in range(vsource['frame']+1, frame_target):
+                missing_y.append(layout[edge.source][0] + (layout[edge.target][0] - layout[edge.source][0]) * (frame - frame_source) / (frame_target - frame_source))
+                missing_x.append(layout[edge.source][1] + (layout[edge.target][1] - layout[edge.source][1]) * (frame - frame_source) / (frame_target - frame_source))
+                missing_frame.append(frame)
+                missing_mask_id.append(mask_id)
+        vertices_layer.add(np.column_stack((missing_y, missing_x)))
+        vertices_layer.border_width_is_relative = True
+        vertices_layer.border_width[-len(missing_x):] = 0.0
+        vertices_layer.symbol[-len(missing_x):] = 'square'
+        vertices_layer.size[-len(missing_x):] = vertex_size
+        vertices_layer.face_color[-len(missing_x):] = [0, 0, 0, 0]
+        vertices_layer.properties['frame'][-len(missing_x):] = missing_frame
+        vertices_layer.properties['mask_id'][-len(missing_x):] = missing_mask_id
+        vertices_layer.properties['selected'][-len(missing_x):] = np.repeat(False, len(missing_x))
+        vertices_layer.refresh()
     vertices_layer.selected_data = set()
     vertices_layer.editable = False
 
@@ -1643,7 +1679,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
                 output_file = os.path.join(output_path, output_basename+".graphmlz")
                 logger.info("Saving cell tracking graph to %s", output_file)
                 # create empty graph
-                g =  ig.Graph(directed=True)
+                g = ig.Graph(directed=True)
                 # add attributes
                 g.vs['frame'] = []
                 g.vs['mask_id'] = []

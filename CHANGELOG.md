@@ -4,6 +4,8 @@
 
 ### Changed
 
+* Cell tracking module: add option to select missing vertices in the graph (when showing results in napari).
+
 ### Removed
 
 ### Fixed
