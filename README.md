@@ -67,7 +67,7 @@ Open [doc/site/index.html](doc/site/index.html) from the downloaded VLabApp fold
 ## Citation
 
 If you use VLabApp in your research, please cite the VLabApp paper:
-> J. Dorier, A. Raverra and A. Vjestica. In preparation
+> J. Dorier, A. Ravera and A. Vjestica. In preparation
 
 If you use the registration module with [stackreg](https://bigwww.epfl.ch/thevenaz/stackreg/), please cite the following [publication](https://doi.org/10.1109/83.650848):
 > P. Thevenaz, U. E. Ruttimann and M. Unser (1998). A pyramid approach to subpixel registration based on intensity. IEEE Transactions on Image Processing, 7(1), 27–41.
