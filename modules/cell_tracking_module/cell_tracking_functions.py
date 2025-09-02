@@ -264,18 +264,75 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
         indYX = tuple(indYX)
         return mask[indYX]
 
+    graph2 = graph.copy()
+    graph2.vs['missing'] = False
+
+    # Add missing vertices (i.e. split edges spanning more than 1 frame)
+    es_missing = graph2.es.select(lambda edge: edge['frame_target']-edge['frame_source'] > 1)
+    if len(es_missing) > 0:
+        edges_toremove = []
+        edges_new_source = []
+        edges_new_target = []
+        edges_new_overlap_fraction_source = []
+        edges_new_overlap_fraction_target = []
+        vertices_new_mask_id = []
+        vertices_new_frame = []
+        for edge in es_missing:
+            vsource = graph2.vs[edge.source]
+            vtarget = graph2.vs[edge.target]
+            if vsource['mask_id'] == vtarget['mask_id']:
+                mask_id = vsource['mask_id']
+            elif vsource.outdegree() == 1:
+                mask_id = vsource['mask_id']
+            elif vtarget.indegree() == 1:
+                mask_id = vtarget['mask_id']
+            else:
+                forbidden_mask_ids = {v['mask_id'] for v in vsource.neighbors(mode='out') if v['mask_id'] != vtarget['mask_id']}
+                forbidden_mask_ids = forbidden_mask_ids.union({v['mask_id'] for v in vtarget.neighbors(mode='in') if v['mask_id'] != vsource['mask_id']})
+                if vsource['mask_id'] not in forbidden_mask_ids:
+                    mask_id = vsource['mask_id']
+                elif vtarget['mask_id'] not in forbidden_mask_ids:
+                    mask_id = vtarget['mask_id']
+                else:
+                    continue
+            edges_toremove.append(edge)
+            for frame in range(vsource['frame'], vtarget['frame']):
+                if frame == vsource['frame']:
+                    vertices_new_mask_id.append(mask_id)
+                    vertices_new_frame.append(frame+1)
+                    edges_new_source.append(edge.source)
+                    edges_new_target.append(graph2.vcount() + len(vertices_new_mask_id) - 1)
+                elif frame < vtarget['frame'] - 1:
+                    vertices_new_mask_id.append(mask_id)
+                    vertices_new_frame.append(frame+1)
+                    edges_new_source.append(graph2.vcount() + len(vertices_new_mask_id) - 2)
+                    edges_new_target.append(graph2.vcount() + len(vertices_new_mask_id) - 1)
+                else:
+                    edges_new_source.append(graph2.vcount() + len(vertices_new_mask_id) - 1)
+                    edges_new_target.append(edge.target)
+                edges_new_overlap_fraction_source.append(edge['overlap_fraction_source'])
+                edges_new_overlap_fraction_target.append(edge['overlap_fraction_target'])
+        graph2.delete_edges(edges_toremove)
+        graph2.add_vertices(len(vertices_new_mask_id),
+                            {"frame": vertices_new_frame,
+                             "mask_id": vertices_new_mask_id,
+                             "missing": np.repeat(True, len(vertices_new_mask_id))})
+        graph2.add_edges(zip(edges_new_source, edges_new_target),
+                         {"overlap_fraction_source": edges_new_overlap_fraction_source,
+                          "overlap_fraction_target": edges_new_overlap_fraction_target})
+
     layout_per_component = True
     if layout_per_component:
         # Layout_sugiyama doesn't always properly split connectected components
         # This is an attempt to overcome this problem
         # A better option would probably be to use the algorithm used by graphviz (dot) or graphviz
-        components = graph.connected_components(mode='weak')
-        layout = [[0.0, 0.0] for v in graph.vs]
+        components = graph2.connected_components(mode='weak')
+        layout = [[0.0, 0.0] for v in graph2.vs]
         lastx = 0
         for cmp in components:
-            g2 = graph.subgraph(cmp)
+            g2 = graph2.subgraph(cmp)
             layout_tmp = g2.layout_sugiyama(
-                layers=[f+min(graph.vs['frame']) for f in g2.vs['frame']], maxiter=1000)
+                layers=[f+min(graph2.vs['frame']) for f in g2.vs['frame']], maxiter=1000)
             # Shift x coord by lastx
             minx = min(x for x, y in layout_tmp.coords)
             maxx = max(x for x, y in layout_tmp.coords)
@@ -285,8 +342,8 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
             lastx = lastx-minx+maxx+1  # max([x+lastx for x,y in layout_tmp.coords]) + 1
     else:
         # Simple layout_sugiyama
-        layout = graph.layout_sugiyama(
-            layers=[f+min(graph.vs['frame']) for f in graph.vs['frame']], maxiter=1000)
+        layout = graph2.layout_sugiyama(
+            layers=[f+min(graph2.vs['frame']) for f in graph2.vs['frame']], maxiter=1000)
 
     vertex_size = 0.4
     edge_w_min = 0.01
@@ -301,10 +358,10 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
 
     # Note: (x,y) to reverse horizontal order (left to right)
     edges_coords = [[[layout[e.source][0], layout[e.source][1]], [
-        layout[e.target][0], layout[e.target][1]]] for e in graph.es]
+        layout[e.target][0], layout[e.target][1]]] for e in graph2.es]
     edges_layer.add(edges_coords,
-                    edge_width=np.minimum(graph.es['overlap_fraction_target'],
-                                          graph.es['overlap_fraction_source']) * (edge_w_max - edge_w_min) + edge_w_min,
+                    edge_width=np.minimum(graph2.es['overlap_fraction_target'],
+                                          graph2.es['overlap_fraction_source']) * (edge_w_max - edge_w_min) + edge_w_min,
                     edge_color="lightgrey",
                     shape_type='line')
     edges_layer.editable = False
@@ -323,54 +380,21 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
         vertices_layer.data = []
         vertices_layer_isnew = False
 
-    if graph.vcount() > 0:
-        vertices_layer.add(np.array(layout[:graph.vcount()]))
+    if graph2.vcount() > 0:
+        vertices_layer.add(np.array(layout[:graph2.vcount()]))
         vertices_layer.border_width_is_relative = True
         vertices_layer.border_width = 0.0
         vertices_layer.symbol = 'square'
         vertices_layer.size = vertex_size
-        vertices_layer.face_color = colors[graph.vs['mask_id']]
-        vertices_layer.properties = {'frame': graph.vs['frame'],
-                                     'mask_id': graph.vs['mask_id'],
-                                     'selected': np.repeat(False, graph.vcount())}
+        vertices_layer.face_color = colors[graph2.vs['mask_id']]
+        vertices_layer.face_color[graph2.vs['missing']] = 0
+        vertices_layer.properties = {'frame': graph2.vs['frame'],
+                                     'mask_id': graph2.vs['mask_id'],
+                                     'selected': np.repeat(False, graph2.vcount())}
 
-    # Add missing vertices (on edges spanning more than 1 frame)
-    es_missing = graph.es.select(lambda edge: edge['frame_target']-edge['frame_source'] > 1)
-    if len(es_missing) > 0:
-        missing_x = []
-        missing_y = []
-        missing_frame = []
-        missing_mask_id = []
-        for edge in es_missing:
-            vsource = graph.vs[edge.source]
-            vtarget = graph.vs[edge.target]
-            if vsource['mask_id'] == vtarget['mask_id']:
-                mask_id = vsource['mask_id']
-            elif vsource.outdegree() == 1:
-                mask_id = vsource['mask_id']
-            elif vtarget.outdegree() == 1:
-                mask_id = vtarget['mask_id']
-            else:
-                mask_id = vsource['mask_id']
-            frame_source = vsource['frame']
-            frame_target = vtarget['frame']
-            for frame in range(vsource['frame']+1, frame_target):
-                missing_y.append(layout[edge.source][0] + (layout[edge.target][0] - layout[edge.source][0]) * (frame - frame_source) / (frame_target - frame_source))
-                missing_x.append(layout[edge.source][1] + (layout[edge.target][1] - layout[edge.source][1]) * (frame - frame_source) / (frame_target - frame_source))
-                missing_frame.append(frame)
-                missing_mask_id.append(mask_id)
-        vertices_layer.add(np.column_stack((missing_y, missing_x)))
-        vertices_layer.border_width_is_relative = True
-        vertices_layer.border_width[-len(missing_x):] = 0.0
-        vertices_layer.symbol[-len(missing_x):] = 'square'
-        vertices_layer.size[-len(missing_x):] = vertex_size
-        vertices_layer.face_color[-len(missing_x):] = [0, 0, 0, 0]
-        vertices_layer.properties['frame'][-len(missing_x):] = missing_frame
-        vertices_layer.properties['mask_id'][-len(missing_x):] = missing_mask_id
-        vertices_layer.properties['selected'][-len(missing_x):] = np.repeat(False, len(missing_x))
-        vertices_layer.refresh()
     vertices_layer.selected_data = set()
     vertices_layer.editable = False
+    vertices_layer.refresh()
 
     # Note: it would be probably better to use the already existing option to select points in the Points layer instead of using an additional 'selected' property.
     # However I couldn't manage to allow selecting points without allowing to move, add or delete points (moving, adding, deleting points should not be allowed as it would cause trouble later).
@@ -493,8 +517,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                                 viewer_graph.layers['Vertices'].properties['selected'][
                                     viewer_graph.layers['Vertices'].properties['selected']] = False
                         # change style
-                        viewer_graph.layers['Vertices'].border_color[viewer_graph.layers['Vertices'].properties['selected']] = [
-                            1.0, 1.0, 1.0, 1.0]  # white
+                        viewer_graph.layers['Vertices'].border_color[viewer_graph.layers['Vertices'].properties['selected']] = [1.0, 1.0, 1.0, 1.0]  # white
                         viewer_graph.layers['Vertices'].border_width[~viewer_graph.layers['Vertices'].properties['selected']] = 0
                         viewer_graph.layers['Vertices'].border_width[viewer_graph.layers['Vertices'].properties['selected']] = 0.4
                         viewer_graph.layers['Vertices'].refresh()

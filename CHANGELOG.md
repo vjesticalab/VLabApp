@@ -8,6 +8,8 @@
 
 ### Fixed
 
+* Cell tracking module: fix option to select missing vertices in the graph (when showing results in napari).
+
 
 
 
