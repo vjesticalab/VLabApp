@@ -294,7 +294,7 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
                 elif vtarget['mask_id'] not in forbidden_mask_ids:
                     mask_id = vtarget['mask_id']
                 else:
-                    continue
+                    mask_id = 0
             edges_toremove.append(edge)
             for frame in range(vsource['frame'], vtarget['frame']):
                 if frame == vsource['frame']:
@@ -381,16 +381,18 @@ def plot_cell_tracking_graph(viewer_graph, viewer_images, mask_layer, graph, col
         vertices_layer_isnew = False
 
     if graph2.vcount() > 0:
-        vertices_layer.add(np.array(layout[:graph2.vcount()]))
+        # add only vertices with mask_id == 0
+        vs = graph2.vs.select(mask_id_gt=0)
+        vertices_layer.add(np.array([layout[v.index] for v in vs]))
         vertices_layer.border_width_is_relative = True
         vertices_layer.border_width = 0.0
         vertices_layer.symbol = 'square'
         vertices_layer.size = vertex_size
-        vertices_layer.face_color = colors[graph2.vs['mask_id']]
-        vertices_layer.face_color[graph2.vs['missing']] = 0
-        vertices_layer.properties = {'frame': graph2.vs['frame'],
-                                     'mask_id': graph2.vs['mask_id'],
-                                     'selected': np.repeat(False, graph2.vcount())}
+        vertices_layer.face_color = colors[vs['mask_id']]
+        vertices_layer.face_color[vs['missing']] = 0
+        vertices_layer.properties = {'frame': vs['frame'],
+                                     'mask_id': vs['mask_id'],
+                                     'selected': np.repeat(False, len(vs))}
 
     vertices_layer.selected_data = set()
     vertices_layer.editable = False
