@@ -38,7 +38,7 @@ from skimage import __version__ as skimage_version
 from scipy import __version__ as scipy_version
 from roifile import __version__ as roifile_version
 from ome_types import __version__ as ometypes_version
-from aicsimageio import __version__ as aicsimageio_version
+from bioio import __version__ as bioio_version
 from imageio import __version__ as imageio_version
 from imageio_ffmpeg import __version__ as imageioffmpeg_version
 from tifffile import __version__ as tifffile_version
@@ -86,7 +86,7 @@ class AboutVLabApp(QWidget):
                       '<b>VLabApp:</b> ' + vlabapp_version + '<br>' +
                       '<b>platform:</b> ' + platform() + '<br>' +
                       '<b>python:</b> ' + python_version() + '<br>' +
-                      '<b>aicsimageio:</b> ' + aicsimageio_version + '<br>' +
+                      '<b>bioio:</b> ' + bioio_version + '<br>' +
                       '<b>cellpose:</b> ' + cellpose_version + '<br>' +
                       '<b>igraph:</b> ' + igraph_version + '<br>' +
                       '<b>imageio:</b> ' + imageio_version + '<br>' +

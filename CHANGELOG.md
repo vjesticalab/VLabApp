@@ -4,6 +4,8 @@
 
 ### Changed
 
+* Replace aicsimageio by bioio.
+
 ### Removed
 
 ### Fixed

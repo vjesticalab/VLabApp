@@ -7,8 +7,8 @@ import tifffile
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLabel, QPushButton, QSpinBox, QScrollArea, QGroupBox, QMessageBox, QRadioButton, QComboBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
-from aicsimageio.writers import OmeTiffWriter
-from aicsimageio.types import PhysicalPixelSizes
+from bioio.writers import OmeTiffWriter
+from bioio import PhysicalPixelSizes
 from ome_types.model import CommentAnnotation
 from platform import python_version, platform
 from version import __version__ as vlabapp_version

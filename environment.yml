@@ -2,9 +2,9 @@ name: venv_VLabApp
 channels:
     - conda-forge
 dependencies:
-    - aicsimageio==4.14.0
     - cellpose==3.1.0
-    - imageio[ffmpeg]==2.27.0
+    - imageio==2.27.0
+    - imageio-ffmpeg==0.6.0
     - matplotlib-base==3.10.1
     - micro_sam==1.6.1
     - napari==0.5.5
@@ -24,3 +24,8 @@ dependencies:
     - scipy==1.15.2
     - tifffile==2022.4.8
     - torchvision==0.21.0
+    - pip
+    - pip:
+      - bioio==3.0.0
+      - bioio-base==3.0.0
+      - bioio-ome-tiff==1.4.0

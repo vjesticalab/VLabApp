@@ -11,8 +11,8 @@ from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QWidget, QPus
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor, QKeySequence
 from general import general_functions as gf
-from aicsimageio.writers import OmeTiffWriter
-from aicsimageio.types import PhysicalPixelSizes
+from bioio.writers import OmeTiffWriter
+from bioio import PhysicalPixelSizes
 from ome_types.model import CommentAnnotation
 from version import __version__ as vlabapp_version
 
