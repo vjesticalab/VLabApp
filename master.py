@@ -6,7 +6,7 @@ import logging
 import importlib
 import multiprocessing as mp
 from functools import partial
-from PyQt5.QtCore import Qt, QSize, QTimer
+from PyQt5.QtCore import Qt, QSize, QTimer, QUrl
 from PyQt5.QtGui import QPixmap, QIcon, QFontMetrics, QKeySequence
 from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QTreeWidget, QAbstractItemView, QSplitter, QStackedWidget, QTreeWidgetItem, QTreeWidgetItemIterator, QShortcut
 
@@ -66,7 +66,7 @@ class AboutVLabApp(QWidget):
         label.setOpenExternalLinks(True)
         label.setText('<h2>VLabApp</h2>' +
                       'Home page:<br><a href="https://github.com/vjesticalab/VLabApp">https://github.com/vjesticalab/VLabApp</a><br><br>' +
-                      'Documentation:<br><a href="' + os.path.join(os.path.dirname(__file__), 'doc', 'site', 'index.html') + '">' + os.path.normpath(os.path.join(os.path.dirname(__file__), 'doc', 'site', 'index.html')) + '</a>' +
+                      'Documentation:<br><a href="' + QUrl.fromUserInput(os.path.join(os.path.dirname(__file__), 'doc', 'site', 'index.html')).toString() + '">' + os.path.normpath(os.path.join(os.path.dirname(__file__), 'doc', 'site', 'index.html')) + '</a>' +
                       '<h3>Citation</h3>' +
                       'If you use VLabApp in your research, please cite the VLabApp paper:' +
                       '<blockquote>J. Dorier, A. Ravera and A. Vjestica. In preparation</blockquote>' +
