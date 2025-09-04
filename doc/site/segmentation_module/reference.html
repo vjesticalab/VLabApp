@@ -978,7 +978,7 @@
 
 
 <h1 id="segmentation-module">Segmentation module</h1>
-<p>The segmentation module use <a href="https://www.cellpose.org/">Cellpose</a> v3 [1-3] or <a href="https://github.com/computational-cell-analytics/micro-sam">Segment Anything for Microscopy</a> [4] (if installed) to perform cell segmentation and generate a segmentation mask.</p>
+<p>The segmentation module use <a href="https://www.cellpose.org/">Cellpose</a> v3 [1-3] to perform cell segmentation and generate a segmentation mask.</p>
 <h2 id="input-files">Input files</h2>
 <p>A list of multi-dimensional images with at least <code>X</code> and <code>Y</code> axes, and optionally <code>C</code>, <code>Z</code> and <code>T</code> axes (see <a href="../general/files.html#images-and-masks">File formats - images and masks</a> for more information).</p>
 <p>To populate the list, use the <kbd>Add file</kbd>, <kbd>Add folder</kbd> and <kbd>Remove selected</kbd> buttons to add images, folder (all images inside the folder) or remove images from the list. Alternatively, images and folder can be dragged and dropped from an external file manager.</p>
@@ -999,17 +999,13 @@ additional <code>_vSM</code> suffix, optionally followed by a user defined suffi
 (containing only <code>a-z</code>, <code>A-Z</code>, <code>0-9</code> and <code>-</code> characters). The
 resulting output filenames are shown below the suffix.</dd>
 <dt>Segmentation method</dt>
-<dd>The segmentation method to use, either <code>Cellpose</code> (<a href="https://www.cellpose.org/">https://www.cellpose.org/</a>) or <code>Segment Anything for Microscopy</code> (<a href="https://github.com/computational-cell-analytics/micro-sam">https://github.com/computational-cell-analytics/micro-sam</a>, if installed).</dd>
+<dd>The segmentation method to use. Currently only <code>Cellpose</code> (<a href="https://www.cellpose.org/">https://www.cellpose.org/</a>).</dd>
 <dt>Model type</dt>
 <dd>
 <p>For Cellpose:</p>
 <ul>
 <li><code>User trained model</code>: a user trained model can be obtained by finetuning a pretrained Cellpose model on a collection of annotated images similar to the input images (see section "Training" in Cellpose documentation <a href="https://cellpose.readthedocs.io/en/v3.1.1.1/">https://cellpose.readthedocs.io/en/v3.1.1.1/</a>). Note that the <a href="../ground_truth_generator_module/reference.html">Ground truth generator</a> module can be used to generate a collection of annotated images (training set) for Cellpose.</li>
 <li>Built-in models: use one of the Cellpose built-in models (<code>cyto</code>, <code>cyto2</code>, <code>cyto3</code>, <code>nuclei</code>, <code>tissuenet_cp3</code>, <code>livecell_cp3</code>, <code>yeast_PhC_cp3</code>, <code>yeast_BF_cp3</code>, <code>bact_phase_cp3</code>, <code>bact_fluor_cp3</code>, <code>deepbacs_cp3</code> and <code>cyto2_cp3</code>).</li>
-</ul>
-<p>For Segment Anything for Microscopy:</p>
-<ul>
-<li>Segment Anything models <code>vit_h</code>, <code>vit_l</code>, <code>vit_b</code>, or Segment Anything for Microscopy models <code>vit_l_lm</code>, <code>vit_b_lm</code>, <code>vit_l_em_organelles</code> and <code>vit_b_em_organelles</code>. For more information, see section "Finetuned Models" in Segment Anything for Microscopy documentation <a href="https://computational-cell-analytics.github.io/micro-sam/micro_sam.html">https://computational-cell-analytics.github.io/micro-sam/micro_sam.html</a>.</li>
 </ul>
 </dd>
 <dt>Model</dt>
@@ -1056,7 +1052,6 @@ smp01_BF_vSM.log
 <p>[1] C. Stringer, T. Wang, M. Michaelos and M. Pachitariu (2021). Cellpose: a generalist algorithm for cellular segmentation. Nature Methods 18, 100–106.</p>
 <p>[2] M. Pachitariu and C. Stringer (2022). Cellpose 2.0: how to train your own model. Nature Methods 19, 1634–1641.</p>
 <p>[3] C. Stringer and M. Pachitariu (2025). Cellpose3: one-click image restoration for improved cellular segmentation. Nature Methods 22, 592-599.</p>
-<p>[4] A. Archit, L. Freckmann, S. Nair et al. (2025). Segment Anything for Microscopy. Nature Methods 22, 579-591.</p>
 
 
 

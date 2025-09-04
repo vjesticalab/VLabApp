@@ -935,18 +935,48 @@
 </li>
 <li>
 <p><strong>Create a new conda environment</strong></p>
-<p>Run the following command to create a new environment using the provided <code>environment.yml</code> file</p>
-<p><code>conda env create --name venv_VLabApp  --file environment.yml</code></p>
+<p>If an older <code>venv_VLabApp</code> environment exists, remove it with <code>conda env remove --name venv_VLabApp</code>.</p>
+<p>Run the following command to create a new environment</p>
+<pre><code>conda create --name venv_VLabApp python=3.11.11
+</code></pre>
 </li>
 <li>
 <p><strong>Activate the environment</strong></p>
 <p>After the environment is created, activate it</p>
-<p><code>conda activate venv_VLabApp</code></p>
+<pre><code>conda activate venv_VLabApp
+</code></pre>
+</li>
+<li>
+<p><strong>Install dependencies</strong></p>
+<p>Use <code>pip</code> to install dependencies listed in the <code>requirements.txt</code> file</p>
+<pre><code>pip install -r requirements.txt
+</code></pre>
+<p><strong>Windows: CUDA support</strong></p>
+<p>To enable GPU acceleration on Windows with an NVIDIA GPU, a CUDA-enabled build of PyTorch must be installed. Use one of the following commands instead, selecting the CUDA version suited to your system:</p>
+<ul>
+<li>
+<p>For CUDA 12.9:</p>
+<pre><code>pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu129
+</code></pre>
+</li>
+<li>
+<p>For CUDA 12.8:</p>
+<pre><code>pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu128
+</code></pre>
+</li>
+<li>
+<p>For CUDA 12.6:</p>
+<pre><code>pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu126
+</code></pre>
+</li>
+</ul>
+<p>More information is available in the official <a href="https://pytorch.org">PyTorch</a> documentation <a href="https://pytorch.org/get-started/locally/">https://pytorch.org/get-started/locally/</a></p>
 </li>
 <li>
 <p><strong>Start the application</strong></p>
 <p>In the <code>venv_VLabApp</code> environment, start the application with</p>
-<p><code>python master.py</code></p>
+<pre><code>python master.py
+</code></pre>
 </li>
 </ol>
 <h2 id="on-linux">On Linux</h2>
