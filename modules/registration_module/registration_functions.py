@@ -6,8 +6,8 @@ import os
 from pystackreg import StackReg
 from pystackreg import __version__ as StackReg_version
 import cv2 as cv
-from aicsimageio.writers import OmeTiffWriter
-from aicsimageio.types import PhysicalPixelSizes
+from bioio.writers import OmeTiffWriter
+from bioio import PhysicalPixelSizes
 from ome_types.model import CommentAnnotation
 from skimage.measure import ransac
 from skimage.transform import ProjectiveTransform

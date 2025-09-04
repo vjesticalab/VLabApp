@@ -4,7 +4,7 @@ import tifffile
 import nd2
 import re
 import webbrowser
-from aicsimageio.readers import OmeTiffReader
+from bioio import BioImage
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl, QRegularExpression
 from PyQt5.QtGui import QBrush, QKeySequence, QPainter, QFontMetrics, QTextDocument, QColor, QRegularExpressionValidator
 from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QLineEdit, QScrollArea, QListWidget, QMessageBox, QTableWidget, QHeaderView, QTableWidgetItem, QAbstractItemView, QPushButton, QFileDialog, QListWidgetItem, QDialog, QShortcut, QRadioButton, QSpinBox, QComboBox, QGroupBox
@@ -1488,7 +1488,7 @@ class Image:
             self.physical_pixel_sizes = (reader.voxel_size(channel=0).x, reader.voxel_size(channel=0).y, reader.voxel_size(channel=0).z)
             reader.close()
         elif self.extension in ['.ome.tif', '.ome.tiff']:
-            reader = OmeTiffReader(self.path)
+            reader = BioImage(self.path)
             axes_order = reader.dims.order.upper()
             shape = reader.shape
             self.dtype = reader.dtype
@@ -1548,7 +1548,7 @@ class Image:
             image = reader.asarray()  # nd2.imread(self.path)
             reader.close()
         elif self.extension in ['.ome.tif', '.ome.tiff']:
-            reader = OmeTiffReader(self.path)
+            reader = BioImage(self.path)
             axes_order = reader.dims.order.upper()
             image = reader.data
         elif self.extension in ['.tif', '.tiff']:

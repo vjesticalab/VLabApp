@@ -1,6 +1,6 @@
 # Segmentation module
 
-The segmentation module use [Cellpose](https://www.cellpose.org/) v3 [1-3] or [Segment Anything for Microscopy](https://github.com/computational-cell-analytics/micro-sam) [4] (if installed) to perform cell segmentation and generate a segmentation mask.
+The segmentation module use [Cellpose](https://www.cellpose.org/) v3 [1-3] to perform cell segmentation and generate a segmentation mask.
 
 
 ## Input files
@@ -30,7 +30,7 @@ additional `_vSM` suffix, optionally followed by a user defined suffix
 resulting output filenames are shown below the suffix.
 
 Segmentation method
-: The segmentation method to use, either `Cellpose` (<https://www.cellpose.org/>) or `Segment Anything for Microscopy` (<https://github.com/computational-cell-analytics/micro-sam>, if installed).
+: The segmentation method to use. Currently only `Cellpose` (<https://www.cellpose.org/>).
 
 Model type
 : For Cellpose:
@@ -38,10 +38,6 @@ Model type
     * `User trained model`: a user trained model can be obtained by finetuning a pretrained Cellpose model on a collection of annotated images similar to the input images (see section "Training" in Cellpose documentation <https://cellpose.readthedocs.io/en/v3.1.1.1/>). Note that the [Ground truth generator](../ground_truth_generator_module/reference.md) module can be used to generate a collection of annotated images (training set) for Cellpose.
     * Built-in models: use one of the Cellpose built-in models (`cyto`, `cyto2`, `cyto3`, `nuclei`, `tissuenet_cp3`, `livecell_cp3`, `yeast_PhC_cp3`, `yeast_BF_cp3`, `bact_phase_cp3`, `bact_fluor_cp3`, `deepbacs_cp3` and `cyto2_cp3`).
     
-    For Segment Anything for Microscopy:
-    
-    * Segment Anything models `vit_h`, `vit_l`, `vit_b`, or Segment Anything for Microscopy models `vit_l_lm`, `vit_b_lm`, `vit_l_em_organelles` and `vit_b_em_organelles`. For more information, see section "Finetuned Models" in Segment Anything for Microscopy documentation <https://computational-cell-analytics.github.io/micro-sam/micro_sam.html>.
-
 Model
 : path to the Cellpose user trained model. To select a model, either paste the path into the text box, click on the <kbd>Browse</kbd> button, or drag and drop a file from an external file manager. This parameter is available only for Cellpose user trained models.
 
@@ -102,7 +98,5 @@ smp01_BF_vSM.log
 [2] M. Pachitariu and C. Stringer (2022). Cellpose 2.0: how to train your own model. Nature Methods 19, 1634–1641.
 
 [3] C. Stringer and M. Pachitariu (2025). Cellpose3: one-click image restoration for improved cellular segmentation. Nature Methods 22, 592-599.
-
-[4] A. Archit, L. Freckmann, S. Nair et al. (2025). Segment Anything for Microscopy. Nature Methods 22, 579-591.
 
 

@@ -39,10 +39,12 @@ The application is divided into several modules that can be used consecutively a
 
 3. **Create a new conda environment**
 
-    Run the following command to create a new environment using the provided `environment.yml` file
+    If an older `venv_VLabApp` environment exists, remove it with `conda env remove --name venv_VLabApp`.
+    
+    Run the following command to create a new environment
     
     ```
-    conda env create --name venv_VLabApp  --file environment.yml
+    conda create --name venv_VLabApp python=3.11.11
     ```
 
 4. **Activate the environment**
@@ -53,7 +55,39 @@ The application is divided into several modules that can be used consecutively a
     conda activate venv_VLabApp
     ```
 
-5. **Start the application**
+5. **Install dependencies**
+
+    Use `pip` to install dependencies listed in the `requirements.txt` file
+    
+    ```
+    pip install -r requirements.txt
+    ```
+
+    **Windows: CUDA support**
+   
+    To enable GPU acceleration on Windows with an NVIDIA GPU, a CUDA-enabled build of PyTorch must be installed. Use one of the following commands instead, selecting the CUDA version suited to your system:
+    
+    * For CUDA 12.9:
+        
+        ```
+        pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu129
+        ```
+    
+    * For CUDA 12.8:
+        
+        ```
+        pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu128
+        ```
+    
+    * For CUDA 12.6:
+        
+        ```
+        pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu126
+        ```
+    
+    More information is available in the official [PyTorch](https://pytorch.org) documentation <https://pytorch.org/get-started/locally/>
+
+6. **Start the application**
 
     In the `venv_VLabApp` environment, start the application with
     
@@ -80,12 +114,6 @@ If you fine-tune a Cellpose model, please cite the Cellpose 2.0 [publication](ht
 
 If you use the segmentation module with the `cyto3` Cellpose model, please cite the Cellpose 3.0 [publication](https://doi.org/10.1038/s41592-025-02595-5):
 > C. Stringer and M. Pachitariu (2025). Cellpose3: one-click image restoration for improved cellular segmentation. Nature Methods 22, 592-599.
-
-If you use the segmentation module with  [Segment Anything for Microscopy](https://github.com/computational-cell-analytics/micro-sam), please cite the Segment Anything for Microscopy [publication](https://doi.org/10.1038/s41592-024-02580-4):
-> A. Archit, L. Freckmann, S. Nair et al. (2025). Segment Anything for Microscopy. Nature Methods 22, 579-591.
-
-as well as the original [Segment Anything](https://segment-anything.com/) [publication](https://doi.org/10.48550/arXiv.2304.02643)
-> A. Kirillov, E. Mintun, N. Ravi et al. (2023). Segment Anything. http://arxiv.org/abs/2304.02643
 
 
 ### Other tools and libraries used in this project
@@ -117,11 +145,6 @@ as well as the original [Segment Anything](https://segment-anything.com/) [publi
 * [scipy](https://scipy.org/)
 
   > P. Virtanen, R. Gommers, T.E. Oliphant et al. (2020). SciPy 1.0: Fundamental Algorithms for Scientific Computing in Python. Nature Methods, 17, 261–272.
-
-
-## License
-
-Distributed under the ... License. See `support_files/LICENSE.txt` for more information.
 
 
 ## Credits

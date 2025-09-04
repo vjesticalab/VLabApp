@@ -6,8 +6,8 @@ import numpy as np
 import napari
 import re
 from general import general_functions as gf
-from aicsimageio.writers import OmeTiffWriter
-from aicsimageio.types import PhysicalPixelSizes
+from bioio.writers import OmeTiffWriter
+from bioio import PhysicalPixelSizes
 from ome_types.model import CommentAnnotation
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QGroupBox, QLabel, QSpinBox, QPushButton, QScrollArea, QMessageBox, QFileDialog
 from PyQt5.QtCore import Qt

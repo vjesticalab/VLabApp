@@ -4,8 +4,8 @@ from platform import python_version, platform
 from numpy import __version__ as np_version
 from cv2 import __version__ as cv_version
 from general import general_functions as gf
-from aicsimageio.writers import OmeTiffWriter
-from aicsimageio.types import PhysicalPixelSizes
+from bioio.writers import OmeTiffWriter
+from bioio import PhysicalPixelSizes
 from ome_types.model import CommentAnnotation
 from version import __version__ as vlabapp_version
 

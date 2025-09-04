@@ -6,7 +6,7 @@ import logging
 import importlib
 import multiprocessing as mp
 from functools import partial
-from PyQt5.QtCore import Qt, QSize, QTimer
+from PyQt5.QtCore import Qt, QSize, QTimer, QUrl
 from PyQt5.QtGui import QPixmap, QIcon, QFontMetrics, QKeySequence
 from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QTreeWidget, QAbstractItemView, QSplitter, QStackedWidget, QTreeWidgetItem, QTreeWidgetItemIterator, QShortcut
 
@@ -38,7 +38,7 @@ from skimage import __version__ as skimage_version
 from scipy import __version__ as scipy_version
 from roifile import __version__ as roifile_version
 from ome_types import __version__ as ometypes_version
-from aicsimageio import __version__ as aicsimageio_version
+from bioio import __version__ as bioio_version
 from imageio import __version__ as imageio_version
 from imageio_ffmpeg import __version__ as imageioffmpeg_version
 from tifffile import __version__ as tifffile_version
@@ -66,7 +66,7 @@ class AboutVLabApp(QWidget):
         label.setOpenExternalLinks(True)
         label.setText('<h2>VLabApp</h2>' +
                       'Home page:<br><a href="https://github.com/vjesticalab/VLabApp">https://github.com/vjesticalab/VLabApp</a><br><br>' +
-                      'Documentation:<br><a href="' + os.path.join(os.path.dirname(__file__), 'doc', 'site', 'index.html') + '">' + os.path.normpath(os.path.join(os.path.dirname(__file__), 'doc', 'site', 'index.html')) + '</a>' +
+                      'Documentation:<br><a href="' + QUrl.fromUserInput(os.path.join(os.path.dirname(__file__), 'doc', 'site', 'index.html')).toString() + '">' + os.path.normpath(os.path.join(os.path.dirname(__file__), 'doc', 'site', 'index.html')) + '</a>' +
                       '<h3>Citation</h3>' +
                       'If you use VLabApp in your research, please cite the VLabApp paper:' +
                       '<blockquote>J. Dorier, A. Ravera and A. Vjestica. In preparation</blockquote>' +
@@ -78,15 +78,15 @@ class AboutVLabApp(QWidget):
                       '<blockquote>M. Pachitariu and C. Stringer (2022). Cellpose 2.0: how to train your own model. Nature Methods 19, 1634–1641.</blockquote>' +
                       'If you use the segmentation module with the `cyto3` Cellpose model, please cite the Cellpose 3.0 <a href="https://doi.org/10.1038/s41592-025-02595-5">publication</a>:' +
                       '<blockquote>C. Stringer and M. Pachitariu (2025). Cellpose3: one-click image restoration for improved cellular segmentation. Nature Methods 22, 592-599.</blockquote>' +
-                      'If you use the segmentation module with  <a href="https://github.com/computational-cell-analytics/micro-sam">Segment Anything for Microscopy</a>, please cite the Segment Anything for Microscopy <a href="https://doi.org/10.1038/s41592-024-02580-4">publication</a>:' +
-                      '<blockquote>A. Archit, L. Freckmann, S. Nair et al. (2025). Segment Anything for Microscopy. Nature Methods 22, 579-591.</blockquote>' +
-                      'as well as the original <a href="https://segment-anything.com/">Segment Anything</a> <a href="https://doi.org/10.48550/arXiv.2304.02643">publication</a>:' +
-                      '<blockquote>A. Kirillov, E. Mintun, N. Ravi et al. (2023). Segment Anything. http://arxiv.org/abs/2304.02643</blockquote>'+
+                      ('If you use the segmentation module with  <a href="https://github.com/computational-cell-analytics/micro-sam">Segment Anything for Microscopy</a>, please cite the Segment Anything for Microscopy <a href="https://doi.org/10.1038/s41592-024-02580-4">publication</a>:' if microsam_available else '' ) +
+                      ('<blockquote>A. Archit, L. Freckmann, S. Nair et al. (2025). Segment Anything for Microscopy. Nature Methods 22, 579-591.</blockquote>' if microsam_available else '' ) +
+                      ('as well as the original <a href="https://segment-anything.com/">Segment Anything</a> <a href="https://doi.org/10.48550/arXiv.2304.02643">publication</a>:' if microsam_available else '' ) +
+                      ('<blockquote>A. Kirillov, E. Mintun, N. Ravi et al. (2023). Segment Anything. http://arxiv.org/abs/2304.02643</blockquote>' if microsam_available else '' ) +
                       '<h3>System information</h3>' +
                       '<b>VLabApp:</b> ' + vlabapp_version + '<br>' +
                       '<b>platform:</b> ' + platform() + '<br>' +
                       '<b>python:</b> ' + python_version() + '<br>' +
-                      '<b>aicsimageio:</b> ' + aicsimageio_version + '<br>' +
+                      '<b>bioio:</b> ' + bioio_version + '<br>' +
                       '<b>cellpose:</b> ' + cellpose_version + '<br>' +
                       '<b>igraph:</b> ' + igraph_version + '<br>' +
                       '<b>imageio:</b> ' + imageio_version + '<br>' +

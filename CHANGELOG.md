@@ -1,3 +1,22 @@
+## [v2.4.3] 2025-09-04
+
+### Changed
+
+* Replace aicsimageio by bioio.
+* Install dependencies using `pip install` with requirements.txt instead of `conda env create` with environment.yml.
+
+### Removed
+
+* Segmentation module: remove option to use Segment Anything for Microscopy.
+
+### Fixed
+
+* Cell tracking module: fix option to select missing vertices in the graph (when showing results in napari).
+* About VLabApp: fix link to documentation on Windows.
+
+
+
+
 ## [v2.4.2] 2025-09-01
 
 ### Changed
