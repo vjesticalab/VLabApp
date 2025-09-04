@@ -147,11 +147,6 @@ If you use the segmentation module with the `cyto3` Cellpose model, please cite 
   > P. Virtanen, R. Gommers, T.E. Oliphant et al. (2020). SciPy 1.0: Fundamental Algorithms for Scientific Computing in Python. Nature Methods, 17, 261–272.
 
 
-## License
-
-Distributed under the ... License. See `support_files/LICENSE.txt` for more information.
-
-
 ## Credits
 
 Julien Dorier - Bioinformatics Competence Center, [University of Lausanne](https://www.unil.ch).
