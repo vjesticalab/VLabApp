@@ -1,6 +1,4 @@
-## [Unreleased]
-
-### Added
+## [v2.4.3] 2025-09-04
 
 ### Changed
 
@@ -15,9 +13,6 @@
 
 * Cell tracking module: fix option to select missing vertices in the graph (when showing results in napari).
 * About VLabApp: fix link to documentation on Windows.
-
-
-
 
 
 
