@@ -5,8 +5,11 @@
 ### Changed
 
 * Replace aicsimageio by bioio.
+* Install dependencies using `pip install` with requirements.txt instead of `conda env create` with environment.yml.
 
 ### Removed
+
+* Segmentation module: remove option to use Segment Anything for Microscopy.
 
 ### Fixed
 

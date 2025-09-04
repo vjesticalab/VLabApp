@@ -78,10 +78,10 @@ class AboutVLabApp(QWidget):
                       '<blockquote>M. Pachitariu and C. Stringer (2022). Cellpose 2.0: how to train your own model. Nature Methods 19, 1634–1641.</blockquote>' +
                       'If you use the segmentation module with the `cyto3` Cellpose model, please cite the Cellpose 3.0 <a href="https://doi.org/10.1038/s41592-025-02595-5">publication</a>:' +
                       '<blockquote>C. Stringer and M. Pachitariu (2025). Cellpose3: one-click image restoration for improved cellular segmentation. Nature Methods 22, 592-599.</blockquote>' +
-                      'If you use the segmentation module with  <a href="https://github.com/computational-cell-analytics/micro-sam">Segment Anything for Microscopy</a>, please cite the Segment Anything for Microscopy <a href="https://doi.org/10.1038/s41592-024-02580-4">publication</a>:' +
-                      '<blockquote>A. Archit, L. Freckmann, S. Nair et al. (2025). Segment Anything for Microscopy. Nature Methods 22, 579-591.</blockquote>' +
-                      'as well as the original <a href="https://segment-anything.com/">Segment Anything</a> <a href="https://doi.org/10.48550/arXiv.2304.02643">publication</a>:' +
-                      '<blockquote>A. Kirillov, E. Mintun, N. Ravi et al. (2023). Segment Anything. http://arxiv.org/abs/2304.02643</blockquote>'+
+                      ('If you use the segmentation module with  <a href="https://github.com/computational-cell-analytics/micro-sam">Segment Anything for Microscopy</a>, please cite the Segment Anything for Microscopy <a href="https://doi.org/10.1038/s41592-024-02580-4">publication</a>:' if microsam_available else '' ) +
+                      ('<blockquote>A. Archit, L. Freckmann, S. Nair et al. (2025). Segment Anything for Microscopy. Nature Methods 22, 579-591.</blockquote>' if microsam_available else '' ) +
+                      ('as well as the original <a href="https://segment-anything.com/">Segment Anything</a> <a href="https://doi.org/10.48550/arXiv.2304.02643">publication</a>:' if microsam_available else '' ) +
+                      ('<blockquote>A. Kirillov, E. Mintun, N. Ravi et al. (2023). Segment Anything. http://arxiv.org/abs/2304.02643</blockquote>' if microsam_available else '' ) +
                       '<h3>System information</h3>' +
                       '<b>VLabApp:</b> ' + vlabapp_version + '<br>' +
                       '<b>platform:</b> ' + platform() + '<br>' +

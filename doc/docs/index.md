@@ -44,12 +44,6 @@ If you fine-tune a Cellpose model, please cite the Cellpose 2.0 [publication](ht
 If you use the segmentation module with the `cyto3` Cellpose model, please cite the Cellpose 3.0 [publication](https://doi.org/10.1038/s41592-025-02595-5):
 > C. Stringer and M. Pachitariu (2025). Cellpose3: one-click image restoration for improved cellular segmentation. Nature Methods 22, 592-599.
 
-If you use the segmentation module with  [Segment Anything for Microscopy](https://github.com/computational-cell-analytics/micro-sam), please cite the Segment Anything for Microscopy [publication](https://doi.org/10.1038/s41592-024-02580-4):
-> A. Archit, L. Freckmann, S. Nair et al. (2025). Segment Anything for Microscopy. Nature Methods 22, 579-591.
-
-as well as the original [Segment Anything](https://segment-anything.com/) [publication](https://doi.org/10.48550/arXiv.2304.02643)
-> A. Kirillov, E. Mintun, N. Ravi et al. (2023). Segment Anything. http://arxiv.org/abs/2304.02643
-
 
 ### Other tools and libraries used in this project
 

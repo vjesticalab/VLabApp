@@ -10,27 +10,47 @@
 
 3. **Create a new conda environment**
 
-    Run the following command to create a new environment using the provided `environment.yml` file
+    If an older `venv_VLabApp` environment exists, remove it with `conda env remove --name venv_VLabApp`.
     
-    ```
-    conda env create --name venv_VLabApp  --file environment.yml
-    ```
+    Run the following command to create a new environment
+    
+        conda create --name venv_VLabApp python=3.11.11
 
 4. **Activate the environment**
 
     After the environment is created, activate it
     
-    ```
-    conda activate venv_VLabApp
-    ```
+        conda activate venv_VLabApp
 
-5. **Start the application**
+5. **Install dependencies**
+
+    Use `pip` to install dependencies listed in the `requirements.txt` file
+    
+        pip install -r requirements.txt
+
+    **Windows: CUDA support**
+   
+    To enable GPU acceleration on Windows with an NVIDIA GPU, a CUDA-enabled build of PyTorch must be installed. Use one of the following commands instead, selecting the CUDA version suited to your system:
+    
+    * For CUDA 12.9:
+        
+            pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu129
+    
+    * For CUDA 12.8:
+        
+            pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu128
+    
+    * For CUDA 12.6:
+        
+            pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu126
+    
+    More information is available in the official [PyTorch](https://pytorch.org) documentation <https://pytorch.org/get-started/locally/>
+
+6. **Start the application**
 
     In the `venv_VLabApp` environment, start the application with
     
-    ```
-    python master.py
-    ```
+        python master.py
 
 
 
