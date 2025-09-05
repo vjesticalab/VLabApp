@@ -742,6 +742,11 @@ def registration_with_tmat(tmat, image, skip_crop, output_path, output_basename,
             ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
         OmeTiffWriter.save(image_cropped[0, :, :, :, :, :], registeredFilepath, ome_xml=ome_metadata)
 
+    # create logfile
+    logfile = os.path.join(output_path, output_basename+".log")
+    with open(logfile, 'w') as f:
+        f.write(buffered_handler.get_messages())
+
 
 def registration_values(image, projection_type, projection_zrange, channel_position, output_path, output_basename, registration_method, metadata, timepoint_range=None):
     """
@@ -876,6 +881,11 @@ def registration_values(image, projection_type, projection_zrange, channel_posit
         header += x
     np.savetxt(filename, transformation_matrices, fmt='%d,%d,%d,%d,%d', header=header+'x,y,keep,x_raw,y_raw', delimiter='\t')
 
+    # create logfile
+    logfile = os.path.join(output_path, output_basename+".log")
+    with open(logfile, 'w') as f:
+        f.write(buffered_handler.get_messages())
+
     return transformation_matrices
 
 
@@ -892,16 +902,10 @@ def registration_main(image_path, output_path, output_basename, channel_position
             logger.debug("creating: %s", output_path)
             os.makedirs(output_path)
 
-        logfile = os.path.join(output_path, output_basename+".log")
         logger.setLevel(logging.DEBUG)
-        logger.debug("writing log output to: %s", logfile)
-        logfile_handler = logging.FileHandler(logfile, mode='w')
-        logfile_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
-        logfile_handler.setLevel(logging.INFO)
-        logger.addHandler(logfile_handler)
-        # Also save general.general_functions logger to the same file (to log information on z-projection)
-        logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
-        logging.getLogger('general.general_functions').addHandler(logfile_handler)
+
+        # Log to file:
+        # saved at the end, using the content of the BufferedHandler.
 
         # Log to memory
         global buffered_handler
@@ -910,6 +914,7 @@ def registration_main(image_path, output_path, output_basename, channel_position
         buffered_handler.setLevel(logging.INFO)
         logger.addHandler(buffered_handler)
         # Also save general.general_functions logger to the same file (to log information on z-projection)
+        logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
         logging.getLogger('general.general_functions').addHandler(buffered_handler)
 
         logger.info("System info:")
@@ -993,13 +998,10 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
             logger.debug("creating: %s", output_path)
             os.makedirs(output_path)
 
-        logfile = os.path.join(output_path, output_basename+".log")
         logger.setLevel(logging.DEBUG)
-        logger.debug("writing log output to: %s", logfile)
-        logfile_handler = logging.FileHandler(logfile, mode='w')
-        logfile_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
-        logfile_handler.setLevel(logging.INFO)
-        logger.addHandler(logfile_handler)
+
+        # Log to file:
+        # saved at the end, using the content of the BufferedHandler.
 
         # Log to memory
         global buffered_handler
@@ -1081,6 +1083,8 @@ def manual_edit_main(image_path, matrix_path):
         # Setup logging to file in output_path
         logger = logging.getLogger(__name__)
         logger.info("REGISTRATION MODULE (manual editing)")
+
+        logger.setLevel(logging.DEBUG)
 
         # Log to file:
         # saved at the end, using the content of the BufferedHandler.

@@ -163,17 +163,10 @@ def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_pa
             logger.debug("creating: %s", output_path)
             os.makedirs(output_path)
 
-        # Log to file
-        logfile = os.path.join(output_path, output_basename+".log")
         logger.setLevel(logging.DEBUG)
-        logger.debug("writing log output to: %s", logfile)
-        logfile_handler = logging.FileHandler(logfile, mode='w')
-        logfile_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - segmentation module) [%(levelname)s] %(message)s'))
-        logfile_handler.setLevel(logging.INFO)
-        logger.addHandler(logfile_handler)
-        # Also save general.general_functions logger to the same file (to log information on z-projection)
-        logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
-        logging.getLogger('general.general_functions').addHandler(logfile_handler)
+
+        # Log to file:
+        # saved at the end, using the content of the BufferedHandler.
 
         # Log to memory
         buffered_handler = gf.BufferedHandler()
@@ -181,6 +174,7 @@ def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_pa
         buffered_handler.setLevel(logging.INFO)
         logger.addHandler(buffered_handler)
         # Also save general.general_functions logger to the same file (to log information on z-projection)
+        logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
         logging.getLogger('general.general_functions').addHandler(buffered_handler)
 
         # Cellpose_version already contains platform, python version and torch version
@@ -367,6 +361,11 @@ def main(image_path, segmentation_method, cellpose_model_type, cellpose_model_pa
         for x in image_metadata:
             ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
         OmeTiffWriter.save(mask, output_name, ome_xml=ome_metadata)
+
+        # create logfile
+        logfile = os.path.join(output_path, output_basename+".log")
+        with open(logfile, 'w') as f:
+            f.write(buffered_handler.get_messages())
 
         if display_results:
             # Show mask in napari

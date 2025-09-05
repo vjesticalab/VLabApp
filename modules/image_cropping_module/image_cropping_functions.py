@@ -594,6 +594,8 @@ def main(image_path, output_path, output_basename, T_range, C_range, Z_range, Y_
             logger.debug('creating: %s', output_path)
             os.makedirs(output_path)
 
+        logger.setLevel(logging.DEBUG)
+
         # Log to file:
         # Output filename depends on the cropping range. When using
         # display_results==True, the final cropping range is only
