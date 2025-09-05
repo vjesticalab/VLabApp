@@ -6,6 +6,7 @@
 
 * Save log files only when saving output files.
 * Log files: use same format as metadata.
+* Cell tracking and graph filtering module: try to automatically fill "Input image" field.
 
 ### Removed
 

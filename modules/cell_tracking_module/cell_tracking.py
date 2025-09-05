@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import time
 import concurrent.futures
@@ -151,8 +152,20 @@ class CellTracking(QWidget):
         self.logger = logging.getLogger(__name__)
 
     def mask_list_changed(self):
+        self.input_image.setPlaceholderText('')
+        self.input_image.setToolTip('')
         if self.mask_list.count() > 1:
             self.display_results.setChecked(False)
+        elif self.mask_list.count() == 1:
+            mask_path = self.mask_list.get_file_list()[0]
+            res = re.match('(.*)'+gf.output_suffixes['segmentation']+'.*$', os.path.basename(mask_path))
+            if res:
+                for ext in gf.imagetypes:
+                    image_path = os.path.join(os.path.dirname(mask_path), res.group(1)) + ext
+                    if os.path.isfile(image_path):
+                        self.input_image.setPlaceholderText(image_path)
+                        self.input_image.setToolTip(image_path)
+                        break
         self.display_results.setEnabled(self.mask_list.count() <= 1)
 
     def nframes_defect_changed(self, value):
@@ -225,6 +238,10 @@ class CellTracking(QWidget):
 
         if self.input_image.isEnabled():
             image_path = self.input_image.text()
+            if image_path == '':
+                image_path = self.input_image.placeholderText()
+            elif image_path.strip() == '':
+                image_path = ''
         else:
             image_path = ""
         mask_paths = self.mask_list.get_file_list()

@@ -321,6 +321,7 @@ class DropFilesTableWidget2(QTableWidget):
     """
     A QTableWidget with drop support for files and folders with 2 columns. If a folder is dropped, all files contained in the folder are added.
     """
+    changed = pyqtSignal()
 
     def __init__(self, filter_files_callback, parent=None, header_1=None, header_2=None):
         super().__init__(parent)
@@ -364,6 +365,8 @@ class DropFilesTableWidget2(QTableWidget):
             rows.add(index.row())
         for row in sorted(rows, reverse=True):
             self.removeRow(row)
+        if len(rows) > 0:
+            self.changed.emit()
 
     def add_files(self, filenames):
         filenames = self.filter_files_callback(filenames)
@@ -377,6 +380,7 @@ class DropFilesTableWidget2(QTableWidget):
             item.setToolTip(os.path.normpath(path_2))
             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             self.setItem(self.rowCount()-1, 1, item)
+        self.changed.emit()
 
 
 class FileTableWidget2(QWidget):
@@ -420,8 +424,7 @@ class FileTableWidget2(QWidget):
         self.file_table = DropFilesTableWidget2(self.filter_files, header_1=header_1, header_2=header_2)
         self.file_table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.file_table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.file_table.model().rowsInserted.connect(self.file_table_rows_inserted)
-        self.file_table.model().rowsRemoved.connect(self.file_table_rows_removed)
+        self.file_table.changed.connect(self.file_table_changed)
         self.add_file_button = QPushButton("Add files", self)
         self.add_file_button.clicked.connect(self.add_file)
         self.add_folder_button = QPushButton("Add folder", self)
@@ -459,12 +462,6 @@ class FileTableWidget2(QWidget):
         layout.addWidget(help_label)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
-
-    def file_table_rows_inserted(self):
-        self.file_table_changed.emit()
-
-    def file_table_rows_removed(self):
-        self.file_table_changed.emit()
 
     def add_file(self):
         type_list = ['*'+self.suffix_1.text(), '*'+self.suffix_2.text()]
@@ -526,6 +523,7 @@ class FileTableWidget2(QWidget):
             item.setToolTip(os.path.normpath(f2))
             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
             self.file_table.setItem(self.file_table.rowCount()-1, 1, item)
+        self.file_table_changed.emit()
 
 
 class ImageMatrixTableWidget2(QWidget):
