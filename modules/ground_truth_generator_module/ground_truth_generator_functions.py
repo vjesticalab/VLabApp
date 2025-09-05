@@ -575,7 +575,7 @@ def main(image_BF_path, image_fluo1_path, image_fluo2_path, image_mask_path, out
         # Log to memory
         global buffered_handler
         buffered_handler = gf.BufferedHandler()
-        buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - segmentation module) [%(levelname)s] %(message)s'))
+        buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - ground truth generator module) [%(levelname)s] %(message)s'))
         buffered_handler.setLevel(logging.INFO)
         buffered_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
         logger.addHandler(buffered_handler)
