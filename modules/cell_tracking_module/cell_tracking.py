@@ -3,6 +3,7 @@ import sys
 import time
 import concurrent.futures
 import logging
+import napari
 from PyQt5.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget, QGroupBox, QApplication, QSpinBox, QFormLayout
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
@@ -214,6 +215,14 @@ class CellTracking(QWidget):
         self.nprocesses.setValue(widgets_state['nprocesses'])
 
     def submit(self):
+        # This is a temporary workaround to avoid having multiple conflicting
+        # logging to metadata and log file, which could happen when a napari
+        # window is already opened.
+        # TODO: find a better solution.
+        if napari.current_viewer():
+            self.logger.error('To avoid potential log file corruption, close all napari windows and try again.')
+            return
+
         if self.input_image.isEnabled():
             image_path = self.input_image.text()
         else:

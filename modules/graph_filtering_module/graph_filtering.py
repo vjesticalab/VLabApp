@@ -3,6 +3,7 @@ import sys
 import time
 import concurrent.futures
 import logging
+import napari
 import igraph as ig
 from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QApplication, QLabel, QFormLayout, QSpinBox, QCheckBox, QSizePolicy
 from PyQt5.QtCore import Qt
@@ -400,6 +401,14 @@ class GraphFiltering(QWidget):
         self.nprocesses.setValue(widgets_state['nprocesses'])
 
     def submit(self):
+        # This is a temporary workaround to avoid having multiple conflicting
+        # logging to metadata and log file, which could happen when a napari
+        # window is already opened.
+        # TODO: find a better solution.
+        if napari.current_viewer():
+            self.logger.error('To avoid potential log file corruption, close all napari windows and try again.')
+            return
+
         if self.input_image.isEnabled():
             image_path = self.input_image.text()
         else:

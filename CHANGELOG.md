@@ -8,6 +8,8 @@
 
 ### Fixed
 
+* Cell tracking and graph filtering modules: message "To avoid potential log file corruption, close all napari windows and try again" is now shown in a message box.
+
 
 
 
