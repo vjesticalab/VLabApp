@@ -896,7 +896,7 @@ def registration_main(image_path, output_path, output_basename, channel_position
         logger.setLevel(logging.DEBUG)
         logger.debug("writing log output to: %s", logfile)
         logfile_handler = logging.FileHandler(logfile, mode='w')
-        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        logfile_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
         logfile_handler.setLevel(logging.INFO)
         logger.addHandler(logfile_handler)
         # Also save general.general_functions logger to the same file (to log information on z-projection)
@@ -997,7 +997,7 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
         logger.setLevel(logging.DEBUG)
         logger.debug("writing log output to: %s", logfile)
         logfile_handler = logging.FileHandler(logfile, mode='w')
-        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        logfile_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - registration module) [%(levelname)s] %(message)s'))
         logfile_handler.setLevel(logging.INFO)
         logger.addHandler(logfile_handler)
 

@@ -1615,7 +1615,7 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
         logger.setLevel(logging.DEBUG)
         logger.debug("writing log output to: %s", logfile)
         logfile_handler = logging.FileHandler(logfile, mode='w')
-        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        logfile_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - cell tracking module) [%(levelname)s] %(message)s'))
         logfile_handler.setLevel(logging.INFO)
         logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
         logger.addHandler(logfile_handler)

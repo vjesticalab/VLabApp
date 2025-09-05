@@ -60,7 +60,7 @@ def main(image_path, output_path, output_basename, projection_type, projection_z
         logger.setLevel(logging.DEBUG)
         logger.debug("writing log output to: %s", logfile)
         logfile_handler = logging.FileHandler(logfile, mode='w')
-        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
+        logfile_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - z-projection module) [%(levelname)s] %(message)s'))
         logfile_handler.setLevel(logging.INFO)
         logger.addHandler(logfile_handler)
         # Also save general.general_functions logger to the same file (to log information on z-projection)

@@ -5,6 +5,7 @@
 ### Changed
 
 * Registration module, Editing (manual): save log file only when saving output files.
+* Log files: use same format as metadata.
 
 ### Removed
 
