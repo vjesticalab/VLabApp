@@ -17,7 +17,7 @@ NAME = 'Cell shapes'
 
 # The widget (shown in the right panel of the GUI)
 class Widget(QWidget):
-    def __init__(self, parent=None, pipeline_layout=False):
+    def __init__(self, parent=None):
         super().__init__(parent)
 
         self.output_suffix = '_vCS'
