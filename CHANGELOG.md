@@ -4,6 +4,8 @@
 
 ### Changed
 
+* Registration module, Editing (manual): save log file only when saving output files.
+
 ### Removed
 
 ### Fixed

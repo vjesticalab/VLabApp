@@ -273,6 +273,11 @@ class EditTransformationMatrix(QWidget):
         filename = self.input_filename
         if filename != '':
             logging.getLogger(__name__).info('Saving transformation matrix to %s', filename)
+            # append to logfile
+            logfile = gf.splitext(filename)[0] + '.log'
+            with open(logfile, 'a') as f:
+                f.write(buffered_handler.get_messages())
+            # save matrix
             header = buffered_handler.get_messages()
             for x in self.tmat_metadata:
                 header += x
@@ -1073,19 +1078,12 @@ def alignment_main(image_path, tmat_path, output_path, output_basename, skip_cro
 
 def manual_edit_main(image_path, matrix_path):
     try:
-        log_path = gf.splitext(matrix_path)[0] + '.log'
-
         # Setup logging to file in output_path
         logger = logging.getLogger(__name__)
         logger.info("REGISTRATION MODULE (manual editing)")
 
-        logfile = os.path.join(log_path)
-        logger.setLevel(logging.DEBUG)
-        logger.debug("writing log output to: %s", logfile)
-        logfile_handler = logging.FileHandler(logfile, mode='a')
-        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-        logfile_handler.setLevel(logging.INFO)
-        logger.addHandler(logfile_handler)
+        # Log to file:
+        # saved at the end, using the content of the BufferedHandler.
 
         # Log to memory
         global buffered_handler
