@@ -1,3 +1,17 @@
+## [v2.4.4] 2025-09-08
+### Changed
+
+* Save log files only when saving output files.
+* Log files: use same format as metadata.
+* Cell tracking and graph filtering module: try to automatically fill "Input image" field.
+
+### Fixed
+
+* Cell tracking and graph filtering modules: message "To avoid potential log file corruption, close all napari windows and try again" is now shown in a message box.
+
+
+
+
 ## [v2.4.3] 2025-09-04
 
 ### Changed

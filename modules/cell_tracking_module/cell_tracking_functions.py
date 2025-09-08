@@ -1521,6 +1521,11 @@ class CellTrackingWidget(QWidget):
             g['VLabApp:Annotation:'+str(i+2)] = x
         g.write_graphmlz(output_file3)
 
+        # create logfile
+        logfile = os.path.join(self.output_path, self.output_basename+".log")
+        with open(logfile, 'w') as f:
+            f.write(buffered_handler.get_messages())
+
         if not closing:
             self.mask_modified = False
             self.save_button.setStyleSheet("")
@@ -1611,14 +1616,10 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
             logger.debug("creating: %s", output_path)
             os.makedirs(output_path)
 
-        logfile = os.path.join(output_path, output_basename+".log")
         logger.setLevel(logging.DEBUG)
-        logger.debug("writing log output to: %s", logfile)
-        logfile_handler = logging.FileHandler(logfile, mode='w')
-        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-        logfile_handler.setLevel(logging.INFO)
-        logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
-        logger.addHandler(logfile_handler)
+
+        # Log to file:
+        # saved at the end, using the content of the BufferedHandler.
 
         # Log to memory
         global buffered_handler
@@ -1722,6 +1723,11 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
                     g['VLabApp:Annotation:'+str(i+2)] = x
                 g.write_graphmlz(output_file)
 
+                # create logfile
+                logfile = os.path.join(output_path, output_basename+".log")
+                with open(logfile, 'w') as f:
+                    f.write(buffered_handler.get_messages())
+
             # Remove all handlers for this module
             remove_all_log_handlers()
             return
@@ -1819,6 +1825,12 @@ def main(image_path, mask_path, output_path, output_basename, min_area=300, max_
             for i, x in enumerate(mask_metadata):
                 g['VLabApp:Annotation:'+str(i+2)] = x
             g.write_graphmlz(output_file)
+
+            # create logfile
+            logfile = os.path.join(output_path, output_basename+".log")
+            with open(logfile, 'w') as f:
+                f.write(buffered_handler.get_messages())
+
             # Remove all handlers for this module
             remove_all_log_handlers()
 

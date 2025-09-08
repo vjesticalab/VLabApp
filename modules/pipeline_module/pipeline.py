@@ -4,6 +4,7 @@ import sys
 import concurrent
 import time
 import numpy as np
+import napari
 from packaging.version import Version, InvalidVersion
 from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QAbstractItemView, QAction, QListView, QSizePolicy, QGroupBox, QApplication, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt, QEvent, QSettings
@@ -752,6 +753,13 @@ class Pipeline(QWidget):
                     next_matrix_path = None
                     last_job_with_same_input_idx = len(jobs) - 1
                 elif module_name == 'cell_tracking':
+                    # This is a temporary workaround to avoid having multiple conflicting
+                    # logging to metadata and log file, which could happen when a napari
+                    # window is already opened.
+                    # TODO: find a better solution.
+                    if napari.current_viewer():
+                        self.logger.error('To avoid potential log file corruption, close all napari windows and try again.')
+                        return
                     image_path = ''
                     mask_path = next_mask_path
                     output_suffix = gf.output_suffixes['cell_tracking']
@@ -793,6 +801,13 @@ class Pipeline(QWidget):
                     next_matrix_path = None
                     last_job_with_same_input_idx = len(jobs) - 1
                 elif module_name == 'graph_filtering':
+                    # This is a temporary workaround to avoid having multiple conflicting
+                    # logging to metadata and log file, which could happen when a napari
+                    # window is already opened.
+                    # TODO: find a better solution.
+                    if napari.current_viewer():
+                        self.logger.error('To avoid potential log file corruption, close all napari windows and try again.')
+                        return
                     image_path = ''
                     mask_path = next_mask_path
                     graph_path = next_graph_path

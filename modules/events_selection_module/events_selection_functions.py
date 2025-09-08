@@ -190,6 +190,11 @@ def save(mask, graph, output_path, output_basename, metadata=None):
         graph['VLabApp:Annotation:'+str(i+2)] = x
     graph.write_graphmlz(output_file)
 
+    # create logfile
+    logfile = os.path.join(output_path, output_basename+".log")
+    with open(logfile, 'w') as f:
+        f.write(buffered_handler.get_messages())
+
 
 def main(mask_path, graph_path, output_path, output_basename, events_type, nframes_before, nframes_after, filter_border, border_width, filter_nmissing, nmissing):
     """
@@ -232,15 +237,10 @@ def main(mask_path, graph_path, output_path, output_basename, events_type, nfram
             logger.debug("creating: %s", output_path)
             os.makedirs(output_path)
 
-        # Log to file
-        logfile = os.path.join(output_path, output_basename+".log")
         logger.setLevel(logging.DEBUG)
-        logger.debug("writing log output to: %s", logfile)
-        logfile_handler = logging.FileHandler(logfile, mode='w')
-        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-        logfile_handler.setLevel(logging.INFO)
-        logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
-        logger.addHandler(logfile_handler)
+
+        # Log to file:
+        # saved at the end, using the content of the BufferedHandler.
 
         # Log to memory
         global buffered_handler

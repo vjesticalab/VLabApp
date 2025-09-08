@@ -1,8 +1,10 @@
 import os
+import re
 import sys
 import time
 import concurrent.futures
 import logging
+import napari
 import igraph as ig
 from PyQt5.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QGroupBox, QApplication, QLabel, QFormLayout, QSpinBox, QCheckBox, QSizePolicy
 from PyQt5.QtCore import Qt
@@ -328,8 +330,20 @@ class GraphFiltering(QWidget):
         self.logger = logging.getLogger(__name__)
 
     def mask_graph_table_changed(self):
+        self.input_image.setPlaceholderText('')
+        self.input_image.setToolTip('')
         if self.mask_graph_table.rowCount() > 1:
             self.display_results.setChecked(False)
+        elif self.mask_graph_table.rowCount() == 1:
+            mask_path = self.mask_graph_table.get_file_table()[0][0]
+            res = re.match('(.*)'+gf.output_suffixes['segmentation']+'.*$', os.path.basename(mask_path))
+            if res:
+                for ext in gf.imagetypes:
+                    image_path = os.path.join(os.path.dirname(mask_path), res.group(1)) + ext
+                    if os.path.isfile(image_path):
+                        self.input_image.setPlaceholderText(image_path)
+                        self.input_image.setToolTip(image_path)
+                        break
         self.display_results.setEnabled(self.mask_graph_table.rowCount() <= 1)
 
     def get_widgets_state(self):
@@ -400,8 +414,20 @@ class GraphFiltering(QWidget):
         self.nprocesses.setValue(widgets_state['nprocesses'])
 
     def submit(self):
+        # This is a temporary workaround to avoid having multiple conflicting
+        # logging to metadata and log file, which could happen when a napari
+        # window is already opened.
+        # TODO: find a better solution.
+        if napari.current_viewer():
+            self.logger.error('To avoid potential log file corruption, close all napari windows and try again.')
+            return
+
         if self.input_image.isEnabled():
             image_path = self.input_image.text()
+            if image_path == '':
+                image_path = self.input_image.placeholderText()
+            elif image_path.strip() == '':
+                image_path = ''
         else:
             image_path = ""
 

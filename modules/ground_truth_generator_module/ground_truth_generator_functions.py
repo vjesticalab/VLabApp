@@ -418,6 +418,11 @@ class GroundTruthWidget(QWidget):
             ome_metadata.structured_annotations.append(CommentAnnotation(value=x, namespace="VLabApp"))
         OmeTiffWriter.save(self.mask, output_file, ome_xml=ome_metadata)
 
+        # log file
+        logfile = os.path.join(self.output_path, self.output_basename+'.log')
+        with open(logfile, 'w') as f:
+            f.write(buffered_handler.get_messages())
+
         if not closing:
             self.mask_modified = False
             self.save_button.setStyleSheet("")
@@ -559,27 +564,20 @@ def main(image_BF_path, image_fluo1_path, image_fluo2_path, image_mask_path, out
             logger.debug("creating: %s", output_path)
             os.makedirs(output_path)
 
-        # Log to file
-        logfile = os.path.join(output_path, output_basename+".log")
         logger.setLevel(logging.DEBUG)
-        logger.debug("writing log output to: %s", logfile)
-        logfile_handler = logging.FileHandler(logfile, mode='w')
-        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-        logfile_handler.setLevel(logging.INFO)
-        logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
-        logger.addHandler(logfile_handler)
-        # Also save general.general_functions logger to the same file (to log information on z-projection)
-        logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
-        logging.getLogger('general.general_functions').addHandler(logfile_handler)
+
+        # Log to file:
+        # saved at the end, using the content of the BufferedHandler.
 
         # Log to memory
         global buffered_handler
         buffered_handler = gf.BufferedHandler()
-        buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - segmentation module) [%(levelname)s] %(message)s'))
+        buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - ground truth generator module) [%(levelname)s] %(message)s'))
         buffered_handler.setLevel(logging.INFO)
         buffered_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
         logger.addHandler(buffered_handler)
         # Also save general.general_functions logger to the same file (to log information on z-projection)
+        logging.getLogger('general.general_functions').setLevel(logging.DEBUG)
         logging.getLogger('general.general_functions').addHandler(buffered_handler)
 
         logger.info("System info:")

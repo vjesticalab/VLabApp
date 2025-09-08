@@ -652,6 +652,11 @@ class CellTracksFiltering:
             g['VLabApp:Annotation:'+str(i+2)] = x
         g.write_graphmlz(output_file)
 
+        # create logfile
+        logfile = os.path.join(output_path, output_basename+".log")
+        with open(logfile, 'w') as f:
+            f.write(buffered_handler.get_messages())
+
 
 class GraphFilteringWidget(QWidget):
     """
@@ -1105,15 +1110,10 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
             logger.debug("creating: %s", output_path)
             os.makedirs(output_path)
 
-        # Log to file
-        logfile = os.path.join(output_path, output_basename+".log")
         logger.setLevel(logging.DEBUG)
-        logger.debug("writing log output to: %s", logfile)
-        logfile_handler = logging.FileHandler(logfile, mode='w')
-        logfile_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
-        logfile_handler.setLevel(logging.INFO)
-        logfile_handler.addFilter(gf.IgnoreDuplicate("Manually editing mask"))
-        logger.addHandler(logfile_handler)
+
+        # Log to file:
+        # saved at the end, using the content of the BufferedHandler.
 
         # Log to memory
         global buffered_handler
@@ -1216,6 +1216,11 @@ def main(image_path, mask_path, graph_path, output_path, output_basename, filter
                 for i, x in enumerate(metadata):
                     graph['VLabApp:Annotation:'+str(i+2)] = x
                 graph.write_graphmlz(output_file)
+
+                # create logfile
+                logfile = os.path.join(output_path, output_basename+".log")
+                with open(logfile, 'w') as f:
+                    f.write(buffered_handler.get_messages())
 
             # Remove all handlers for this module
             remove_all_log_handlers()

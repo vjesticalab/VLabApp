@@ -480,37 +480,37 @@ class ImageCroppingWidget(QWidget):
         log_messages = buffered_handler.get_messages()
         if self.crop_T.isChecked():
             T_range = self.crop_T_range.value()
-            log_messages += f"{asctime} (VLabApp - segmentation module) [INFO] Cropping T axis: from {T_range[0]} to {T_range[1]}\n"
+            log_messages += f"{asctime} (VLabApp - image cropping module) [INFO] Cropping T axis: from {T_range[0]} to {T_range[1]}\n"
             self.logger.debug("Cropping T axis: from %s to %s", T_range[0], T_range[1])
         else:
             T_range = (0, self.image.sizes['T']-1)
         if self.crop_C.isChecked():
             C_range = self.crop_C_range.value()
-            log_messages += f"{asctime} (VLabApp - segmentation module) [INFO] Cropping C axis: from {C_range[0]} to {C_range[1]}\n"
+            log_messages += f"{asctime} (VLabApp - image cropping module) [INFO] Cropping C axis: from {C_range[0]} to {C_range[1]}\n"
             self.logger.debug("Cropping C axis: from %s to %s", C_range[0], C_range[1])
         else:
             C_range = (0, self.image.sizes['C']-1)
         if self.crop_Z.isChecked():
             Z_range = self.crop_Z_range.value()
-            log_messages += f"{asctime} (VLabApp - segmentation module) [INFO] Cropping Z axis: from {Z_range[0]} to {Z_range[1]}\n"
+            log_messages += f"{asctime} (VLabApp - image cropping module) [INFO] Cropping Z axis: from {Z_range[0]} to {Z_range[1]}\n"
             self.logger.debug("Cropping Z axis: from %s to %s", Z_range[0], Z_range[1])
         else:
             Z_range = (0, self.image.sizes['Z']-1)
         if self.crop_Y.isChecked():
             Y_range = self.crop_Y_range.value()
-            log_messages += f"{asctime} (VLabApp - segmentation module) [INFO] Cropping Y axis: from {Y_range[0]} to {Y_range[1]}\n"
+            log_messages += f"{asctime} (VLabApp - image cropping module) [INFO] Cropping Y axis: from {Y_range[0]} to {Y_range[1]}\n"
             self.logger.debug("Cropping Y axis: from %s to %s", Y_range[0], Y_range[1])
         else:
             Y_range = (0, self.image.sizes['Y']-1)
         if self.crop_X.isChecked():
             X_range = self.crop_X_range.value()
-            log_messages += f"{asctime} (VLabApp - segmentation module) [INFO] Cropping X axis: from {X_range[0]} to {X_range[1]}\n"
+            log_messages += f"{asctime} (VLabApp - image cropping module) [INFO] Cropping X axis: from {X_range[0]} to {X_range[1]}\n"
             self.logger.debug("Cropping X axis: from %s to %s", X_range[0], X_range[1])
         else:
             X_range = (0, self.image.sizes['X']-1)
 
         output_name = os.path.join(self.output_path, self.output_basename+".ome.tif")
-        log_messages += f"{asctime} (VLabApp - segmentation module) [INFO] Saving cropped image to {output_name}\n"
+        log_messages += f"{asctime} (VLabApp - image cropping module) [INFO] Saving cropped image to {output_name}\n"
         self.logger.debug("Saving cropped image to %s", output_name)
         cropped_image = self.image.image[:,
                                          T_range[0]:(T_range[1]+1),
@@ -594,6 +594,8 @@ def main(image_path, output_path, output_basename, T_range, C_range, Z_range, Y_
             logger.debug('creating: %s', output_path)
             os.makedirs(output_path)
 
+        logger.setLevel(logging.DEBUG)
+
         # Log to file:
         # Output filename depends on the cropping range. When using
         # display_results==True, the final cropping range is only
@@ -604,7 +606,7 @@ def main(image_path, output_path, output_basename, T_range, C_range, Z_range, Y_
         # Log to memory
         global buffered_handler
         buffered_handler = gf.BufferedHandler()
-        buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - segmentation module) [%(levelname)s] %(message)s'))
+        buffered_handler.setFormatter(logging.Formatter('%(asctime)s (VLabApp - image cropping module) [%(levelname)s] %(message)s'))
         buffered_handler.setLevel(logging.INFO)
         logger.addHandler(buffered_handler)
 
