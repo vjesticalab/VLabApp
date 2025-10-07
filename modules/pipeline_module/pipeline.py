@@ -990,6 +990,7 @@ class Pipeline(QWidget):
                             except Exception as e:
                                 jobs[n]['status'] = 'Failed'
                                 jobs[n]['error_message'] = str(e)
+                                self.logger.exception("%s failed",jobs[n]['module_label'])
                                 status_dialog.table.item(jobs[n]['input_idx'], jobs[n]['module_idx']-1).setText('Failed')
                                 status_dialog.table.item(jobs[n]['input_idx'], jobs[n]['module_idx']-1).setBackground(QBrush(QColor('#ff0000')))
                                 status_dialog.table.item(jobs[n]['input_idx'], jobs[n]['module_idx']-1).setForeground(QBrush(QColor('#000000')))
@@ -1026,6 +1027,7 @@ class Pipeline(QWidget):
                     except Exception as e:
                         job['status'] = 'Failed'
                         job['error_message'] = str(e)
+                        self.logger.exception("%s failed",job['module_label'])
                         status_dialog.table.item(job['input_idx'], job['module_idx']-1).setText('Failed')
                         status_dialog.table.item(job['input_idx'], job['module_idx']-1).setBackground(QBrush(QColor('#ff0000')))
                         status_dialog.table.item(job['input_idx'], job['module_idx']-1).setForeground(QBrush(QColor('#000000')))

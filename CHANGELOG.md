@@ -8,7 +8,7 @@
 
 ### Fixed
 
-
+* Pipeline module: write error messages to standard output.
 
 
 
